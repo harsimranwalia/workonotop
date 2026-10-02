@@ -21,8 +21,8 @@
 //    says so). What the check reads right and wrong is the table `wiringShapes` (above the cases), one row per shape with
 //    the verdict it gets, run by the case "the wiring check gives every shape of the table its verdict": a sentence in this
 //    file about what the check catches or misses names a row of it.
-// Until a route is converted its wiring case fails; those are the known failures in e2e/baseline.json that each
-// converting ticket turns green.
+// Until a route is converted its wiring case fails (row c1: an unguarded method is reported); those are the known failures
+// in e2e/baseline.json that each converting ticket turns green.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -102,8 +102,8 @@ const importsName = (source, name, from) =>
  * `export async function <method>` at column 0 up to, not including, the earliest line after it that starts at column 0
  * with `export`, `function`, `async function`, `function*`, `const`, `let`, `var`, `class`, `import` or `}`, looked for in
  * `code` and in `raw` (the same file with its comments in place; blanking keeps every offset, so one offset serves both).
- * With no such line, to the end of the file. Null when `code` has no such signature. What each part of the end rule is
- * for: looking in `raw` as well, rows s1 to s5, s7, s8 and f2; the closing brace, rows s9 to s11; `function*`, row s15.
+ * Null when `code` has no such signature (rows f1 and x5). What each part of the end rule is for: looking in `raw` as well,
+ * rows s1 to s5, s7, s8 and f2; the closing brace, rows s9 to s11; `function*`, row s15.
  */
 function methodText(code, method, raw) {
     const start = code.search(new RegExp(`^export\\s+async\\s+function\\s+${method}\\b`, 'm'));
@@ -130,7 +130,7 @@ const withoutComments = (text) => text.replace(/\/\*[\s\S]*?\*\//g, blank).repla
  *     const auth = await requireCaller(request, ['admin']);
  *     if (!auth.ok) return auth.response;
  * What is reported when a piece of them is missing, by row: the call only in a comment (rows c4, x6), without `await` (g1),
- * without keeping its result (g2), the result kept but never used to refuse (g3), a roles list that is not the row's (g4),
+ * without keeping its result (g2), the result kept but never used to refuse (g3), a roles list that is not the row's (g4) or not written out in brackets (g14),
  * a request that is not the handler's own first parameter (g7). `code` is the method's text as `methodText` returns it.
  * Returns the list of what is missing.
  */
@@ -254,6 +254,7 @@ const wiringShapes = [
     { id: 'g11', label: 'Stripe row: POST has no call, the GET below it has one: must be reported', row: stripeRow, source: handler('POST') + '\n' + handler('GET', stripeCall), verdict: 'REPORTED' },
     { id: 'g12', label: "GET queries the database before its guard: not caught, the guard need not be the method's first statement", row: getRow, source: imp + getWith("  const rows = await db.query('SELECT 1');\n" + guard), verdict: 'clean' },
     { id: 'g13', label: 'AI gateway row: POST calls verifyAiGatewayAuth(request), GET does not: false pass, file level by design (the PATCH handlers hand over to POST), not caught', row: gatewayRow, source: "import { verifyAiGatewayAuth } from '@/lib/ai-gateway-auth';\n" + handler('POST', '  const auth = verifyAiGatewayAuth(request);\n  if (!auth.ok) return auth.response;\n') + '\n' + handler('GET'), verdict: 'clean' },
+    { id: 'g14', label: 'the roles passed as a variable, requireCaller(request, ROLES), not as a list in brackets; the message asks for a literal roles list: false failure, loud', row: getRow, source: imp + getWith('  const auth = await requireCaller(request, ROLES);\n  if (!auth.ok) return auth.response;\n'), verdict: 'REPORTED' },
 ];
 
 // ---- the cases --------------------------------------------------------------------------------------------------
