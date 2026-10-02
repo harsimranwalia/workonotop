@@ -117,10 +117,10 @@ const withoutComments = (text) => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(
  * is open: the call only in a comment, the call without `await` or without keeping its result, the result kept but never
  * used to refuse, and a roles list that is not the row's. So it needs all of: the call outside any comment, awaited,
  * with the handler's own request, with a literal list that names exactly the row's roles, its result in a variable,
- * and `if (!<that variable>.ok) return <that variable>.response`. Returns the list of what is missing.
+ * and `if (!<that variable>.ok) return <that variable>.response`. `code` is the method's text with its comments already
+ * taken out (wiringProblems does that once). Returns the list of what is missing.
  */
-function guardCallProblems(row, body) {
-    const code = withoutComments(body);
+function guardCallProblems(row, code) {
     // The handler's own first parameter (`request` in every route today; the eight handlers that take none have to add it).
     const param = code.match(/^export\s+async\s+function\s+\w+\s*\(\s*(\w*)/)?.[1];
     if (!param) return [`${row.method} takes no request parameter to hand to requireCaller`];
@@ -144,10 +144,15 @@ function wiringProblems(row, source) {
     const problems = [];
     const body = methodText(source, row.method);
     if (body === null) return [`the file does not export \`async function ${row.method}\``];
+    // Every import check and every call test below, in every branch, reads the code and never the raw text: an import or a
+    // call that only a comment names is not wired. (Once the roles branch stripped comments and the self branches did
+    // not, so a commented-out call satisfied them: the standards' "failure direction is not uniform".)
+    const code = withoutComments(source);
+    const methodCode = withoutComments(body);
 
     if (row.kind === 'roles') {
-        if (!importsName(source, 'requireCaller', '@/lib/api-auth')) problems.push("does not import requireCaller from '@/lib/api-auth'");
-        problems.push(...guardCallProblems(row, body));
+        if (!importsName(code, 'requireCaller', '@/lib/api-auth')) problems.push("does not import requireCaller from '@/lib/api-auth'");
+        problems.push(...guardCallProblems(row, methodCode));
         return problems;
     }
 
@@ -155,13 +160,13 @@ function wiringProblems(row, source) {
         const text = String(row.self || '');
         if (/AI gateway/i.test(text)) {
             // File level: today the AI gateway PATCH handlers hand over to POST, which makes the call.
-            if (!importsName(source, 'verifyAiGatewayAuth', '@/lib/ai-gateway-auth')) problems.push("does not import verifyAiGatewayAuth from '@/lib/ai-gateway-auth'");
-            if (!/\bverifyAiGatewayAuth\s*\(/.test(source)) problems.push('never calls verifyAiGatewayAuth(request)');
+            if (!importsName(code, 'verifyAiGatewayAuth', '@/lib/ai-gateway-auth')) problems.push("does not import verifyAiGatewayAuth from '@/lib/ai-gateway-auth'");
+            if (!/\bverifyAiGatewayAuth\s*\(/.test(code)) problems.push('never calls verifyAiGatewayAuth(request)');
         } else if (/CRON_SECRET/.test(text)) {
-            if (!importsName(source, 'requireCronSecret', '@/lib/api-auth')) problems.push("does not import requireCronSecret from '@/lib/api-auth'");
-            if (!/\brequireCronSecret\s*\(/.test(body)) problems.push(`${row.method} does not call requireCronSecret(request)`);
+            if (!importsName(code, 'requireCronSecret', '@/lib/api-auth')) problems.push("does not import requireCronSecret from '@/lib/api-auth'");
+            if (!/\brequireCronSecret\s*\(/.test(methodCode)) problems.push(`${row.method} does not call requireCronSecret(request)`);
         } else if (/Stripe signature/i.test(text)) {
-            if (!/\bwebhooks\.constructEvent\s*\(/.test(body)) problems.push(`${row.method} does not verify the Stripe signature (webhooks.constructEvent)`);
+            if (!/\bwebhooks\.constructEvent\s*\(/.test(methodCode)) problems.push(`${row.method} does not verify the Stripe signature (webhooks.constructEvent)`);
         } else {
             problems.push(`no wiring rule for the self-authenticating check "${text}": add one to e2e/auth-coverage.spec.js`);
         }
