@@ -40,14 +40,23 @@ test.describe('Homepage', () => {
         await expect(page.getByRole('heading', { name: 'Chat & confirm', exact: true })).toBeVisible();
     });
 
-    test('should navigate to /services when search bar is clicked', async ({ page }) => {
+    test('should navigate to /services with the search term when the Search button is clicked', async ({ page }) => {
         await page.goto('/');
 
-        // Click the search bar area
-        const searchInput = page.locator('input[type="text"]').first();
-        await searchInput.click();
+        // The hero search is a controlled input whose Search button has no handler until React has hydrated it
+        // (src/components/AnimatedSearchBar.jsx:81-93): wait for that, or typed text and the click can be lost.
+        const searchButton = page.getByRole('button', { name: 'Search', exact: true });
+        await expect.poll(() => searchButton.evaluate((el) => Object.keys(el).some((key) => key.startsWith('__reactProps$')))).toBe(true);
 
-        await expect(page).toHaveURL(/\/services/);
+        // Clicking into the field does not navigate; the Search button (or Enter) does, with the term
+        // (AnimatedSearchBar.jsx:44-54).
+        const searchInput = page.locator('input[type="text"]').first();
+        await searchInput.fill('furniture assembly');
+        await searchButton.click();
+
+        // A click-driven navigation to a route next dev has not compiled yet waits on that compile: give it the
+        // navigation allowance (playwright.config.js navigationTimeout), not the 10 s expect budget.
+        await expect(page).toHaveURL(/\/services\?search=furniture%20assembly$/, { timeout: 45_000 });
     });
 
     test('should have "View all services" link that navigates correctly', async ({ page }) => {
