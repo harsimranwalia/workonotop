@@ -63,6 +63,21 @@
     "api.spec.js › API Routes › PUT /api/bookings without id should return 400": {
       "outcome": "PASS"
     },
+    "auth-admin-page.spec.js › Admin page guard › GET /admin with a garbage adminAuth value is a 307 to /admin/login and clears the cookie": {
+      "outcome": "PASS"
+    },
+    "auth-admin-page.spec.js › Admin page guard › GET /admin with no cookie is a 307 to /admin/login": {
+      "outcome": "PASS"
+    },
+    "auth-admin-page.spec.js › Admin page guard › GET /admin with the admin's own cookie is a 200": {
+      "outcome": "PASS"
+    },
+    "auth-admin-page.spec.js › Admin page guard › GET /admin with the customer's token in adminAuth is a 307 to /admin/login and clears the cookie": {
+      "outcome": "PASS"
+    },
+    "auth-admin-page.spec.js › Admin page guard › GET /admin with the provider's token in adminAuth is a 307 to /admin/login and clears the cookie": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/blogs/[id] is in the matrix": {
       "outcome": "PASS"
     },
@@ -1360,6 +1375,9 @@
       "outcome": "FAIL",
       "error": "Error: src/app/api/user/settings/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a ..."
     },
+    "auth-guard.spec.js › Auth guard - a Bearer session lookup that rejects › the guard logs one line and answers 401; it does not fall through to the token signature in silence": {
+      "outcome": "PASS"
+    },
     "auth-guard.spec.js › Auth guard - allowed callers › a credential that already settles the request wins over a Bearer that would not verify": {
       "outcome": "PASS"
     },
@@ -1373,6 +1391,9 @@
       "outcome": "PASS"
     },
     "auth-guard.spec.js › Auth guard - allowed callers › the first verified credential whose role is allowed wins, in the order admin, customer, provider, Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - cron secret › a request whose url cannot be parsed is decided by the Bearer secret alone, and the guard logs one line about it": {
       "outcome": "PASS"
     },
     "auth-guard.spec.js › Auth guard - cron secret › with CRON_SECRET set, the secret passes as a Bearer or as ?secret=, and nothing else does": {
@@ -1443,43 +1464,43 @@
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/blogs/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/blogs/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/admin/blogs/[id] [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/cities/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/cities/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/admin/cities/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/districts/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/districts/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/admin/districts/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/providers/[providerId]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/providers/[providerId] [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/admin/providers/[providerId] [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/seo/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/seo/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/admin/seo/[id] [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/service-areas/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/service-areas/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/admin/service-areas/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/service-locations/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/service-locations/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/admin/service-locations/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/skills/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/skills/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/admin/skills/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/states/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/states/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/admin/states/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/testimonials/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/testimonials/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/admin/testimonials/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/ai-gateway/v1/seo": {
       "outcome": "PASS"
@@ -1489,167 +1510,167 @@
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/bookings": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/bookings [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/bookings [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/categories": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/categories [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/categories [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/customers": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/customers [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/customers [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/provider": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/provider [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/provider [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/reviews": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/reviews [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/reviews [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/service-locations": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/service-locations [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/service-locations [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/services": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/services [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/services [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/upload": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/upload [roles (admin)] answered wrongly:"
+      "error": "Error: DELETE /api/upload [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/user/addresses/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/user/addresses/[id] [roles (customer)] answered wrongly:"
+      "error": "Error: DELETE /api/user/addresses/[id] [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/blogs": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/blogs [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/blogs [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/blogs/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/blogs/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/blogs/[id] [roles (admin)] answered wrongly: none (no credential): got 404, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/cities": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/cities [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/cities [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/cities/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/cities/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/cities/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/deletion-requests": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/deletion-requests [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/deletion-requests [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/disputes": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/disputes [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/disputes [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/disputes/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/disputes/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/disputes/[id] [roles (admin)] answered wrongly: none (no credential): got 404, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/districts": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/districts [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/districts [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/districts/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/districts/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/districts/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/earnings": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/earnings [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/earnings [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/invoices": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/invoices [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/invoices [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/invoices/[id]/preview": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/invoices/[id]/preview [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/invoices/[id]/preview [roles (admin)] answered wrongly: none (no credential): got 404, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/invoices/[id]/preview/download": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/invoices/[id]/preview/download [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/invoices/[id]/preview/download [roles (admin)] answered wrongly: none (no credential): got 404, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/logs": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/logs [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/logs [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/me": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/me [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/me [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/notifications": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/notifications [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/notifications [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/payouts": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/payouts [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/payouts [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/provider-jobs": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/provider-jobs [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/provider-jobs [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/providers": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/providers [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/providers [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/providers/[providerId]/documents": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/providers/[providerId]/documents [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/providers/[providerId]/documents [roles (admin)] answered wrongly: none (no credential): got 404, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/seo": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/seo [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/seo [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/seo/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/seo/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/seo/[id] [roles (admin)] answered wrongly: none (no credential): got 404, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/service-areas": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/service-areas [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/service-areas [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/service-areas/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/service-areas/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/service-areas/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/service-locations": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/service-locations [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/service-locations [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/service-locations/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/service-locations/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/service-locations/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/settings": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/settings [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/settings [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/skills": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/skills [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/skills [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/skills/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/skills/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/skills/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/states": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/states [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/states [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/states/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/states/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/states/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/testimonials": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/testimonials [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/admin/testimonials [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/ai-gateway/openapi.json": {
       "outcome": "PASS"
@@ -1668,11 +1689,11 @@
     },
     "auth-matrix.spec.js › Role by route › GET /api/bookings": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/bookings [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/bookings [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/bookings/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/bookings/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/bookings/[id] [roles (admin)] answered wrongly: none (no credential): got 404, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/bookings/[id]/invoice/download": {
       "outcome": "SKIPPED"
@@ -1682,43 +1703,43 @@
     },
     "auth-matrix.spec.js › Role by route › GET /api/chat": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/chat [roles (customer, provider, admin)] answered wrongly:"
+      "error": "Error: GET /api/chat [roles (customer, provider, admin)] answered wrongly: none (no credential): got 400, want 401"
     },
     "auth-matrix.spec.js › Role by route › GET /api/chat/unread": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/chat/unread [roles (customer, provider, admin)] answered wrongly:"
+      "error": "Error: GET /api/chat/unread [roles (customer, provider, admin)] answered wrongly: none (no credential): got 400, want 401"
     },
     "auth-matrix.spec.js › Role by route › GET /api/cron/auto-release": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/cron/auto-release [self] answered wrongly:"
+      "error": "Error: GET /api/cron/auto-release [self] held, nothing sent: the job runs for ANY caller in development mode (route.js:14) and moves money: held until ENG-022 adds requireCronSe..."
     },
     "auth-matrix.spec.js › Role by route › GET /api/cron/notifications": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/cron/notifications [self] answered wrongly:"
+      "error": "Error: GET /api/cron/notifications [self] held, nothing sent: the job runs for ANY caller while CRON_SECRET is unset (route.js:14): held until ENG-022 adds requireCronSecret"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customer/booking-details": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/customer/booking-details [roles (customer)] answered wrongly:"
+      "error": "Error: GET /api/customer/booking-details [roles (customer)] answered wrongly: provider-cookie (provider), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customer/bookings": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/customer/bookings [roles (customer, admin)] answered wrongly:"
+      "error": "Error: GET /api/customer/bookings [roles (customer, admin)] answered wrongly: none (no credential): got 400, want 401 (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customer/invoices": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/customer/invoices [roles (customer)] answered wrongly:"
+      "error": "Error: GET /api/customer/invoices [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customer/reviews": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/customer/reviews [roles (customer)] answered wrongly:"
+      "error": "Error: GET /api/customer/reviews [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customers": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/customers [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/customers [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customers/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/customers/[id] [roles (customer, admin)] answered wrongly:"
+      "error": "Error: GET /api/customers/[id] [roles (customer, admin)] answered wrongly: provider-cookie (provider), role not allowed: got 401, want 403 exactly (+1 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/directory": {
       "outcome": "PASS"
@@ -1728,74 +1749,74 @@
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/provider [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/availability": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/availability [roles (provider)] answered wrongly:"
+      "error": "Error: GET /api/provider/availability [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/available-jobs": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/available-jobs [roles (provider)] answered wrongly:"
+      "error": "Error: GET /api/provider/available-jobs [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/available-jobs/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/available-jobs/[id] [roles (provider)] answered wrongly:"
+      "error": "Error: GET /api/provider/available-jobs/[id] [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/bookings": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/bookings [roles (provider)] answered wrongly:"
+      "error": "Error: GET /api/provider/bookings [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/check-verification": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/dashboard-stats": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/dashboard-stats [roles (provider)] answered wrongly:"
+      "error": "Error: GET /api/provider/dashboard-stats [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/jobs": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/jobs [roles (provider)] answered wrongly:"
+      "error": "Error: GET /api/provider/jobs [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/jobs/[id] [roles (provider)] answered wrongly:"
+      "error": "Error: GET /api/provider/jobs/[id] [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/photos": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/jobs/photos [roles (provider)] answered wrongly:"
+      "error": "Error: GET /api/provider/jobs/photos [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/time-tracking": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/jobs/time-tracking [roles (provider)] answered wrongly:"
+      "error": "Error: GET /api/provider/jobs/time-tracking [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/me": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/me [roles (provider)] answered wrongly:"
+      "error": "Error: GET /api/provider/me [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/onboarding/documents": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/onboarding/documents [roles (provider)] answered wrongly:"
+      "error": "Error: GET /api/provider/onboarding/documents [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/onboarding/stripe-return": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/onboarding/stripe-return [roles (provider)] answered wrongly:"
+      "error": "Error: GET /api/provider/onboarding/stripe-return [roles (provider)] answered wrongly: none (no credential): got 500, want 401 (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/payouts": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/payouts [roles (provider)] answered wrongly:"
+      "error": "Error: GET /api/provider/payouts [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/profile": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/profile [roles (provider)] answered wrongly:"
+      "error": "Error: GET /api/provider/profile [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/ratings": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/ratings [roles (provider)] answered wrongly:"
+      "error": "Error: GET /api/provider/ratings [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/status": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/status [roles (provider)] answered wrongly:"
+      "error": "Error: GET /api/provider/status [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/validate-reset-token": {
       "outcome": "PASS"
@@ -1805,7 +1826,7 @@
     },
     "auth-matrix.spec.js › Role by route › GET /api/reviews": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/reviews [roles (customer, admin)] answered wrongly:"
+      "error": "Error: GET /api/reviews [roles (customer, admin)] answered wrongly: none (no credential): got 200, want 401 (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/seo": {
       "outcome": "PASS"
@@ -1824,34 +1845,34 @@
     },
     "auth-matrix.spec.js › Role by route › GET /api/stats": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/stats [roles (admin)] answered wrongly:"
+      "error": "Error: GET /api/stats [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/stripe/webhook": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/user/addresses": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/user/addresses [roles (customer)] answered wrongly:"
+      "error": "Error: GET /api/user/addresses [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/user/settings": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/user/settings [roles (customer, provider)] answered wrongly:"
+      "error": "Error: GET /api/user/settings [roles (customer, provider)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › PATCH /api/admin/deletion-requests": {
       "outcome": "FAIL",
-      "error": "Error: PATCH /api/admin/deletion-requests [roles (admin)] answered wrongly:"
+      "error": "Error: PATCH /api/admin/deletion-requests [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PATCH /api/admin/disputes": {
       "outcome": "FAIL",
-      "error": "Error: PATCH /api/admin/disputes [roles (admin)] answered wrongly:"
+      "error": "Error: PATCH /api/admin/disputes [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PATCH /api/admin/invoices": {
       "outcome": "FAIL",
-      "error": "Error: PATCH /api/admin/invoices [roles (admin)] answered wrongly:"
+      "error": "Error: PATCH /api/admin/invoices [roles (admin)] answered wrongly: none (no credential): got 500, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PATCH /api/admin/service-locations/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PATCH /api/admin/service-locations/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: PATCH /api/admin/service-locations/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PATCH /api/ai-gateway/v1/seo": {
       "outcome": "PASS"
@@ -1864,19 +1885,19 @@
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/blogs": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/blogs [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/admin/blogs [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/cities": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/cities [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/admin/cities [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/districts": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/districts [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/admin/districts [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/invoices/generate": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/invoices/generate [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/admin/invoices/generate [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/login": {
       "outcome": "PASS"
@@ -1886,35 +1907,35 @@
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/providers/[providerId]/documents": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/providers/[providerId]/documents [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/admin/providers/[providerId]/documents [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/seo": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/seo [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/admin/seo [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/service-areas": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/service-areas [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/admin/service-areas [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/service-locations": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/service-locations [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/admin/service-locations [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/settings": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/settings [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/admin/settings [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/skills": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/skills [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/admin/skills [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/states": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/states [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/admin/states [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/testimonials": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/testimonials [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/admin/testimonials [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/ai-gateway/v1/seo": {
       "outcome": "PASS"
@@ -1933,7 +1954,7 @@
     },
     "auth-matrix.spec.js › Role by route › POST /api/auth/change-password": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/auth/change-password [roles (customer, provider)] answered wrongly:"
+      "error": "Error: POST /api/auth/change-password [roles (customer, provider)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/auth/data-deletion": {
       "outcome": "PASS"
@@ -1979,74 +2000,74 @@
     },
     "auth-matrix.spec.js › Role by route › POST /api/bookings/[id]/reassign": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/bookings/[id]/reassign [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/bookings/[id]/reassign [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/bookings/[id]/restart": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/bookings/[id]/restart [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/bookings/[id]/restart [roles (admin)] answered wrongly: none (no credential): got 500, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/categories": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/categories [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/categories [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/chat": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/chat [roles (customer, provider, admin)] answered wrongly:"
+      "error": "Error: POST /api/chat [roles (customer, provider, admin)] answered wrongly: none (no credential): got 400, want 401"
     },
     "auth-matrix.spec.js › Role by route › POST /api/chat/mark-read": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/chat/mark-read [roles (customer, provider, admin)] answered wrongly:"
+      "error": "Error: POST /api/chat/mark-read [roles (customer, provider, admin)] answered wrongly: none (no credential): got 400, want 401"
     },
     "auth-matrix.spec.js › Role by route › POST /api/customer/bookings": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/customer/bookings [roles (customer, admin)] answered wrongly:"
+      "error": "Error: POST /api/customer/bookings [roles (customer, admin)] answered wrongly: none (no credential): got 400, want 401 (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/customer/bookings/[id]/approve": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/customer/bookings/[id]/approve [roles (customer)] answered wrongly:"
+      "error": "Error: POST /api/customer/bookings/[id]/approve [roles (customer)] answered wrongly: provider-cookie (provider), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/customer/bookings/[id]/cancel": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/customer/bookings/[id]/cancel [roles (customer)] answered wrongly:"
+      "error": "Error: POST /api/customer/bookings/[id]/cancel [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/customer/reviews": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/customer/reviews [roles (customer)] answered wrongly:"
+      "error": "Error: POST /api/customer/reviews [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/customers": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/customers [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/customers [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/mobile/push-token": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/mobile/push-token [roles (customer, provider)] answered wrongly:"
+      "error": "Error: POST /api/mobile/push-token [roles (customer, provider)] answered wrongly: none (no credential): got 400, want 401 (+1 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/payment/create-intent": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/payment/create-intent [roles (customer)] answered wrongly:"
+      "error": "Error: POST /api/payment/create-intent [roles (customer)] answered wrongly: none (no credential): got 500, want 401 (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/availability": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/availability [roles (provider)] answered wrongly:"
+      "error": "Error: POST /api/provider/availability [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/available-jobs": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/available-jobs [roles (provider)] answered wrongly:"
+      "error": "Error: POST /api/provider/available-jobs [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/available-jobs/[id]": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/available-jobs/[id] [roles (provider)] answered wrongly:"
+      "error": "Error: POST /api/provider/available-jobs/[id] [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/forgot-password": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/jobs/photos": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/jobs/photos [roles (provider)] answered wrongly:"
+      "error": "Error: POST /api/provider/jobs/photos [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/jobs/time-tracking": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/jobs/time-tracking [roles (provider)] answered wrongly:"
+      "error": "Error: POST /api/provider/jobs/time-tracking [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/login": {
       "outcome": "PASS"
@@ -2056,27 +2077,27 @@
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/complete": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/complete [roles (provider)] answered wrongly:"
+      "error": "Error: POST /api/provider/onboarding/complete [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/create-stripe-account": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/create-stripe-account [roles (provider)] answered wrongly:"
+      "error": "Error: POST /api/provider/onboarding/create-stripe-account [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/profile": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/profile [roles (provider)] answered wrongly:"
+      "error": "Error: POST /api/provider/onboarding/profile [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/stripe-complete": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/stripe-complete [roles (provider)] answered wrongly:"
+      "error": "Error: POST /api/provider/onboarding/stripe-complete [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/update-step": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/update-step [roles (provider)] answered wrongly:"
+      "error": "Error: POST /api/provider/onboarding/update-step [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/upload-document": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/upload-document [roles (provider)] answered wrongly:"
+      "error": "Error: POST /api/provider/onboarding/upload-document [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/reset-password": {
       "outcome": "PASS"
@@ -2086,137 +2107,137 @@
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/upload": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/upload [roles (provider)] answered wrongly:"
+      "error": "Error: POST /api/provider/upload [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/verify-otp": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/reviews": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/reviews [roles (customer)] answered wrongly:"
+      "error": "Error: POST /api/reviews [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/service-locations": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/service-locations [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/service-locations [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/services": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/services [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/services [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/stripe/webhook": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/test/push": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/test/push [roles (admin)] answered wrongly:"
+      "error": "Error: POST /api/test/push [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/upload": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/upload [roles (customer, provider, admin)] answered wrongly:"
+      "error": "Error: POST /api/upload [roles (customer, provider, admin)] answered wrongly: none (no credential): got 500, want 401"
     },
     "auth-matrix.spec.js › Role by route › POST /api/user/addresses": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/user/addresses [roles (customer)] answered wrongly:"
+      "error": "Error: POST /api/user/addresses [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/blogs/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/blogs/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/admin/blogs/[id] [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/bookings/[id]/override": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/bookings/[id]/override [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/admin/bookings/[id]/override [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/cities/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/cities/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/admin/cities/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/districts/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/districts/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/admin/districts/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/notifications": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/notifications [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/admin/notifications [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/providers": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/providers [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/admin/providers [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/providers/[providerId]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/providers/[providerId] [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/admin/providers/[providerId] [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/providers/approve": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/providers/approve [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/admin/providers/approve [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/seo/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/seo/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/admin/seo/[id] [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/service-areas": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/service-areas [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/admin/service-areas [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/service-areas/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/service-areas/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/admin/service-areas/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/service-locations/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/service-locations/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/admin/service-locations/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/skills/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/skills/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/admin/skills/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/states/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/states/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/admin/states/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/testimonials/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/testimonials/[id] [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/admin/testimonials/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/bookings": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/bookings [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/bookings [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/categories": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/categories [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/categories [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/customers": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/customers [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/customers [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/customers/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/customers/[id] [roles (customer)] answered wrongly:"
+      "error": "Error: PUT /api/customers/[id] [roles (customer)] answered wrongly: provider-cookie (provider), role not allowed: got 401, want 403 exactly (+1 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/provider": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/provider [roles (admin, provider)] answered wrongly:"
+      "error": "Error: PUT /api/provider [roles (admin, provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/provider/availability": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/provider/availability [roles (provider)] answered wrongly:"
+      "error": "Error: PUT /api/provider/availability [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/provider/profile": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/provider/profile [roles (provider)] answered wrongly:"
+      "error": "Error: PUT /api/provider/profile [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/services": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/services [roles (admin)] answered wrongly:"
+      "error": "Error: PUT /api/services [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/user/addresses/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/user/addresses/[id] [roles (customer)] answered wrongly:"
+      "error": "Error: PUT /api/user/addresses/[id] [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/user/settings": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/user/settings [roles (customer, provider)] answered wrongly:"
+      "error": "Error: PUT /api/user/settings [roles (customer, provider)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+2 more)"
     },
     "booking-flow.spec.js › Booking Flow › booking details should have input fields for customer info": {
       "outcome": "PASS"
