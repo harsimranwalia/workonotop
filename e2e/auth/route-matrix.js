@@ -26,7 +26,10 @@
 //   note     the census note as in the appendix (cut to fit there), plus a line where this file adds something
 //   probe    what the role-by-route test sends:
 //              path      the route with each [param] replaced by PROBE_IDS.missing, an id no fixture row has
-//              body      undefined for GET and DELETE; {} for POST, PUT and PATCH (it stops at the handler's validation)
+//              body      undefined for GET and DELETE; {} for POST, PUT and PATCH where the handler validates its input
+//                        before it acts; undefined for a POST, PUT or PATCH whose handler `await`s request.json() before its
+//                        first side effect (a request with no body throws there, nothing is written). Never assumed: the
+//                        row's note cites the handler lines, and the ENG-020 B3 window measured the result.
 //              query     optional, e.g. '?id=999999999', for a handler that reads its id from the query (none set yet)
 //              anon      roles rows: 401, always (the contract). public and self rows: an array of the statuses a
 //                        request with no credential may get. public: what today's handler answers, measured on the
@@ -35,12 +38,27 @@
 //                        answers because that secret is not configured there (the note says which).
 //              allowed   optional: statuses acceptable for a role the row allows when the handler's own validation
 //                        legitimately answers 401 or 403 (default: anything but 401 or 403)
+//              hold      optional, '<reason>': the case sends NOTHING, from any credential, and fails with the reason on its
+//                        first line. For a row where one request from any caller does real work. A known failure until the
+//                        converting ticket adds the guard and removes the hold.
+//              holdAllowed  optional, '<reason>', roles rows only: the case does not send the styles whose role the row
+//                        allows (the answers annotation prints `held`); it still sends none and every wrong role and asserts
+//                        none = 401 and each wrong role = exactly 403. For a row where an allowed caller's request does real
+//                        work whatever it carries.
 //
 // The one mixed target, PUT /api/provider ("admin (`?id=` branches), provider (no-`id` branch)"), is
 // roles: ['admin', 'provider'] with the split in its note.
 //
-// Probes are harmless by construction: ids that no fixture row has, empty bodies, no real payload, fixture
-// accounts only. No imports, so plain Node and Playwright read it the same way.
+// What a probe does. Every probe uses a fixture account only (@workontap.test), an id no fixture row has, and an empty body
+// or none. That does not make it harmless by itself: a handler that needs no input acts on {} and on nothing (ENG-020
+// review B1, QA F1). So each row's note names the first side effect in its handler (a write, a schema change, mail, a push,
+// an outbound call, a payment, a file, a request to a configured URL) and what stops the probe before it: a missing body
+// that throws at `await request.json()`, a validation, an ownership check, a foreign key. Where nothing stops it the row is
+// held, with its reason in `probe.hold` or `probe.holdAllowed`. The held rows are:
+//   hold         GET /api/cron/auto-release, GET /api/cron/notifications  (until ENG-022 adds requireCronSecret)
+//   holdAllowed  POST /api/provider/onboarding/complete                   (until its handler validates before it acts)
+// Remove a hold in the same change that converts its handler, not before. No imports, so plain Node and Playwright read
+// this file the same way.
 
 export const PROBE_IDS = { missing: 999999999 };
 
@@ -102,12 +120,12 @@ export const matrix = [
     },
     {
         route: '/api/admin/deletion-requests', method: 'GET', today: 'full', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Auth is an HTTP self-call that depends on NEXT_PUBLIC_APP_URL being right; /me reads only the a…',
+        note: 'Auth is an HTTP self-call that depends on NEXT_PUBLIC_APP_URL being right; /me reads only the a… Probe (B2, 2026-10-02): not held; see PATCH for the host the probe Cookie header goes to (deletion-requests/route.js:22-24).',
         probe: { path: '/api/admin/deletion-requests', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/deletion-requests', method: 'PATCH', today: 'full', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'status is free text with no allow-list; only marks the request and emails the requester, no dat…',
+        note: 'status is free text with no allow-list; only marks the request and emails the requester, no dat… Probe (B2, 2026-10-02): not held. The fetch at deletion-requests/route.js:63-65 sends the probe Cookie header to NEXT_PUBLIC_APP_URL (default http://localhost:3000) /api/admin/me before any check. On the dev app that variable is unset (measured with loadEnvConfig in the app container at 07:00 on 2026-10-02, printing only whether it is set and the host name: not set, localhost:3000), so the header goes to the app itself. A stack that sets it to another host must hold this row. With the admin cookie the handler stops at the 400 at :72-74 (id and status are required), before any query or mail.',
         probe: { path: '/api/admin/deletion-requests', body: {}, anon: 401 },
     },
     {
@@ -602,7 +620,7 @@ export const matrix = [
     },
     {
         route: '/api/bookings/[id]/restart', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'HIGH: anonymous removal of the provider and reset to pending on any booking; no status guard, s…',
+        note: 'HIGH: anonymous removal of the provider and reset to pending on any booking; no status guard, s… Probe (B2, 2026-10-02): not held, probe unchanged. The handler never reads the body. The UPDATE at restart/route.js:19-31 matches no row for 999999999, and the INSERT into booking_status_history at :34-38 is stopped only by the database: SHOW CREATE TABLE on the dev DB (structure only, 07:01 on 2026-10-02) shows booking_status_history_ibfk_1, booking_id REFERENCES bookings (id) ON DELETE CASCADE, so the INSERT fails, the transaction rolls back (:42-45) and the catch answers 500. A schema without that foreign key would store a history row for a booking that does not exist.',
         probe: { path: '/api/bookings/999999999/restart', body: {}, anon: 401 },
     },
     {
@@ -647,13 +665,13 @@ export const matrix = [
     },
     {
         route: '/api/cron/auto-release', method: 'GET', today: 'partial', kind: 'self', self: 'CRON_SECRET, made fail-closed', owner: '-',
-        note: 'MEDIUM: if CRON_SECRET is unset the header \'Bearer undefined\' matches (15); development mode by… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 200. The job ran for an anonymous caller. Known failure: ENG-022 makes it 401 through requireCronSecret, which also refuses with 401 when CRON_SECRET is unset, as it is on the dev app.',
-        probe: { path: '/api/cron/auto-release', body: undefined, anon: [401] },
+        note: 'MEDIUM: if CRON_SECRET is unset the header \'Bearer undefined\' matches (15); development mode by… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 200. The job ran for an anonymous caller. Known failure: ENG-022 makes it 401 through requireCronSecret, which also refuses with 401 when CRON_SECRET is unset, as it is on the dev app. Probe (B2, 2026-10-02): hold. In development mode every caller is authorized (auto-release/route.js:13-16), so one request, from any credential or none, runs the job: it selects the bookings awaiting approval for 24 hours (:23-33) and for each captures a Stripe payment (:46), creates a transfer (:56) and updates the booking (:69-72). Today it moves nothing only because the dev DB has no such booking (0 with a payment intent at 07:04 on 2026-10-02): harmless by data, not by construction. Remove the hold when ENG-022 makes the route answer 401 through requireCronSecret.',
+        probe: { path: '/api/cron/auto-release', body: undefined, anon: [401], hold: 'the job runs for ANY caller in development mode (route.js:14) and moves money: held until ENG-022 adds requireCronSecret' },
     },
     {
         route: '/api/cron/notifications', method: 'GET', today: 'partial', kind: 'self', self: 'CRON_SECRET, made fail-closed', owner: '-',
-        note: 'MEDIUM: fail-open, no check at all when CRON_SECRET is unset or empty (14); anonymous caller ca… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 500 \'Internal Server Error\'. The route did not refuse the anonymous caller (the answer is not 401). Known failure: ENG-022 makes it 401 through requireCronSecret, which also refuses with 401 when CRON_SECRET is unset, as it is on the dev app.',
-        probe: { path: '/api/cron/notifications', body: undefined, anon: [401] },
+        note: 'MEDIUM: fail-open, no check at all when CRON_SECRET is unset or empty (14); anonymous caller ca… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 500 \'Internal Server Error\'. The route did not refuse the anonymous caller (the answer is not 401). Known failure: ENG-022 makes it 401 through requireCronSecret, which also refuses with 401 when CRON_SECRET is unset, as it is on the dev app. Probe (B2, 2026-10-02): hold. With CRON_SECRET unset the check at notifications/route.js:14 is skipped, so one request, from any credential or none, runs the job: it selects the providers with stripe_onboarding_complete = 0 (:26-31) and for each sends an email (:46) and a push (:52) and updates onboarding_reminder_stage (:54-57). Today it stops only because that column is not in the dev schema (absent at 07:04 on 2026-10-02), so the SELECT throws and the answer is 500: an accident, not a guard. Remove the hold when ENG-022 makes the route answer 401 through requireCronSecret.',
+        probe: { path: '/api/cron/notifications', body: undefined, anon: [401], hold: 'the job runs for ANY caller while CRON_SECRET is unset (route.js:14): held until ENG-022 adds requireCronSecret' },
     },
     {
         route: '/api/customer/booking-details', method: 'GET', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'bookings.user_id = caller (today enforced, role not)',
@@ -717,13 +735,13 @@ export const matrix = [
     },
     {
         route: '/api/customers/[id]', method: 'GET', today: 'partial', kind: 'roles', roles: ['customer', 'admin'], owner: 'users.id = caller',
-        note: 'Role not checked: mobile/Google provider tokens carry id, so provider N passes as customer N; a…',
-        probe: { path: '/api/customers/999999999', body: undefined, anon: 401 },
+        note: 'Role not checked: mobile/Google provider tokens carry id, so provider N passes as customer N; a… Probe (B2, 2026-10-02; QA F7): allowed [403, 404]. An ownership row: the probe id is nobody own, so the ALLOWED customer is refused 403 by the handler own ownership check (customers/[id]/route.js:151-153) and the allowed admin gets 404 (no user 999999999, :193-195). Either status is legitimate for an allowed role; a 401 is not. Today the admin cookie answers 401, because the handler reads only the customer_token cookie (:140), and that stays wrong.',
+        probe: { path: '/api/customers/999999999', body: undefined, anon: 401, allowed: [403, 404] },
     },
     {
         route: '/api/customers/[id]', method: 'PUT', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'users.id = caller',
-        note: 'Upload extension comes from client filename, no type/size check, written to public/uploads (L28…',
-        probe: { path: '/api/customers/999999999', body: {}, anon: 401 },
+        note: 'Upload extension comes from client filename, no type/size check, written to public/uploads (L28… Probe (B2, 2026-10-02; QA F7): allowed [400, 403, 404]. An ownership row: the probe id is nobody own, so the ALLOWED customer is refused 403 by the ownership check (customers/[id]/route.js:249-251), which runs before the body is read (:253-271), the file write (:279-295) and the UPDATE (:315). A conversion that answers 404 for a missing user, or validates first and answers 400 (first_name and last_name are required, :273-275), is as legitimate; a 401 is not. No credential reaches a write with {}.',
+        probe: { path: '/api/customers/999999999', body: {}, anon: 401, allowed: [400, 403, 404] },
     },
     {
         route: '/api/directory', method: 'GET', today: 'none', kind: 'public', public: 'public catalogue (SEO directory)', owner: '-',
@@ -767,13 +785,13 @@ export const matrix = [
     },
     {
         route: '/api/provider/availability', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own availability flag',
-        note: 'Can run ALTER TABLE service_providers from the request path after an UPDATE error (L72-76); err…',
-        probe: { path: '/api/provider/availability', body: {}, anon: 401 },
+        note: 'Can run ALTER TABLE service_providers from the request path after an UPDATE error (L72-76); err… Probe (B2, 2026-10-02): body undefined. availability/route.js:62 reads the body (`await request.json()`) before the first side effect, the UPDATE at :66-69 and, after its error, the ALTER TABLE at :74-76, so a request with no body throws there and the catch at :93 answers 500: nothing is written and no schema is changed, for any credential. The old probe, {}, passed :62 and set the fixture provider offline (the is_available column exists on the dev schema, so the ALTER TABLE did not run).',
+        probe: { path: '/api/provider/availability', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/availability', method: 'PUT', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own availability flag',
-        note: 'Identical to POST via handleToggle (L42-44), including the ALTER TABLE fallback and the error.m…',
-        probe: { path: '/api/provider/availability', body: {}, anon: 401 },
+        note: 'Identical to POST via handleToggle (L42-44), including the ALTER TABLE fallback and the error.m… Probe (B2, 2026-10-02): body undefined, for the reason given on POST (handleToggle reads the body at availability/route.js:62, before the UPDATE at :66-69; the catch at :93 answers 500; nothing is written).',
+        probe: { path: '/api/provider/availability', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/available-jobs', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own assigned jobs plus the open pool',
@@ -862,13 +880,13 @@ export const matrix = [
     },
     {
         route: '/api/provider/onboarding/complete', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own onboarding',
-        note: 'Reads docs and Stripe status (L39-48) but never enforces them; status IF(active, active, pendin…',
-        probe: { path: '/api/provider/onboarding/complete', body: {}, anon: 401 },
+        note: 'Reads docs and Stripe status (L39-48) but never enforces them; status IF(active, active, pendin… Probe (B2, 2026-10-02): holdAllowed. The handler never reads the body, so a request from an ALLOWED provider, whatever it carries, runs the UPDATE of onboarding_completed, onboarding_step and status at complete/route.js:54-63 and mails ADMIN_EMAIL, whose default is a real person address, at :83-90. The provider cookie and the provider Bearer are therefore not sent. None and every wrong role are sent: each stops at the 401 at :28-34 (no provider_token cookie, no providerId in a customer Bearer session) before any of it. Remove the hold when the converted handler validates its input before it acts.',
+        probe: { path: '/api/provider/onboarding/complete', body: {}, anon: 401, holdAllowed: 'an allowed provider request rewrites onboarding_completed, onboarding_step and status (complete/route.js:54-63) and mails ADMIN_EMAIL (:83-90) whatever the body' },
     },
     {
         route: '/api/provider/onboarding/create-stripe-account', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own payout account',
-        note: 'Client refreshUrl and returnUrl are forwarded to Stripe as redirect targets (L40-45); error bod…',
-        probe: { path: '/api/provider/onboarding/create-stripe-account', body: {}, anon: 401 },
+        note: 'Client refreshUrl and returnUrl are forwarded to Stripe as redirect targets (L40-45); error bod… Probe (B2, 2026-10-02): body undefined. create-stripe-account/route.js:36 reads the body (`await request.json()`) before the first database read (:48) and before every Stripe call (:70, :73, :92), so a request with no body throws there and the catch at :148 answers 500: no outbound call, no write. The old probe, {}, passed :36 and reached stripe.accounts.create at :92.',
+        probe: { path: '/api/provider/onboarding/create-stripe-account', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/onboarding/documents', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own KYC documents',
@@ -882,8 +900,8 @@ export const matrix = [
     },
     {
         route: '/api/provider/onboarding/stripe-complete', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own payout account',
-        note: 'Client body accountId (L39) is stored as payout account and can mark onboarding complete from a…',
-        probe: { path: '/api/provider/onboarding/stripe-complete', body: {}, anon: 401 },
+        note: 'Client body accountId (L39) is stored as payout account and can mark onboarding complete from a… Probe (B2, 2026-10-02): body undefined. stripe-complete/route.js:38 reads the body (`await request.json()`) before the first database read (:43), the Stripe call (:63) and the UPDATE at :107, so a request with no body throws there and the catch at :145 answers 500: nothing is read, called or written. The old probe, {}, reached :43 and stopped at the 400 at :50-56 only because no provider has a bank-account row (provider_bank_accounts had 0 rows on the dev DB at 07:04 on 2026-10-02): harmless by data, not by construction.',
+        probe: { path: '/api/provider/onboarding/stripe-complete', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/onboarding/stripe-return', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own Stripe onboarding return',
