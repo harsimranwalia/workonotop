@@ -80,11 +80,24 @@
 //     sites those GET handlers reach, 153 start with a literal SELECT, WITH or SHOW, 34 pass a variable that is declared from
 //     a literal SELECT or WITH, and 13 are in the five rows named. A text search, not a run: a side effect behind a name or
 //     a module these patterns do not know would not show.
-//   - The whole suite's run is MEASURED, not argued: `CHECKSUM TABLE` over the 33 tables before and after, and a grep of the
-//     app log for mail, SMTP, Stripe-account and `ALTER TABLE` lines. The runs recorded in the ENG-020 ticket log (build
-//     round 2's two windows and QA round 2's full run) differ in `activity_logs` and `mobile_auth_users` and in no other
-//     table, with 0 mail, 0 SMTP, 0 `Stripe account created` or `Reusing existing Stripe account` and 0 `ALTER TABLE` lines.
-//     That is what those greps can show; a Stripe call that logs none of those lines would not appear in them.
+//   - This round's sweep of the write rows (QA's static scan: 28 rows with no note, 21 with no body read before the first
+//     side effect and 7 that read it and reach a write with no 4xx between; the readers' data is in
+//     agents/eng-manager/notebook/eng020-scripts/sweep-C1.json and sweep-C2.json). Each was read in its handler, comments
+//     removed, to its first side effect. 11 are stopped before it by what the request has to carry (a required `?id=` or
+//     `?url=` query value in 10, the body's `all` or `id` in PUT /api/admin/notifications); 15 are keyed on the path id and the
+//     probe's id matches no row (the class named below; DELETE /api/user/addresses/[id] is also stopped today by a table the
+//     dev database does not have); 2 are stopped only by the database driver refusing undefined binds, which is not a
+//     validation: PATCH /api/admin/invoices and PUT /api/admin/providers, and each carries a `Probe (round 3, 2026-10-02` line.
+//     27 more admin and customers PUT and POST rows were read the same way and one more write the probe reaches turned up,
+//     POST /api/admin/logout (an `activity_logs` row, which every run writes anyway); it carries a line too. A reading, not a run.
+//   - The whole suite's run is MEASURED, not argued: `CHECKSUM TABLE` over the 33 tables before and after, and counts over the
+//     app log of the run's own window of the lines matching `Admin notification sent`, `Email sent|sendEmail|Message
+//     sent|nodemailer`, `SMTP`, `Stripe account created|Reusing existing Stripe account` and `ALTER TABLE`. The runs recorded
+//     in the ENG-020 ticket log (build round 2's two windows and QA round 2's full run) differ in `activity_logs` and
+//     `mobile_auth_users` and in no other table, with 0 lines matching each of those patterns. QA's full run also has 6 lines
+//     `Email sending failed but database updated`, which match none of them: they are the catch of PUT /api/admin/providers
+//     after the driver refused the undefined `providerId`, before any send. That is what those greps can show; a Stripe call
+//     that logs none of those lines would not appear in them.
 //   - One class is not a per-row fact and has no note: an id-keyed write whose probe id (PROBE_IDS.missing, 999999999)
 //     matches no row. It is harmless while no row has that id, which depends on the fixtures and on nothing in the row.
 // Where one request from a caller the row allows (or from any caller) does real work, the row is held, with its reason in
@@ -216,7 +229,7 @@ export const matrix = [
     },
     {
         route: '/api/admin/invoices', method: 'PATCH', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth; arbitrary status string, no allow-list or existence check: anyone can flip any invoice…',
+        note: 'No auth; arbitrary status string, no allow-list or existence check: anyone can flip any invoice… Probe (round 3, 2026-10-02): UPDATE invoices at src/app/api/admin/invoices/route.js:53-56, with invoice_id and status read from the body at :50 and no validation. The probe sends {} so both binds are undefined and mysql2 execute (src/lib/db.js:51) refuses them: stopped only by the driver refusing undefined binds, not by a validation (with NULL binds, WHERE id = NULL would still match no row). A body that supplies both fields reaches a real UPDATE: validate them before :53, or hold the row, first.',
         probe: { path: '/api/admin/invoices', body: {}, anon: 401 },
     },
     {
@@ -241,7 +254,7 @@ export const matrix = [
     },
     {
         route: '/api/admin/logout', method: 'POST', today: 'none', kind: 'public', public: 'logout, clears own cookie', owner: '-',
-        note: 'Stateless JWT is not revoked: a stolen adminAuth token stays valid up to 24h after logout. Probe measured on the dev app at 04:49 on 2026-10-02 with no credential and an empty JSON body: 200.',
+        note: 'Stateless JWT is not revoked: a stolen adminAuth token stays valid up to 24h after logout. Probe measured on the dev app at 04:49 on 2026-10-02 with no credential and an empty JSON body: 200. Probe (round 3, 2026-10-02): logActivity at src/app/api/admin/logout/route.js:12-19 inserts an ADMIN_LOGGED_OUT row into activity_logs when the adminAuth cookie verifies (:10-11), so the admin-cookie style writes one row per run; the response only puts two cookie deletes on it (:32-33). Nothing stops it: the row is public and no body is read. It is the known activity_logs delta, and no other state changes.',
         probe: { path: '/api/admin/logout', body: {}, anon: [200] },
     },
     {
@@ -281,7 +294,7 @@ export const matrix = [
     },
     {
         route: '/api/admin/providers', method: 'PUT', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Anyone can approve or reject any provider; rejectionReason goes unescaped into an email sent fr…',
+        note: 'Anyone can approve or reject any provider; rejectionReason goes unescaped into an email sent fr… Probe (round 3, 2026-10-02): UPDATE service_providers in src/app/api/admin/providers/route.js:260 and :274 and sendEmail at :302 and :309 need action approve or reject; the probe sends none. The SELECT at :284 binds an undefined providerId and the driver refuses it, so logActivity (:290) is not reached: stopped by the missing action and the driver refusing undefined binds, not by a validation. Validate both before :257, or hold the row, first.',
         probe: { path: '/api/admin/providers', body: {}, anon: 401 },
     },
     {
