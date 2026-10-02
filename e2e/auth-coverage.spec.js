@@ -192,9 +192,10 @@ function wiringProblems(row, source) {
 
 // ---- what the wiring check says about each shape ----------------------------------------------------------------
 // One row per shape: the matrix row and the file text it is run on, the verdict `wiringProblems` gives it ('REPORTED' when it
-// returns a problem, 'clean' when it returns none) and a label that says whether that is the right answer. The case "the
-// wiring check gives every shape of the table its verdict" fails with the id of every row whose verdict differs. Ids: s shapes,
-// c controls, f false failures, x more shapes (ENG-020 round 3 escalation), g the guard's own pieces and the self checks.
+// returns a problem, 'clean' when it returns none) and a label that says whether that is the right answer; `says`, when a row has
+// it, is text the problems must contain. The case "the wiring check gives every shape of the table its verdict" fails with the id
+// of every row whose verdict differs or whose problems lack its `says`. Ids: s shapes, c controls, f false failures, x more shapes
+// (ENG-020 round 3 escalation), g the guard's own pieces and the self checks.
 // Nothing in this section uses a name defined outside it.
 
 const imp = "import { requireCaller } from '@/lib/api-auth';\n";
@@ -233,13 +234,13 @@ const wiringShapes = [
     { id: 'c2', label: 'control, guarded GET alone: must read as guarded', row: getRow, source: imp + "export async function GET(request) {\n" + guard + "  return Response.json({ ok: true });\n}\n", verdict: 'clean' },
     { id: 'c3', label: 'control, guarded GET after a JSDoc: must read as guarded', row: getRow, source: imp + "/** doc */\nexport async function GET(request) {\n" + guard + "  return 1;\n}\n", verdict: 'clean' },
     { id: 'c4', label: 'a block-commented guarded copy of GET above the live unguarded GET: must be reported', row: getRow, source: imp + "/*\nexport async function GET(request) {\n" + guard + "}\n*/\n" + ung('return 1;'), verdict: 'REPORTED' },
-    { id: 'f1', label: "guarded GET holds 'image/*' after its guard, guarded POST with a block comment in its body, POST's row; the message says the file does not export `async function POST`: false failure, loud", row: postRow, source: imp + "export async function GET(request) {\n" + guard + "  const a = 'image/*';\n  return 1;\n}\n\n" + postBlock, verdict: 'REPORTED' },
-    { id: 'f2', label: "guarded GET holds 'image/*' before its guard, guarded POST with a block comment in its body, GET's row; the message says GET has no `const auth = await requireCaller(...)` outside a comment: false failure, loud", row: getRow, source: imp + "export async function GET(request) {\n  const a = 'image/*';\n" + guard + "  return 1;\n}\n\n" + postBlock, verdict: 'REPORTED' },
+    { id: 'f1', label: "guarded GET holds 'image/*' after its guard, guarded POST with a block comment in its body, POST's row: false failure, loud", row: postRow, source: imp + "export async function GET(request) {\n" + guard + "  const a = 'image/*';\n  return 1;\n}\n\n" + postBlock, verdict: 'REPORTED', says: 'does not export `async function POST`' },
+    { id: 'f2', label: "guarded GET holds 'image/*' before its guard, guarded POST with a block comment in its body, GET's row: false failure, loud", row: getRow, source: imp + "export async function GET(request) {\n  const a = 'image/*';\n" + guard + "  return 1;\n}\n\n" + postBlock, verdict: 'REPORTED', says: 'does not have `const auth = await requireCaller(' },
     { id: 'x1', label: 'guarded GET, a regex literal ending in \\// on the line above its guard: must read as guarded', row: getRow, source: imp + getWith('  const re = /^https?:\\/\\//;\n' + guard), verdict: 'clean' },
     { id: 'x2', label: "guarded GET, 'a//b' on the line above its guard: must read as guarded", row: getRow, source: imp + getWith("  const s = 'a//b';\n" + guard), verdict: 'clean' },
     { id: 'x3', label: "guarded GET, 'http://x'; before the guard on the guard's own line: must read as guarded", row: getRow, source: imp + "export async function GET(request) {\n  const u = 'http://x'; const auth = await requireCaller(request, ['admin']);\n  if (!auth.ok) return auth.response;\n}\n", verdict: 'clean' },
     { id: 'x4', label: 'guarded GET, /* and */ inside one template literal above its guard: must read as guarded', row: getRow, source: imp + getWith('  const css = `a /* b */ c`;\n' + guard), verdict: 'clean' },
-    { id: 'x5', label: 'guarded GET glued to a closer, /* doc */export async function GET; the message says the file does not export `async function GET`: false failure, loud', row: getRow, source: imp + "/* doc */export async function GET(request) {\n" + guard + "}\n", verdict: 'REPORTED' },
+    { id: 'x5', label: 'guarded GET glued to a closer, /* doc */export async function GET: false failure, loud', row: getRow, source: imp + "/* doc */export async function GET(request) {\n" + guard + "}\n", verdict: 'REPORTED', says: 'does not export `async function GET`' },
     { id: 'x6', label: 'unguarded GET, the guard written in // comments on their own lines: must be reported', row: getRow, source: imp + "export async function GET(request) {\n  // const auth = await requireCaller(request, ['admin']);\n  // if (!auth.ok) return auth.response;\n  return 1;\n}\n", verdict: 'REPORTED' },
     { id: 'g1', label: 'the guard call without await: must be reported', row: getRow, source: imp + getWith("  const auth = requireCaller(request, ['admin']);\n  if (!auth.ok) return auth.response;\n"), verdict: 'REPORTED' },
     { id: 'g2', label: 'the call awaited but its result not kept: must be reported', row: getRow, source: imp + getWith("  await requireCaller(request, ['admin']);\n"), verdict: 'REPORTED' },
@@ -254,7 +255,7 @@ const wiringShapes = [
     { id: 'g11', label: 'Stripe row: POST has no call, the GET below it has one: must be reported', row: stripeRow, source: handler('POST') + '\n' + handler('GET', stripeCall), verdict: 'REPORTED' },
     { id: 'g12', label: "GET queries the database before its guard: not caught, the guard need not be the method's first statement", row: getRow, source: imp + getWith("  const rows = await db.query('SELECT 1');\n" + guard), verdict: 'clean' },
     { id: 'g13', label: 'AI gateway row: POST calls verifyAiGatewayAuth(request), GET does not: false pass, file level by design (the PATCH handlers hand over to POST), not caught', row: gatewayRow, source: "import { verifyAiGatewayAuth } from '@/lib/ai-gateway-auth';\n" + handler('POST', '  const auth = verifyAiGatewayAuth(request);\n  if (!auth.ok) return auth.response;\n') + '\n' + handler('GET'), verdict: 'clean' },
-    { id: 'g14', label: 'the roles passed as a variable, requireCaller(request, ROLES), not as a list in brackets; the message asks for a literal roles list: false failure, loud', row: getRow, source: imp + getWith('  const auth = await requireCaller(request, ROLES);\n  if (!auth.ok) return auth.response;\n'), verdict: 'REPORTED' },
+    { id: 'g14', label: 'the roles passed as a variable, requireCaller(request, ROLES), not as a list in brackets: false failure, loud', row: getRow, source: imp + getWith('  const auth = await requireCaller(request, ROLES);\n  if (!auth.ok) return auth.response;\n'), verdict: 'REPORTED', says: 'a literal roles list' },
 ];
 
 // ---- the cases --------------------------------------------------------------------------------------------------
@@ -341,8 +342,10 @@ test.describe('Auth wiring', () => {
         if (repeated.length > 0) throw new Error(`wiringShapes lists ${repeated.join(', ')} more than once`);
         const wrong = [];
         for (const s of wiringShapes) {
-            const got = wiringProblems(s.row, s.source).length > 0 ? 'REPORTED' : 'clean';
+            const found = wiringProblems(s.row, s.source);
+            const got = found.length > 0 ? 'REPORTED' : 'clean';
             if (got !== s.verdict) wrong.push(`${s.id} ${s.label}: wanted ${s.verdict}, got ${got}`);
+            else if (s.says !== undefined && !found.some((line) => line.includes(s.says))) wrong.push(`${s.id} ${s.label}: the problems do not say "${s.says}"`);
         }
         if (wrong.length > 0) throw new Error(`${wrong.length} of ${wiringShapes.length} shapes got another verdict: ${wrong.join(' | ')}`);
     });
