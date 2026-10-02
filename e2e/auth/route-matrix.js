@@ -86,9 +86,10 @@
 //     removed, to its first side effect. 11 are stopped before it by what the request has to carry (a required `?id=` or
 //     `?url=` query value in 10, the body's `all` or `id` in PUT /api/admin/notifications); 15 are keyed on the path id and the
 //     probe's id matches no row (the class named below; DELETE /api/user/addresses/[id] is also stopped today by a table the
-//     dev database does not have); 2 are stopped only by the database driver refusing undefined binds, which is not a
-//     validation: PATCH /api/admin/invoices and PUT /api/admin/providers, and each carries a `Probe (round 3, 2026-10-02` line.
-//     27 more admin and customers PUT and POST rows were read the same way and one more write the probe reaches turned up,
+//     dev database does not have); 2 are stopped by the database driver refusing undefined binds, which is not a
+//     validation: PATCH /api/admin/invoices (by that alone) and PUT /api/admin/providers (by that and by the missing `action`),
+//     and each carries a `Probe (round 3, 2026-10-02` line.
+//     27 more admin and customers PUT, POST and PATCH rows were read the same way and one more write the probe reaches turned up,
 //     POST /api/admin/logout (an `activity_logs` row, which every run writes anyway); it carries a line too. A reading, not a run.
 //   - The whole suite's run is MEASURED, not argued: `CHECKSUM TABLE` over the 33 tables before and after, and counts over the
 //     app log of the run's own window of the lines matching `Admin notification sent`, `Email sent|sendEmail|Message
@@ -399,7 +400,7 @@ export const matrix = [
     },
     {
         route: '/api/admin/service-locations/[id]', method: 'PATCH', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any valid JWT passes; toggles is_active, hiding or showing public location pages.',
+        note: 'Any valid JWT passes; toggles is_active, hiding or showing public location pages. Probe (round 3, 2026-10-02): the probe sends PROBE_IDS.missing (999999999) and {}, so the UPDATE at src/app/api/admin/service-locations/[id]/route.js:196 matches no row; the handler then inserts an activity_logs row (:198-205), which every run writes anyway (see the measure in the header above).',
         probe: { path: '/api/admin/service-locations/999999999', body: {}, anon: 401 },
     },
     {
