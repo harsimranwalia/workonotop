@@ -103,7 +103,7 @@ const importsName = (source, name, from) =>
  * with `export`, `function`, `async function`, `function*`, `const`, `let`, `var`, `class`, `import` or `}`, looked for in
  * `code` and in `raw` (the same file with its comments in place; blanking keeps every offset, so one offset serves both).
  * With no such line, to the end of the file. Null when `code` has no such signature. What each part of the end rule is
- * for: looking in `raw` as well, rows s1 to s5, s7 and s8; the closing brace and `function*`, rows s9 to s12.
+ * for: looking in `raw` as well, rows s1 to s5, s7, s8 and f2; the closing brace, rows s9 to s11; `function*`, row s15.
  */
 function methodText(code, method, raw) {
     const start = code.search(new RegExp(`^export\\s+async\\s+function\\s+${method}\\b`, 'm'));
@@ -228,6 +228,7 @@ const wiringShapes = [
     { id: 's12', label: 'unguarded GET, then a function* helper holding the guard text: must be reported', row: getRow, source: imp + ung('return 1;') + helper('', 'function*'), verdict: 'REPORTED' },
     { id: 's13', label: 'guard text written into a string in an unguarded GET: false pass, deliberate shape, not caught', row: getRow, source: imp + "export async function GET(request) {\n  const s = \"const auth = await requireCaller(request, ['admin']); if (!auth.ok) return auth.response;\";\n  return Response.json({ s });\n}\n", verdict: 'clean' },
     { id: 's14', label: 'guard text in a line comment glued to a quote in an unguarded GET: false pass, deliberate shape, not caught', row: getRow, source: imp + "export async function GET(request) {\n  const x = 'a'// const auth = await requireCaller(request, ['admin']); if (!auth.ok) return auth.response;\n  return Response.json({ x });\n}\n", verdict: 'clean' },
+    { id: 's15', label: 'unguarded GET whose closing brace shares its last line, then a column-0 function* helper holding the guard text: must be reported', row: getRow, source: imp + 'export async function GET(request) {\n  return 1; }\nfunction* adminOnly(request) {\n  /* helper */\n' + guard + '}\n', verdict: 'REPORTED' },
     { id: 'c1', label: 'control, unguarded GET alone: must be reported', row: getRow, source: imp + ung('return 1;'), verdict: 'REPORTED' },
     { id: 'c2', label: 'control, guarded GET alone: must read as guarded', row: getRow, source: imp + "export async function GET(request) {\n" + guard + "  return Response.json({ ok: true });\n}\n", verdict: 'clean' },
     { id: 'c3', label: 'control, guarded GET after a JSDoc: must read as guarded', row: getRow, source: imp + "/** doc */\nexport async function GET(request) {\n" + guard + "  return 1;\n}\n", verdict: 'clean' },
