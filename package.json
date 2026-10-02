@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "next lint",
     "db:init": "node --experimental-modules database/schema.js",
+    "db:fixtures": "node database/fixtures/load.js",
     "test": "npx playwright test",
     "test:ui": "npx playwright test --ui",
     "test:report": "npx playwright show-report"
