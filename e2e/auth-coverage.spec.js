@@ -105,8 +105,20 @@ function methodText(source, method) {
     return next === -1 ? rest : rest.slice(0, afterSignature + next);
 }
 
-/** Code only: block comments and line comments taken out, so a guard call in a comment is not a guard call. A `//`
- *  that follows a colon, a quote or a backtick is kept (a URL in a string), so a string is never cut in half. */
+/** Code only: block comments and line comments taken out, so a guard call in a comment is not a guard call (gaps below).
+ *  Three regular expressions, not a parser: strings, template literals and regex literals are not understood. A `//`
+ *  that follows a colon, a quote or a backtick is kept on purpose (a URL in a string, 'http://x'). Each gap below was
+ *  reproduced in plain node with this function (ENG-020 A2):
+ *    Cut that should stay (the safe direction: code is lost, so a guard in the lost text reads as missing and the case fails):
+ *      - a `//` inside a string or template literal after a character other than `:`, a quote or a backtick ('a//b'):
+ *        the rest of the line is taken out;
+ *      - a regex literal that ends in `\//` (/^https?:\/\//): the rest of the line is taken out;
+ *      - a string that holds `/` and `*` side by side ('image/*') with a block comment later in the file: everything from
+ *        that opener to the comment's own closer is taken out as one "comment". wiringProblems strips the whole file before
+ *        it cuts a method out, so that can be a whole method (the case then reports that the file does not export it).
+ *    Kept that should go (the unsafe direction, contrived: someone has to write it; an unguarded handler can read as guarded):
+ *      - a comment glued to a closing quote, a backtick or a colon ('x'// const auth = ...);
+ *      - a guard call inside a string or a template literal. */
 const withoutComments = (text) => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/([^:'"`])\/\/.*$/gm, '$1');
 
 /**
