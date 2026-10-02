@@ -98,10 +98,12 @@ test.describe('Homepage', () => {
         }
     });
 
-    test('should display Homeowner Protection Promise section', async ({ page }) => {
-        await page.goto('/');
+    test('service detail page should display Homeowner Protection Promise section', async ({ page }) => {
+        // The promise is not on / any more; it is on the service detail page
+        // (src/app/services/[serviceId]/ServiceDetailClientPage.jsx:237-240).
+        await page.goto('/services/fixture-standard-clean');
 
-        await expect(page.getByText('Homeowner Protection Promise')).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Homeowner Protection Promise' })).toBeVisible();
         await expect(page.getByText(/100% guaranteed/)).toBeVisible();
     });
 });
