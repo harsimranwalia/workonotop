@@ -72,6 +72,7 @@ function otherExportForms(source) {
     if (named.test(source)) forms.push('export const/let/var/function/class METHOD');
     if (list.test(source)) forms.push('export { ... METHOD ... }');
     if (/^\s*export\s*\*/m.test(source)) forms.push('export * from');
+    if (/^\s*export\s+(?:const|let|var)\s*[[{]/m.test(source)) forms.push('export const/let/var { ... } or [ ... ] (a destructuring export)');
     return forms;
 }
 
@@ -115,10 +116,10 @@ const importsName = (source, name, from) =>
  * What it does not read: after a closing brace that does not start its line, an indented `const` helper (row t2) or a second method on the same line (row t1) does not end the cut: false passes, not caught.
  */
 function methodText(code, method, raw) {
-    const start = code.search(new RegExp(`^export\\s+async\\s+function\\s+${method}\\b`, 'm'));
+    const start = code.search(new RegExp(`^export\\s+async\\s+function\\s+${method}\\s*\\(`, 'm'));
     if (start === -1) return null;
     const rest = code.slice(start);
-    const afterSignature = rest.indexOf('\n') + 1;
+    const afterSignature = rest.search(/[\n\r\u2028\u2029]/) + 1;
     const boundary = /^(?:export\s|(?:async\s+)?function[\s*]|const\s|let\s|var\s|class\s|import\s|\})/m;
     const indented = /^[ \t]*(?:export\s|(?:async\s+)?function[\s*])/m;
     const ends = [rest.slice(afterSignature).search(boundary), rest.slice(afterSignature).search(indented)];
