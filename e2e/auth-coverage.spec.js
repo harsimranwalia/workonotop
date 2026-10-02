@@ -11,16 +11,16 @@
 //    form cannot slip past the count.
 //  Auth wiring: every non-public row's file uses what the matrix says protects it, checked by reading its text
 //    (wiringProblems; no request is sent). A `roles` row's file imports requireCaller from '@/lib/api-auth' (row g6) and
-//    the row's own method has the design's "two lines at the top of each method" (rows c1, c2), so a file that guards its
-//    GET does not turn its PUT green (row g5): `const auth = await requireCaller(request, [the row's roles])`, then
-//    `if (!auth.ok) return auth.response` (guardCallProblems' doc names the row of each piece). A `self` row's file uses its
-//    named check: requireCronSecret (rows g8, g9) or the Stripe signature check (rows g10, g11); for verifyAiGatewayAuth a
-//    call anywhere in the file counts (row g13, a false pass). A `public` row needs nothing and has no case. The `pending`
-//    row counts as classified for coverage, is annotated, and its wiring case is skipped with the reason so every run
-//    prints it: nothing passes it silently, and AC5 does not hold while one `pending` row remains (the matrix file's header
-//    says so). What the check reads right and wrong is the table `wiringShapes` (above the cases), one row per shape with
-//    the verdict it gets, run by the case "the wiring check gives every shape of the table its verdict": a sentence in this
-//    file about what the check catches or misses names a row of it.
+//    the method, as `methodText` cuts it, holds the design's "two lines at the top of each method" anywhere in it (rows c1, c2,
+//    g12), so a file that guards its GET does not turn its PUT green (row g5): `const auth = await requireCaller(request,
+//    [the row's roles])`, then `if (!auth.ok) return auth.response` (guardCallProblems' doc names the row of each piece). A
+//    `self` row's file uses its named check: requireCronSecret (rows g8, g9, r1cron) or the Stripe signature check (rows g10,
+//    g11, r1stripe); for verifyAiGatewayAuth a call anywhere in the file counts (row g13, a false pass). A `public` row needs
+//    nothing and has no case. The `pending` row counts as classified for coverage, is annotated, and its wiring case is
+//    skipped with the reason so every run prints it: nothing passes it silently, and AC5 does not hold while one `pending`
+//    row remains (the matrix file's header says so). What the check reads right and wrong is the table `wiringShapes` (above
+//    the cases), one row per shape with the verdict it gets, run by the case "the wiring check gives every shape of the
+//    table its verdict": a sentence in this file about what the check catches or misses names a row of it.
 // Until a route is converted its wiring case fails (row c1: an unguarded method is reported); those are the known failures
 // in e2e/baseline.json that each converting ticket turns green.
 import fs from 'node:fs';
@@ -99,11 +99,20 @@ const importsName = (source, name, from) =>
 
 /**
  * The text of one exported method, cut from `code` (the file with its comments blanked): from the line that holds
- * `export async function <method>` at column 0 up to, not including, the earliest line after it that starts at column 0
- * with `export`, `function`, `async function`, `function*`, `const`, `let`, `var`, `class`, `import` or `}`, looked for in
- * `code` and in `raw` (the same file with its comments in place; blanking keeps every offset, so one offset serves both).
- * Null when `code` has no such signature (rows f1 and x5). What each part of the end rule is for: looking in `raw` as well,
- * rows s1 to s5, s7, s8 and f2; the closing brace, rows s9 to s11; `function*`, row s15.
+ * `export async function <method>` at column 0 up to, not including, the earliest line after it that starts a boundary, looked for in
+ * `code` and in `raw` (the same file with its comments in place; blanking keeps every offset, so one offset serves both). A boundary is
+ * `export`, `function`, `async function` or `function*` at any indentation, or `const`, `let`, `var`, `class`, `import` or `}` at column 0.
+ * Null when `code` has no such signature (rows f1 and x5).
+ * What each part of the rule is for, by the rows that fail without it: looking in `raw` as well as `code`, rows s1 to s5, s7, s8, f2, r1g and n3;
+ * the indented search in `code`, rows r1a, r1cron and r1stripe (a comment blanked in front of an `export`), in `raw`, rows r1g and n3;
+ * the `}` at column 0, row b1.
+ * What it costs: a nested function declaration, or an indented `export` in a block comment, above the guard ends the cut early, so a
+ * guarded method reads as unguarded, loudly (rows n1, n3).
+ * What it guarantees: for a `roles`, cron or Stripe row whose method's closing `}` starts its line at column 0 (row b1), whose own text holds no
+ * `requireCaller`, `requireCronSecret` or `constructEvent` at all, and with no guard text or `export ... function` signature written into a string,
+ * template, regex literal or comment anywhere in the file, the check reports the method: `raw` is never blanked, so the method's own `}` ends the cut
+ * at or before it, and blanking only hides text, so it can hide a guard (loudly) and never make one appear.
+ * What it does not read: after a closing brace that does not start its line, an indented `const` helper (row t2) or a second method on the same line (row t1) does not end the cut: false passes, not caught.
  */
 function methodText(code, method, raw) {
     const start = code.search(new RegExp(`^export\\s+async\\s+function\\s+${method}\\b`, 'm'));
@@ -123,16 +132,17 @@ const blank = (c) => c.replace(/[^\n]/g, ' ');
 
 /** `text` with its comments blanked, not deleted, so an offset in the result is the same offset in `text`. Three regular
  *  expressions, not a parser. What it reads right and wrong is the table `wiringShapes`, run by the case "the wiring check
- *  gives every shape of the table its verdict": rows c4, s1 to s8, s13, s14, f1, f2 and x1 to x6. */
+ *  gives every shape of the table its verdict": rows c4, s1 to s8, s14, g6, f1, f2 and x1 to x6. */
 const withoutComments = (text) => text.replace(/\/\*[\s\S]*?\*\//g, blank).replace(/^\s*\/\/.*$/gm, blank).replace(/([^:'"`])\/\/.*$/gm, (m, ch) => ch + blank(m.slice(1)));
 
 /**
  * The design's two lines at the top of a method (ENG-004 design, Interfaces):
  *     const auth = await requireCaller(request, ['admin']);
  *     if (!auth.ok) return auth.response;
- * What is reported when a piece of them is missing, by row: the call only in a comment (rows c4, x6), without `await` (g1),
- * without keeping its result (g2), the result kept but never used to refuse (g3), a roles list that is not the row's (g4) or not written out in brackets (g14),
- * a request that is not the handler's own first parameter (g7). `code` is the method's text as `methodText` returns it.
+ * What is reported when a piece of them is missing, by row: the call only in a comment (rows c4, x6), without `await` (g1), without keeping its
+ * result (g2), the result kept but never used to refuse (g3), or the refusal testing another variable (g16), a roles list that is not the row's
+ * (g4 another role, g15 a role more) or not written out in brackets (g14), a request that is not the handler's own first parameter (g7), a handler
+ * that takes no parameter (g17). The row's roles in the row's own order are the row's roles (g18). `code` is the method's text as `methodText` returns it.
  * Returns the list of what is missing.
  */
 function guardCallProblems(row, code) {
@@ -159,9 +169,9 @@ function wiringProblems(row, source) {
     const problems = [];
     // The file's comments are blanked first and the method is cut from the blanked text, with `source` as a second place to
     // look for its end (methodText). A guard call that only a comment holds is not found (rows c4, x6). The roles guard and
-    // the cron and Stripe calls are looked for in the method's own text (rows g5, g9, g11), the imports in the blanked file
-    // (row g6), the AI gateway call anywhere in the blanked file (row g13). What else the check reads right and wrong is the
-    // table `wiringShapes`.
+    // the cron and Stripe calls are looked for in the method's text as `methodText` cuts it (rows g5, g9, g11; past a closing
+    // brace that does not start its line, t1, t2), the imports in the blanked file (row g6), the AI gateway call anywhere in the
+    // blanked file (row g13). What else the check reads right and wrong is the table `wiringShapes`.
     const code = withoutComments(source);
     const methodCode = methodText(code, row.method, source);
     if (methodCode === null) return [`the file does not export \`async function ${row.method}\``];
