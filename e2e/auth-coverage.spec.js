@@ -124,27 +124,31 @@ const importsName = (source, name, from) =>
  * The text of one exported method, cut from `code` (the file with its comments blanked): from the line that holds
  * `export async function <method>(` at column 0 (the name, optional whitespace, then `(`, so a longer name such as `GET$` is not the method)
  * up to, not including, the earliest line after it that starts a boundary, looked for in `code` and in `raw` (the same file with its
- * comments in place; blanking keeps every offset, so one offset serves both). The signature's line ends at its first line terminator as the
- * grammar reads one: LF, CR, U+2028 or U+2029. A boundary is `export`, `function`, `async function` or `function*` after spaces or tabs, or
+ * comments in place). Blanking keeps every length but only LF as a line end: a CR, U+2028 or U+2029 inside a blanked span is a space in
+ * `code` and a line end in `raw`. So an offset found in `code` is the same offset in `raw` (rows c3, f2, x5 fail when comments are deleted
+ * instead), and the end of the signature's line, its first LF, CR, U+2028 or U+2029 as the grammar reads one, is looked for in `raw` and
+ * not in `code` (row b6). A boundary is `export`, `function`, `async function` or `function*` after spaces or tabs, or
  * `const`, `let`, `var`, `class`, `import` or `}` at column 0.
  * Null when `code` has no such signature (rows f1 and x5).
- * What each part of the rule is for, by the rows that fail without it: looking in `raw` as well as `code`, rows s1 to s5, s7, s8, f2, r1g, n3 and b2;
+ * What each part of the rule is for, by the rows that fail without it: looking in `raw` as well as `code`, for a boundary and for the end of
+ * the signature's line, rows s1 to s5, s7, s8, f2, r1g, n3, b2 and b6;
  * the indented search in `code`, rows r1a, r1cron and r1stripe (a comment blanked in front of an `export`), in `raw`, rows r1g and n3;
  * the `}` at column 0, rows b1 to b5 (row b2: only the search in `raw` finds it); the `\s*\(` after the name, rows p1cron, p1stripe and p1roles;
- * the line-terminator skip, rows b3 to b5.
+ * the line-terminator skip, rows b3 to b6 (its class has four characters: CR is rows b3 and b6, U+2028 row b4, U+2029 row b5), read in `raw`, row b6.
  * What it costs: a nested function declaration, or an indented `export` in a block comment, above the guard ends the cut early, so a
  * guarded method reads as unguarded, loudly (rows n1, n3).
  * What it guarantees: for a `roles`, cron or Stripe row, when (0) the file parses (the grammar Next.js compiles it with, JSX included),
- * (1) the method's closing `}` is the first character of its line, a line as the grammar reads one (after LF, CR, U+2028 or U+2029; rows b1, b3 to b5),
+ * (1) the method's closing `}` is the first character of its line, a line as the grammar reads one (after LF, CR, U+2028 or U+2029; rows b1, b3 to b6),
  * (2) the method's own text, signature to closing brace, holds no `requireCaller`, `requireCronSecret` or `constructEvent` at all, and
  * (3) every guard name and every `export ... function` signature in the file is code: none is written into text the grammar does not read as
  * code (a string, JSX text, a template literal, a regex literal, a comment, or any other), the check reports the method. Why: under (0) and (3) the first
  * match of the signature in `code` is the method's own declaration (rows p1cron, p1stripe, p1roles: a `GET$` or `POST$` that holds the guard, exported above the real method, which has none);
- * under (1) the cut ends at or before the method's own `}`, because `raw` is never blanked (rows b1 to b5); the three looks read only that cut and each
- * needs its guard's name, so under (2) none can match (rows g5, b1 and b2 for the roles look, which turn clean when it reads from the file's first
+ * under (1) the cut ends at or before the method's own `}`, because the skip past the signature's line and the search for that `}` both read `raw`,
+ * which is never blanked (rows b1 to b5 fail without the `}` in the boundary, row b6 without the skip in `raw`); the three looks read only that cut and each
+ * needs its guard's name, so under (2) none can match (rows g5, b1, b2 and b6 for the roles look, which turn clean when it reads from the file's first
  * `export` instead of the cut; rows g9, g11, r1cron, r1stripe, p1cron and p1stripe for the cron and Stripe looks, which turn clean when they read the
- * whole file instead); and blanking only turns characters into spaces, so it can hide a guard (loudly) and never make one appear (rows f2, x5: they
- * fail when comments are deleted instead).
+ * whole file instead); and blanking only turns characters into spaces, so it can hide a guard (loudly) and never make one appear (rows f2 and x5 turn
+ * clean when comments are deleted instead, row b6 when the skip is read in `code`).
  * What it does not read: with (1) false, after a closing brace that does not start its line, an indented `const` helper (row t2) or a second method on the
  * same line (row t1); with (2) false, a call to another function that has the guard's name (row t3: names, not bindings); with (3) false, guard text
  * written into JSX text (row j1), a string (row s13) or a line comment glued to a quote (row s14): false passes, not caught.
@@ -162,7 +166,8 @@ function methodText(code, method, raw) {
     return found.length === 0 ? rest : rest.slice(0, afterSignature + Math.min(...found));
 }
 
-/** A comment with every character but its newlines replaced by a space: what is left has the comment's length and lines. */
+/** A comment with every character but its LFs replaced by a space: what is left has the comment's length and its LFs, and a CR, U+2028 or
+ *  U+2029 in it is a space, so `code` can have fewer line ends than `raw` (`methodText` reads the end of the signature's line in `raw`, row b6). */
 const blank = (c) => c.replace(/[^\n]/g, ' ');
 
 /** `text` with its comments blanked, not deleted, so an offset in the result is the same offset in `text`. Three regular
@@ -243,7 +248,8 @@ function wiringProblems(row, source) {
 // it, is text the problems must contain. The case "the wiring check gives every shape of the table its verdict" fails with the id
 // of every row whose verdict differs or whose problems lack its `says`. Ids: s shapes, c controls, f false failures, x more shapes
 // (ENG-020 round 3 escalation), g the guard's own pieces and the self checks, r a one-line method or an indented neighbour, b the closing
-// brace (b3 to b5: with its lines ended by CR, U+2028 or U+2029), p a longer name that begins with the method's, j text that is not code,
+// brace (b3 to b5: with its lines ended by CR, U+2028 or U+2029; b6: lone CRs and a slash-star on the signature line that the block-comment
+// regex pairs with a later star-slash), p a longer name that begins with the method's, j text that is not code,
 // n false failures the indented search costs, t layout or names it does not read.
 // Nothing in this section uses a name defined outside it.
 
