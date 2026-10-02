@@ -6,10 +6,10 @@ test.describe('Homepage', () => {
     test('should load and display the hero section', async ({ page }) => {
         await page.goto('/');
 
-        // Hero heading
+        // Hero heading (src/app/HomeClient.js:70-73)
         const heading = page.locator('h1');
         await expect(heading).toBeVisible();
-        await expect(heading).toContainText('Home maintenance');
+        await expect(heading).toContainText('Cleaning, Moving & Handyman Services in Vancouver');
     });
 
     test('should display stats section (500,000+ / 96% / 4.8)', async ({ page }) => {
