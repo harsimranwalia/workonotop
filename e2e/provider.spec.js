@@ -38,10 +38,11 @@ test.describe('Provider Portal - Auth Protection', () => {
     test('provider login page should have form fields', async ({ page }) => {
         await page.goto('/provider/login');
 
-        // Look for email and password inputs
-        const inputs = page.locator('input');
-        const inputCount = await inputs.count();
-        expect(inputCount).toBeGreaterThanOrEqual(2); // at least email + password
+        // The provider layout renders only a spinner until its /api/provider/me check returns
+        // (src/app/provider/layout.js:75,:107,:122,:220), after page.goto has resolved on `load`: so wait
+        // for the fields (an email and a password input) instead of counting inputs at once.
+        await expect(page.locator('input[type="email"], input[name="email"]').first()).toBeVisible();
+        await expect(page.locator('input[type="password"]').first()).toBeVisible();
     });
 
     test('provider login should reject invalid credentials', async ({ page }) => {
