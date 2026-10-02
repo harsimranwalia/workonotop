@@ -95,47 +95,45 @@ for (const row of matrix) if (!inMatrix.has(keyOf(row))) inMatrix.set(keyOf(row)
 const importsName = (source, name, from) =>
     new RegExp(`import\\s*\\{[^}]*\\b${name}\\b[^}]*\\}\\s*from\\s*['"]${from}(?:\\.js)?['"]`).test(source);
 
-/** The text of one exported method: from its signature to the next top-level declaration (or the end of the file). */
-function methodText(source, method) {
-    const start = source.search(new RegExp(`^export\\s+async\\s+function\\s+${method}\\b`, 'm'));
+/**
+ * The text of one exported method, cut from `code` (the file with its comments blanked): from the line that holds
+ * `export async function <method>` at column 0 up to, not including, the earliest line after it that starts at column 0
+ * with `export`, `function`, `async function`, `function*`, `const`, `let`, `var`, `class`, `import` or `}`, looked for in
+ * `code` and in `raw` (the same file with its comments in place; blanking keeps every offset, so one offset serves both).
+ * With no such line, to the end of the file. Null when `code` has no such signature. What each part of the end rule is
+ * for: looking in `raw` as well, rows s1 to s5, s7 and s8; the closing brace and `function*`, rows s9 to s12.
+ */
+function methodText(code, method, raw) {
+    const start = code.search(new RegExp(`^export\\s+async\\s+function\\s+${method}\\b`, 'm'));
     if (start === -1) return null;
-    const rest = source.slice(start);
+    const rest = code.slice(start);
     const afterSignature = rest.indexOf('\n') + 1;
-    const next = rest.slice(afterSignature).search(/^(?:export\s|(?:async\s+)?function\s|const\s|let\s|var\s|class\s|import\s)/m);
-    return next === -1 ? rest : rest.slice(0, afterSignature + next);
+    const boundary = /^(?:export\s|(?:async\s+)?function[\s*]|const\s|let\s|var\s|class\s|import\s|\})/m;
+    const ends = [rest.slice(afterSignature).search(boundary)];
+    if (raw !== undefined) ends.push(raw.slice(start + afterSignature).search(boundary));
+    const found = ends.filter((n) => n !== -1);
+    return found.length === 0 ? rest : rest.slice(0, afterSignature + Math.min(...found));
 }
 
-/** Code only: block comments and line comments taken out, so a guard call in a comment is not a guard call (gaps below).
- *  Three regular expressions, not a parser: strings, template literals and regex literals are not understood. A `//`
- *  that follows a colon, a quote or a backtick is kept on purpose (a URL in a string, 'http://x'). Each gap below was
- *  reproduced in plain node with this function (ENG-020 round 3, finding B5):
- *    Cut that should stay (the safe direction: code is lost, so a guard in the lost text reads as missing and the case fails):
- *      - a `//` inside a string or template literal after a character other than `:`, a quote or a backtick ('a//b'):
- *        the rest of the line is taken out;
- *      - a regex literal that ends in `\//` (/^https?:\/\//): the rest of the line is taken out;
- *      - a string, template literal, regex literal or line comment that holds `/` and `*` side by side ('image/*',
- *        // accepts image/*) with a block comment later in the file: everything from that opener to the comment's own
- *        closer is taken out as one "comment". wiringProblems strips the whole file before it cuts a method out, so that
- *        can be a whole method (the case then reports that the file does not export it). The text between a slash-star
- *        and a star-slash that both sit inside one template literal (CSS, say) goes the same way.
- *    Kept that should go (the unsafe direction, contrived: someone has to write it; an unguarded handler can read as guarded):
- *      - a comment glued to a closing quote, a backtick or a colon ('x'// const auth = ...);
- *      - a guard call inside a string or a template literal. */
-const withoutComments = (text) => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/([^:'"`])\/\/.*$/gm, '$1');
+/** A comment with every character but its newlines replaced by a space: what is left has the comment's length and lines. */
+const blank = (c) => c.replace(/[^\n]/g, ' ');
+
+/** `text` with its comments blanked, not deleted, so an offset in the result is the same offset in `text`. Three regular
+ *  expressions, not a parser. What it reads right and wrong is the table `wiringShapes`, run by the case "the wiring check
+ *  gives every shape of the table its verdict": rows c4, s1 to s8, s13, s14, f1, f2 and x1 to x6. */
+const withoutComments = (text) => text.replace(/\/\*[\s\S]*?\*\//g, blank).replace(/^\s*\/\/.*$/gm, blank).replace(/([^:'"`])\/\/.*$/gm, (m, ch) => ch + blank(m.slice(1)));
 
 /**
- * What the design's two lines at the top of a method have to look like (ENG-004 design, Interfaces):
+ * The design's two lines at the top of a method (ENG-004 design, Interfaces):
  *     const auth = await requireCaller(request, ['admin']);
  *     if (!auth.ok) return auth.response;
- * Not enough, each of which passed the first form of this check (a bare look for `requireCaller(`) and is a route that
- * is open: the call only in a comment, the call without `await` or without keeping its result, the result kept but never
- * used to refuse, and a roles list that is not the row's. So it needs all of: the call outside any comment, awaited,
- * with the handler's own request, with a literal list that names exactly the row's roles, its result in a variable,
- * and `if (!<that variable>.ok) return <that variable>.response`. `code` is the method's text with its comments already
- * taken out (wiringProblems does that once). Returns the list of what is missing.
+ * What is reported when a piece of them is missing, by row: the call only in a comment (rows c4, x6), without `await` (g1),
+ * without keeping its result (g2), the result kept but never used to refuse (g3), a roles list that is not the row's (g4),
+ * a request that is not the handler's own first parameter (g7). `code` is the method's text as `methodText` returns it.
+ * Returns the list of what is missing.
  */
 function guardCallProblems(row, code) {
-    // The handler's own first parameter (`request` in every route today; the eight handlers that take none have to add it).
+    // The handler's own first parameter.
     const param = code.match(/^export\s+async\s+function\s+\w+\s*\(\s*(\w*)/)?.[1];
     if (!param) return [`${row.method} takes no request parameter to hand to requireCaller`];
     const call = code.match(new RegExp(`\\b(?:const|let)\\s+(\\w+)\\s*=\\s*await\\s+requireCaller\\s*\\(\\s*${param}\\s*,\\s*\\[([^\\]]*)\\]\\s*\\)`));
@@ -153,19 +151,16 @@ function guardCallProblems(row, code) {
     return problems;
 }
 
-/** What the row's file has to contain; returns the list of what is missing. */
+/** The problems found in one row's file text, as a list of lines: empty is the verdict `clean` of the table `wiringShapes`, any line `REPORTED`. */
 function wiringProblems(row, source) {
     const problems = [];
-    // Comments come out of the whole file first, and the method's text is cut from what is left. The other order (cut the
-    // method from the raw text, strip the slice) fails when a block comment holds a copy of the method (its signature at
-    // column 0, the guard in it) above the live method: the slice then starts inside the comment, never contains the `/*`,
-    // and the copy's guard reads as the handler's. The raw text is read once, by withoutComments. The import checks and
-    // the AI-gateway call test (file level on purpose) read `code`; the roles guard and the cron and Stripe call tests
-    // read `methodCode`: an import or a call that only a comment names is not wired (withoutComments' doc lists what it
-    // takes out or leaves in wrongly). Before commit a86d86b the roles branch stripped comments and the self branches did not
-    // (the standards' "failure direction is not uniform").
+    // The file's comments are blanked first and the method is cut from the blanked text, with `source` as a second place to
+    // look for its end (methodText). A guard call that only a comment holds is not found (rows c4, x6). The roles guard and
+    // the cron and Stripe calls are looked for in the method's own text (rows g5, g9, g11), the imports in the blanked file
+    // (row g6), the AI gateway call anywhere in the blanked file (row g13). What else the check reads right and wrong is the
+    // table `wiringShapes`.
     const code = withoutComments(source);
-    const methodCode = methodText(code, row.method);
+    const methodCode = methodText(code, row.method, source);
     if (methodCode === null) return [`the file does not export \`async function ${row.method}\``];
 
     if (row.kind === 'roles') {
@@ -177,7 +172,7 @@ function wiringProblems(row, source) {
     if (row.kind === 'self') {
         const text = String(row.self || '');
         if (/AI gateway/i.test(text)) {
-            // File level: today the AI gateway PATCH handlers hand over to POST, which makes the call.
+            // File level: a call anywhere in the file is enough (row g13, a false pass).
             if (!importsName(code, 'verifyAiGatewayAuth', '@/lib/ai-gateway-auth')) problems.push("does not import verifyAiGatewayAuth from '@/lib/ai-gateway-auth'");
             if (!/\bverifyAiGatewayAuth\s*\(/.test(code)) problems.push('never calls verifyAiGatewayAuth(request)');
         } else if (/CRON_SECRET/.test(text)) {
