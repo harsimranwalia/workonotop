@@ -6,21 +6,26 @@
 //    e2e/auth/route-matrix.js, and every row names a file and method that exist, so a route added later fails the
 //    suite until someone classifies it, and a route removed fails until its row goes. One case per (method, route)
 //    in either list, titled "<METHOD> <route> is in the matrix"; a route that only the code has, or only the
-//    matrix has, is a failing case of that name. A route file that exports a method in any form but
-//    `export async function METHOD` (a const, a re-export, a non-async function) fails its own case, so a new
-//    form cannot slip past the count.
+//    matrix has, is a failing case of that name. A route file that parses as an ES module and exports a method in a form the count
+//    does not read (`export const`, `let`, `var`, `function` or `class` with the method's name, `export { ... METHOD ... }`, `export *`,
+//    or a destructuring export, row e1) fails its own case, "no route file exports a method in a form the coverage count cannot see",
+//    provided every `export` statement starts its line (after spaces or tabs), none holds a comment, each method name is a plain
+//    identifier and an exported variable declaration declares one name. Outside those conditions the count can miss a method: the table
+//    `exportShapes` has a row for three of the shapes it does not read (e3, e4, e6) and for the one it reads too much (e5).
 //  Auth wiring: every non-public row's file uses what the matrix says protects it, checked by reading its text
 //    (wiringProblems; no request is sent). A `roles` row's file imports requireCaller from '@/lib/api-auth' (row g6) and
 //    the method, as `methodText` cuts it, holds the design's "two lines at the top of each method" anywhere in it (rows c1, c2,
 //    g12), so a file that guards its GET does not turn its PUT green (row g5): `const auth = await requireCaller(request,
 //    [the row's roles])`, then `if (!auth.ok) return auth.response` (guardCallProblems' doc names the row of each piece). A
 //    `self` row's file uses its named check: requireCronSecret (rows g8, g9, r1cron) or the Stripe signature check (rows g10,
-//    g11, r1stripe); for verifyAiGatewayAuth a call anywhere in the file counts (row g13, a false pass). A `public` row needs
+//    g11, r1stripe); for verifyAiGatewayAuth a call anywhere in the file counts (row g13, a false pass). The checks are looked for by name,
+//    not by binding: a call to another function that has the same name reads as the check (row t3, a false pass). A `public` row needs
 //    nothing and has no case. The `pending` row counts as classified for coverage, is annotated, and its wiring case is
 //    skipped with the reason so every run prints it: nothing passes it silently, and AC5 does not hold while one `pending`
 //    row remains (the matrix file's header says so). What the check reads right and wrong is the table `wiringShapes` (above
 //    the cases), one row per shape with the verdict it gets, run by the case "the wiring check gives every shape of the
-//    table its verdict": a sentence in this file about what the check catches or misses names a row of it.
+//    table its verdict": a sentence in this file about what either check catches, misses or guarantees names a row of its table
+//    (`wiringShapes`, `exportShapes`), or says in words what a regular expression looks for.
 // Until a route is converted its wiring case fails (row c1: an unguarded method is reported); those are the known failures
 // in e2e/baseline.json that each converting ticket turns green.
 import fs from 'node:fs';
@@ -56,7 +61,9 @@ function routeFiles() {
         }));
 }
 
-/** The methods a file exports as `export async function METHOD`, in file order. */
+/** The methods a file exports as `export async function METHOD`, in file order. A longer name that begins with a method's (`GET$`) counts as
+ *  the method (row e5); something before `export` on its line, an escape in the name, or a second name in one exported declaration is not seen
+ *  (rows e3, e4, e6). */
 function exportedMethods(source) {
     const found = [];
     const pattern = new RegExp(`^\\s*export\\s+async\\s+function\\s+(${METHOD_NAMES})\\b`, 'gm');
@@ -64,7 +71,8 @@ function exportedMethods(source) {
     return found;
 }
 
-/** Ways of exporting an HTTP method (or everything) that the count above would not see. */
+/** Ways of exporting an HTTP method (or everything) that the count above would not see: a declaration with the method's name, an export list
+ *  naming it, `export *`, and a destructuring export (row e1). */
 function otherExportForms(source) {
     const forms = [];
     const named = new RegExp(`^\\s*export\\s+(?:default\\s+)?(?:function\\s*\\*?|const|let|var|class)\\s+(?:${METHOD_NAMES})\\b`, 'm');
@@ -114,20 +122,31 @@ const importsName = (source, name, from) =>
 
 /**
  * The text of one exported method, cut from `code` (the file with its comments blanked): from the line that holds
- * `export async function <method>` at column 0 up to, not including, the earliest line after it that starts a boundary, looked for in
- * `code` and in `raw` (the same file with its comments in place; blanking keeps every offset, so one offset serves both). A boundary is
- * `export`, `function`, `async function` or `function*` at any indentation, or `const`, `let`, `var`, `class`, `import` or `}` at column 0.
+ * `export async function <method>(` at column 0 (the name, optional whitespace, then `(`, so a longer name such as `GET$` is not the method)
+ * up to, not including, the earliest line after it that starts a boundary, looked for in `code` and in `raw` (the same file with its
+ * comments in place; blanking keeps every offset, so one offset serves both). The signature's line ends at its first line terminator as the
+ * grammar reads one: LF, CR, U+2028 or U+2029. A boundary is `export`, `function`, `async function` or `function*` after spaces or tabs, or
+ * `const`, `let`, `var`, `class`, `import` or `}` at column 0.
  * Null when `code` has no such signature (rows f1 and x5).
- * What each part of the rule is for, by the rows that fail without it: looking in `raw` as well as `code`, rows s1 to s5, s7, s8, f2, r1g and n3;
+ * What each part of the rule is for, by the rows that fail without it: looking in `raw` as well as `code`, rows s1 to s5, s7, s8, f2, r1g, n3 and b2;
  * the indented search in `code`, rows r1a, r1cron and r1stripe (a comment blanked in front of an `export`), in `raw`, rows r1g and n3;
- * the `}` at column 0, row b1.
+ * the `}` at column 0, rows b1 to b5 (row b2: only the search in `raw` finds it); the `\s*\(` after the name, rows p1cron, p1stripe and p1roles;
+ * the line-terminator skip, rows b3 to b5.
  * What it costs: a nested function declaration, or an indented `export` in a block comment, above the guard ends the cut early, so a
  * guarded method reads as unguarded, loudly (rows n1, n3).
- * What it guarantees: for a `roles`, cron or Stripe row whose method's closing `}` starts its line at column 0 (row b1), whose own text holds no
- * `requireCaller`, `requireCronSecret` or `constructEvent` at all, and with no guard text or `export ... function` signature written into a string,
- * template, regex literal or comment anywhere in the file, the check reports the method: `raw` is never blanked, so the method's own `}` ends the cut
- * at or before it, and blanking only hides text, so it can hide a guard (loudly) and never make one appear.
- * What it does not read: after a closing brace that does not start its line, an indented `const` helper (row t2) or a second method on the same line (row t1) does not end the cut: false passes, not caught.
+ * What it guarantees: for a `roles`, cron or Stripe row, when (0) the file parses (the grammar Next.js compiles it with, JSX included),
+ * (1) the method's closing `}` is the first character of its line, a line as the grammar reads one (after LF, CR, U+2028 or U+2029; rows b1, b3 to b5),
+ * (2) the method's own text, signature to closing brace, holds no `requireCaller`, `requireCronSecret` or `constructEvent` at all, and
+ * (3) every guard name and every `export ... function` signature in the file is code: none is written into text the grammar does not read as
+ * code (a string, JSX text, a template literal, a regex literal, a comment, or any other), the check reports the method. Why: under (0) and (3) the first
+ * match of the signature in `code` is the method's own declaration (rows p1cron, p1stripe, p1roles: a `GET$` or `POST$` that holds the guard, exported above the real method, which has none);
+ * under (1) the cut ends at or before the method's own `}`, because `raw` is never blanked (rows b1 to b5); the three looks read only that cut and each
+ * needs its guard's name, so under (2) none can match (rows g9, g11, r1cron, r1stripe, p1cron, p1stripe, p1roles: they fail when the looks read the
+ * whole file instead); and blanking only turns characters into spaces, so it can hide a guard (loudly) and never make one appear (rows f2, x5: they
+ * fail when comments are deleted instead).
+ * What it does not read: with (1) false, after a closing brace that does not start its line, an indented `const` helper (row t2) or a second method on the
+ * same line (row t1); with (2) false, a call to another function that has the guard's name (row t3: names, not bindings); with (3) false, guard text
+ * written into JSX text (row j1), a string (row s13) or a line comment glued to a quote (row s14): false passes, not caught.
  */
 function methodText(code, method, raw) {
     const start = code.search(new RegExp(`^export\\s+async\\s+function\\s+${method}\\s*\\(`, 'm'));
@@ -186,7 +205,8 @@ function wiringProblems(row, source) {
     // look for its end (methodText). A guard call that only a comment holds is not found (rows c4, x6). The roles guard and
     // the cron and Stripe calls are looked for in the method's text as `methodText` cuts it (rows g5, g9, g11; past a closing
     // brace that does not start its line, t1, t2), the imports in the blanked file (row g6), the AI gateway call anywhere in the
-    // blanked file (row g13). What else the check reads right and wrong is the table `wiringShapes`.
+    // blanked file (row g13). Only the guard's name is looked for, so a call to another function with that name reads as the guard (row t3).
+    // What else the check reads right and wrong is the table `wiringShapes`.
     const code = withoutComments(source);
     const methodCode = methodText(code, row.method, source);
     if (methodCode === null) return [`the file does not export \`async function ${row.method}\``];
