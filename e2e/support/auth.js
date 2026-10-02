@@ -4,7 +4,9 @@ import { FIXTURE_LOGINS } from '../../database/fixtures/accounts.js';
 // it is still unknown. Playwright's own maxRetries sends such a request again and retries nothing else: an HTTP
 // status, a refused connection or a timeout still fails at once, and the config's retries: 0 still holds for
 // every case. The wait between tries is 250 ms, then 500 ms, then 1 s. A POST the server had already acted on
-// would be sent twice, so use it only on a call that is safe to send twice (a dev login, a payment intent).
+// is sent twice, and for the create-intent call that can mean a second Stripe customer and payment intent.
+// That is harmless with a Stripe test key on the dev database, so nothing of the kind may use this option
+// against a live key or a real database.
 export const RESET_RETRIES = 3;
 
 // Says what is most likely wrong, so a failed sign-in is not a bare "expected 200".
