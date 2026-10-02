@@ -18,6 +18,11 @@ import { matrix } from './auth/route-matrix.js';
 import { CREDENTIAL_STYLES, STYLE_ROLE, getCredentialHeaders } from './auth/credentials.js';
 import { RESET_RETRIES } from './support/auth.js';
 
+// Every probe carries a fixture account's session header. A Playwright trace records the request headers of the API contexts
+// it traces, and the config keeps a trace for each failed case, so this file turns tracing off: no token reaches test-results/.
+// A failure still names the credential style, the row and the statuses in its message.
+test.use({ trace: 'off' });
+
 const REQUEST_MS = 45_000;
 const refused = (status) => status === 401 || status === 403;
 
