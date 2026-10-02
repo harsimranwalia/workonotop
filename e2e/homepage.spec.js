@@ -12,12 +12,21 @@ test.describe('Homepage', () => {
         await expect(heading).toContainText('Cleaning, Moving & Handyman Services in Vancouver');
     });
 
-    test('should display stats section (500,000+ / 96% / 4.8)', async ({ page }) => {
+    test('should display the "Why Choose Work On Tap?" section with its five benefits', async ({ page }) => {
         await page.goto('/');
 
-        await expect(page.getByText('500,000+')).toBeVisible();
-        await expect(page.getByText('96%')).toBeVisible();
-        await expect(page.getByText('4.8')).toBeVisible();
+        // The "500,000+ / 96% / 4.8" stats strip is not on the page any more (none of the three occurs in src);
+        // assert the benefits section the page has now (src/app/HomeClient.js:316-325).
+        await expect(page.getByRole('heading', { name: 'Why Choose Work On Tap?' })).toBeVisible();
+        for (const benefit of [
+            'Multiple Services in One Place',
+            'Practical Services for Everyday Needs',
+            'Services Based on Your Actual Needs',
+            'Simple Service Discovery',
+            'Vancouver & Metro Vancouver Service Area',
+        ]) {
+            await expect(page.getByRole('heading', { name: benefit, exact: true })).toBeVisible();
+        }
     });
 
     test('should display "How WorkOnTap works" section', async ({ page }) => {
