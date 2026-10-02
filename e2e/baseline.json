@@ -1375,6 +1375,9 @@
       "outcome": "FAIL",
       "error": "Error: src/app/api/user/settings/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a ..."
     },
+    "auth-coverage.spec.js › Auth wiring › the wiring check gives every shape of the table its verdict": {
+      "outcome": "PASS"
+    },
     "auth-guard.spec.js › Auth guard - a Bearer session lookup that rejects › the guard logs one line and answers 401; it does not fall through to the token signature in silence": {
       "outcome": "PASS"
     },
