@@ -9,8 +9,9 @@
 //   pending  annotated, printed and skipped, with the reason; AC5 does not hold while a row is pending.
 //
 // One case per row, titled `Role by route › <METHOD> <route>`, so e2e/baseline.json can name the row. The credentials come
-// from e2e/auth/credentials.js (the three web logins and the mobile login, once per worker process); one request context
-// per credential style is made in beforeAll and reused across the rows. This file reloads nothing: the fixtures are reloaded
+// from e2e/auth/credentials.js (the three web logins and the two mobile logins): signed in once per run by the global setup
+// (e2e/auth/global-setup.js) and handed to the workers in process.env, and once per worker only when that variable is absent;
+// one request context per credential style is made in beforeAll and reused across the rows. This file reloads nothing: the fixtures are reloaded
 // by whoever starts the run, and every probe uses an id no fixture row has or an empty body, so nothing is meant to change.
 import { test } from '@playwright/test';
 import { matrix } from './auth/route-matrix.js';
