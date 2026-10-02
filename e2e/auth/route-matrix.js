@@ -182,13 +182,13 @@ export const matrix = [
     },
     {
         route: '/api/admin/login', method: 'POST', today: 'none', kind: 'public', public: 'admin login (credential exchange)', owner: '-',
-        note: 'No rate limit or lockout seen (brute force); unknown email returns before bcrypt (timing oracle…',
-        probe: { path: '/api/admin/login', body: {}, anon: [] },
+        note: 'No rate limit or lockout seen (brute force); unknown email returns before bcrypt (timing oracle… Probe measured on the dev app at 04:49 on 2026-10-02 with no credential and an empty JSON body: 400 \'Email and password are required\'.',
+        probe: { path: '/api/admin/login', body: {}, anon: [400] },
     },
     {
         route: '/api/admin/logout', method: 'POST', today: 'none', kind: 'public', public: 'logout, clears own cookie', owner: '-',
-        note: 'Stateless JWT is not revoked: a stolen adminAuth token stays valid up to 24h after logout.',
-        probe: { path: '/api/admin/logout', body: {}, anon: [] },
+        note: 'Stateless JWT is not revoked: a stolen adminAuth token stays valid up to 24h after logout. Probe measured on the dev app at 04:49 on 2026-10-02 with no credential and an empty JSON body: 200.',
+        probe: { path: '/api/admin/logout', body: {}, anon: [200] },
     },
     {
         route: '/api/admin/logs', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
@@ -422,73 +422,73 @@ export const matrix = [
     },
     {
         route: '/api/ai-gateway/openapi.json', method: 'GET', today: 'none', kind: 'public', public: 'API description for the AI agent import, no data', owner: '-',
-        note: 'Spec only, no secrets; documents the gateway write surface and names AI_GATEWAY_SECRET_KEY (L59…',
-        probe: { path: '/api/ai-gateway/openapi.json', body: undefined, anon: [] },
+        note: 'Spec only, no secrets; documents the gateway write surface and names AI_GATEWAY_SECRET_KEY (L59… Probe measured on the dev app at 04:49 on 2026-10-02 with no credential and no body: 200.',
+        probe: { path: '/api/ai-gateway/openapi.json', body: undefined, anon: [200] },
     },
     {
         route: '/api/ai-gateway/v1/seo', method: 'DELETE', today: 'full', kind: 'self', self: 'AI gateway key (unchanged)', owner: '-',
-        note: 'Can delete any SEO row incl. global; key compare is non-constant-time (ai-gateway-auth L33); no…',
+        note: 'Can delete any SEO row incl. global; key compare is non-constant-time (ai-gateway-auth L33); no… Probe measured on the dev app at 04:49 on 2026-10-02 with no credential and no body: 500 \'Server configuration error: AI_GATEWAY_SECRET_KEY is not set.\'. The key is not configured on the dev app, so the route already fails closed with 500; a configured app answers 401, so both are accepted.',
         probe: { path: '/api/ai-gateway/v1/seo', body: undefined, anon: [401, 500] },
     },
     {
         route: '/api/ai-gateway/v1/seo', method: 'GET', today: 'full', kind: 'self', self: 'AI gateway key (unchanged)', owner: '-',
-        note: 'One static shared secret for read, write and delete; non-constant-time compare (ai-gateway-auth…',
+        note: 'One static shared secret for read, write and delete; non-constant-time compare (ai-gateway-auth… Probe measured on the dev app at 04:49 on 2026-10-02 with no credential and no body: 500 \'Server configuration error: AI_GATEWAY_SECRET_KEY is not set.\'. The key is not configured on the dev app, so the route already fails closed with 500; a configured app answers 401, so both are accepted.',
         probe: { path: '/api/ai-gateway/v1/seo', body: undefined, anon: [401, 500] },
     },
     {
         route: '/api/ai-gateway/v1/seo', method: 'PATCH', today: 'full', kind: 'self', self: 'AI gateway key (unchanged)', owner: '-',
-        note: 'Delegates to POST so the check applies; undefined fields keep existing values (seoService L90-9…',
+        note: 'Delegates to POST so the check applies; undefined fields keep existing values (seoService L90-9… Probe measured on the dev app at 04:49 on 2026-10-02 with no credential and an empty JSON body: 500 \'Server configuration error: AI_GATEWAY_SECRET_KEY is not set.\'. The key is not configured on the dev app, so the route already fails closed with 500; a configured app answers 401, so both are accepted.',
         probe: { path: '/api/ai-gateway/v1/seo', body: {}, anon: [401, 500] },
     },
     {
         route: '/api/ai-gateway/v1/seo', method: 'POST', today: 'full', kind: 'self', self: 'AI gateway key (unchanged)', owner: '-',
-        note: 'Key holder can write header_scripts/footer_scripts, rendered live in head by layout.js:87: scri…',
+        note: 'Key holder can write header_scripts/footer_scripts, rendered live in head by layout.js:87: scri… Probe measured on the dev app at 04:49 on 2026-10-02 with no credential and an empty JSON body: 500 \'Server configuration error: AI_GATEWAY_SECRET_KEY is not set.\'. The key is not configured on the dev app, so the route already fails closed with 500; a configured app answers 401, so both are accepted.',
         probe: { path: '/api/ai-gateway/v1/seo', body: {}, anon: [401, 500] },
     },
     {
         route: '/api/ai-gateway/v1/service-locations', method: 'DELETE', today: 'full', kind: 'self', self: 'AI gateway key (unchanged)', owner: '-',
-        note: 'Deletes public landing-page rows; no audit log or soft delete; shared key.',
+        note: 'Deletes public landing-page rows; no audit log or soft delete; shared key. Probe measured on the dev app at 04:49 on 2026-10-02 with no credential and no body: 500 \'Server configuration error: AI_GATEWAY_SECRET_KEY is not set.\'. The key is not configured on the dev app, so the route already fails closed with 500; a configured app answers 401, so both are accepted.',
         probe: { path: '/api/ai-gateway/v1/service-locations', body: undefined, anon: [401, 500] },
     },
     {
         route: '/api/ai-gateway/v1/service-locations', method: 'GET', today: 'full', kind: 'self', self: 'AI gateway key (unchanged)', owner: '-',
-        note: 'Read-only; filters are parameterized; 500 bodies echo error.message.',
+        note: 'Read-only; filters are parameterized; 500 bodies echo error.message. Probe measured on the dev app at 04:49 on 2026-10-02 with no credential and no body: 500 \'Server configuration error: AI_GATEWAY_SECRET_KEY is not set.\'. The key is not configured on the dev app, so the route already fails closed with 500; a configured app answers 401, so both are accepted.',
         probe: { path: '/api/ai-gateway/v1/service-locations', body: undefined, anon: [401, 500] },
     },
     {
         route: '/api/ai-gateway/v1/service-locations', method: 'PATCH', today: 'full', kind: 'self', self: 'AI gateway key (unchanged)', owner: '-',
-        note: 'Delegates to POST so the check applies.',
+        note: 'Delegates to POST so the check applies. Probe measured on the dev app at 04:49 on 2026-10-02 with no credential and an empty JSON body: 500 \'Server configuration error: AI_GATEWAY_SECRET_KEY is not set.\'. The key is not configured on the dev app, so the route already fails closed with 500; a configured app answers 401, so both are accepted.',
         probe: { path: '/api/ai-gateway/v1/service-locations', body: {}, anon: [401, 500] },
     },
     {
         route: '/api/ai-gateway/v1/service-locations', method: 'POST', today: 'full', kind: 'self', self: 'AI gateway key (unchanged)', owner: '-',
-        note: 'Writes raw HTML description rendered unsanitized on public pages (ServiceLocationClientPage.jsx…',
+        note: 'Writes raw HTML description rendered unsanitized on public pages (ServiceLocationClientPage.jsx… Probe measured on the dev app at 04:49 on 2026-10-02 with no credential and an empty JSON body: 500 \'Server configuration error: AI_GATEWAY_SECRET_KEY is not set.\'. The key is not configured on the dev app, so the route already fails closed with 500; a configured app answers 401, so both are accepted.',
         probe: { path: '/api/ai-gateway/v1/service-locations', body: {}, anon: [401, 500] },
     },
     {
         route: '/api/ai-gateway/v1/service-locations/sync-canonicals', method: 'POST', today: 'full', kind: 'self', self: 'AI gateway key (unchanged)', owner: '-',
-        note: 'Bulk rewrite of every canonical_url, one UPDATE per row, no confirmation or rate limit; shared …',
+        note: 'Bulk rewrite of every canonical_url, one UPDATE per row, no confirmation or rate limit; shared … Probe measured on the dev app at 04:49 on 2026-10-02 with no credential and an empty JSON body: 500 \'Server configuration error: AI_GATEWAY_SECRET_KEY is not set.\'. The key is not configured on the dev app, so the route already fails closed with 500; a configured app answers 401, so both are accepted.',
         probe: { path: '/api/ai-gateway/v1/service-locations/sync-canonicals', body: {}, anon: [401, 500] },
     },
     {
         route: '/api/ai-gateway/v1/services', method: 'GET', today: 'full', kind: 'self', self: 'AI gateway key (unchanged)', owner: '-',
-        note: 'Read-only; returns full services rows incl. inactive unless active_only; 500 bodies echo error.…',
+        note: 'Read-only; returns full services rows incl. inactive unless active_only; 500 bodies echo error.… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 500 \'Server configuration error: AI_GATEWAY_SECRET_KEY is not set.\'. The key is not configured on the dev app, so the route already fails closed with 500; a configured app answers 401, so both are accepted.',
         probe: { path: '/api/ai-gateway/v1/services', body: undefined, anon: [401, 500] },
     },
     {
         route: '/api/ai-gateway/v1/services', method: 'PATCH', today: 'full', kind: 'self', self: 'AI gateway key (unchanged)', owner: '-',
-        note: 'Delegates to POST so the check applies.',
+        note: 'Delegates to POST so the check applies. Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 500 \'Server configuration error: AI_GATEWAY_SECRET_KEY is not set.\'. The key is not configured on the dev app, so the route already fails closed with 500; a configured app answers 401, so both are accepted.',
         probe: { path: '/api/ai-gateway/v1/services', body: {}, anon: [401, 500] },
     },
     {
         route: '/api/ai-gateway/v1/services', method: 'POST', today: 'full', kind: 'self', self: 'AI gateway key (unchanged)', owner: '-',
-        note: 'Key holder can change live service prices and visibility; no audit log; no delete method.',
+        note: 'Key holder can change live service prices and visibility; no audit log; no delete method. Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 500 \'Server configuration error: AI_GATEWAY_SECRET_KEY is not set.\'. The key is not configured on the dev app, so the route already fails closed with 500; a configured app answers 401, so both are accepted.',
         probe: { path: '/api/ai-gateway/v1/services', body: {}, anon: [401, 500] },
     },
     {
         route: '/api/auth/apple', method: 'POST', today: 'full', kind: 'public', public: 'social sign-in (Apple id token verified)', owner: '-',
-        note: 'ADMIN BYPASS L79-85: verified email matching an admin user gets a role:admin JWT, no password; …',
-        probe: { path: '/api/auth/apple', body: {}, anon: [] },
+        note: 'ADMIN BYPASS L79-85: verified email matching an admin user gets a role:admin JWT, no password; … Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Apple identity token is required\'.',
+        probe: { path: '/api/auth/apple', body: {}, anon: [400] },
     },
     {
         route: '/api/auth/change-password', method: 'POST', today: 'full', kind: 'roles', roles: ['customer', 'provider'], owner: 'own account (table by role)',
@@ -497,28 +497,28 @@ export const matrix = [
     },
     {
         route: '/api/auth/data-deletion', method: 'POST', today: 'full', kind: 'public', public: 'deletion request, password re-verified in the body', owner: '-',
-        note: 'Pre-password branches answer 404 unknown email (L29-34), 403 admin account (L37-42), 400 alread…',
-        probe: { path: '/api/auth/data-deletion', body: {}, anon: [] },
+        note: 'Pre-password branches answer 404 unknown email (L29-34), 403 admin account (L37-42), 400 alread… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Email and password are required\'.',
+        probe: { path: '/api/auth/data-deletion', body: {}, anon: [400] },
     },
     {
         route: '/api/auth/forgot-password', method: 'POST', today: 'none', kind: 'public', public: 'reset request; abuse guard is the emailed OTP/link', owner: '-',
-        note: '6-digit Math.random OTP for source=mobile (L267), logged (L269); reset-password L28 accepts it …',
-        probe: { path: '/api/auth/forgot-password', body: {}, anon: [] },
+        note: '6-digit Math.random OTP for source=mobile (L267), logged (L269); reset-password L28 accepts it … Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Email is required\'.',
+        probe: { path: '/api/auth/forgot-password', body: {}, anon: [400] },
     },
     {
         route: '/api/auth/google', method: 'POST', today: 'full', kind: 'public', public: 'social sign-in (Google id token verified)', owner: '-',
-        note: 'ADMIN BYPASS L71-77: email matching an admin user gets a role:admin JWT, no password; email_ver…',
-        probe: { path: '/api/auth/google', body: {}, anon: [] },
+        note: 'ADMIN BYPASS L71-77: email matching an admin user gets a role:admin JWT, no password; email_ver… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Google token is required\'.',
+        probe: { path: '/api/auth/google', body: {}, anon: [400] },
     },
     {
         route: '/api/auth/login', method: 'POST', today: 'full', kind: 'public', public: 'customer login', owner: '-',
-        note: 'No rate limit or lockout; provider-email message (L33-36) is an account-type oracle; response r…',
-        probe: { path: '/api/auth/login', body: {}, anon: [] },
+        note: 'No rate limit or lockout; provider-email message (L33-36) is an account-type oracle; response r… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Email and password are required\'.',
+        probe: { path: '/api/auth/login', body: {}, anon: [400] },
     },
     {
         route: '/api/auth/logout', method: 'POST', today: 'none', kind: 'public', public: 'logout, clears own cookie', owner: '-',
-        note: 'Clears only customer_token (provider_token and adminAuth untouched); no server-side revocation,…',
-        probe: { path: '/api/auth/logout', body: {}, anon: [] },
+        note: 'Clears only customer_token (provider_token and adminAuth untouched); no server-side revocation,… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 200.',
+        probe: { path: '/api/auth/logout', body: {}, anon: [200] },
     },
     {
         route: '/api/auth/me', method: 'GET', today: 'full', kind: 'roles', roles: ['customer', 'provider', 'admin'], owner: 'own profile (table by role)',
@@ -527,43 +527,43 @@ export const matrix = [
     },
     {
         route: '/api/auth/mobile/forgot-password', method: 'POST', today: 'none', kind: 'public', public: 'reset request; abuse guard is the emailed OTP', owner: '-',
-        note: 'MEDIUM: 404 at line 30 enumerates accounts; 6-digit Math.random OTP (34) stored plaintext and w…',
-        probe: { path: '/api/auth/mobile/forgot-password', body: {}, anon: [] },
+        note: 'MEDIUM: 404 at line 30 enumerates accounts; 6-digit Math.random OTP (34) stored plaintext and w… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Email is required\'.',
+        probe: { path: '/api/auth/mobile/forgot-password', body: {}, anon: [400] },
     },
     {
         route: '/api/auth/mobile/google', method: 'POST', today: 'partial', kind: 'public', public: 'social sign-in', owner: '-',
-        note: 'MEDIUM: audience check skipped when no Google client-id env is set (45-54); email_verified not …',
-        probe: { path: '/api/auth/mobile/google', body: {}, anon: [] },
+        note: 'MEDIUM: audience check skipped when no Google client-id env is set (45-54); email_verified not … Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Google token is required\'.',
+        probe: { path: '/api/auth/mobile/google', body: {}, anon: [400] },
     },
     {
         route: '/api/auth/mobile/login', method: 'POST', today: 'full', kind: 'public', public: 'mobile login', owner: '-',
-        note: 'LOW: no rate limit; role-mismatch 403s precede the password check (enumeration); admin gets adm…',
-        probe: { path: '/api/auth/mobile/login', body: {}, anon: [] },
+        note: 'LOW: no rate limit; role-mismatch 403s precede the password check (enumeration); admin gets adm… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Email, password, and role are required\'.',
+        probe: { path: '/api/auth/mobile/login', body: {}, anon: [400] },
     },
     {
         route: '/api/auth/mobile/logout', method: 'POST', today: 'full', kind: 'public', public: 'logout by refresh-token possession', owner: '-',
-        note: 'LOW: capability in body, not a Bearer check; unknown token returns 200 success; the 7d access J…',
-        probe: { path: '/api/auth/mobile/logout', body: {}, anon: [] },
+        note: 'LOW: capability in body, not a Bearer check; unknown token returns 200 success; the 7d access J… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Refresh token is required\'.',
+        probe: { path: '/api/auth/mobile/logout', body: {}, anon: [400] },
     },
     {
         route: '/api/auth/mobile/refresh', method: 'POST', today: 'full', kind: 'public', public: 'refresh by refresh-token possession', owner: '-',
-        note: 'LOW: rotation mints a fresh 7d JWT; pending_deletion/deleted status is not checked (58-63); JWT…',
-        probe: { path: '/api/auth/mobile/refresh', body: {}, anon: [] },
+        note: 'LOW: rotation mints a fresh 7d JWT; pending_deletion/deleted status is not checked (58-63); JWT… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Refresh token is required\'.',
+        probe: { path: '/api/auth/mobile/refresh', body: {}, anon: [400] },
     },
     {
         route: '/api/auth/reset-password', method: 'POST', today: 'partial', kind: 'public', public: 'reset completion; guard is the OTP/token (see S1)', owner: '-',
-        note: 'HIGH, from code reading, not run: query() is client-side escaping (db.js:68) and body otp/token…',
-        probe: { path: '/api/auth/reset-password', body: {}, anon: [] },
+        note: 'HIGH, from code reading, not run: query() is client-side escaping (db.js:68) and body otp/token… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'New password is required\'.',
+        probe: { path: '/api/auth/reset-password', body: {}, anon: [400] },
     },
     {
         route: '/api/auth/signup', method: 'POST', today: 'none', kind: 'public', public: 'customer signup', owner: '-',
-        note: 'LOW: session cookie issued with no email verification (247); body values go to client-side-esca…',
-        probe: { path: '/api/auth/signup', body: {}, anon: [] },
+        note: 'LOW: session cookie issued with no email verification (247); body values go to client-side-esca… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Password must be at least 8 characters and contain both alphabets and \'.',
+        probe: { path: '/api/auth/signup', body: {}, anon: [400] },
     },
     {
         route: '/api/auth/verify-otp', method: 'POST', today: 'partial', kind: 'public', public: 'OTP check (see S1)', owner: '-',
-        note: 'MEDIUM: boolean oracle for the 6-digit reset OTP with no attempt limit; OTP not consumed; NULL …',
-        probe: { path: '/api/auth/verify-otp', body: {}, anon: [] },
+        note: 'MEDIUM: boolean oracle for the 6-digit reset OTP with no attempt limit; OTP not consumed; NULL … Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Email and OTP are required\'.',
+        probe: { path: '/api/auth/verify-otp', body: {}, anon: [400] },
     },
     {
         route: '/api/bookings', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
@@ -577,8 +577,8 @@ export const matrix = [
     },
     {
         route: '/api/bookings', method: 'POST', today: 'partial', kind: 'public', public: 'guest checkout; a credential, if sent, sets the owner (R1)', owner: '-',
-        note: 'HIGH: payment_intent_id only checked truthy (123), never verified with Stripe (client declared …',
-        probe: { path: '/api/bookings', body: {}, anon: [] },
+        note: 'HIGH: payment_intent_id only checked truthy (123), never verified with Stripe (client declared … Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Missing required fields (Service, Date, Time, Address, or Email)\'.',
+        probe: { path: '/api/bookings', body: {}, anon: [400] },
     },
     {
         route: '/api/bookings', method: 'PUT', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
@@ -592,8 +592,8 @@ export const matrix = [
     },
     {
         route: '/api/bookings/[id]/invoice/download', method: 'GET', today: 'none', kind: 'pending', pending: 'G2, the invoice-download one-way door: the approver answered option 3 on 2026-10-02 04:09 (\'build the rest first, decide this later\'), so this route stays exactly as it is today (no check) and is neither locked nor declared public until the fresh G2 is answered (the design recommends customer, admin). A browser tab cannot carry the app\'s token, so any check here breaks the app\'s two Download Invoice buttons.', owner: 'booking.user_id = caller',
-        note: 'HIGH: anonymous PDF of any booking by sequential id; a plain Bearer check would break the mobil…',
-        probe: { path: '/api/bookings/999999999/invoice/download', body: undefined, anon: [] },
+        note: 'HIGH: anonymous PDF of any booking by sequential id; a plain Bearer check would break the mobil… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 404 \'Booking not found\'. The route has no check today; this status is informational and is not asserted.',
+        probe: { path: '/api/bookings/999999999/invoice/download', body: undefined, anon: [404] },
     },
     {
         route: '/api/bookings/[id]/reassign', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
@@ -612,8 +612,8 @@ export const matrix = [
     },
     {
         route: '/api/categories', method: 'GET', today: 'none', kind: 'public', public: 'public catalogue', owner: '-',
-        note: 'INFO: public by design; SELECT * returns every column of active rows (12), including any admin-…',
-        probe: { path: '/api/categories', body: undefined, anon: [] },
+        note: 'INFO: public by design; SELECT * returns every column of active rows (12), including any admin-… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 200.',
+        probe: { path: '/api/categories', body: undefined, anon: [200] },
     },
     {
         route: '/api/categories', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
@@ -647,12 +647,12 @@ export const matrix = [
     },
     {
         route: '/api/cron/auto-release', method: 'GET', today: 'partial', kind: 'self', self: 'CRON_SECRET, made fail-closed', owner: '-',
-        note: 'MEDIUM: if CRON_SECRET is unset the header \'Bearer undefined\' matches (15); development mode by…',
+        note: 'MEDIUM: if CRON_SECRET is unset the header \'Bearer undefined\' matches (15); development mode by… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 200. The job ran for an anonymous caller. Known failure: ENG-022 makes it 401 through requireCronSecret, which also refuses with 401 when CRON_SECRET is unset, as it is on the dev app.',
         probe: { path: '/api/cron/auto-release', body: undefined, anon: [401] },
     },
     {
         route: '/api/cron/notifications', method: 'GET', today: 'partial', kind: 'self', self: 'CRON_SECRET, made fail-closed', owner: '-',
-        note: 'MEDIUM: fail-open, no check at all when CRON_SECRET is unset or empty (14); anonymous caller ca…',
+        note: 'MEDIUM: fail-open, no check at all when CRON_SECRET is unset or empty (14); anonymous caller ca… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 500 \'Internal Server Error\'. The route did not refuse the anonymous caller (the answer is not 401). Known failure: ENG-022 makes it 401 through requireCronSecret, which also refuses with 401 when CRON_SECRET is unset, as it is on the dev app.',
         probe: { path: '/api/cron/notifications', body: undefined, anon: [401] },
     },
     {
@@ -727,13 +727,13 @@ export const matrix = [
     },
     {
         route: '/api/directory', method: 'GET', today: 'none', kind: 'public', public: 'public catalogue (SEO directory)', owner: '-',
-        note: 'Error body returns error.message (L48), leaking DB error text; otherwise only active catalogue …',
-        probe: { path: '/api/directory', body: undefined, anon: [] },
+        note: 'Error body returns error.message (L48), leaking DB error text; otherwise only active catalogue … Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 200.',
+        probe: { path: '/api/directory', body: undefined, anon: [200] },
     },
     {
         route: '/api/locations', method: 'GET', today: 'none', kind: 'public', public: 'public picklists', owner: '-',
-        note: 'Parameterized queries; no sensitive data; unauthenticated by design.',
-        probe: { path: '/api/locations', body: undefined, anon: [] },
+        note: 'Parameterized queries; no sensitive data; unauthenticated by design. Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 200.',
+        probe: { path: '/api/locations', body: undefined, anon: [200] },
     },
     {
         route: '/api/mobile/push-token', method: 'POST', today: 'partial', kind: 'roles', roles: ['customer', 'provider'], owner: 'body userId must equal caller',
@@ -802,8 +802,8 @@ export const matrix = [
     },
     {
         route: '/api/provider/check-verification', method: 'GET', today: 'none', kind: 'public', public: 'pre-login verification status (enumeration noted, rate limits are a non-goal)', owner: '-',
-        note: 'Account enumeration: 404 vs 200 reveals whether an email is a registered provider and whether i…',
-        probe: { path: '/api/provider/check-verification', body: undefined, anon: [] },
+        note: 'Account enumeration: 404 vs 200 reveals whether an email is a registered provider and whether i… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 400 \'Email is required\'.',
+        probe: { path: '/api/provider/check-verification', body: undefined, anon: [400] },
     },
     {
         route: '/api/provider/dashboard-stats', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own stats',
@@ -812,8 +812,8 @@ export const matrix = [
     },
     {
         route: '/api/provider/forgot-password', method: 'POST', today: 'none', kind: 'public', public: 'reset request', owner: '-',
-        note: 'Enumeration via 404 vs 200; client-chosen source=mobile gives 6-digit Math.random OTP (L355-358…',
-        probe: { path: '/api/provider/forgot-password', body: {}, anon: [] },
+        note: 'Enumeration via 404 vs 200; client-chosen source=mobile gives 6-digit Math.random OTP (L355-358… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Email is required\'.',
+        probe: { path: '/api/provider/forgot-password', body: {}, anon: [400] },
     },
     {
         route: '/api/provider/jobs', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own assigned jobs',
@@ -847,13 +847,13 @@ export const matrix = [
     },
     {
         route: '/api/provider/login', method: 'POST', today: 'none', kind: 'public', public: 'provider login', owner: '-',
-        note: 'Rejected-status reply with rejection_reason is sent BEFORE the password check (L188-195); 401 t…',
-        probe: { path: '/api/provider/login', body: {}, anon: [] },
+        note: 'Rejected-status reply with rejection_reason is sent BEFORE the password check (L188-195); 401 t… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Email and password required\'.',
+        probe: { path: '/api/provider/login', body: {}, anon: [400] },
     },
     {
         route: '/api/provider/logout', method: 'POST', today: 'none', kind: 'public', public: 'logout', owner: '-',
-        note: 'Clears cookie only; JWT stays valid until expiry (no server-side revocation) and mobile Bearer …',
-        probe: { path: '/api/provider/logout', body: {}, anon: [] },
+        note: 'Clears cookie only; JWT stays valid until expiry (no server-side revocation) and mobile Bearer … Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 200.',
+        probe: { path: '/api/provider/logout', body: {}, anon: [200] },
     },
     {
         route: '/api/provider/me', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own profile',
@@ -922,13 +922,13 @@ export const matrix = [
     },
     {
         route: '/api/provider/reset-password', method: 'POST', today: 'partial', kind: 'public', public: 'reset completion; guard is the token/OTP (see S1)', owner: '-',
-        note: 'Token path needs no email and the 6-digit mobile OTP lives in the same reset_token column, so a…',
-        probe: { path: '/api/provider/reset-password', body: {}, anon: [] },
+        note: 'Token path needs no email and the 6-digit mobile OTP lives in the same reset_token column, so a… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Password required\'.',
+        probe: { path: '/api/provider/reset-password', body: {}, anon: [400] },
     },
     {
         route: '/api/provider/signup', method: 'POST', today: 'none', kind: 'public', public: 'provider signup', owner: '-',
-        note: 'No rate limit or captcha; reveals registered emails and phones (L205, L218, L231); OTP from Mat…',
-        probe: { path: '/api/provider/signup', body: {}, anon: [] },
+        note: 'No rate limit or captcha; reveals registered emails and phones (L205, L218, L231); OTP from Mat… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'All fields are required\'.',
+        probe: { path: '/api/provider/signup', body: {}, anon: [400] },
     },
     {
         route: '/api/provider/status', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own status',
@@ -942,18 +942,18 @@ export const matrix = [
     },
     {
         route: '/api/provider/validate-reset-token', method: 'GET', today: 'none', kind: 'public', public: 'reset page link check (see S1)', owner: '-',
-        note: 'Unauthenticated oracle for live reset_token values including 6-digit mobile OTPs, no email need…',
-        probe: { path: '/api/provider/validate-reset-token', body: undefined, anon: [] },
+        note: 'Unauthenticated oracle for live reset_token values including 6-digit mobile OTPs, no email need… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 400 \'Token required\'.',
+        probe: { path: '/api/provider/validate-reset-token', body: undefined, anon: [400] },
     },
     {
         route: '/api/provider/verify-email', method: 'GET', today: 'full', kind: 'public', public: 'emailed verification link (signed token)', owner: '-',
-        note: 'State-changing GET. JWT branch selects WHERE email=? OR id=? (L29-34), so a stale token can hit…',
-        probe: { path: '/api/provider/verify-email', body: undefined, anon: [] },
+        note: 'State-changing GET. JWT branch selects WHERE email=? OR id=? (L29-34), so a stale token can hit… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 400 \'No verification token provided\'.',
+        probe: { path: '/api/provider/verify-email', body: undefined, anon: [400] },
     },
     {
         route: '/api/provider/verify-otp', method: 'POST', today: 'partial', kind: 'public', public: 'OTP check (see S1)', owner: '-',
-        note: '6-digit OTP, no rate limit or lockout, not consumed (so it also opens reset-password); expiry N…',
-        probe: { path: '/api/provider/verify-otp', body: {}, anon: [] },
+        note: '6-digit OTP, no rate limit or lockout, not consumed (so it also opens reset-password); expiry N… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Email and verification code required\'.',
+        probe: { path: '/api/provider/verify-otp', body: {}, anon: [400] },
     },
     {
         route: '/api/reviews', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
@@ -972,13 +972,13 @@ export const matrix = [
     },
     {
         route: '/api/seo', method: 'GET', today: 'none', kind: 'public', public: 'public page metadata', owner: '-',
-        note: 'Returns header_scripts/footer_scripts blobs from seo_settings (seo.js) to anyone, public by des…',
-        probe: { path: '/api/seo', body: undefined, anon: [] },
+        note: 'Returns header_scripts/footer_scripts blobs from seo_settings (seo.js) to anyone, public by des… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 200.',
+        probe: { path: '/api/seo', body: undefined, anon: [200] },
     },
     {
         route: '/api/service-areas', method: 'GET', today: 'none', kind: 'public', public: 'public catalogue', owner: '-',
-        note: 'Read-only catalogue of active rows; nothing sensitive.',
-        probe: { path: '/api/service-areas', body: undefined, anon: [] },
+        note: 'Read-only catalogue of active rows; nothing sensitive. Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 200.',
+        probe: { path: '/api/service-areas', body: undefined, anon: [200] },
     },
     {
         route: '/api/service-locations', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
@@ -987,8 +987,8 @@ export const matrix = [
     },
     {
         route: '/api/service-locations', method: 'GET', today: 'none', kind: 'public', public: 'landing pages; `?admin=`/`?includeInactive=` branches require admin', owner: '-',
-        note: '?includeInactive=true or ?admin=true (L13) drops the is_active filter with no auth (draft rows)…',
-        probe: { path: '/api/service-locations', body: undefined, anon: [] },
+        note: '?includeInactive=true or ?admin=true (L13) drops the is_active filter with no auth (draft rows)… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 200.',
+        probe: { path: '/api/service-locations', body: undefined, anon: [200] },
     },
     {
         route: '/api/service-locations', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
@@ -1002,8 +1002,8 @@ export const matrix = [
     },
     {
         route: '/api/services', method: 'GET', today: 'none', kind: 'public', public: 'catalogue; the `?admin=true` branch requires admin', owner: '-',
-        note: '?admin=true (L17, L59) turns off the is_active filter with no auth and exposes all s.* columns;…',
-        probe: { path: '/api/services', body: undefined, anon: [] },
+        note: '?admin=true (L17, L59) turns off the is_active filter with no auth and exposes all s.* columns;… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 200.',
+        probe: { path: '/api/services', body: undefined, anon: [200] },
     },
     {
         route: '/api/services', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
@@ -1017,8 +1017,8 @@ export const matrix = [
     },
     {
         route: '/api/skills', method: 'GET', today: 'none', kind: 'public', public: 'public catalogue', owner: '-',
-        note: 'Read-only catalogue; nothing sensitive.',
-        probe: { path: '/api/skills', body: undefined, anon: [] },
+        note: 'Read-only catalogue; nothing sensitive. Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 200.',
+        probe: { path: '/api/skills', body: undefined, anon: [200] },
     },
     {
         route: '/api/stats', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
@@ -1027,12 +1027,12 @@ export const matrix = [
     },
     {
         route: '/api/stripe/webhook', method: 'GET', today: 'none', kind: 'public', public: 'health ping, returns no data', owner: '-',
-        note: 'Returns {message,timestamp} only (L385-390); harmless.',
-        probe: { path: '/api/stripe/webhook', body: undefined, anon: [] },
+        note: 'Returns {message,timestamp} only (L385-390); harmless. Probe measured on the dev app at 04:51 on 2026-10-02 with no credential and no body: 200.',
+        probe: { path: '/api/stripe/webhook', body: undefined, anon: [200] },
     },
     {
         route: '/api/stripe/webhook', method: 'POST', today: 'full', kind: 'self', self: 'Stripe signature, verified before any branch (unchanged)', owner: '-',
-        note: 'Signature verified once (L41) before the event switch (L51), so every branch is covered; fails …',
+        note: 'Signature verified once (L41) before the event switch (L51), so every branch is covered; fails … Probe measured on the dev app at 04:51 on 2026-10-02 with no credential and an empty JSON body: 400 \'Missing stripe-signature header\'. 500 is accepted for a server with no webhook secret.',
         probe: { path: '/api/stripe/webhook', body: {}, anon: [400, 500] },
     },
     {
