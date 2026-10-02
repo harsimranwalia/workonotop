@@ -142,13 +142,17 @@ function guardCallProblems(row, code) {
 /** What the row's file has to contain; returns the list of what is missing. */
 function wiringProblems(row, source) {
     const problems = [];
-    const body = methodText(source, row.method);
-    if (body === null) return [`the file does not export \`async function ${row.method}\``];
-    // Every import check and every call test below, in every branch, reads the code and never the raw text: an import or a
-    // call that only a comment names is not wired. (Once the roles branch stripped comments and the self branches did
-    // not, so a commented-out call satisfied them: the standards' "failure direction is not uniform".)
+    // Comments come out of the whole file first, and the method's text is cut from what is left. The other order (cut the
+    // method from the raw text, strip the slice) fails when a block comment holds a copy of the method (its signature at
+    // column 0, the guard in it) above the live method: the slice then starts inside the comment, never contains the `/*`,
+    // and the copy's guard reads as the handler's. The raw text is read once, by withoutComments. The import checks and
+    // the AI-gateway call test (file level on purpose) read `code`; the roles guard and the cron and Stripe call tests
+    // read `methodCode`: an import or a call that only a comment names is not wired (withoutComments' doc lists what it
+    // takes out or leaves in wrongly). Before ENG-020 A2 the roles branch stripped comments and the self branches did not
+    // (the standards' "failure direction is not uniform").
     const code = withoutComments(source);
-    const methodCode = withoutComments(body);
+    const methodCode = methodText(code, row.method);
+    if (methodCode === null) return [`the file does not export \`async function ${row.method}\``];
 
     if (row.kind === 'roles') {
         if (!importsName(code, 'requireCaller', '@/lib/api-auth')) problems.push("does not import requireCaller from '@/lib/api-auth'");
