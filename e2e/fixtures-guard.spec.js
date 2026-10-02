@@ -92,11 +92,15 @@ test.describe('Fixture guard - reserved email names', () => {
 
 test.describe('Fixture guard - the server that answers', () => {
 
+    // The columns the guard counts, in the order it counts them, written out here: the guard does not export
+    // its list, and a case that read it would pass whatever it held.
+    const COUNTED = [['users', 'email'], ['service_providers', 'email'], ['bookings', 'customer_email'], ['deletion_requests', 'email']];
+
     test('passes a server whose person tables hold only reserved names', async () => {
         await expect(assertNoRealPeople(serverWithRealPeopleIn([]))).resolves.toBeUndefined();
     });
 
-    for (const [table, column] of [['users', 'email'], ['service_providers', 'email'], ['bookings', 'customer_email'], ['deletion_requests', 'email']]) {
+    for (const [table, column] of COUNTED) {
         test(`refuses a server with a real address in ${table}.${column}`, async () => {
             await expect(assertNoRealPeople(serverWithRealPeopleIn([[table, column]]))).rejects.toThrow(`REFUSED: ${table}.${column} holds 1 address(es)`);
         });
@@ -107,13 +111,16 @@ test.describe('Fixture guard - the server that answers', () => {
         await expect(assertNoRealPeople(unreachable)).rejects.toThrow(/^REFUSED: could not count users\.email \(ER_NO_SUCH_TABLE\)/);
     });
 
+    // The stand-in answers by table and column whatever the WHERE says, so this is the one case that sees the
+    // statement itself. Without it a predicate that matches nothing (WHERE 0), or one with its NOT dropped, passes
+    // every case in this file.
     test('reads counts only and hands the server the same pattern the JS side tests', async () => {
         const server = serverWithRealPeopleIn([]);
         await assertNoRealPeople(server);
-        expect(server.calls).toHaveLength(4);
-        for (const { sql, params } of server.calls) {
-            expect(sql).toMatch(/^SELECT COUNT\(\*\) AS n FROM /);
-            expect(params[2]).toBe(SYNTHETIC_EMAIL.source);
-        }
+        expect(server.calls).toHaveLength(COUNTED.length);
+        COUNTED.forEach(([table, column], i) => {
+            expect(server.calls[i].sql).toBe("SELECT COUNT(*) AS n FROM ?? WHERE NOT REGEXP_LIKE(??, ?, 'i')");
+            expect(server.calls[i].params).toEqual([table, column, SYNTHETIC_EMAIL.source]);
+        });
     });
 });
