@@ -147,6 +147,49 @@ test.describe('Auth guard - what counts as a session', () => {
         await expectUnauthorized(await guard.requireCaller(request(asCookie('adminAuth', sign({ providerId: 1, email: ADMIN.email, role: 'admin' }))), ['admin']));
     });
 
+    // A signed token whose id claim is there but is not a usable id (api-auth.js validId: a positive finite number or a
+    // non-blank string). One case per value, so a guard that starts to accept one of them fails on that value's case alone.
+    for (const bad of [0, '', ' ', true, {}]) {
+        test(`a signed token whose id is ${JSON.stringify(bad)} is 401 for every role, as a cookie and as a Bearer`, async () => {
+            const all = ['admin', 'customer', 'provider'];
+            // [cookie name or null for a Bearer, payload, the role the token claims]. A web provider token carries only
+            // providerId; the mobile tokens carry id (and a provider's providerId) as well, both bad here.
+            const tokens = [
+                ['adminAuth', { id: bad, email: ADMIN.email, role: 'admin' }, 'admin'],
+                ['customer_token', { id: bad, email: CUSTOMER.email, role: 'user', status: 'active' }, 'customer'],
+                ['provider_token', { providerId: bad, email: PROVIDER.email, type: 'provider', status: 'active' }, 'provider'],
+                [null, { ...MOBILE_ADMIN, id: bad }, 'admin'],
+                [null, { ...MOBILE_CUSTOMER, id: bad }, 'customer'],
+                [null, { ...MOBILE_PROVIDER, id: bad, providerId: bad }, 'provider'],
+            ];
+            for (const [cookie, payload, role] of tokens) {
+                const headers = cookie ? asCookie(cookie, sign(payload)) : asBearer(sign(payload));
+                await expectUnauthorized(await guard.requireCaller(request(headers), [role]));
+                await expectUnauthorized(await guard.requireCaller(request(headers), all));
+            }
+        });
+    }
+
+    test('a cookie sent twice is decided by the later one, as request.cookies.get does: garbage last is 401, valid last is a session', async () => {
+        const admin = sign(ADMIN);
+        // The garbage first does not hide the valid cookie after it...
+        const laterValid = await guard.requireCaller(request({ cookie: `adminAuth=garbage; adminAuth=${admin}` }), ['admin']);
+        expect(laterValid.ok, 'garbage first, valid last').toBe(true);
+        expect(laterValid.caller).toEqual({ role: 'admin', id: 1, email: ADMIN.email, via: 'cookie' });
+        // ...and the valid cookie first does not outlive the garbage after it: the later value is the one that counts.
+        await expectUnauthorized(await guard.requireCaller(request({ cookie: `adminAuth=${admin}; adminAuth=garbage` }), ['admin']));
+        // With other cookies between the two the rule is the same.
+        const between = { cookie: `adminAuth=${admin}; theme=dark; adminAuth=garbage` };
+        await expectUnauthorized(await guard.requireCaller(request(between), ['admin', 'customer', 'provider']));
+        // The premise, from Next itself: the same headers through NextRequest (what a handler reads cookies with today)
+        // also give the later value, so the guard and `request.cookies.get` never disagree about a duplicated cookie.
+        const { NextRequest } = (await import('next/server.js')).default;
+        for (const [header, last] of [[`adminAuth=garbage; adminAuth=${admin}`, admin], [`adminAuth=${admin}; adminAuth=garbage`, 'garbage']]) {
+            const next = new NextRequest('http://localhost/api/probe', { headers: { cookie: header } });
+            expect(next.cookies.get('adminAuth')?.value, 'what request.cookies.get returns for the duplicated cookie').toBe(last);
+        }
+    });
+
     test('an unknown role, an admin named only by type, or two claims that name different roles, is no session (401)', async () => {
         const all = ['admin', 'customer', 'provider'];
         const unknown = [
