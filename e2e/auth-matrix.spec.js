@@ -8,30 +8,58 @@
 //   self     every style, signed in or not, gets a status in probe.anon (a user's cookie is not the route's secret).
 //   pending  annotated, printed and skipped, with the reason; AC5 does not hold while a row is pending.
 //
+// Two optional fields of a row's probe keep a request that does real work from being sent (the row's note in
+// route-matrix.js cites the handler lines and says why):
+//   hold         '<reason>': the case sends NOTHING, from any credential, and FAILS with the reason on its first line. One
+//                request does real work whoever sends it (a cron job that runs for any caller while CRON_SECRET is unset).
+//                A known failure until the converting ticket adds the guard and removes the hold.
+//   holdAllowed  '<reason>': roles rows only. The styles whose role the row ALLOWS are not sent (the `answers` annotation
+//                prints `held` for them and they are not judged); `none` and every wrong role are still sent and still
+//                judged as above (401, and exactly 403). Used where an allowed caller's request does real work with no input.
+//
 // One case per row, titled `Role by route › <METHOD> <route>`, so e2e/baseline.json can name the row. The credentials come
 // from e2e/auth/credentials.js (the three web logins and the two mobile logins): signed in once per run by the global setup
 // (e2e/auth/global-setup.js) and handed to the workers in process.env, and once per worker only when that variable is absent;
-// one request context per credential style is made in beforeAll and reused across the rows. This file reloads nothing: the fixtures are reloaded
-// by whoever starts the run, and every probe uses an id no fixture row has or an empty body, so nothing is meant to change.
+// one request context per credential style is made in beforeAll and reused across the rows.
+//
+// Fixtures: this file reloads nothing itself. Whoever starts the run reloads them first (the department's recipe runs
+// `npm run db:fixtures` in the app container before the test command). Every probe uses a fixture account, an id no fixture row
+// has, and an empty body or none; the rows where that is not enough to stop the handler before its first side effect are held
+// (above), and the matrix header lists them.
+
 import { test } from '@playwright/test';
 import { matrix } from './auth/route-matrix.js';
 import { CREDENTIAL_STYLES, STYLE_ROLE, getCredentialHeaders } from './auth/credentials.js';
 import { RESET_RETRIES } from './support/auth.js';
 
 // Every probe carries a fixture account's session header. A Playwright trace records the request headers of the API contexts
-// it traces, and the config keeps a trace for each failed case, so this file turns tracing off: no token reaches test-results/.
+// it traces, and the config keeps a trace for each failed case, so this file turns tracing off: no TRACE holds a token. That
+// is the whole claim. The department's recipe also copies the app's own log to test-results/app.log, and the Stripe webhook
+// row (kind `self`, so every credential style is sent) makes that route log `request.headers` itself
+// (src/app/api/stripe/webhook/route.js:16): once that row is probed, app.log holds the five fixture session headers. Dev
+// accounts only, in a gitignored directory; ENG-022 owns that route and should delete the log line.
 // A failure still names the credential style, the row and the statuses in its message.
 test.use({ trace: 'off' });
 
 const REQUEST_MS = 45_000;
+const HELD = 'held';
 const refused = (status) => status === 401 || status === 403;
 
-// Sends the row's probe once per credential style and returns { style: status }. No redirect is followed, so a 3xx is
-// reported as it came; nothing but the status is read, so no body (and no token) is held or printed.
+// True for a style a holdAllowed row does not send: a signed-in style whose role the row allows. Only roles rows have one.
+const isHeldStyle = (row, style) =>
+    Boolean(row.probe.holdAllowed) && row.kind === 'roles' && style !== 'none' && row.roles.includes(STYLE_ROLE[style]);
+
+// Sends the row's probe once per credential style (except the styles a holdAllowed row exempts, which are recorded as
+// `held`) and returns { style: status }. No redirect is followed, so a 3xx is reported as it came; nothing but the status is
+// read, so no body (and no token) is held or printed.
 async function send(contexts, row) {
     const url = row.probe.path + (row.probe.query || '');
     const answers = {};
     for (const style of CREDENTIAL_STYLES) {
+        if (isHeldStyle(row, style)) {
+            answers[style] = HELD;
+            continue;
+        }
         const response = await contexts[style].fetch(url, {
             method: row.method,
             data: row.probe.body,
@@ -45,7 +73,7 @@ async function send(contexts, row) {
     return answers;
 }
 
-// Returns one line per wrong answer, each naming the credential and the status it got.
+// Returns one line per wrong answer, each naming the credential and the status it got. A style that was not sent is not judged.
 function judge(row, answers) {
     const problems = [];
     const name = (style) => (style === 'none' ? 'none (no credential)' : `${style} (${STYLE_ROLE[style]})`);
@@ -56,6 +84,7 @@ function judge(row, answers) {
     if (row.kind === 'roles') {
         if (answers.none !== row.probe.anon) wrong('none', `${row.probe.anon}`);
         for (const style of signedIn) {
+            if (answers[style] === HELD) continue;
             if (row.roles.includes(STYLE_ROLE[style])) {
                 const ok = row.probe.allowed ? row.probe.allowed.includes(answers[style]) : !refused(answers[style]);
                 if (!ok) wrong(style, row.probe.allowed ? list(row.probe.allowed) : 'anything but 401 or 403', ', role allowed');
@@ -106,12 +135,26 @@ test.describe('Role by route', () => {
                 test.skip(true, `pending: ${row.pending}`);
             }
 
+            const allowed = row.kind === 'roles' ? ` (${row.roles.join(', ')})` : '';
+            const label = `${row.method} ${row.route} [${row.kind}${allowed}]`;
+
+            if (row.probe.holdAllowed && row.kind !== 'roles') {
+                throw new Error(`${label} has probe.holdAllowed, which is for roles rows only: use probe.hold for a row of kind ${row.kind}`);
+            }
+            if (row.probe.hold) {
+                // Nothing is sent, from any credential. The reason is on the first line, the only line the console reporter prints.
+                testInfo.annotations.push({ type: 'answers', description: CREDENTIAL_STYLES.map((style) => `${style}=${HELD}`).join(' ') });
+                throw new Error(`${label} held, nothing sent: ${row.probe.hold}`);
+            }
+
             const answers = await send(contexts, row);
             testInfo.annotations.push({ type: 'answers', description: CREDENTIAL_STYLES.map((style) => `${style}=${answers[style]}`).join(' ') });
             const problems = judge(row, answers);
             if (problems.length > 0) {
-                const allowed = row.kind === 'roles' ? ` (${row.roles.join(', ')})` : '';
-                throw new Error(`${row.method} ${row.route} [${row.kind}${allowed}] answered wrongly:\n  ${problems.join('\n  ')}`);
+                // The first wrong answer is on the first line (the console reporter prints only that line); every wrong
+                // answer, that one included, has its own line below it.
+                const more = problems.length > 1 ? ` (+${problems.length - 1} more)` : '';
+                throw new Error(`${label} answered wrongly: ${problems[0]}${more}\n  ${problems.join('\n  ')}`);
             }
         });
     }
