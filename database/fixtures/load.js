@@ -50,7 +50,9 @@ async function emptyTables(connection, tables) {
 }
 
 // A multi-row INSERT is atomic and MySQL does not say which row it refused, so insert one at a time to
-// find it. The transaction is rolled back straight after, so what goes in here changes nothing.
+// find it. The transaction is rolled back straight after, so what goes in here changes nothing. Autocommit is
+// off in main() because after a deadlock InnoDB has already rolled the whole transaction back, and a session
+// left in autocommit would commit each of these inserts.
 async function explainInsertFailure(connection, table, columns, rows, bulkError) {
   for (const row of rows) {
     try {
@@ -127,6 +129,7 @@ async function main() {
 
   try {
     await assertNoRealPeople(connection);
+    await connection.query('SET autocommit = 0');
     await connection.beginTransaction();
     const tables = await listBaseTables(connection);
     await emptyTables(connection, tables);
