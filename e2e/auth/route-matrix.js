@@ -26,10 +26,10 @@
 //   note     the census note as in the appendix (cut to fit there), plus a line where this file adds something
 //   probe    what the role-by-route test sends:
 //              path      the route with each [param] replaced by PROBE_IDS.missing, an id no fixture row has
-//              body      undefined for GET and DELETE; {} for POST, PUT and PATCH where the handler validates its input
-//                        before it acts; undefined for a POST, PUT or PATCH whose handler `await`s request.json() before its
-//                        first side effect (a request with no body throws there, nothing is written). Never assumed: the
-//                        row's note cites the handler lines, and the ENG-020 B3 window measured the result.
+//              body      undefined for GET and DELETE (104 rows) and for the four POST and PUT rows whose handler `await`s
+//                        request.json() before its first side effect (a request with no body throws there, nothing is
+//                        written; the notes of the four cite the lines); {} for the other 99 POST, PUT and PATCH rows. {} is
+//                        the convention, not a finding that the handler validates it: see "What a probe does" below.
 //              query     optional, e.g. '?id=999999999', for a handler that reads its id from the query (none set yet)
 //              anon      roles rows: 401, always (the contract). public and self rows: an array of the statuses a
 //                        request with no credential may get. public: what today's handler answers, measured on the
@@ -50,13 +50,35 @@
 // roles: ['admin', 'provider'] with the split in its note.
 //
 // What a probe does. Every probe uses a fixture account only (@workontap.test), an id no fixture row has, and an empty body
-// or none. That does not make it harmless by itself: a handler that needs no input acts on {} and on nothing (ENG-020
-// review B1, QA F1). So each row's note names the first side effect in its handler (a write, a schema change, mail, a push,
-// an outbound call, a payment, a file, a request to a configured URL) and what stops the probe before it: a missing body
-// that throws at `await request.json()`, a validation, an ownership check, a foreign key. Where nothing stops it the row is
-// held, with its reason in `probe.hold` or `probe.holdAllowed`. The held rows are:
+// or none: 207 of the 207 rows, by a script (the body is undefined or {}, the path is the route with each [param] replaced
+// by PROBE_IDS.missing, no row sets a query). That does not make a probe harmless by itself: a handler that needs no input
+// acts on {} and on nothing (ENG-020 review B1, QA F1). What the notes say about it, as counted by script:
+//   - Twelve rows carry a `Probe (B2, 2026-10-02` line (the rows whose note holds that text): GET and PATCH
+//     /api/admin/deletion-requests, POST /api/bookings/[id]/restart, GET /api/cron/auto-release, GET /api/cron/notifications,
+//     GET and PUT /api/customers/[id], POST and PUT /api/provider/availability, and POST /api/provider/onboarding/complete,
+//     /create-stripe-account and /stripe-complete. Eleven of them say, with handler line numbers, what stops the probe (a
+//     missing body that throws at `await request.json()`, a validation, an ownership check, a foreign key, or the data) and,
+//     where the handler writes or sends, the first side effect it stops before (a write, a schema change, mail, a push, an
+//     outbound call, a payment, a file); GET /api/admin/deletion-requests carries only a cross-reference to the PATCH row, for
+//     the same fetch.
+//   - The other 195 rows have no such line; 50 of them (36 public, 13 self, 1 pending) carry a `Probe measured on the dev
+//     app` line instead, which records the status measured there for the request with no credential and no body. Their
+//     probes were read in code-review round 1 (ENG-020 ticket log), and the only commit that touched this file after
+//     1aed079 is the B2 commit (475f453): for those 195 rows the row object, apart from `note`, equals the one at 1aed079
+//     (script compare, 195 of 195). A row without a `Probe (` line is not a finding that its probe is harmless.
+//   - The whole suite's run is MEASURED, not argued: `CHECKSUM TABLE` over the 33 tables before and after, and a grep of the
+//     app log for mail, SMTP, Stripe-account and `ALTER TABLE` lines. The runs recorded in the ENG-020 ticket log (build
+//     round 2's two windows and QA round 2's full run) differ in `activity_logs` and `mobile_auth_users` and in no other
+//     table, with 0 mail, 0 SMTP, 0 `Stripe account created` or `Reusing existing Stripe account` and 0 `ALTER TABLE` lines.
+//     That is what those greps can show; a Stripe call that logs none of those lines would not appear in them.
+//   - One class is not a per-row fact and has no note: an id-keyed write whose probe id (PROBE_IDS.missing, 999999999)
+//     matches no row. It is harmless while no row has that id, which depends on the fixtures and on nothing in the row.
+// Where one request from a caller the row allows (or from any caller) does real work, the row is held, with its reason in
+// `probe.hold` or `probe.holdAllowed`. The held rows are:
 //   hold         GET /api/cron/auto-release, GET /api/cron/notifications  (until ENG-022 adds requireCronSecret)
-//   holdAllowed  POST /api/provider/onboarding/complete                   (until its handler validates before it acts)
+//   holdAllowed  POST /api/provider/onboarding/complete                   (keep the hold until the converting ticket proves the
+//                                                                         allowed path another way: a fixture provider the
+//                                                                         handler may rewrite, or a stub of the mail send)
 // Remove a hold in the same change that converts its handler, not before. No imports, so plain Node and Playwright read
 // this file the same way.
 
@@ -880,7 +902,7 @@ export const matrix = [
     },
     {
         route: '/api/provider/onboarding/complete', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own onboarding',
-        note: 'Reads docs and Stripe status (L39-48) but never enforces them; status IF(active, active, pendin… Probe (B2, 2026-10-02): holdAllowed. The handler never reads the body, so a request from an ALLOWED provider, whatever it carries, runs the UPDATE of onboarding_completed, onboarding_step and status at complete/route.js:54-63 and mails ADMIN_EMAIL, whose default is a real person address, at :83-90. The provider cookie and the provider Bearer are therefore not sent. None and every wrong role are sent: each stops at the 401 at :28-34 (no provider_token cookie, no providerId in a customer Bearer session) before any of it. Remove the hold when the converted handler validates its input before it acts.',
+        note: 'Reads docs and Stripe status (L39-48) but never enforces them; status IF(active, active, pendin… Probe (B2, 2026-10-02): holdAllowed. The handler never reads the body, so a request from an ALLOWED provider, whatever it carries, runs the UPDATE of onboarding_completed, onboarding_step and status at complete/route.js:54-63 and mails ADMIN_EMAIL, whose default is a real person address, at :83-90. The provider cookie and the provider Bearer are therefore not sent. None and every wrong role are sent: each stops at the 401 at :28-34 (no provider_token cookie, no providerId in a customer Bearer session) before any of it. Keep the hold until the converting ticket proves the allowed path another way (a fixture provider the handler may rewrite, or a stub of the mail send).',
         probe: { path: '/api/provider/onboarding/complete', body: {}, anon: 401, holdAllowed: 'an allowed provider request rewrites onboarding_completed, onboarding_step and status (complete/route.js:54-63) and mails ADMIN_EMAIL (:83-90) whatever the body' },
     },
     {
