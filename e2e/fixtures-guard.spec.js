@@ -7,6 +7,10 @@ import { assertDevTarget, assertNoRealPeople, DEV_DATABASE, DEV_HOSTS, SYNTHETIC
 
 const dev = { host: 'db', port: 3306, database: DEV_DATABASE };
 
+// The hosts the guard may accept, written out here and not read from the guard. A case that loops over
+// DEV_HOSTS passes whatever DEV_HOSTS holds, so dropping a host from the guard would only shrink the spec.
+const LOCAL_HOSTS = ['db', 'localhost', '127.0.0.1', '::1'];
+
 // A server whose person tables hold a real address only in the given table.column pairs.
 // It records every query, so a case can check what the guard asked.
 function serverWithRealPeopleIn(pairs, failure) {
@@ -25,11 +29,17 @@ function serverWithRealPeopleIn(pairs, failure) {
 
 test.describe('Fixture guard - the target', () => {
 
-    for (const host of DEV_HOSTS) {
+    for (const host of LOCAL_HOSTS) {
         test(`accepts the local host ${host}`, () => {
             expect(() => assertDevTarget({ ...dev, host })).not.toThrow();
         });
     }
+
+    // Adding a host to the guard has to change this spec too, so the widening shows in review; removing one
+    // already fails the accept case above.
+    test('allows exactly the local hosts listed in this spec, no more and no fewer', () => {
+        expect([...DEV_HOSTS].sort()).toEqual([...LOCAL_HOSTS].sort());
+    });
 
     for (const host of ['db.example.com', 'prod-db.workontap.com', 'localhost.evil.test', 'DB', 'localhost ', '127.0.0.2', '0.0.0.0', '', undefined]) {
         test(`refuses the host ${JSON.stringify(host)}`, () => {
