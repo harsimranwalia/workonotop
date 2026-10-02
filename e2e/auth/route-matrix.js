@@ -61,11 +61,14 @@
 //     where the handler writes or sends, the first side effect it stops before (a write, a schema change, mail, a push, an
 //     outbound call, a payment, a file); GET /api/admin/deletion-requests carries only a cross-reference to the PATCH row, for
 //     the same fetch.
-//   - The other 195 rows have no such line; 50 of them (36 public, 13 self, 1 pending) carry a `Probe measured on the dev
-//     app` line instead, which records the status measured there for the request with no credential and no body. Their
-//     probes were read in code-review round 1 (ENG-020 ticket log), and the only commit that touched this file after
-//     1aed079 is the B2 commit (475f453): for those 195 rows the row object, apart from `note`, equals the one at 1aed079
-//     (script compare, 195 of 195). A row without a `Probe (` line is not a finding that its probe is harmless.
+//   - The other 195 rows have no such line: 116 are write rows (POST, PUT, PATCH, DELETE) and 79 are GET (script counts).
+//     50 of the 195 (36 public, 13 self, 1 pending) carry a `Probe measured on the dev app` line instead, which records the
+//     status measured there for the request with no credential and no body. Code-review round 1 read the write handlers the
+//     probes reach (88: 31 admin, 57 other; agents/principal-engineer/notebook/2026-10-02-eng020-review.md; the matrix has
+//     93 routes with a write row, 31 admin and 62 other, and the difference was not traced). It did not read the GET
+//     handlers, nor the public, self and pending rows as such. The GET handlers were scanned in review round 2 (comments
+//     removed; the scan found two that reach a write). No field of those 195 rows other than `note` differs from commit
+//     1aed079 (script compare, 195 of 195). A row without a `Probe (` line is not a finding that its probe is harmless.
 //   - The whole suite's run is MEASURED, not argued: `CHECKSUM TABLE` over the 33 tables before and after, and a grep of the
 //     app log for mail, SMTP, Stripe-account and `ALTER TABLE` lines. The runs recorded in the ENG-020 ticket log (build
 //     round 2's two windows and QA round 2's full run) differ in `activity_logs` and `mobile_auth_users` and in no other
@@ -927,7 +930,7 @@ export const matrix = [
     },
     {
         route: '/api/provider/onboarding/stripe-return', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own Stripe onboarding return',
-        note: 'State-changing GET: cross-site navigation carries the SameSite=Lax cookie and forces onboarding…',
+        note: 'State-changing GET: cross-site navigation carries the SameSite=Lax cookie and forces onboarding… Probe (round 3, 2026-10-02): a GET has no body and no id, so nothing in the request can gate this handler. It reads only the provider_token cookie (stripe-return/route.js:140), which only the provider-cookie style carries (a Bearer style carries no cookie, e2e/auth/credentials.js:12-13), so no credential, the customer and admin cookies and both Bearers take the no-token branch at :142-144 (a redirect to /provider/login). With the provider cookie the handler selects provider_bank_accounts for provider 1 (:154-157) and an empty result redirects (:161-166). A row would reach stripe.accounts.retrieve (:172), UPDATE service_providers (:187-195) and the provider_bank_accounts upsert (:198-213); a Stripe error naming a missing account runs the UPDATE at :242 and the DELETE at :248. Two accidents stop it today. The table is empty: database/fixtures insert into users, service_providers, service_categories, services and system_settings, load.js:134-136 empties every table first, and grep -c provider_bank_accounts prints 0 for each of the five files there; no probe adds a row (the other INSERT sites, create-stripe-account/route.js:124, stripe-complete/route.js:119 and stripe/webhook/route.js:256 and :270, sit behind the body reads at create-stripe-account/route.js:36 and stripe-complete/route.js:38 and the missing-signature 400 at webhook/route.js:19-24). And STRIPE_SECRET_KEY is unset on the dev app (loadEnvConfig in the app container at 08:52 on 2026-10-02, printing only set or unset), so stripe is null (:132) and :169-171 throws before :172. Harmless by data and configuration, not by construction. A fixture that adds a bank-account row for provider 1 must make this row holdAllowed first, in the same change, so the allowed provider is not sent; a Stripe key on the dev stack lifts the second stop. No holdAllowed is added now: it would change the recorded error text of this case in e2e/baseline.json.',
         probe: { path: '/api/provider/onboarding/stripe-return', body: undefined, anon: 401 },
     },
     {
