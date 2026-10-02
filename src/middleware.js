@@ -24,7 +24,9 @@ export async function middleware(request) {
     }
 
     try {
-      await jwtVerify(token, JWT_SECRET);
+      const { payload } = await jwtVerify(token, JWT_SECRET);
+      // Any validly signed token used to pass; a customer's or provider's token copied into this cookie is not an admin's.
+      if (payload.role !== "admin") throw new Error("not an admin token");
     } catch {
       response = NextResponse.redirect(new URL("/admin/login", request.url));
       response.cookies.set("adminAuth", "", { maxAge: 0 });
