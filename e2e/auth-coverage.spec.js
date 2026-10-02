@@ -76,6 +76,20 @@ function otherExportForms(source) {
     return forms;
 }
 
+// ---- what the coverage count says about each shape ---------------------------------------------------------------
+// One row per shape of an `export` in a route file: the file text, the methods `exportedMethods` lists for it (`counted`), whether
+// `otherExportForms` names it (`flagged`) and a label that says whether that is the right answer. The case "no route file exports a
+// method in a form the coverage count cannot see" fails with the id of every row whose counted or flagged differs. Ids: e1 a form the
+// count cannot see and the case flags, e2 a control, e3 to e6 shapes it does not read (e5 reads too much).
+const exportShapes = [
+    { id: 'e1', label: 'a destructuring export of two methods: not counted, flagged', source: 'export const { GET, POST } = handlers;\n', counted: [], flagged: true },
+    { id: 'e2', label: "an `export const dynamic` line beside a GET: the GET is counted, nothing is flagged (control)", source: "export const dynamic = 'force-dynamic';\nexport async function GET(request) {\n  return 1;\n}\n", counted: ['GET'], flagged: false },
+    { id: 'e3', label: 'a block comment before `export` on its line: false pass, not caught (layout: something before `export` on its line)', source: '/* d */ export async function GET(request) {\n  return 1;\n}\n', counted: [], flagged: false },
+    { id: 'e4', label: 'an escape written in the name, `\\u0047ET`: false pass, not caught (deliberate: an escape in the name)', source: 'export async function \\u0047ET(request) {\n  return 1;\n}\n', counted: [], flagged: false },
+    { id: 'e5', label: 'a name that begins with the method, `GET$`: counted as GET, over-read: a spurious key, loud when the matrix has no row for it', source: 'export async function GET$(request) {\n  return 1;\n}\n', counted: ['GET'], flagged: false },
+    { id: 'e6', label: 'a second name in one exported declaration, `export const a = 1, GET = ...`: false pass, not caught (layout: a second name in one exported declaration)', source: 'export const a = 1, GET = async (request) => Response.json({});\n', counted: [], flagged: false },
+];
+
 const files = routeFiles();
 const sources = new Map(files.map((f) => [f.file, fs.readFileSync(path.join(ROOT, f.file), 'utf8')]));
 
@@ -208,7 +222,8 @@ function wiringProblems(row, source) {
 // it, is text the problems must contain. The case "the wiring check gives every shape of the table its verdict" fails with the id
 // of every row whose verdict differs or whose problems lack its `says`. Ids: s shapes, c controls, f false failures, x more shapes
 // (ENG-020 round 3 escalation), g the guard's own pieces and the self checks, r a one-line method or an indented neighbour, b the closing
-// brace, n false failures the indented search costs, t layout it does not read.
+// brace (b3 to b5: with its lines ended by CR, U+2028 or U+2029), p a longer name that begins with the method's, j text that is not code,
+// n false failures the indented search costs, t layout or names it does not read.
 // Nothing in this section uses a name defined outside it.
 
 const imp = "import { requireCaller } from '@/lib/api-auth';\n";
@@ -285,6 +300,15 @@ const wiringShapes = [
     { id: 'g16', label: 'the call keeps its result in auth and the refusal tests another variable, if (!x.ok) return x.response: must be reported', row: getRow, source: imp + getWith("  const auth = await requireCaller(request, ['admin']);\n  if (!x.ok) return x.response;\n"), verdict: 'REPORTED', says: 'does not `if (!auth.ok) return auth.response`' },
     { id: 'g17', label: 'a handler that takes no parameter, the guard written with request: must be reported', row: getRow, source: imp + 'export async function GET() {\n' + guard + '  return 1;\n}\n', verdict: 'REPORTED', says: 'takes no request parameter' },
     { id: 'g18', label: "row roles ['customer', 'admin'], the call names ['customer', 'admin']: the row's own order, must read as guarded", row: { kind: 'roles', method: 'GET', roles: ['customer', 'admin'] }, source: imp + getWith(guard.replace("['admin']", "['customer', 'admin']")), verdict: 'clean' },
+    { id: 'p1cron', label: 'cron row: a `GET$` helper that calls requireCronSecret, exported above the real GET, which has no call: must be reported', row: cronRow, source: cronImp + handler('GET$', cronCall) + '\n' + handler('GET'), verdict: 'REPORTED' },
+    { id: 'p1stripe', label: 'Stripe row: a `POST$` helper that calls webhooks.constructEvent, exported above the real POST, which has no check: must be reported', row: stripeRow, source: handler('POST$', stripeCall) + '\n' + handler('POST'), verdict: 'REPORTED' },
+    { id: 'p1roles', label: 'a guarded `GET$` helper exported above the real GET, which has no guard: must be reported', row: getRow, source: imp + handler('GET$', guard) + '\n' + handler('GET'), verdict: 'REPORTED', says: 'does not have `const auth = await requireCaller(' },
+    { id: 'b2', label: "an unguarded GET holding 'image/*' closed by a `}` alone at column 0 (blanked in the comment-free text), then an indented const arrow function with a block comment and the guard text: must be reported", row: getRow, source: imp + ung("const a = 'image/*';") + '  const adminOnly = async (request) => {\n  /* helper */\n' + guard + '  };\n', verdict: 'REPORTED' },
+    { id: 'j1', label: "cron row: JSX text holding a column-0 signature line and requireCronSecret(request), above the real GET, which has no call: false pass, deliberate shape (text that is not code), not caught", row: cronRow, source: cronImp + "function Doc() {\n  return (<pre>\nexport async function GET(request) {'{'}\n  requireCronSecret(request)\n</pre>);\n}\n\n" + handler('GET'), verdict: 'clean' },
+    { id: 'b3', label: 'b1 with every line ended by a lone CR and one final LF: must be reported', row: getRow, source: (imp + ung('return 1;') + '  const adminOnly = async (request) => {\n' + guard + '  };').replace(/\n/g, '\r') + '\n', verdict: 'REPORTED' },
+    { id: 'b4', label: 'b1 with every line ended by U+2028 and one final LF: must be reported', row: getRow, source: (imp + ung('return 1;') + '  const adminOnly = async (request) => {\n' + guard + '  };').replace(/\n/g, '\u2028') + '\n', verdict: 'REPORTED' },
+    { id: 'b5', label: 'b1 with every line ended by U+2029 and one final LF: must be reported', row: getRow, source: (imp + ung('return 1;') + '  const adminOnly = async (request) => {\n' + guard + '  };').replace(/\n/g, '\u2029') + '\n', verdict: 'REPORTED' },
+    { id: 't3', label: 'cron row: GET calls helpers.requireCronSecret(request), another function with the guard name: false pass, not caught (names, not bindings)', row: cronRow, source: cronImp + handler('GET', '  const denied = helpers.requireCronSecret(request);\n  if (denied) return denied;\n'), verdict: 'clean' },
 ];
 
 // ---- the cases --------------------------------------------------------------------------------------------------
@@ -310,6 +334,9 @@ test.describe('Auth coverage - routes', () => {
 
     test('no route file exports a method in a form the coverage count cannot see', () => {
         const offenders = [];
+        for (const s of exportShapes) {
+            if (exportedMethods(s.source).join() !== s.counted.join() || (otherExportForms(s.source).length > 0) !== s.flagged) offenders.push(`row ${s.id}: ${s.label}`);
+        }
         for (const f of files) {
             if (!f.isJs) {
                 offenders.push(`${f.file}: a route file that is not route.js (the matrix and these tests read route.js only)`);
