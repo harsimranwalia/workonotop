@@ -153,7 +153,7 @@ function methodText(code, method, raw) {
     const start = code.search(new RegExp(`^export\\s+async\\s+function\\s+${method}\\s*\\(`, 'm'));
     if (start === -1) return null;
     const rest = code.slice(start);
-    const afterSignature = rest.search(/[\n\r\u2028\u2029]/) + 1;
+    const afterSignature = (raw === undefined ? code : raw).slice(start).search(/[\n\r\u2028\u2029]/) + 1;
     const boundary = /^(?:export\s|(?:async\s+)?function[\s*]|const\s|let\s|var\s|class\s|import\s|\})/m;
     const indented = /^[ \t]*(?:export\s|(?:async\s+)?function[\s*])/m;
     const ends = [rest.slice(afterSignature).search(boundary), rest.slice(afterSignature).search(indented)];
@@ -329,6 +329,7 @@ const wiringShapes = [
     { id: 'b3', label: 'b1 with every line ended by a lone CR and one final LF: must be reported', row: getRow, source: (imp + ung('return 1;') + '  const adminOnly = async (request) => {\n' + guard + '  };').replace(/\n/g, '\r') + '\n', verdict: 'REPORTED' },
     { id: 'b4', label: 'b1 with every line ended by U+2028 and one final LF: must be reported', row: getRow, source: (imp + ung('return 1;') + '  const adminOnly = async (request) => {\n' + guard + '  };').replace(/\n/g, '\u2028') + '\n', verdict: 'REPORTED' },
     { id: 'b5', label: 'b1 with every line ended by U+2029 and one final LF: must be reported', row: getRow, source: (imp + ung('return 1;') + '  const adminOnly = async (request) => {\n' + guard + '  };').replace(/\n/g, '\u2029') + '\n', verdict: 'REPORTED' },
+    { id: 'b6', label: 'b3 with a line comment on the signature line, `// accepts image/*`, whose slash-star the block-comment regex pairs with the star-slash of the guarded POST\'s own comment, so blanking turns the lone CRs between into spaces: must be reported', row: getRow, source: (imp + 'export async function GET(request) { // accepts image/*\n  return Response.json({ ok: true });\n}\n\n' + postBlock).replace(/\n/g, '\r') + '\n', verdict: 'REPORTED' },
     { id: 't3', label: 'cron row: GET calls helpers.requireCronSecret(request), another function with the guard name: false pass, not caught (names, not bindings)', row: cronRow, source: cronImp + handler('GET', '  const denied = helpers.requireCronSecret(request);\n  if (denied) return denied;\n'), verdict: 'clean' },
 ];
 
