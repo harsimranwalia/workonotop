@@ -37,7 +37,7 @@ test.describe('Fixture guard - the target', () => {
         });
     }
 
-    for (const database of ['other', 'workontap_db_live', 'WORKONTAP_DB', '', undefined]) {
+    for (const database of ['other', 'workontap_db_prod', 'WORKONTAP_DB', '', undefined]) {
         test(`refuses the database ${JSON.stringify(database)}`, () => {
             expect(() => assertDevTarget({ ...dev, database })).toThrow(/^REFUSED: database/);
         });

@@ -199,7 +199,7 @@
     "fixtures-guard.spec.js › Fixture guard - the target › refuses the database \"other\"": {
       "outcome": "PASS"
     },
-    "fixtures-guard.spec.js › Fixture guard - the target › refuses the database \"workontap_db_live\"": {
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the database \"workontap_db_prod\"": {
       "outcome": "PASS"
     },
     "fixtures-guard.spec.js › Fixture guard - the target › refuses the database undefined": {
