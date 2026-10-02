@@ -125,7 +125,7 @@ const importsName = (source, name, from) =>
  * `export async function <method>(` at column 0 (the name, optional whitespace, then `(`, so a longer name such as `GET$` is not the method)
  * up to, not including, the earliest line after it that starts a boundary, looked for in `code` and in `raw` (the same file with its
  * comments in place). Blanking keeps every length but only LF as a line end: a CR, U+2028 or U+2029 inside a blanked span is a space in
- * `code` and a line end in `raw`. So an offset found in `code` is the same offset in `raw` (rows c3, f2, x5 fail when comments are deleted
+ * `code` and a line end in `raw`. So an offset found in `code` is the same offset in `raw` (row c3 fails when comments are deleted
  * instead), and the end of the signature's line, its first LF, CR, U+2028 or U+2029 as the grammar reads one, is looked for in `raw` and
  * not in `code` (row b6). A boundary is `export`, `function`, `async function` or `function*` after spaces or tabs, or
  * `const`, `let`, `var`, `class`, `import` or `}` at column 0.
