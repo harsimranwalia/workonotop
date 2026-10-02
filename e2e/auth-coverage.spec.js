@@ -10,8 +10,11 @@
 //    `export async function METHOD` (a const, a re-export, a non-async function) fails its own case, so a new
 //    form cannot slip past the count.
 //  Auth wiring: every non-public row's file uses what the matrix says protects it. A `roles` row's file imports
-//    requireCaller from '@/lib/api-auth' and the row's own method calls it (the design's "two lines at the top of
-//    each method", so a file that guards its GET does not turn its PUT green). A `self` row's file uses its named
+//    requireCaller from '@/lib/api-auth' and the row's own method has the design's "two lines at the top of
+//    each method", so a file that guards its GET does not turn its PUT green: `const auth = await
+//    requireCaller(request, [the row's roles])` outside any comment, then `if (!auth.ok) return auth.response`
+//    (see guardCallProblems: a call in a comment, a call whose result is ignored and a wrong roles list all fail).
+//    A `self` row's file uses its named
 //    check: verifyAiGatewayAuth, requireCronSecret, or the Stripe signature check. A `public` row needs nothing
 //    and has no case. The `pending` row counts as classified for coverage, is annotated, and its wiring case is
 //    skipped with the reason so every run prints it: nothing passes it silently, and AC5 does not hold while one
@@ -102,6 +105,40 @@ function methodText(source, method) {
     return next === -1 ? rest : rest.slice(0, afterSignature + next);
 }
 
+/** Code only: block comments and line comments taken out, so a guard call in a comment is not a guard call. A `//`
+ *  that follows a colon, a quote or a backtick is kept (a URL in a string), so a string is never cut in half. */
+const withoutComments = (text) => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/([^:'"`])\/\/.*$/gm, '$1');
+
+/**
+ * What the design's two lines at the top of a method have to look like (ENG-004 design, Interfaces):
+ *     const auth = await requireCaller(request, ['admin']);
+ *     if (!auth.ok) return auth.response;
+ * Not enough, each of which passed the first form of this check (a bare look for `requireCaller(`) and is a route that
+ * is open: the call only in a comment, the call without `await` or without keeping its result, the result kept but never
+ * used to refuse, and a roles list that is not the row's. So it needs all of: the call outside any comment, awaited,
+ * with the handler's own request, with a literal list that names exactly the row's roles, its result in a variable,
+ * and `if (!<that variable>.ok) return <that variable>.response`. Returns the list of what is missing.
+ */
+function guardCallProblems(row, body) {
+    const code = withoutComments(body);
+    // The handler's own first parameter (`request` in every route today; the eight handlers that take none have to add it).
+    const param = code.match(/^export\s+async\s+function\s+\w+\s*\(\s*(\w*)/)?.[1];
+    if (!param) return [`${row.method} takes no request parameter to hand to requireCaller`];
+    const call = code.match(new RegExp(`\\b(?:const|let)\\s+(\\w+)\\s*=\\s*await\\s+requireCaller\\s*\\(\\s*${param}\\s*,\\s*\\[([^\\]]*)\\]\\s*\\)`));
+    if (!call) {
+        return [`${row.method} does not have \`const auth = await requireCaller(${param}, [roles])\` outside a comment (awaited, a literal roles list, the result kept)`];
+    }
+    const problems = [];
+    const [, result, list] = call;
+    const named = list.split(',').map((x) => x.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean).sort();
+    const want = [...row.roles].sort();
+    if (named.join() !== want.join()) problems.push(`${row.method} calls requireCaller with [${named}] but the matrix says [${want}]`);
+    if (!new RegExp(`\\bif\\s*\\(\\s*!\\s*${result}\\.ok\\s*\\)\\s*\\{?\\s*return\\s+${result}\\.response\\b`).test(code)) {
+        problems.push(`${row.method} does not \`if (!${result}.ok) return ${result}.response\` after the guard call`);
+    }
+    return problems;
+}
+
 /** What the row's file has to contain; returns the list of what is missing. */
 function wiringProblems(row, source) {
     const problems = [];
@@ -110,7 +147,7 @@ function wiringProblems(row, source) {
 
     if (row.kind === 'roles') {
         if (!importsName(source, 'requireCaller', '@/lib/api-auth')) problems.push("does not import requireCaller from '@/lib/api-auth'");
-        if (!/\brequireCaller\s*\(/.test(body)) problems.push(`${row.method} does not call requireCaller(request, roles)`);
+        problems.push(...guardCallProblems(row, body));
         return problems;
     }
 
