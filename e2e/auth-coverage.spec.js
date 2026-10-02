@@ -113,9 +113,11 @@ function methodText(source, method) {
  *      - a `//` inside a string or template literal after a character other than `:`, a quote or a backtick ('a//b'):
  *        the rest of the line is taken out;
  *      - a regex literal that ends in `\//` (/^https?:\/\//): the rest of the line is taken out;
- *      - a string that holds `/` and `*` side by side ('image/*') with a block comment later in the file: everything from
- *        that opener to the comment's own closer is taken out as one "comment". wiringProblems strips the whole file before
- *        it cuts a method out, so that can be a whole method (the case then reports that the file does not export it).
+ *      - a string, template literal, regex literal or line comment that holds `/` and `*` side by side ('image/*',
+ *        // accepts image/*) with a block comment later in the file: everything from that opener to the comment's own
+ *        closer is taken out as one "comment". wiringProblems strips the whole file before it cuts a method out, so that
+ *        can be a whole method (the case then reports that the file does not export it). The text between a slash-star
+ *        and a star-slash that both sit inside one template literal (CSS, say) goes the same way.
  *    Kept that should go (the unsafe direction, contrived: someone has to write it; an unguarded handler can read as guarded):
  *      - a comment glued to a closing quote, a backtick or a colon ('x'// const auth = ...);
  *      - a guard call inside a string or a template literal. */
