@@ -23,9 +23,12 @@
 // one request context per credential style is made in beforeAll and reused across the rows.
 //
 // Fixtures: this file reloads nothing itself. Whoever starts the run reloads them first (the department's recipe runs
-// `npm run db:fixtures` in the app container before the test command). Every probe uses a fixture account, an id no fixture row
-// has, and an empty body or none; the rows where that is not enough to stop the handler before its first side effect are held
-// (above), and the matrix header lists them.
+// `npm run db:fixtures` in the app container before the test command). What a run leaves behind, measured: CHECKSUM TABLE over
+// every table of the dev DB, before and after a run of the eleven rows whose probes ENG-020 changed or held (B3, 2026-10-02),
+// differed in activity_logs and mobile_auth_users and in no other table, and the app log of that window held no mail and no
+// ALTER TABLE (its only Stripe lines were the handlers' own banner and the log of the missing-body error: no Stripe call).
+// Every probe uses a fixture account, an id no fixture row has, and an empty body or none; the rows where that is not enough
+// to stop the handler before its first side effect are held (above), and the matrix header lists them.
 
 import { test } from '@playwright/test';
 import { matrix } from './auth/route-matrix.js';
