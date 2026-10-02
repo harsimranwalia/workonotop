@@ -49,8 +49,13 @@ async function requireFixtures(baseURL) {
     } catch (error) {
         throw abort(`fixture sign-in at ${baseURL}${loginRoute} failed (${error.cause?.code || error.name})`);
     }
-    if (!response.ok) {
+    // Only a 401 says the fixture customer is not in the database; any other status is the app failing, and
+    // naming the fixtures there would send the reader to the wrong place.
+    if (response.status === 401) {
         throw abort(`fixtures not loaded in the database the app reads (fixture sign-in answered ${response.status}); run the fixture command: npm run db:fixtures`);
+    }
+    if (!response.ok) {
+        throw abort(`the app failed the fixture sign-in at ${baseURL}${loginRoute} (HTTP ${response.status}); see the app's log`);
     }
 }
 
