@@ -75,11 +75,11 @@
 //     CREATE TABLE, a mail, push or SMS send, a Stripe call, an outbound fetch or axios, a file write and a cookie set. Five
 //     rows matched and the other 78 did not: GET /api/admin/deletion-requests (the fetch at deletion-requests/route.js:22-24;
 //     its note refers to the PATCH row), both cron rows (held), GET /api/provider/onboarding/stripe-return and GET
-//     /api/provider/verify-email. Three rows carry a `Probe (round 3, 2026-10-02` line: those last two and GET
-//     /api/cron/notifications, whose second job (:62-111) its first note did not name. Of the 200 SQL call sites those GET
-//     handlers reach, 153 start with a literal SELECT, WITH or SHOW, 34 pass a variable that is declared from a literal
-//     SELECT or WITH, and 13 are in the five rows named. A text search, not a run: a side effect behind a name or a module
-//     these patterns do not know would not show.
+//     /api/provider/verify-email. The GET work of this round added a `Probe (round 3, 2026-10-02` line to three rows: those
+//     last two and GET /api/cron/notifications, whose second job (:62-111) its first note did not name. Of the 200 SQL call
+//     sites those GET handlers reach, 153 start with a literal SELECT, WITH or SHOW, 34 pass a variable that is declared from
+//     a literal SELECT or WITH, and 13 are in the five rows named. A text search, not a run: a side effect behind a name or
+//     a module these patterns do not know would not show.
 //   - The whole suite's run is MEASURED, not argued: `CHECKSUM TABLE` over the 33 tables before and after, and a grep of the
 //     app log for mail, SMTP, Stripe-account and `ALTER TABLE` lines. The runs recorded in the ENG-020 ticket log (build
 //     round 2's two windows and QA round 2's full run) differ in `activity_logs` and `mobile_auth_users` and in no other
