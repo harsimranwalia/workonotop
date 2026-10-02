@@ -9,16 +9,18 @@
 //    matrix has, is a failing case of that name. A route file that exports a method in any form but
 //    `export async function METHOD` (a const, a re-export, a non-async function) fails its own case, so a new
 //    form cannot slip past the count.
-//  Auth wiring: every non-public row's file uses what the matrix says protects it. A `roles` row's file imports
-//    requireCaller from '@/lib/api-auth' and the row's own method has the design's "two lines at the top of
-//    each method", so a file that guards its GET does not turn its PUT green: `const auth = await
-//    requireCaller(request, [the row's roles])` outside any comment, then `if (!auth.ok) return auth.response`
-//    (see guardCallProblems: a call in a comment, a call whose result is ignored and a wrong roles list all fail).
-//    A `self` row's file uses its named
-//    check: verifyAiGatewayAuth, requireCronSecret, or the Stripe signature check. A `public` row needs nothing
-//    and has no case. The `pending` row counts as classified for coverage, is annotated, and its wiring case is
-//    skipped with the reason so every run prints it: nothing passes it silently, and AC5 does not hold while one
-//    `pending` row remains (the matrix file's header says so).
+//  Auth wiring: every non-public row's file uses what the matrix says protects it, checked by reading its text
+//    (wiringProblems; no request is sent). A `roles` row's file imports requireCaller from '@/lib/api-auth' (row g6) and
+//    the row's own method has the design's "two lines at the top of each method" (rows c1, c2), so a file that guards its
+//    GET does not turn its PUT green (row g5): `const auth = await requireCaller(request, [the row's roles])`, then
+//    `if (!auth.ok) return auth.response` (guardCallProblems' doc names the row of each piece). A `self` row's file uses its
+//    named check: requireCronSecret (rows g8, g9) or the Stripe signature check (rows g10, g11); for verifyAiGatewayAuth a
+//    call anywhere in the file counts (row g13, a false pass). A `public` row needs nothing and has no case. The `pending`
+//    row counts as classified for coverage, is annotated, and its wiring case is skipped with the reason so every run
+//    prints it: nothing passes it silently, and AC5 does not hold while one `pending` row remains (the matrix file's header
+//    says so). What the check reads right and wrong is the table `wiringShapes` (above the cases), one row per shape with
+//    the verdict it gets, run by the case "the wiring check gives every shape of the table its verdict": a sentence in this
+//    file about what the check catches or misses names a row of it.
 // Until a route is converted its wiring case fails; those are the known failures in e2e/baseline.json that each
 // converting ticket turns green.
 import fs from 'node:fs';
@@ -188,6 +190,68 @@ function wiringProblems(row, source) {
     return [`no wiring rule for kind '${row.kind}'`];
 }
 
+// ---- what the wiring check says about each shape ----------------------------------------------------------------
+// One row per shape: the matrix row and the file text it is run on, the verdict `wiringProblems` gives it ('REPORTED' when it
+// returns a problem, 'clean' when it returns none) and a label that says whether that is the right answer. The case "the
+// wiring check gives every shape of the table its verdict" fails with the id of every row whose verdict differs. Ids: s shapes,
+// c controls, f false failures, x more shapes (ENG-020 round 3 escalation), g the guard's own pieces and the self checks.
+// Nothing in this section uses a name defined outside it.
+
+const imp = "import { requireCaller } from '@/lib/api-auth';\n";
+const getRow = { kind: 'roles', method: 'GET', roles: ['admin'] };
+const postRow = { kind: 'roles', method: 'POST', roles: ['admin'] };
+const guard = "  const auth = await requireCaller(request, ['admin']);\n  if (!auth.ok) return auth.response;\n";
+const ung = (line) => `export async function GET(request) {\n  ${line}\n  return Response.json({ ok: true });\n}\n\n`;
+const getWith = (lines) => `export async function GET(request) {\n${lines}  return 1;\n}\n`;
+const postBlock = "export async function POST(request) {\n  /* admin only */\n" + guard + "  return Response.json({ ok: true });\n}\n";
+const helper = (indent, kw = 'async function') => `${indent}${kw} adminOnly(request) {\n${indent}  /* helper */\n${guard}}\n`;
+const handler = (name, body = '') => `export async function ${name}(request) {\n${body}  return Response.json({ ok: true });\n}\n`;
+const cronImp = "import { requireCronSecret } from '@/lib/api-auth';\n";
+const cronCall = "  const denied = requireCronSecret(request);\n  if (denied) return denied;\n";
+const cronRow = { kind: 'self', method: 'GET', self: 'CRON_SECRET, made fail-closed' };
+const stripeCall = "  const event = stripe.webhooks.constructEvent(body, signature, secret);\n";
+const stripeRow = { kind: 'self', method: 'POST', self: 'Stripe signature, verified before any branch (unchanged)' };
+
+const wiringShapes = [
+    { id: 's1', label: "unguarded GET holds 'image/*', guarded POST below with a block comment in its body: must be reported", row: getRow, source: imp + ung("const a = 'image/*';") + postBlock, verdict: 'REPORTED' },
+    { id: 's2', label: 'same as s1, the GET holds the line comment // accepts image/*: must be reported', row: getRow, source: imp + ung('// accepts image/*') + postBlock, verdict: 'REPORTED' },
+    { id: 's3', label: "same as s1, the GET holds a URL string 'https://x.test/*': must be reported", row: getRow, source: imp + ung("const u = 'https://x.test/*';") + postBlock, verdict: 'REPORTED' },
+    { id: 's4', label: 'same as s1, the GET holds the regex literal /^\\/*$/: must be reported', row: getRow, source: imp + ung('const re = /^\\/*$/;') + postBlock, verdict: 'REPORTED' },
+    { id: 's5', label: 'same as s1, the GET holds a template literal with ${base}/*: must be reported', row: getRow, source: imp + ung('const t = `${base}/*`;') + postBlock, verdict: 'REPORTED' },
+    { id: 's6', label: 'unguarded GET holds a template literal with ${base}//x (a line cut only), guarded POST below: must be reported', row: getRow, source: imp + ung('const t = `${base}//x`;') + postBlock, verdict: 'REPORTED' },
+    { id: 's7', label: 'same as s1, the GET holds a double-quoted "*/*": must be reported', row: getRow, source: imp + ung('const h = "*/*";') + postBlock, verdict: 'REPORTED' },
+    { id: 's8', label: "unguarded GET holds 'image/*', then a column-0 helper holding the guard text after a block comment: must be reported", row: getRow, source: imp + ung("const a = 'image/*';") + helper(''), verdict: 'REPORTED' },
+    { id: 's9', label: 'unguarded GET, then a guarded POST indented two spaces: must be reported', row: getRow, source: imp + ung('return 1;') + postBlock.replace(/^export/, '  export'), verdict: 'REPORTED' },
+    { id: 's10', label: 'unguarded GET, then a guarded `/** x */ export async function POST` on one line: must be reported', row: getRow, source: imp + ung('return 1;') + '/** x */ ' + postBlock, verdict: 'REPORTED' },
+    { id: 's11', label: 'unguarded GET, then an indented helper holding the guard text: must be reported', row: getRow, source: imp + ung('return 1;') + helper('  '), verdict: 'REPORTED' },
+    { id: 's12', label: 'unguarded GET, then a function* helper holding the guard text: must be reported', row: getRow, source: imp + ung('return 1;') + helper('', 'function*'), verdict: 'REPORTED' },
+    { id: 's13', label: 'guard text written into a string in an unguarded GET: false pass, deliberate shape, not caught', row: getRow, source: imp + "export async function GET(request) {\n  const s = \"const auth = await requireCaller(request, ['admin']); if (!auth.ok) return auth.response;\";\n  return Response.json({ s });\n}\n", verdict: 'clean' },
+    { id: 's14', label: 'guard text in a line comment glued to a quote in an unguarded GET: false pass, deliberate shape, not caught', row: getRow, source: imp + "export async function GET(request) {\n  const x = 'a'// const auth = await requireCaller(request, ['admin']); if (!auth.ok) return auth.response;\n  return Response.json({ x });\n}\n", verdict: 'clean' },
+    { id: 'c1', label: 'control, unguarded GET alone: must be reported', row: getRow, source: imp + ung('return 1;'), verdict: 'REPORTED' },
+    { id: 'c2', label: 'control, guarded GET alone: must read as guarded', row: getRow, source: imp + "export async function GET(request) {\n" + guard + "  return Response.json({ ok: true });\n}\n", verdict: 'clean' },
+    { id: 'c3', label: 'control, guarded GET after a JSDoc: must read as guarded', row: getRow, source: imp + "/** doc */\nexport async function GET(request) {\n" + guard + "  return 1;\n}\n", verdict: 'clean' },
+    { id: 'c4', label: 'a block-commented guarded copy of GET above the live unguarded GET: must be reported', row: getRow, source: imp + "/*\nexport async function GET(request) {\n" + guard + "}\n*/\n" + ung('return 1;'), verdict: 'REPORTED' },
+    { id: 'f1', label: "guarded GET holds 'image/*' after its guard, guarded POST with a block comment in its body, POST's row; the message says the file does not export `async function POST`: false failure, loud", row: postRow, source: imp + "export async function GET(request) {\n" + guard + "  const a = 'image/*';\n  return 1;\n}\n\n" + postBlock, verdict: 'REPORTED' },
+    { id: 'f2', label: "guarded GET holds 'image/*' before its guard, guarded POST with a block comment in its body, GET's row; the message says GET has no `const auth = await requireCaller(...)` outside a comment: false failure, loud", row: getRow, source: imp + "export async function GET(request) {\n  const a = 'image/*';\n" + guard + "  return 1;\n}\n\n" + postBlock, verdict: 'REPORTED' },
+    { id: 'x1', label: 'guarded GET, a regex literal ending in \\// on the line above its guard: must read as guarded', row: getRow, source: imp + getWith('  const re = /^https?:\\/\\//;\n' + guard), verdict: 'clean' },
+    { id: 'x2', label: "guarded GET, 'a//b' on the line above its guard: must read as guarded", row: getRow, source: imp + getWith("  const s = 'a//b';\n" + guard), verdict: 'clean' },
+    { id: 'x3', label: "guarded GET, 'http://x'; before the guard on the guard's own line: must read as guarded", row: getRow, source: imp + "export async function GET(request) {\n  const u = 'http://x'; const auth = await requireCaller(request, ['admin']);\n  if (!auth.ok) return auth.response;\n}\n", verdict: 'clean' },
+    { id: 'x4', label: 'guarded GET, /* and */ inside one template literal above its guard: must read as guarded', row: getRow, source: imp + getWith('  const css = `a /* b */ c`;\n' + guard), verdict: 'clean' },
+    { id: 'x5', label: 'guarded GET glued to a closer, /* doc */export async function GET; the message says the file does not export `async function GET`: false failure, loud', row: getRow, source: imp + "/* doc */export async function GET(request) {\n" + guard + "}\n", verdict: 'REPORTED' },
+    { id: 'x6', label: 'unguarded GET, the guard written in // comments on their own lines: must be reported', row: getRow, source: imp + "export async function GET(request) {\n  // const auth = await requireCaller(request, ['admin']);\n  // if (!auth.ok) return auth.response;\n  return 1;\n}\n", verdict: 'REPORTED' },
+    { id: 'g1', label: 'the guard call without await: must be reported', row: getRow, source: imp + getWith("  const auth = requireCaller(request, ['admin']);\n  if (!auth.ok) return auth.response;\n"), verdict: 'REPORTED' },
+    { id: 'g2', label: 'the call awaited but its result not kept: must be reported', row: getRow, source: imp + getWith("  await requireCaller(request, ['admin']);\n"), verdict: 'REPORTED' },
+    { id: 'g3', label: 'the result kept but never used to refuse (no if (!auth.ok) return auth.response): must be reported', row: getRow, source: imp + getWith("  const auth = await requireCaller(request, ['admin']);\n"), verdict: 'REPORTED' },
+    { id: 'g4', label: "the call names ['customer'] and the row says ['admin']: must be reported", row: getRow, source: imp + getWith(guard.replace("'admin'", "'customer'")), verdict: 'REPORTED' },
+    { id: 'g5', label: "a guarded GET above an unguarded PUT, the PUT's row: must be reported", row: { kind: 'roles', method: 'PUT', roles: ['admin'] }, source: imp + getWith(guard) + '\n' + handler('PUT'), verdict: 'REPORTED' },
+    { id: 'g6', label: 'a guarded GET whose only import of requireCaller is in a line comment: must be reported', row: getRow, source: "// import { requireCaller } from '@/lib/api-auth';\n" + getWith(guard), verdict: 'REPORTED' },
+    { id: 'g7', label: "the call hands over req, the handler's own first parameter is request: must be reported", row: getRow, source: imp + getWith("  const auth = await requireCaller(req, ['admin']);\n  if (!auth.ok) return auth.response;\n"), verdict: 'REPORTED' },
+    { id: 'g8', label: 'cron row: GET imports and calls requireCronSecret: must read as guarded', row: cronRow, source: cronImp + handler('GET', cronCall), verdict: 'clean' },
+    { id: 'g9', label: 'cron row: GET has no call, the POST below it has one: must be reported', row: cronRow, source: cronImp + handler('GET') + '\n' + handler('POST', cronCall), verdict: 'REPORTED' },
+    { id: 'g10', label: 'Stripe row: POST calls webhooks.constructEvent: must read as guarded', row: stripeRow, source: handler('POST', stripeCall), verdict: 'clean' },
+    { id: 'g11', label: 'Stripe row: POST has no call, the GET below it has one: must be reported', row: stripeRow, source: handler('POST') + '\n' + handler('GET', stripeCall), verdict: 'REPORTED' },
+];
+
 // ---- the cases --------------------------------------------------------------------------------------------------
 
 test.describe('Auth coverage - routes', () => {
@@ -264,4 +328,17 @@ test.describe('Auth wiring', () => {
             if (problems.length > 0) throw new Error(`${file}: ${problems.join('; ')}`);
         });
     }
+
+    test('the wiring check gives every shape of the table its verdict', () => {
+        const ids = wiringShapes.map((s) => s.id);
+        const repeated = [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))];
+        // One line, because the verdict reporter prints only the first line of an error.
+        if (repeated.length > 0) throw new Error(`wiringShapes lists ${repeated.join(', ')} more than once`);
+        const wrong = [];
+        for (const s of wiringShapes) {
+            const got = wiringProblems(s.row, s.source).length > 0 ? 'REPORTED' : 'clean';
+            if (got !== s.verdict) wrong.push(`${s.id} ${s.label}: wanted ${s.verdict}, got ${got}`);
+        }
+        if (wrong.length > 0) throw new Error(`${wrong.length} of ${wiringShapes.length} shapes got another verdict: ${wrong.join(' | ')}`);
+    });
 });
