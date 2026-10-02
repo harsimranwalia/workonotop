@@ -44,8 +44,10 @@ test.describe('Services Page', () => {
             // Click the first service link
             await serviceLinks.first().click();
 
-            // Should navigate to a service detail page
-            await expect(page).toHaveURL(/\/services\/.+/);
+            // Should navigate to a service detail page. The click starts a navigation to a route next dev may
+            // still have to compile (it took 8 to 10 s cold): give it the navigation allowance of
+            // playwright.config.js (navigationTimeout), not the 10 s expect budget.
+            await expect(page).toHaveURL(/\/services\/.+/, { timeout: 45_000 });
         }
     });
 });
