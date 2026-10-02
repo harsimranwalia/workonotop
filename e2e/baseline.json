@@ -63,6 +63,2161 @@
     "api.spec.js › API Routes › PUT /api/bookings without id should return 400": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/blogs/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/cities/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/districts/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/providers/[providerId] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/seo/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/service-areas/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/service-locations/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/skills/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/states/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/testimonials/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/ai-gateway/v1/seo is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/ai-gateway/v1/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/bookings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/categories is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/customers is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/provider is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/reviews is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/services is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/upload is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/user/addresses/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/blogs is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/blogs/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/cities is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/cities/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/deletion-requests is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/disputes is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/disputes/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/districts is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/districts/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/earnings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/invoices is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/invoices/[id]/preview is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/invoices/[id]/preview/download is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/logs is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/me is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/notifications is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/payouts is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/provider-jobs is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/providers is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/providers/[providerId]/documents is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/seo is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/seo/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/service-areas is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/service-areas/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/service-locations/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/settings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/skills is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/skills/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/states is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/states/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/testimonials is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/ai-gateway/openapi.json is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/ai-gateway/v1/seo is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/ai-gateway/v1/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/ai-gateway/v1/services is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/auth/me is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/bookings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/bookings/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/bookings/[id]/invoice/download is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/categories is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/chat is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/chat/unread is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/cron/auto-release is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/cron/notifications is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/customer/booking-details is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/customer/bookings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/customer/invoices is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/customer/reviews is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/customers is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/customers/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/directory is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/availability is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/available-jobs is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/available-jobs/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/bookings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/check-verification is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/dashboard-stats is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/jobs is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/jobs/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/jobs/photos is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/jobs/time-tracking is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/me is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/onboarding/documents is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/onboarding/stripe-return is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/payouts is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/profile is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/ratings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/status is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/validate-reset-token is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/verify-email is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/reviews is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/seo is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/service-areas is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/services is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/skills is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/stats is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/stripe/webhook is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/user/addresses is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/user/settings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PATCH /api/admin/deletion-requests is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PATCH /api/admin/disputes is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PATCH /api/admin/invoices is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PATCH /api/admin/service-locations/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PATCH /api/ai-gateway/v1/seo is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PATCH /api/ai-gateway/v1/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PATCH /api/ai-gateway/v1/services is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/blogs is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/cities is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/districts is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/invoices/generate is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/login is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/logout is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/providers/[providerId]/documents is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/seo is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/service-areas is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/settings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/skills is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/states is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/testimonials is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/ai-gateway/v1/seo is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/ai-gateway/v1/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/ai-gateway/v1/service-locations/sync-canonicals is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/ai-gateway/v1/services is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/apple is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/change-password is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/data-deletion is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/forgot-password is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/google is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/login is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/logout is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/mobile/forgot-password is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/mobile/google is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/mobile/login is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/mobile/logout is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/mobile/refresh is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/reset-password is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/signup is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/verify-otp is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/bookings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/bookings/[id]/reassign is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/bookings/[id]/restart is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/categories is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/chat is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/chat/mark-read is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/customer/bookings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/customer/bookings/[id]/approve is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/customer/bookings/[id]/cancel is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/customer/reviews is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/customers is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/mobile/push-token is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/payment/create-intent is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/availability is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/available-jobs is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/available-jobs/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/forgot-password is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/jobs/photos is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/jobs/time-tracking is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/login is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/logout is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/onboarding/complete is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/onboarding/create-stripe-account is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/onboarding/profile is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/onboarding/stripe-complete is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/onboarding/update-step is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/onboarding/upload-document is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/reset-password is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/signup is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/upload is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/verify-otp is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/reviews is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/services is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/stripe/webhook is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/test/push is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/upload is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/user/addresses is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/blogs/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/bookings/[id]/override is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/cities/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/districts/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/notifications is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/providers is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/providers/[providerId] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/providers/approve is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/seo/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/service-areas is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/service-areas/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/service-locations/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/skills/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/states/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/testimonials/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/bookings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/categories is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/customers is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/customers/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/provider is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/provider/availability is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/provider/profile is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/services is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/user/addresses/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/user/settings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › no route file exports a method in a form the coverage count cannot see": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › the route files are found and every row of the matrix is well formed": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/blogs/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/blogs/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outs..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/cities/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/cities/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` out..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/districts/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/districts/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/providers/[providerId] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/providers/[providerId]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [r..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/seo/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/seo/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outsid..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/service-areas/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/service-areas/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/service-locations/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/service-locations/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [r..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/skills/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/skills/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` out..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/states/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/states/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` out..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/testimonials/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/testimonials/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles]..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/ai-gateway/v1/seo uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/ai-gateway/v1/service-locations uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/bookings uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/bookings/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outside a co..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/categories uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/categories/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outside a ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/customers uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/customers/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outside a c..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/provider uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outside a co..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/reviews uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/reviews/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outside a com..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/service-locations uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/service-locations/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` out..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/services uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/services/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outside a co..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/upload uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/upload/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outside a comm..."
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/user/addresses/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/user/addresses/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` o..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/blogs uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/blogs/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a co..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/blogs/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/blogs/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/cities uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/cities/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a c..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/cities/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/cities/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outsid..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/deletion-requests uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/deletion-requests/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/disputes uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/disputes/route.js: does not import requireCaller from '@/lib/api-auth'; GET takes no request parameter to hand to requireCaller"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/disputes/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/disputes/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outs..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/districts uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/districts/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/districts/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/districts/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` out..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/earnings uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/earnings/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/invoices uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/invoices/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/invoices/[id]/preview uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/invoices/[id]/preview/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/invoices/[id]/preview/download uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/invoices/[id]/preview/download/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(reques..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/logs uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/logs/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a com..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/me uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/me/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a comme..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/notifications uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/notifications/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outs..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/payouts uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/payouts/route.js: does not import requireCaller from '@/lib/api-auth'; GET takes no request parameter to hand to requireCaller"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/provider-jobs uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/provider-jobs/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outs..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/providers uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/providers/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/providers/[providerId]/documents uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/providers/[providerId]/documents/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(requ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/seo uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/seo/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a comm..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/seo/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/seo/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/service-areas uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/service-areas/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outs..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/service-areas/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/service-areas/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])`..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/service-locations uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/service-locations/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/service-locations/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/service-locations/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [role..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/settings uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/settings/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/skills uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/skills/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a c..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/skills/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/skills/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outsid..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/states uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/states/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a c..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/states/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/states/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outsid..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/testimonials uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/testimonials/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outsi..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/ai-gateway/v1/seo uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/ai-gateway/v1/service-locations uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/ai-gateway/v1/services uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/auth/me uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/auth/me/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a commen..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/bookings uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/bookings/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a comme..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/bookings/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/bookings/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/bookings/[id]/invoice/download uses the guard": {
+      "outcome": "SKIPPED"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/chat uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/chat/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a comment (..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/chat/unread uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/chat/unread/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a co..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/cron/auto-release uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/cron/auto-release/route.js: does not import requireCronSecret from '@/lib/api-auth'; GET does not call requireCronSecret(request)"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/cron/notifications uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/cron/notifications/route.js: does not import requireCronSecret from '@/lib/api-auth'; GET does not call requireCronSecret(request)"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/customer/booking-details uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/customer/booking-details/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])`..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/customer/bookings uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/customer/bookings/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outsid..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/customer/invoices uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/customer/invoices/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outsid..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/customer/reviews uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/customer/reviews/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/customers uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/customers/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a comm..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/customers/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/customers/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a comme..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/availability uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/availability/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` ou..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/available-jobs uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/available-jobs/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/available-jobs/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/available-jobs/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [role..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/bookings uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/bookings/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outsid..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/dashboard-stats uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/dashboard-stats/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])`..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/jobs/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/jobs/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outsi..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs/photos uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/jobs/photos/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` out..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs/time-tracking uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/jobs/time-tracking/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/me uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/me/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a co..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/onboarding/documents uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/onboarding/documents/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [rol..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/onboarding/stripe-return uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/onboarding/stripe-return/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/payouts uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/payouts/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/profile uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/profile/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/ratings uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/ratings/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/status uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/status/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/reviews uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/reviews/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a commen..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/stats uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/stats/route.js: does not import requireCaller from '@/lib/api-auth'; GET takes no request parameter to hand to requireCaller"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/user/addresses uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/user/addresses/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a..."
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/user/settings uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/user/settings/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PATCH /api/admin/deletion-requests uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/deletion-requests/route.js: does not import requireCaller from '@/lib/api-auth'; PATCH does not have `const auth = await requireCaller(request, [roles])..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PATCH /api/admin/disputes uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/disputes/route.js: does not import requireCaller from '@/lib/api-auth'; PATCH does not have `const auth = await requireCaller(request, [roles])` outside..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PATCH /api/admin/invoices uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/invoices/route.js: does not import requireCaller from '@/lib/api-auth'; PATCH does not have `const auth = await requireCaller(request, [roles])` outside..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PATCH /api/admin/service-locations/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/service-locations/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PATCH does not have `const auth = await requireCaller(request, [ro..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PATCH /api/ai-gateway/v1/seo uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PATCH /api/ai-gateway/v1/service-locations uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PATCH /api/ai-gateway/v1/services uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/blogs uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/blogs/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a c..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/cities uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/cities/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/districts uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/districts/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/invoices/generate uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/invoices/generate/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])`..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/providers/[providerId]/documents uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/providers/[providerId]/documents/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(req..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/seo uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/seo/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a com..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/service-areas uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/service-areas/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` out..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/service-locations uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/service-locations/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])`..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/settings uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/settings/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/skills uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/skills/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/states uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/states/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/testimonials uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/testimonials/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outs..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/ai-gateway/v1/seo uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/ai-gateway/v1/service-locations uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/ai-gateway/v1/service-locations/sync-canonicals uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/ai-gateway/v1/services uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/auth/change-password uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/auth/change-password/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` ou..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/bookings/[id]/reassign uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/bookings/[id]/reassign/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/bookings/[id]/restart uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/bookings/[id]/restart/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` o..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/categories uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/categories/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a co..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/chat uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/chat/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a comment ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/chat/mark-read uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/chat/mark-read/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/customer/bookings uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/customer/bookings/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outsi..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/customer/bookings/[id]/approve uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/customer/bookings/[id]/approve/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [r..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/customer/bookings/[id]/cancel uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/customer/bookings/[id]/cancel/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [ro..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/customer/reviews uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/customer/reviews/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outsid..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/customers uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/customers/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a com..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/mobile/push-token uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/mobile/push-token/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outsi..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/payment/create-intent uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/payment/create-intent/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` o..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/availability uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/availability/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` o..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/available-jobs uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/available-jobs/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])`..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/available-jobs/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/available-jobs/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [rol..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/jobs/photos uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/jobs/photos/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` ou..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/jobs/time-tracking uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/jobs/time-tracking/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [role..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/complete uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/onboarding/complete/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [rol..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/create-stripe-account uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/onboarding/create-stripe-account/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/profile uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/onboarding/profile/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [role..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/stripe-complete uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/onboarding/stripe-complete/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(reques..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/update-step uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/onboarding/update-step/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/upload-document uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/onboarding/upload-document/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(reques..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/upload uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/upload/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/reviews uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/reviews/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a comme..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/service-locations uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/service-locations/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outsi..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/services uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/services/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a comm..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/stripe/webhook uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/test/push uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/test/push/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a com..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/upload uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/upload/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a commen..."
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/user/addresses uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/user/addresses/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/blogs/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/blogs/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/bookings/[id]/override uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/bookings/[id]/override/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [role..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/cities/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/cities/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outsid..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/districts/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/districts/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` out..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/notifications uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/notifications/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outs..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/providers uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/providers/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/providers/[providerId] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/providers/[providerId]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [role..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/providers/approve uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/providers/approve/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/seo/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/seo/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/service-areas uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/service-areas/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outs..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/service-areas/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/service-areas/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])`..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/service-locations/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/service-locations/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [role..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/skills/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/skills/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outsid..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/states/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/states/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outsid..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/testimonials/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/admin/testimonials/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` ..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/bookings uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/bookings/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a comme..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/categories uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/categories/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a com..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/customers uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/customers/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a comm..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/customers/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/customers/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/provider uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a comme..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/provider/availability uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/availability/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` ou..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/provider/profile uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/provider/profile/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/services uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/services/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a comme..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/user/addresses/[id] uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/user/addresses/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outs..."
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/user/settings uses the guard": {
+      "outcome": "FAIL",
+      "error": "Error: src/app/api/user/settings/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a ..."
+    },
+    "auth-guard.spec.js › Auth guard - allowed callers › a credential that already settles the request wins over a Bearer that would not verify": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - allowed callers › a customer by cookie and a provider by cookie are normalised; a provider has only providerId": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - allowed callers › an admin by cookie passes an admin route and is { role, id, email, via: cookie }": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - allowed callers › the Bearer path falls through to verifyToken when the database lookup fails: mobile tokens of all three roles pass": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - allowed callers › the first verified credential whose role is allowed wins, in the order admin, customer, provider, Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - cron secret › with CRON_SECRET set, the secret passes as a Bearer or as ?secret=, and nothing else does": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - cron secret › with CRON_SECRET unset every request is 401 and the route logs that it is not set": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - how it is called › callerFrom returns the caller or null and never refuses; roles narrows it": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - how it is called › requireCaller throws a programming error for an empty or unknown roles list": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - how it is called › the guard never reads the body, on a refusal or on success": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - refusals › a customer on an admin route is 403 Forbidden, never 401, by cookie and by Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - refusals › a malformed Cookie or Authorization header is 401, never an exception": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - refusals › a provider on an admin route and on a customer route is 403, by cookie and by Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - refusals › a token with a bad signature is 401, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - refusals › an admin on a customer-only route is 403 (there is no \"admin may do anything\" in roles)": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - refusals › an expired token is 401, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - refusals › no credential is 401 Unauthorized": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a cookie sent twice is decided by the later one, as request.cookies.get does: garbage last is 401, valid last is a session": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a customer token copied into the adminAuth cookie is not an admin session": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \" \" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \"\" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is 0 is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is true is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is {} is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a token without its id is 401 (providerId counts as the id of a provider only)": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › an unknown role, an admin named only by type, or two claims that name different roles, is no session (401)": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › the email_verification and password_reset tokens are never a session (401), as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/blogs/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/admin/blogs/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/cities/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/admin/cities/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/districts/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/admin/districts/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/providers/[providerId]": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/admin/providers/[providerId] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/seo/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/admin/seo/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/service-areas/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/admin/service-areas/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/service-locations/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/admin/service-locations/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/skills/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/admin/skills/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/states/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/admin/states/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/testimonials/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/admin/testimonials/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/ai-gateway/v1/seo": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/ai-gateway/v1/service-locations": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/bookings": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/bookings [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/categories": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/categories [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/customers": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/customers [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/provider": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/provider [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/reviews": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/reviews [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/service-locations": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/service-locations [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/services": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/services [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/upload": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/upload [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/user/addresses/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: DELETE /api/user/addresses/[id] [roles (customer)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/blogs": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/blogs [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/blogs/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/blogs/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/cities": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/cities [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/cities/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/cities/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/deletion-requests": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/deletion-requests [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/disputes": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/disputes [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/disputes/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/disputes/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/districts": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/districts [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/districts/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/districts/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/earnings": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/earnings [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/invoices": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/invoices [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/invoices/[id]/preview": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/invoices/[id]/preview [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/invoices/[id]/preview/download": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/invoices/[id]/preview/download [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/logs": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/logs [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/me": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/me [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/notifications": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/notifications [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/payouts": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/payouts [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/provider-jobs": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/provider-jobs [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/providers": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/providers [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/providers/[providerId]/documents": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/providers/[providerId]/documents [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/seo": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/seo [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/seo/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/seo/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/service-areas": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/service-areas [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/service-areas/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/service-areas/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/service-locations": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/service-locations [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/service-locations/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/service-locations/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/settings": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/settings [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/skills": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/skills [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/skills/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/skills/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/states": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/states [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/states/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/states/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/testimonials": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/admin/testimonials [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/ai-gateway/openapi.json": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/ai-gateway/v1/seo": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/ai-gateway/v1/service-locations": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/ai-gateway/v1/services": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/auth/me": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/bookings": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/bookings [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/bookings/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/bookings/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/bookings/[id]/invoice/download": {
+      "outcome": "SKIPPED"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/categories": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/chat": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/chat [roles (customer, provider, admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/chat/unread": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/chat/unread [roles (customer, provider, admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/cron/auto-release": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/cron/auto-release [self] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/cron/notifications": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/cron/notifications [self] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/customer/booking-details": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/customer/booking-details [roles (customer)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/customer/bookings": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/customer/bookings [roles (customer, admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/customer/invoices": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/customer/invoices [roles (customer)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/customer/reviews": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/customer/reviews [roles (customer)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/customers": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/customers [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/customers/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/customers/[id] [roles (customer, admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/directory": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/locations": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/provider [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/availability": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/provider/availability [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/available-jobs": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/provider/available-jobs [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/available-jobs/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/provider/available-jobs/[id] [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/bookings": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/provider/bookings [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/check-verification": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/dashboard-stats": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/provider/dashboard-stats [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/jobs": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/provider/jobs [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/provider/jobs/[id] [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/photos": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/provider/jobs/photos [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/time-tracking": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/provider/jobs/time-tracking [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/me": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/provider/me [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/onboarding/documents": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/provider/onboarding/documents [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/onboarding/stripe-return": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/provider/onboarding/stripe-return [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/payouts": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/provider/payouts [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/profile": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/provider/profile [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/ratings": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/provider/ratings [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/status": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/provider/status [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/validate-reset-token": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/verify-email": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/reviews": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/reviews [roles (customer, admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/seo": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/service-areas": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/service-locations": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/services": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/skills": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/stats": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/stats [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/stripe/webhook": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/user/addresses": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/user/addresses [roles (customer)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/user/settings": {
+      "outcome": "FAIL",
+      "error": "Error: GET /api/user/settings [roles (customer, provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PATCH /api/admin/deletion-requests": {
+      "outcome": "FAIL",
+      "error": "Error: PATCH /api/admin/deletion-requests [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PATCH /api/admin/disputes": {
+      "outcome": "FAIL",
+      "error": "Error: PATCH /api/admin/disputes [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PATCH /api/admin/invoices": {
+      "outcome": "FAIL",
+      "error": "Error: PATCH /api/admin/invoices [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PATCH /api/admin/service-locations/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: PATCH /api/admin/service-locations/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PATCH /api/ai-gateway/v1/seo": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PATCH /api/ai-gateway/v1/service-locations": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PATCH /api/ai-gateway/v1/services": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/blogs": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/admin/blogs [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/cities": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/admin/cities [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/districts": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/admin/districts [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/invoices/generate": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/admin/invoices/generate [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/login": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/logout": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/providers/[providerId]/documents": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/admin/providers/[providerId]/documents [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/seo": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/admin/seo [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/service-areas": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/admin/service-areas [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/service-locations": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/admin/service-locations [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/settings": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/admin/settings [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/skills": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/admin/skills [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/states": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/admin/states [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/testimonials": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/admin/testimonials [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/ai-gateway/v1/seo": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/ai-gateway/v1/service-locations": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/ai-gateway/v1/service-locations/sync-canonicals": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/ai-gateway/v1/services": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/apple": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/change-password": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/auth/change-password [roles (customer, provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/data-deletion": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/forgot-password": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/google": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/login": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/logout": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/mobile/forgot-password": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/mobile/google": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/mobile/login": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/mobile/logout": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/mobile/refresh": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/reset-password": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/signup": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/verify-otp": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/bookings": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/bookings/[id]/reassign": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/bookings/[id]/reassign [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/bookings/[id]/restart": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/bookings/[id]/restart [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/categories": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/categories [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/chat": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/chat [roles (customer, provider, admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/chat/mark-read": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/chat/mark-read [roles (customer, provider, admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/customer/bookings": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/customer/bookings [roles (customer, admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/customer/bookings/[id]/approve": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/customer/bookings/[id]/approve [roles (customer)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/customer/bookings/[id]/cancel": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/customer/bookings/[id]/cancel [roles (customer)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/customer/reviews": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/customer/reviews [roles (customer)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/customers": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/customers [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/mobile/push-token": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/mobile/push-token [roles (customer, provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/payment/create-intent": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/payment/create-intent [roles (customer)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/availability": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/provider/availability [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/available-jobs": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/provider/available-jobs [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/available-jobs/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/provider/available-jobs/[id] [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/forgot-password": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/jobs/photos": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/provider/jobs/photos [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/jobs/time-tracking": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/provider/jobs/time-tracking [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/login": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/logout": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/complete": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/provider/onboarding/complete [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/create-stripe-account": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/provider/onboarding/create-stripe-account [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/profile": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/provider/onboarding/profile [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/stripe-complete": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/provider/onboarding/stripe-complete [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/update-step": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/provider/onboarding/update-step [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/upload-document": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/provider/onboarding/upload-document [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/reset-password": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/signup": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/upload": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/provider/upload [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/verify-otp": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/reviews": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/reviews [roles (customer)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/service-locations": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/service-locations [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/services": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/services [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/stripe/webhook": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/test/push": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/test/push [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/upload": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/upload [roles (customer, provider, admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/user/addresses": {
+      "outcome": "FAIL",
+      "error": "Error: POST /api/user/addresses [roles (customer)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/blogs/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/admin/blogs/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/bookings/[id]/override": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/admin/bookings/[id]/override [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/cities/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/admin/cities/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/districts/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/admin/districts/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/notifications": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/admin/notifications [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/providers": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/admin/providers [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/providers/[providerId]": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/admin/providers/[providerId] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/providers/approve": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/admin/providers/approve [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/seo/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/admin/seo/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/service-areas": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/admin/service-areas [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/service-areas/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/admin/service-areas/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/service-locations/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/admin/service-locations/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/skills/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/admin/skills/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/states/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/admin/states/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/testimonials/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/admin/testimonials/[id] [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/bookings": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/bookings [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/categories": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/categories [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/customers": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/customers [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/customers/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/customers/[id] [roles (customer)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/provider": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/provider [roles (admin, provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/provider/availability": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/provider/availability [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/provider/profile": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/provider/profile [roles (provider)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/services": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/services [roles (admin)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/user/addresses/[id]": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/user/addresses/[id] [roles (customer)] answered wrongly:"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/user/settings": {
+      "outcome": "FAIL",
+      "error": "Error: PUT /api/user/settings [roles (customer, provider)] answered wrongly:"
+    },
     "booking-flow.spec.js › Booking Flow › booking details should have input fields for customer info": {
       "outcome": "PASS"
     },
