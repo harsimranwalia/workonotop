@@ -108,7 +108,7 @@ function methodText(source, method) {
 /** Code only: block comments and line comments taken out, so a guard call in a comment is not a guard call (gaps below).
  *  Three regular expressions, not a parser: strings, template literals and regex literals are not understood. A `//`
  *  that follows a colon, a quote or a backtick is kept on purpose (a URL in a string, 'http://x'). Each gap below was
- *  reproduced in plain node with this function (ENG-020 A2):
+ *  reproduced in plain node with this function (ENG-020 round 3, finding B5):
  *    Cut that should stay (the safe direction: code is lost, so a guard in the lost text reads as missing and the case fails):
  *      - a `//` inside a string or template literal after a character other than `:`, a quote or a backtick ('a//b'):
  *        the rest of the line is taken out;
@@ -162,7 +162,7 @@ function wiringProblems(row, source) {
     // and the copy's guard reads as the handler's. The raw text is read once, by withoutComments. The import checks and
     // the AI-gateway call test (file level on purpose) read `code`; the roles guard and the cron and Stripe call tests
     // read `methodCode`: an import or a call that only a comment names is not wired (withoutComments' doc lists what it
-    // takes out or leaves in wrongly). Before ENG-020 A2 the roles branch stripped comments and the self branches did not
+    // takes out or leaves in wrongly). Before commit a86d86b the roles branch stripped comments and the self branches did not
     // (the standards' "failure direction is not uniform").
     const code = withoutComments(source);
     const methodCode = methodText(code, row.method);
