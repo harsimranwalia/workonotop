@@ -196,7 +196,8 @@ function wiringProblems(row, source) {
 // returns a problem, 'clean' when it returns none) and a label that says whether that is the right answer; `says`, when a row has
 // it, is text the problems must contain. The case "the wiring check gives every shape of the table its verdict" fails with the id
 // of every row whose verdict differs or whose problems lack its `says`. Ids: s shapes, c controls, f false failures, x more shapes
-// (ENG-020 round 3 escalation), g the guard's own pieces and the self checks.
+// (ENG-020 round 3 escalation), g the guard's own pieces and the self checks, r a one-line method or an indented neighbour, b the closing
+// brace, n false failures the indented search costs, t layout it does not read.
 // Nothing in this section uses a name defined outside it.
 
 const imp = "import { requireCaller } from '@/lib/api-auth';\n";
@@ -214,6 +215,7 @@ const cronRow = { kind: 'self', method: 'GET', self: 'CRON_SECRET, made fail-clo
 const stripeCall = "  const event = stripe.webhooks.constructEvent(body, signature, secret);\n";
 const stripeRow = { kind: 'self', method: 'POST', self: 'Stripe signature, verified before any branch (unchanged)' };
 const gatewayRow = { kind: 'self', method: 'GET', self: 'AI gateway key (unchanged)' };
+const oneLine = (name) => `export async function ${name}(request) { return Response.json({ ok: true }); }\n\n`;
 
 const wiringShapes = [
     { id: 's1', label: "unguarded GET holds 'image/*', guarded POST below with a block comment in its body: must be reported", row: getRow, source: imp + ung("const a = 'image/*';") + postBlock, verdict: 'REPORTED' },
@@ -257,6 +259,21 @@ const wiringShapes = [
     { id: 'g12', label: "GET queries the database before its guard: not caught, the guard need not be the method's first statement", row: getRow, source: imp + getWith("  const rows = await db.query('SELECT 1');\n" + guard), verdict: 'clean' },
     { id: 'g13', label: 'AI gateway row: POST calls verifyAiGatewayAuth(request), GET does not: false pass, file level by design (the PATCH handlers hand over to POST), not caught', row: gatewayRow, source: "import { verifyAiGatewayAuth } from '@/lib/ai-gateway-auth';\n" + handler('POST', '  const auth = verifyAiGatewayAuth(request);\n  if (!auth.ok) return auth.response;\n') + '\n' + handler('GET'), verdict: 'clean' },
     { id: 'g14', label: 'the roles passed as a variable, requireCaller(request, ROLES), not as a list in brackets: false failure, loud', row: getRow, source: imp + getWith('  const auth = await requireCaller(request, ROLES);\n  if (!auth.ok) return auth.response;\n'), verdict: 'REPORTED', says: 'a literal roles list' },
+    { id: 'r1a', label: 'a one-line unguarded GET, then a guarded `/** x */ export async function POST` on one line: must be reported', row: getRow, source: imp + oneLine('GET') + '/** x */ export async function POST(request) {\n' + guard + '  return 1;\n}\n', verdict: 'REPORTED' },
+    { id: 'r1b', label: 'a one-line unguarded GET, then a guarded POST indented two spaces: must be reported', row: getRow, source: imp + oneLine('GET') + '  export async function POST(request) {\n' + guard + '  return 1;\n  }\n', verdict: 'REPORTED' },
+    { id: 'r1c', label: 'a one-line unguarded GET, then an indented helper holding the guard text: must be reported', row: getRow, source: imp + oneLine('GET') + '  async function adminOnly(request) {\n' + guard + '  }\n', verdict: 'REPORTED' },
+    { id: 'r1g', label: 'a one-line unguarded GET holding "*/*" (its `/*` opens a block comment that ends in the helper\'s own comment), then an indented helper holding the guard text: must be reported', row: getRow, source: imp + 'export async function GET(request) { const h = "*/*"; return Response.json({ h }); }\n\n  async function adminOnly(request) {\n  /* helper */\n' + guard + '  }\n', verdict: 'REPORTED' },
+    { id: 'r1cron', label: 'cron row: a one-line GET with no call, then a `/** x */ export async function POST` that calls requireCronSecret: must be reported', row: cronRow, source: cronImp + oneLine('GET') + '/** x */ export async function POST(request) {\n' + cronCall + '  return 1;\n}\n', verdict: 'REPORTED' },
+    { id: 'r1stripe', label: 'Stripe row: a one-line POST with no check, then a `/** x */ export async function GET` that calls webhooks.constructEvent: must be reported', row: stripeRow, source: oneLine('POST') + '/** x */ export async function GET(request) {\n' + stripeCall + '  return 1;\n}\n', verdict: 'REPORTED' },
+    { id: 'n1', label: 'a guarded GET with a nested function declaration above its guard: false failure, loud', row: getRow, source: imp + 'export async function GET(request) {\n  function pick(x) { return x; }\n' + guard + '  return 1;\n}\n', verdict: 'REPORTED', says: 'does not have `const auth = await requireCaller(' },
+    { id: 'n3', label: 'a guarded GET with an indented export inside a block comment above its guard: false failure, loud', row: getRow, source: imp + 'export async function GET(request) {\n  /*\n  export async function OLD(request) {}\n  */\n' + guard + '  return 1;\n}\n', verdict: 'REPORTED', says: 'does not have `const auth = await requireCaller(' },
+    { id: 't1', label: 'an unguarded one-line GET and a guarded POST on the same line: false pass, not caught (layout: the closing brace is not alone at column 0)', row: getRow, source: imp + "export async function GET(request) { return Response.json({ ok: true }); } export async function POST(request) { const auth = await requireCaller(request, ['admin']); if (!auth.ok) return auth.response; return 1; }\n", verdict: 'clean' },
+    { id: 't2', label: 'an unguarded one-line GET, then an indented const arrow function holding the guard text: false pass, not caught (layout: the closing brace is not alone at column 0)', row: getRow, source: imp + oneLine('GET') + '  const adminOnly = async (request) => {\n' + guard + '  };\n', verdict: 'clean' },
+    { id: 'b1', label: 'an unguarded GET closed by a `}` alone at column 0, then an indented const arrow function holding the guard text: must be reported', row: getRow, source: imp + ung('return 1;') + '  const adminOnly = async (request) => {\n' + guard + '  };\n', verdict: 'REPORTED' },
+    { id: 'g15', label: "the call names ['admin', 'customer'] and the row says ['admin']: a role more, must be reported", row: getRow, source: imp + getWith(guard.replace("['admin']", "['admin', 'customer']")), verdict: 'REPORTED', says: 'but the matrix says' },
+    { id: 'g16', label: 'the call keeps its result in auth and the refusal tests another variable, if (!x.ok) return x.response: must be reported', row: getRow, source: imp + getWith("  const auth = await requireCaller(request, ['admin']);\n  if (!x.ok) return x.response;\n"), verdict: 'REPORTED', says: 'does not `if (!auth.ok) return auth.response`' },
+    { id: 'g17', label: 'a handler that takes no parameter, the guard written with request: must be reported', row: getRow, source: imp + 'export async function GET() {\n' + guard + '  return 1;\n}\n', verdict: 'REPORTED', says: 'takes no request parameter' },
+    { id: 'g18', label: "row roles ['customer', 'admin'], the call names ['customer', 'admin']: the row's own order, must read as guarded", row: { kind: 'roles', method: 'GET', roles: ['customer', 'admin'] }, source: imp + getWith(guard.replace("['admin']", "['customer', 'admin']")), verdict: 'clean' },
 ];
 
 // ---- the cases --------------------------------------------------------------------------------------------------
