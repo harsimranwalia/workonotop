@@ -141,7 +141,8 @@ const importsName = (source, name, from) =>
  * code (a string, JSX text, a template literal, a regex literal, a comment, or any other), the check reports the method. Why: under (0) and (3) the first
  * match of the signature in `code` is the method's own declaration (rows p1cron, p1stripe, p1roles: a `GET$` or `POST$` that holds the guard, exported above the real method, which has none);
  * under (1) the cut ends at or before the method's own `}`, because `raw` is never blanked (rows b1 to b5); the three looks read only that cut and each
- * needs its guard's name, so under (2) none can match (rows g9, g11, r1cron, r1stripe, p1cron, p1stripe, p1roles: they fail when the looks read the
+ * needs its guard's name, so under (2) none can match (rows g5, b1 and b2 for the roles look, which turn clean when it reads from the file's first
+ * `export` instead of the cut; rows g9, g11, r1cron, r1stripe, p1cron and p1stripe for the cron and Stripe looks, which turn clean when they read the
  * whole file instead); and blanking only turns characters into spaces, so it can hide a guard (loudly) and never make one appear (rows f2, x5: they
  * fail when comments are deleted instead).
  * What it does not read: with (1) false, after a closing brace that does not start its line, an indented `const` helper (row t2) or a second method on the
