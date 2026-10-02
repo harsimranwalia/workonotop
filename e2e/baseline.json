@@ -190,6 +190,9 @@
     "fixtures-guard.spec.js › Fixture guard - the target › accepts the local host localhost": {
       "outcome": "PASS"
     },
+    "fixtures-guard.spec.js › Fixture guard - the target › allows exactly the local hosts listed in this spec, no more and no fewer": {
+      "outcome": "PASS"
+    },
     "fixtures-guard.spec.js › Fixture guard - the target › refuses the database \"\"": {
       "outcome": "PASS"
     },
