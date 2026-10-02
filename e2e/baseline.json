@@ -1,0 +1,373 @@
+{
+  "cases": {
+    "admin.spec.js › Admin Panel - Auth Protection › admin login page should have email and password fields": {
+      "outcome": "PASS"
+    },
+    "admin.spec.js › Admin Panel - Auth Protection › admin login should show error for invalid credentials": {
+      "outcome": "PASS"
+    },
+    "admin.spec.js › Admin Panel - Auth Protection › should allow access to /admin/login without auth": {
+      "outcome": "PASS"
+    },
+    "admin.spec.js › Admin Panel - Auth Protection › should redirect /admin to /admin/login when not authenticated": {
+      "outcome": "PASS"
+    },
+    "admin.spec.js › Admin Panel - Auth Protection › should redirect /admin/analytics to login when not authenticated": {
+      "outcome": "PASS"
+    },
+    "admin.spec.js › Admin Panel - Auth Protection › should redirect /admin/bookings to login when not authenticated": {
+      "outcome": "PASS"
+    },
+    "admin.spec.js › Admin Panel - Auth Protection › should redirect /admin/providers to login when not authenticated": {
+      "outcome": "PASS"
+    },
+    "admin.spec.js › Admin Panel - Auth Protection › should redirect /admin/services to login when not authenticated": {
+      "outcome": "PASS"
+    },
+    "admin.spec.js › Admin Panel - Auth Protection › should redirect /admin/users to login when not authenticated": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › DELETE /api/bookings without id should return 400": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › GET /api/bookings should return success response": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › GET /api/bookings with email filter should return response": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › GET /api/categories should return success response": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › GET /api/customers should return response": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › GET /api/reviews should return response": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › GET /api/services should return success response": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › GET /api/services?is_homepage=1 should return homepage services": {
+      "outcome": "FAIL",
+      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    },
+    "api.spec.js › API Routes › GET /api/stats should return response": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › POST /api/bookings with missing fields should return 400": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › POST /api/bookings with partial data should return 400": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › PUT /api/bookings without id should return 400": {
+      "outcome": "PASS"
+    },
+    "booking-flow.spec.js › Booking Flow › booking details should have input fields for customer info": {
+      "outcome": "PASS"
+    },
+    "booking-flow.spec.js › Booking Flow › booking schedule page should have date/time selection": {
+      "outcome": "PASS"
+    },
+    "booking-flow.spec.js › Booking Flow › should load booking confirm page": {
+      "outcome": "PASS"
+    },
+    "booking-flow.spec.js › Booking Flow › should load booking details page": {
+      "outcome": "PASS"
+    },
+    "booking-flow.spec.js › Booking Flow › should load booking payment page": {
+      "outcome": "PASS"
+    },
+    "booking-flow.spec.js › Booking Flow › should load booking schedule page": {
+      "outcome": "PASS"
+    },
+    "booking-flow.spec.js › Booking Flow › should load booking success page": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › does not treat \"\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › does not treat \"a@b@c.test\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › does not treat \"a@x.test \" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › does not treat \"plainaddress\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › does not treat \"someone@example.com.au\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › does not treat \"someone@example.org.evil.com\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › does not treat \"someone@gmail.com\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › does not treat \"someone@notexample.com\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › does not treat \"someone@test.com\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › does not treat \"someone@workontap.com\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › does not treat \"someone@x.test.com\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › does not treat \"someone@yahoo.ca\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › treats \"FIXTURE-ADMIN-1@WORKONTAP.TEST\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › treats \"a@example.com\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › treats \"a@example.net\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › treats \"a@example.org\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › treats \"a@foo.example\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › treats \"a@host.invalid\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › treats \"a@localhost\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › treats \"a@mail.example.org\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › treats \"a@something.localhost\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › treats \"e2e-signup-ab12@workontap.test\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - reserved email names › treats \"fixture-customer-1@workontap.test\" as a reserved name": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the server that answers › passes a server whose person tables hold only reserved names": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the server that answers › reads counts only and hands the server the same pattern the JS side tests": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the server that answers › refuses a server it cannot count, rather than passing it": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the server that answers › refuses a server with a real address in bookings.customer_email": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the server that answers › refuses a server with a real address in deletion_requests.email": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the server that answers › refuses a server with a real address in service_providers.email": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the server that answers › refuses a server with a real address in users.email": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › accepts the dev stack as it is configured, on its published port too": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › accepts the local host 127.0.0.1": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › accepts the local host ::1": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › accepts the local host db": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › accepts the local host localhost": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the database \"\"": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the database \"WORKONTAP_DB\"": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the database \"other\"": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the database \"workontap_db_live\"": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the database undefined": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the host \"\"": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the host \"0.0.0.0\"": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the host \"127.0.0.2\"": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the host \"DB\"": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the host \"db.example.com\"": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the host \"localhost \"": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the host \"localhost.evil.test\"": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the host \"prod-db.workontap.com\"": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the host undefined": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the port 0": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the port 3306.5": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the port 65536": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the port NaN": {
+      "outcome": "PASS"
+    },
+    "fixtures-guard.spec.js › Fixture guard - the target › refuses the port undefined": {
+      "outcome": "PASS"
+    },
+    "harness.spec.js › Credential gaps › accepts either name of an email pair, as src/lib/email.js does": {
+      "outcome": "PASS"
+    },
+    "harness.spec.js › Credential gaps › counts every credential as missing when the app environment is not known": {
+      "outcome": "PASS"
+    },
+    "harness.spec.js › Credential gaps › names only the Twilio credentials that are missing": {
+      "outcome": "PASS"
+    },
+    "harness.spec.js › Credential gaps › refuses a family it does not know": {
+      "outcome": "PASS"
+    },
+    "harness.spec.js › Credential gaps › reports no gap, and no annotation, when the app has the credential": {
+      "outcome": "PASS"
+    },
+    "harness.spec.js › Fixture sign-in › admin signs in, /api/admin/me returns role admin and /admin is not redirected to the login page": {
+      "outcome": "PASS"
+    },
+    "harness.spec.js › Fixture sign-in › customer signs in and /api/auth/me returns the fixture customer": {
+      "outcome": "PASS"
+    },
+    "harness.spec.js › Fixture sign-in › provider signs in, /api/provider/me returns the fixture provider and /provider/dashboard does not bounce": {
+      "outcome": "PASS"
+    },
+    "harness.spec.js › Fixture sign-in › signInAs refuses an account that is not a fixture, naming the ones that are": {
+      "outcome": "PASS"
+    },
+    "harness.spec.js › Payment path - Stripe › POST /api/payment/create-intent as a customer creates an intent, or reports what the code attempts without a Stripe key": {
+      "outcome": "ATTEMPTED"
+    },
+    "homepage.spec.js › Homepage › should display \"How WorkOnTap works\" section": {
+      "outcome": "FAIL",
+      "error": "Error: expect(locator).toBeVisible() failed"
+    },
+    "homepage.spec.js › Homepage › should display Header and Footer components": {
+      "outcome": "PASS"
+    },
+    "homepage.spec.js › Homepage › should display Homeowner Protection Promise section": {
+      "outcome": "FAIL",
+      "error": "Error: expect(locator).toBeVisible() failed"
+    },
+    "homepage.spec.js › Homepage › should display homepage services or fallback message": {
+      "outcome": "FAIL",
+      "error": "Error: expect(locator).toBeVisible() failed"
+    },
+    "homepage.spec.js › Homepage › should display stats section (500,000+ / 96% / 4.8)": {
+      "outcome": "FAIL",
+      "error": "Error: expect(locator).toBeVisible() failed"
+    },
+    "homepage.spec.js › Homepage › should have \"View all services\" link that navigates correctly": {
+      "outcome": "FAIL",
+      "error": "Error: expect(locator).toBeVisible() failed"
+    },
+    "homepage.spec.js › Homepage › should load and display the hero section": {
+      "outcome": "FAIL",
+      "error": "Error: expect(locator).toContainText(expected) failed"
+    },
+    "homepage.spec.js › Homepage › should navigate to /services when search bar is clicked": {
+      "outcome": "FAIL",
+      "error": "Error: expect(page).toHaveURL(expected) failed"
+    },
+    "provider.spec.js › Provider Portal - Auth Protection › provider login page should have form fields": {
+      "outcome": "FAIL",
+      "error": "Error: expect(received).toBeGreaterThanOrEqual(expected)"
+    },
+    "provider.spec.js › Provider Portal - Auth Protection › provider login should reject invalid credentials": {
+      "outcome": "PASS"
+    },
+    "provider.spec.js › Provider Portal - Auth Protection › should allow access to /provider/login without auth": {
+      "outcome": "PASS"
+    },
+    "provider.spec.js › Provider Portal - Auth Protection › should allow access to /provider/register without auth": {
+      "outcome": "PASS"
+    },
+    "provider.spec.js › Provider Portal - Auth Protection › should redirect /provider/jobs to login when not authenticated": {
+      "outcome": "PASS"
+    },
+    "provider.spec.js › Provider Portal - Auth Protection › should redirect /provider/profile to login when not authenticated": {
+      "outcome": "PASS"
+    },
+    "provider.spec.js › Provider Portal - Auth Protection › should redirect protected provider routes to /provider/login": {
+      "outcome": "PASS"
+    },
+    "services.spec.js › Services Page › should display at least one service": {
+      "outcome": "PASS"
+    },
+    "services.spec.js › Services Page › should load the services listing page": {
+      "outcome": "PASS"
+    },
+    "services.spec.js › Services Page › should navigate to a service detail page when clicked": {
+      "outcome": "PASS"
+    },
+    "static-pages.spec.js › Static Pages › should have proper page title on homepage": {
+      "outcome": "PASS"
+    },
+    "static-pages.spec.js › Static Pages › should load About page": {
+      "outcome": "PASS"
+    },
+    "static-pages.spec.js › Static Pages › should load Contact page": {
+      "outcome": "PASS"
+    },
+    "static-pages.spec.js › Static Pages › should load FAQ page": {
+      "outcome": "PASS"
+    },
+    "static-pages.spec.js › Static Pages › should load Guarantee page": {
+      "outcome": "PASS"
+    },
+    "static-pages.spec.js › Static Pages › should load Help/Support page": {
+      "outcome": "PASS"
+    },
+    "static-pages.spec.js › Static Pages › should load How It Works page": {
+      "outcome": "PASS"
+    },
+    "static-pages.spec.js › Static Pages › should load Privacy Policy page": {
+      "outcome": "PASS"
+    },
+    "static-pages.spec.js › Static Pages › should load Terms page": {
+      "outcome": "PASS"
+    },
+    "static-pages.spec.js › Static Pages › should show 404 for non-existent page": {
+      "outcome": "PASS"
+    }
+  }
+}
