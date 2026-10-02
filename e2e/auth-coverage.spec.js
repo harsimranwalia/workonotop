@@ -111,8 +111,9 @@ function methodText(code, method, raw) {
     const rest = code.slice(start);
     const afterSignature = rest.indexOf('\n') + 1;
     const boundary = /^(?:export\s|(?:async\s+)?function[\s*]|const\s|let\s|var\s|class\s|import\s|\})/m;
-    const ends = [rest.slice(afterSignature).search(boundary)];
-    if (raw !== undefined) ends.push(raw.slice(start + afterSignature).search(boundary));
+    const indented = /^[ \t]*(?:export\s|(?:async\s+)?function[\s*])/m;
+    const ends = [rest.slice(afterSignature).search(boundary), rest.slice(afterSignature).search(indented)];
+    if (raw !== undefined) ends.push(raw.slice(start + afterSignature).search(boundary), raw.slice(start + afterSignature).search(indented));
     const found = ends.filter((n) => n !== -1);
     return found.length === 0 ? rest : rest.slice(0, afterSignature + Math.min(...found));
 }
