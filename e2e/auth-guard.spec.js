@@ -354,4 +354,68 @@ test.describe('Auth guard - cron secret', () => {
         // A user's token is not the cron secret.
         await expectUnauthorized(run(cron(asBearer(sign(ADMIN)))));
     });
+
+    test('a request whose url cannot be parsed is decided by the Bearer secret alone, and the guard logs one line about it', async () => {
+        const secret = 'cron-spec-secret';
+        // A plain object, not a Request (a Request will not take a url that does not parse); a bare path is what a handler
+        // would see if something upstream handed it one. The path carries the right secret in its query on purpose: it
+        // must stay unread, and must not reach the log.
+        const unparsable = (headers = {}) => ({ url: `/api/cron/probe?secret=${secret}`, headers: new Headers(headers) });
+        const run = (probe) => loggedErrors(() => withCronSecret(secret, () => guard.requireCronSecret(probe)));
+        const expectOneLineAboutTheUrl = (lines) => {
+            expect(lines, 'exactly one error line, not none (silent) and not two').toHaveLength(1);
+            expect(lines[0]).toContain('api-auth: could not read ?secret= from the cron request url');
+            expect(lines[0], 'the log line never carries the secret').not.toContain(secret);
+        };
+
+        const passes = run(unparsable(asBearer(secret)));
+        expect(passes.result).toEqual({ ok: true });
+        expectOneLineAboutTheUrl(passes.lines);
+
+        for (const probe of [unparsable(), unparsable(asBearer('wrong')), unparsable(asBearer(''))]) {
+            const refused = run(probe);
+            await expectUnauthorized(refused.result);
+            expectOneLineAboutTheUrl(refused.lines);
+        }
+
+        // A url that parses logs nothing: the line is for the failure, not for every request.
+        const parsed = run(cron(asBearer(secret)));
+        expect(parsed.result).toEqual({ ok: true });
+        expect(parsed.lines).toEqual([]);
+    });
+});
+
+test.describe('Auth guard - a Bearer session lookup that rejects', () => {
+    // getMobileSession keeps everything it does inside one try/catch and answers null (a database that is down
+    // included), so it cannot reject today. To see what the guard does the day a later edit lets it, the case makes the
+    // one thing that catch does, its console.error, throw: the lookup fails (the test container has no database), the
+    // catch runs, its console.error throws, and the call rejects. The old guard caught that rejection with
+    // `catch { session = null }`, fell through to the token's own signature and passed this very token, with no line
+    // in the log.
+    test('the guard logs one line and answers 401; it does not fall through to the token signature in silence', async () => {
+        const original = console.error;
+        const lines = [];
+        let lookupRejected = false;
+        console.error = (...args) => {
+            if (String(args[0]).includes('[Mobile Auth]')) {
+                lookupRejected = true;
+                throw new Error('session lookup rejected');
+            }
+            lines.push(args.join(' '));
+        };
+        let result;
+        try {
+            result = await guard.requireCaller(request(asBearer(sign(MOBILE_ADMIN))), ['admin']);
+        } finally {
+            console.error = original;
+        }
+        expect(lookupRejected, "premise: getMobileSession's own catch ran and its console.error threw").toBe(true);
+        await expectUnauthorized(result);
+        // The database layer logs its own failed query before the guard sees anything (db.js, "Database execute error"),
+        // so the count is of the guard's lines only.
+        const guardLines = lines.filter((line) => line.startsWith('api-auth:'));
+        expect(guardLines, "exactly one line from the guard, not none (silent) and not two").toHaveLength(1);
+        expect(guardLines[0]).toContain('api-auth: could not read the request credentials');
+        expect(guardLines[0]).toContain('session lookup rejected');
+    });
 });

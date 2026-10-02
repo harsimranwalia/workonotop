@@ -10,8 +10,9 @@
 // Credentials, tried in this order, each verified on its own: the adminAuth, customer_token and provider_token
 // cookies, then the Authorization: Bearer header (getMobileSession first, then verifyToken). The first one whose
 // role is in `roles` wins. The role comes from the signed payload, never from which cookie carried it, and a
-// cookie whose payload names another role than the cookie's own name is not a credential for anything: a
-// customer's token copied into adminAuth is not an admin session.
+// cookie whose payload names another role than the cookie's own name never grants anything: a customer's token
+// copied into adminAuth is not an admin session. It does count as a verified session, though (the signature is
+// good), so a request that carries only that answers 403 Forbidden, never 401 and never access.
 //
 // 401 { success: false, message: 'Unauthorized' }: no session verified (nothing sent, malformed, bad signature,
 //     expired, or a signed token that is not a session: unknown role, a special-purpose token, no id).
@@ -123,14 +124,12 @@ function bearerToken(request) {
 }
 
 // The Bearer path: the issued string in mobile_auth_users first; when that finds nothing (including a database
-// that is down, which getMobileSession turns into null), the token's own signature.
+// that is down, which getMobileSession turns into null), the token's own signature. getMobileSession keeps
+// everything it does inside one try/catch and answers null, so it does not reject; if a later edit lets it, the
+// rejection is not caught here (a catch that only said `session = null` would be a silent fall-through to the
+// signature) but reaches resolveSafely, which logs one line and answers 401: fail-closed and not silent.
 async function bearerCaller(request, token) {
-  let session = null;
-  try {
-    session = await getMobileSession(request);
-  } catch {
-    session = null;
-  }
+  const session = await getMobileSession(request);
   const payload = session ?? verifyToken(token);
   return toCaller(payload, 'bearer');
 }
@@ -227,8 +226,9 @@ export function requireCronSecret(request) {
   let fromQuery = null;
   try {
     fromQuery = new URL(request.url).searchParams.get('secret');
-  } catch {
-    fromQuery = null;
+  } catch (error) {
+    // A url that cannot be parsed has no ?secret=, so only the Bearer header can still pass; say so, once.
+    console.error('api-auth: could not read ?secret= from the cron request url:', error?.message);
   }
   if (sameSecret(bearerToken(request), expected) || sameSecret(fromQuery, expected)) return { ok: true };
   return { ok: false, response: refusal(401, 'Unauthorized') };
