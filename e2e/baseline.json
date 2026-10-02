@@ -48,9 +48,8 @@
     "api.spec.js › API Routes › GET /api/services should return success response": {
       "outcome": "PASS"
     },
-    "api.spec.js › API Routes › GET /api/services?is_homepage=1 should return homepage services": {
-      "outcome": "FAIL",
-      "error": "Error: expect(received).toBe(expected) // Object.is equality"
+    "api.spec.js › API Routes › GET /api/services?homepage=true should return only homepage services": {
+      "outcome": "PASS"
     },
     "api.spec.js › API Routes › GET /api/stats should return response": {
       "outcome": "PASS"
@@ -280,40 +279,32 @@
     "harness.spec.js › Payment path - Stripe › POST /api/payment/create-intent as a customer creates an intent, or reports what the code attempts without a Stripe key": {
       "outcome": "ATTEMPTED"
     },
-    "homepage.spec.js › Homepage › should display \"How WorkOnTap works\" section": {
-      "outcome": "FAIL",
-      "error": "Error: expect(locator).toBeVisible() failed"
+    "homepage.spec.js › Homepage › service detail page should display \"How WorkOnTap works\" section": {
+      "outcome": "PASS"
+    },
+    "homepage.spec.js › Homepage › service detail page should display Homeowner Protection Promise section": {
+      "outcome": "PASS"
     },
     "homepage.spec.js › Homepage › should display Header and Footer components": {
       "outcome": "PASS"
     },
-    "homepage.spec.js › Homepage › should display Homeowner Protection Promise section": {
-      "outcome": "FAIL",
-      "error": "Error: expect(locator).toBeVisible() failed"
+    "homepage.spec.js › Homepage › should display the \"Why Choose Work On Tap?\" section with its five benefits": {
+      "outcome": "PASS"
     },
-    "homepage.spec.js › Homepage › should display homepage services or fallback message": {
-      "outcome": "FAIL",
-      "error": "Error: expect(locator).toBeVisible() failed"
+    "homepage.spec.js › Homepage › should display the service categories section with links to cleaning, moving and handyman services": {
+      "outcome": "PASS"
     },
-    "homepage.spec.js › Homepage › should display stats section (500,000+ / 96% / 4.8)": {
-      "outcome": "FAIL",
-      "error": "Error: expect(locator).toBeVisible() failed"
-    },
-    "homepage.spec.js › Homepage › should have \"View all services\" link that navigates correctly": {
-      "outcome": "FAIL",
-      "error": "Error: expect(locator).toBeVisible() failed"
+    "homepage.spec.js › Homepage › should have \"Explore All Services\" link that navigates correctly": {
+      "outcome": "PASS"
     },
     "homepage.spec.js › Homepage › should load and display the hero section": {
-      "outcome": "FAIL",
-      "error": "Error: expect(locator).toContainText(expected) failed"
+      "outcome": "PASS"
     },
-    "homepage.spec.js › Homepage › should navigate to /services when search bar is clicked": {
-      "outcome": "FAIL",
-      "error": "Error: expect(page).toHaveURL(expected) failed"
+    "homepage.spec.js › Homepage › should navigate to /services with the search term when the Search button is clicked": {
+      "outcome": "PASS"
     },
     "provider.spec.js › Provider Portal - Auth Protection › provider login page should have form fields": {
-      "outcome": "FAIL",
-      "error": "Error: expect(received).toBeGreaterThanOrEqual(expected)"
+      "outcome": "PASS"
     },
     "provider.spec.js › Provider Portal - Auth Protection › provider login should reject invalid credentials": {
       "outcome": "PASS"
