@@ -8,7 +8,7 @@
 
 Fixture identities, in `database/fixtures/accounts.js`: emails `fixture-<role>-<n>@workontap.test` (a row a test creates uses `e2e-<purpose>-<random>@workontap.test`), phones `+1403555 01NN`, names like "Fixture Customer One", no external URLs. Their passwords are dummies and are committed with the code. Never create a fixture account in a migration: migrations reach production.
 
-To add a fixture set, create `database/fixtures/<name>.js` exporting `{ name, tables: { <table>: [rows] } }` (same keys in every row, explicit ids, fixed timestamps) and list it in `database/fixtures/index.js`.
+To add a fixture set, create `database/fixtures/<name>.js` exporting `{ name, tables: { <table>: [rows] } }` (same keys in every row, and explicit ids and fixed timestamps where the table has them) and list it in `database/fixtures/index.js`.
 
 `e2e/baseline.json` records which cases fail today, so a new failure can be told from an old one. It is a record, not a filter: every failure still fails the run. A change that alters a case's outcome on purpose updates it in the same PR, copied from `test-results/baseline-candidate.json` after a full run with the fixtures loaded.
 

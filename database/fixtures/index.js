@@ -2,8 +2,8 @@
 // The ordered list of fixture sets. To add one, create database/fixtures/<name>.js exporting
 //   { name, tables: { <table>: [row, ...] } }
 // and list it here. Every row of a table must have the same keys, with explicit ids and created_at /
-// updated_at (see accounts.js). Tables load in the order written, sets in the order listed, so a set may
-// reference rows of any set before it.
+// updated_at where the table has them (see accounts.js). Tables load in the order written, sets in the
+// order listed, so a set may reference rows of any set before it.
 import bcryptjs from 'bcryptjs';
 import { users, providers } from './accounts.js';
 import { catalog } from './catalog.js';

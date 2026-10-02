@@ -89,7 +89,8 @@ export const catalog = {
       },
     ],
     // The commission the code falls back to (provider/available-jobs/route.js), so a fixture database
-    // behaves as the code expects when the setting is absent.
+    // behaves as the code expects when the setting is absent. In the dev database this table's key is its
+    // primary key and it has neither an id nor timestamps, so this row carries none.
     system_settings: [{ key: 'default_commission', value: '20' }],
   },
 };
