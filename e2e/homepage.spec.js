@@ -83,12 +83,19 @@ test.describe('Homepage', () => {
         await expect(footer).toBeVisible();
     });
 
-    test('should display homepage services or fallback message', async ({ page }) => {
+    test('should display the service categories section with links to cleaning, moving and handyman services', async ({ page }) => {
         await page.goto('/');
 
-        // Either services are rendered OR the fallback "No trending services" text
-        const servicesSection = page.getByText('What people in Calgary are doing now');
-        await expect(servicesSection).toBeVisible();
+        // The "What people in Calgary are doing now" block is gone (every current copy line is Vancouver);
+        // the page's services block is src/app/HomeClient.js:101-125.
+        await expect(page.getByRole('heading', { name: 'One Place for the Services You Need Most' })).toBeVisible();
+        for (const [category, label] of [
+            ['cleaning', 'Cleaning Services'],
+            ['movers', 'Moving Services'],
+            ['handyman', 'Handyman Services'],
+        ]) {
+            await expect(page.locator(`a[href="/services?category=${category}"]`, { hasText: label }).first()).toBeVisible();
+        }
     });
 
     test('should display Homeowner Protection Promise section', async ({ page }) => {
