@@ -211,6 +211,7 @@ const cronCall = "  const denied = requireCronSecret(request);\n  if (denied) re
 const cronRow = { kind: 'self', method: 'GET', self: 'CRON_SECRET, made fail-closed' };
 const stripeCall = "  const event = stripe.webhooks.constructEvent(body, signature, secret);\n";
 const stripeRow = { kind: 'self', method: 'POST', self: 'Stripe signature, verified before any branch (unchanged)' };
+const gatewayRow = { kind: 'self', method: 'GET', self: 'AI gateway key (unchanged)' };
 
 const wiringShapes = [
     { id: 's1', label: "unguarded GET holds 'image/*', guarded POST below with a block comment in its body: must be reported", row: getRow, source: imp + ung("const a = 'image/*';") + postBlock, verdict: 'REPORTED' },
@@ -250,6 +251,8 @@ const wiringShapes = [
     { id: 'g9', label: 'cron row: GET has no call, the POST below it has one: must be reported', row: cronRow, source: cronImp + handler('GET') + '\n' + handler('POST', cronCall), verdict: 'REPORTED' },
     { id: 'g10', label: 'Stripe row: POST calls webhooks.constructEvent: must read as guarded', row: stripeRow, source: handler('POST', stripeCall), verdict: 'clean' },
     { id: 'g11', label: 'Stripe row: POST has no call, the GET below it has one: must be reported', row: stripeRow, source: handler('POST') + '\n' + handler('GET', stripeCall), verdict: 'REPORTED' },
+    { id: 'g12', label: "GET queries the database before its guard: not caught, the guard need not be the method's first statement", row: getRow, source: imp + getWith("  const rows = await db.query('SELECT 1');\n" + guard), verdict: 'clean' },
+    { id: 'g13', label: 'AI gateway row: POST calls verifyAiGatewayAuth(request), GET does not: false pass, file level by design (the PATCH handlers hand over to POST), not caught', row: gatewayRow, source: "import { verifyAiGatewayAuth } from '@/lib/ai-gateway-auth';\n" + handler('POST', '  const auth = verifyAiGatewayAuth(request);\n  if (!auth.ok) return auth.response;\n') + '\n' + handler('GET'), verdict: 'clean' },
 ];
 
 // ---- the cases --------------------------------------------------------------------------------------------------
