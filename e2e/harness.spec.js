@@ -4,7 +4,7 @@
 import { test, expect } from '@playwright/test';
 import { FIXTURE_LOGINS } from '../database/fixtures/accounts.js';
 import { catalog } from '../database/fixtures/catalog.js';
-import { signInAs } from './support/auth.js';
+import { signInAs, RESET_RETRIES } from './support/auth.js';
 import { credentialGap } from './support/credentials.js';
 
 test.describe('Fixture sign-in', () => {
@@ -123,6 +123,9 @@ test.describe('Payment path - Stripe', () => {
                 additional_price: service.additional_price,
                 service_name: service.name,
             },
+            // One full run saw this POST end in "socket hang up" with no line about it in app.log, so it never
+            // reached the route. Only such a reset is sent again; the 500 asserted below is not retried.
+            maxRetries: RESET_RETRIES,
         });
 
         if (missing.length === 0) {

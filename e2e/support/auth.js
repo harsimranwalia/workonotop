@@ -1,5 +1,12 @@
 import { FIXTURE_LOGINS } from '../../database/fixtures/accounts.js';
 
+// A request that ends in "socket hang up" (code ECONNRESET) was dropped in transit, so what the app does with
+// it is still unknown. Playwright's own maxRetries sends such a request again and retries nothing else: an HTTP
+// status, a refused connection or a timeout still fails at once, and the config's retries: 0 still holds for
+// every case. The wait between tries is 250 ms, then 500 ms, then 1 s. A POST the server had already acted on
+// would be sent twice, so use it only on a call that is safe to send twice (a dev login, a payment intent).
+export const RESET_RETRIES = 3;
+
 // Says what is most likely wrong, so a failed sign-in is not a bare "expected 200".
 function explain(who, route, status, text) {
     const seen = `POST ${route} answered ${status}: ${text.slice(0, 160)}`;
@@ -27,6 +34,7 @@ export async function signInAs(page, who) {
     // page.request shares its cookie jar with the page, so the cookie the route sets applies to page.goto.
     const response = await page.request.post(login.loginRoute, {
         data: { email: login.email, password: login.password },
+        maxRetries: RESET_RETRIES,
     });
     const status = response.status();
     const text = await response.text();
