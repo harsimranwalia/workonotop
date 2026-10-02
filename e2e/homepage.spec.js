@@ -29,14 +29,15 @@ test.describe('Homepage', () => {
         }
     });
 
-    test('should display "How WorkOnTap works" section', async ({ page }) => {
-        await page.goto('/');
+    test('service detail page should display "How WorkOnTap works" section', async ({ page }) => {
+        // The section is not on / any more; it is on the service detail page
+        // (src/app/services/[serviceId]/ServiceDetailClientPage.jsx:203-231).
+        await page.goto('/services/fixture-standard-clean');
 
-        await expect(page.getByText('How WorkOnTap works')).toBeVisible();
-        await expect(page.getByText('1. Tell us what you need')).toBeVisible();
-        await expect(page.getByText('2. Instant matches')).toBeVisible();
-        await expect(page.getByText('3. Pro arrives & fixes it')).toBeVisible();
-        await expect(page.getByText('4. Pay & review')).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'How WorkOnTap works' })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Tell us what you need', exact: true })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Get matched instantly', exact: true })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Chat & confirm', exact: true })).toBeVisible();
     });
 
     test('should navigate to /services when search bar is clicked', async ({ page }) => {
