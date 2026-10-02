@@ -59,14 +59,16 @@ test.describe('Homepage', () => {
         await expect(page).toHaveURL(/\/services\?search=furniture%20assembly$/, { timeout: 45_000 });
     });
 
-    test('should have "View all services" link that navigates correctly', async ({ page }) => {
+    test('should have "Explore All Services" link that navigates correctly', async ({ page }) => {
         await page.goto('/');
 
-        const viewAllLink = page.getByRole('link', { name: /View all services/i }).first();
+        const viewAllLink = page.getByRole('link', { name: /Explore All Services/i }).first();
         await expect(viewAllLink).toBeVisible();
         await viewAllLink.click();
 
-        await expect(page).toHaveURL(/\/services/);
+        // Click-driven navigation to a route next dev may have to compile first: the navigation allowance of
+        // playwright.config.js, not the 10 s expect budget.
+        await expect(page).toHaveURL(/\/services$/, { timeout: 45_000 });
     });
 
     test('should display Header and Footer components', async ({ page }) => {
