@@ -1,7 +1,10 @@
-// The credentials the role-by-route test sends, obtained once per worker process (a Playwright worker is replaced
-// after a failed case, so a run with known failures signs in again per replacement worker) through the same routes a
-// person's browser or the mobile app uses, and handed out as request headers. No token is written to disk or logged;
-// a failure names the account, the route and the status, never a body that could hold a token.
+// The credentials the role-by-route test sends, obtained through the same routes a person's browser or the mobile app
+// uses, and handed out as request headers. They are signed in once per run, by the global setup (e2e/auth/global-setup.js),
+// which leaves them in process.env (CREDENTIAL_ENV) for the worker processes Playwright spawns after it: a worker is
+// replaced after every failed case, so signing in per worker cost five logins per failure. Only when that variable is absent
+// (a spec run outside this config) does getCredentialHeaders sign in itself, once per worker process, as it always did.
+// No token is written to disk or logged; a failure names the account, the route and the status, never a body that could
+// hold a token.
 //
 //   cookie styles  the role's own login route (as e2e/support/auth.js signInAs does, FIXTURE_LOGINS), then the one
 //                  httpOnly cookie that route set is read back from that account's APIRequestContext and sent as a
@@ -95,17 +98,39 @@ async function bearerHeader(playwright, baseURL, { style, who, role }) {
     }
 }
 
-let loaded = null; // baseURL -> Promise, so the logins run once per worker process
+// The one variable that carries the headers from the global setup to the workers: a JSON object of the six styles, for the
+// run's baseURL (config.projects[0], the only project). It holds session tokens for the synthetic fixture accounts, so it
+// lives in process.env only: nothing prints, logs, annotates or writes it.
+export const CREDENTIAL_ENV = 'E2E_AUTH_HEADERS';
+
+// The headers the global setup left in process.env, or null when the variable is absent or is not the six styles (a value
+// that does not parse is ignored, never put in a message, and the caller signs in itself).
+function sharedHeaders() {
+    const raw = process.env[CREDENTIAL_ENV];
+    if (!raw) return null;
+    try {
+        const parsed = JSON.parse(raw);
+        const whole = parsed !== null && typeof parsed === 'object' && CREDENTIAL_STYLES.every((style) => parsed[style] !== null && typeof parsed[style] === 'object');
+        return whole ? parsed : null;
+    } catch {
+        return null;
+    }
+}
+
+let loaded = null; // baseURL -> Promise, so a worker that finds no shared headers signs in once per worker process
 
 /**
  * Returns the six credential styles as request headers: { none: {}, 'customer-cookie': { cookie }, ...,
- * 'provider-bearer': { authorization } }. The logins run once per worker process and every later call gets the
- * same headers. A failed sign-in rejects with a message naming the account and route (and is not cached).
+ * 'provider-bearer': { authorization } }. When the global setup left them in process.env (CREDENTIAL_ENV) they are
+ * returned as they are and nothing signs in. Otherwise the logins run once per worker process and every later call gets
+ * the same headers. A failed sign-in rejects with a message naming the account and route (and is not cached).
  * @param {string} baseURL
  * @param {import('@playwright/test').PlaywrightWorkerArgs['playwright']} [playwright]
  * @returns {Promise<Record<string, Record<string, string>>>}
  */
 export function getCredentialHeaders(baseURL, playwright = { request }) {
+    const shared = sharedHeaders();
+    if (shared) return Promise.resolve(shared);
     if (!loaded) loaded = new Map();
     if (!loaded.has(baseURL)) {
         const promise = (async () => {
