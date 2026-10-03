@@ -76,9 +76,9 @@ function exportedMethods(source) {
 function otherExportForms(source) {
     const forms = [];
     const named = new RegExp(`^\\s*export\\s+(?:default\\s+)?(?:function\\s*\\*?|const|let|var|class)\\s+(?:${METHOD_NAMES})\\b`, 'm');
-    const list = new RegExp(`^\\s*export\\s*\\{[^}]*\\b(?:${METHOD_NAMES})\\b[^}]*\\}`, 'm');
+    const list = /^\s*export\s*\{/m;
     if (named.test(source)) forms.push('export const/let/var/function/class METHOD');
-    if (list.test(source)) forms.push('export { ... METHOD ... }');
+    if (list.test(source)) forms.push('export { ... } (an export list)');
     if (/^\s*export\s*\*/m.test(source)) forms.push('export * from');
     if (/^\s*export\s+(?:const|let|var)\s*[[{]/m.test(source)) forms.push('export const/let/var { ... } or [ ... ] (a destructuring export)');
     return forms;
@@ -96,6 +96,9 @@ const exportShapes = [
     { id: 'e4', label: 'an escape written in the name, `\\u0047ET`: false pass, not caught (deliberate: an escape in the name)', source: 'export async function \\u0047ET(request) {\n  return 1;\n}\n', counted: [], flagged: false },
     { id: 'e5', label: 'a name that begins with the method, `GET$`: counted as GET, over-read: a spurious key, loud when the matrix has no row for it', source: 'export async function GET$(request) {\n  return 1;\n}\n', counted: ['GET'], flagged: false },
     { id: 'e6', label: 'a second name in one exported declaration, `export const a = 1, GET = ...`: false pass, not caught (layout: a second name in one exported declaration)', source: 'export const a = 1, GET = async (request) => Response.json({});\n', counted: [], flagged: false },
+    { id: 'e7', label: 'an export list whose first `}` sits inside a string export name, before the GET it names: not counted, flagged (every export list is flagged, whatever it names or holds)', source: 'const x = 1;\nasync function y(request) { return 1; }\nexport { x as "}", y as GET };\n', counted: [], flagged: true },
+    { id: 'e8', label: 'a `const` declaration of the method\'s name, `export const GET = ...`: not counted, flagged', source: 'export const GET = async (request) => Response.json({});\n', counted: [], flagged: true },
+    { id: 'e9', label: '`export *` from another module: not counted, flagged (it can export any method)', source: "export * from './h.js';\n", counted: [], flagged: true },
 ];
 
 const files = routeFiles();
