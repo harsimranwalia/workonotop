@@ -1,6 +1,7 @@
 // app/api/admin/invoices/[id]/preview/download/route.js
 import { execute } from '@/lib/db'
 import { NextResponse } from 'next/server'
+import { requireCaller } from '@/lib/api-auth';
 
 // Puppeteer is an optional dependency; if it's not installed we fall back gracefully
 let puppeteer
@@ -27,6 +28,8 @@ async function loadPuppeteer() {
 }
 
 export async function GET(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await params
 
