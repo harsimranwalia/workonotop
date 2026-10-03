@@ -7,10 +7,11 @@
 //    suite until someone classifies it, and a route removed fails until its row goes. One case per (method, route)
 //    in either list, titled "<METHOD> <route> is in the matrix"; a route that only the code has, or only the
 //    matrix has, is a failing case of that name. A route file that parses as an ES module and exports a method in a form the count
-//    does not read (`export const`, `let`, `var`, `function` or `class` with the method's name, `export { ... METHOD ... }`, `export *`,
-//    or a destructuring export, row e1) fails its own case, "no route file exports a method in a form the coverage count cannot see",
-//    provided every `export` statement starts its line (after spaces or tabs), none holds a comment, each method name is a plain
-//    identifier and an exported variable declaration declares one name. Outside those conditions the count can miss a method: the table
+//    does not read (a `const`, `let`, `var`, `function` or `class` declaration of the method's name, row e8, or a destructuring export, row
+//    e1), or that holds any export list (`export { ... }`, with or without `from`, whatever it names or holds, row e7) or `export *` (row
+//    e9), fails its own case, "no route file exports a method in a form the coverage count cannot see", provided every `export` statement
+//    starts its line (after spaces or tabs), none holds a comment, no method's name in an exported declaration is written with a unicode
+//    escape and an exported variable declaration declares one name. Outside those conditions the count can miss a method: the table
 //    `exportShapes` has a row for three of the shapes it does not read (e3, e4, e6) and for the one it reads too much (e5).
 //  Auth wiring: every non-public row's file uses what the matrix says protects it, checked by reading its text
 //    (wiringProblems; no request is sent). A `roles` row's file imports requireCaller from '@/lib/api-auth' (row g6) and
@@ -71,8 +72,9 @@ function exportedMethods(source) {
     return found;
 }
 
-/** Ways of exporting an HTTP method (or everything) that the count above would not see: a declaration with the method's name, an export list
- *  naming it, `export *`, and a destructuring export (row e1). */
+/** Ways of exporting an HTTP method (or everything) that the count above would not see: a declaration with the method's name (row e8), any
+ *  export list, with or without `from`, whatever it names or holds (row e7: the expression reads `export` and the `{` only, so nothing inside
+ *  the list can move it), `export *` (row e9), and a destructuring export (row e1). */
 function otherExportForms(source) {
     const forms = [];
     const named = new RegExp(`^\\s*export\\s+(?:default\\s+)?(?:function\\s*\\*?|const|let|var|class)\\s+(?:${METHOD_NAMES})\\b`, 'm');
@@ -87,8 +89,8 @@ function otherExportForms(source) {
 // ---- what the coverage count says about each shape ---------------------------------------------------------------
 // One row per shape of an `export` in a route file: the file text, the methods `exportedMethods` lists for it (`counted`), whether
 // `otherExportForms` names it (`flagged`) and a label that says whether that is the right answer. The case "no route file exports a
-// method in a form the coverage count cannot see" fails with the id of every row whose counted or flagged differs. Ids: e1 a form the
-// count cannot see and the case flags, e2 a control, e3 to e6 shapes it does not read (e5 reads too much).
+// method in a form the coverage count cannot see" fails with the id of every row whose counted or flagged differs. Ids: e1, e7, e8 and e9
+// forms the count cannot see and the case flags, e2 a control, e3 to e6 shapes it does not read (e5 reads too much).
 const exportShapes = [
     { id: 'e1', label: 'a destructuring export of two methods: not counted, flagged', source: 'export const { GET, POST } = handlers;\n', counted: [], flagged: true },
     { id: 'e2', label: "an `export const dynamic` line beside a GET: the GET is counted, nothing is flagged (control)", source: "export const dynamic = 'force-dynamic';\nexport async function GET(request) {\n  return 1;\n}\n", counted: ['GET'], flagged: false },
