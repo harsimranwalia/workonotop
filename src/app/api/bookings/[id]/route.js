@@ -1,8 +1,11 @@
 // app/api/bookings/[id]/route.js
 import { NextResponse } from 'next/server'
 import { withConnection } from '@/lib/db'
+import { requireCaller } from '@/lib/api-auth'
 
 export async function GET(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await params
 
