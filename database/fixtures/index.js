@@ -7,6 +7,7 @@
 import bcryptjs from 'bcryptjs';
 import { users, providers } from './accounts.js';
 import { catalog } from './catalog.js';
+import { bookings } from './bookings.js';
 
 // A fixed salt makes every load write the same hash bytes, which is what lets CHECKSUM TABLE show that a
 // second load changed nothing. Cost 10 is the cost the app's own signup uses. A salt is not a secret.
@@ -23,4 +24,4 @@ const accounts = {
   },
 };
 
-export const fixtureSets = [accounts, catalog];
+export const fixtureSets = [accounts, catalog, bookings];
