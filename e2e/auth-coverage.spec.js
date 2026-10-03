@@ -7,12 +7,13 @@
 //    suite until someone classifies it, and a route removed fails until its row goes. One case per (method, route)
 //    in either list, titled "<METHOD> <route> is in the matrix"; a route that only the code has, or only the
 //    matrix has, is a failing case of that name. A route file that parses as an ES module and exports a method in a form the count
-//    does not read (a `const`, `let`, `var`, `function` or `class` declaration of the method's name, row e8, or a destructuring export, row
-//    e1), or that holds any export list (`export { ... }`, with or without `from`, whatever it names or holds, row e7) or `export *` (row
-//    e9), fails its own case, "no route file exports a method in a form the coverage count cannot see", provided every `export` statement
-//    starts its line (after spaces or tabs), none holds a comment, no method's name in an exported declaration is written with a unicode
-//    escape and an exported variable declaration declares one name. Outside those conditions the count can miss a method: the table
-//    `exportShapes` has a row for three of the shapes it does not read (e3, e4, e6) and for the one it reads too much (e5).
+//    does not read (a `const` declaration of the method's name, row e8, or one made with `let`, `var`, `function` or `class`, which the same
+//    expression looks for, or a destructuring export, row e1), or that holds any export list (`export { ... }`, with or without `from`,
+//    whatever it names or holds, row e7) or `export *` (row e9), fails its own case, "no route file exports a method in a form the coverage
+//    count cannot see", provided every `export` statement starts its line (after spaces or tabs), none holds a comment, no method's name in
+//    an exported declaration is written with a unicode escape and an exported variable declaration declares one name. Outside those
+//    conditions the count can miss a method: the table `exportShapes` has a row for three of the shapes it does not read (e3, e4, e6) and for
+//    a shape it reads too much (e5).
 //  Auth wiring: every non-public row's file uses what the matrix says protects it, checked by reading its text
 //    (wiringProblems; no request is sent). A `roles` row's file imports requireCaller from '@/lib/api-auth' (row g6) and
 //    the method, as `methodText` cuts it, holds the design's "two lines at the top of each method" anywhere in it (rows c1, c2,
