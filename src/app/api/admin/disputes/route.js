@@ -3,9 +3,12 @@ import { NextResponse } from 'next/server'
 import { getConnection } from '@/lib/db'
 import { sendEmail } from '@/lib/email'
 import { logActivity } from '@/lib/logger'
+import { requireCaller } from '@/lib/api-auth';
 
 // ── GET: All disputes ─────────────────────────────────────────────────────────
-export async function GET() {
+export async function GET(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   let connection
   try {
     connection = await getConnection()
@@ -69,6 +72,8 @@ export async function GET() {
 
 // ── PATCH: Update dispute status / admin notes ────────────────────────────────
 export async function PATCH(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   let connection
   try {
     const { dispute_id, status, admin_notes, booking_action } = await request.json()
