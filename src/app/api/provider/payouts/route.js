@@ -1,18 +1,17 @@
 import { NextResponse } from 'next/server'
 import { execute } from '@/lib/db'
-import { verifyToken } from '@/lib/jwt'
+import { requireCaller } from '@/lib/api-auth'
 
 export async function GET(request) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   try {
-    // ✅ Cookie-based auth - bilkul aapke jobs API jaisa
-    const token = request.cookies.get('provider_token')?.value
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
-    }
-    
-    const decoded = verifyToken(token)
-    if (!decoded || decoded.type !== 'provider') {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 })
+    // A provider may name only themselves: a provider_id in the query that is not the caller's own id (compared as
+    // strings) is a 403, never a 404. No parameter, or an empty one, means the caller's own money. The route still
+    // reads only the caller's rows: every query below binds caller.id and nothing from the request.
+    if (new URL(request.url).searchParams.getAll('provider_id').some((id) => id !== '' && id !== String(caller.id))) {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
     }
 
     const providers = await execute(
@@ -24,7 +23,7 @@ export async function GET(request) {
         COALESCE(lifetime_balance, 0) as static_lifetime_balance
        FROM service_providers 
        WHERE id = ?`,
-      [decoded.providerId]
+      [caller.id]
     )
 
     // Calculate balances dynamically from completed bookings
@@ -45,7 +44,7 @@ export async function GET(request) {
         ) as calculated_earnings
        FROM bookings 
        WHERE provider_id = ? AND status = 'completed'`,
-      [decoded.providerId]
+      [caller.id]
     )
 
     const dynamicEarnings = parseFloat(bookingStats?.calculated_earnings || 0);
@@ -56,7 +55,7 @@ export async function GET(request) {
        FROM provider_payouts 
        WHERE provider_id = ? 
        ORDER BY created_at DESC`,
-      [decoded.providerId]
+      [caller.id]
     )
 
     // Get recent completed jobs
@@ -78,7 +77,7 @@ export async function GET(request) {
        WHERE provider_id = ? AND status = 'completed'
        ORDER BY end_time DESC
        LIMIT 5`,
-      [decoded.providerId]
+      [caller.id]
     )
 
     const provider = providers[0] || {}
