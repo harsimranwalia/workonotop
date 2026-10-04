@@ -2310,6 +2310,18 @@
     "defects.spec.js › D1 bookings › D1 customer1 and provider1 get 403 on GET, PUT and DELETE /api/bookings and the booking is unchanged": {
       "outcome": "PASS"
     },
+    "defects.spec.js › D1 owner of a booking made with a credential › D1 customer1's Bearer owns the booking it makes through POST /api/bookings, whatever user_id the body names": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 owner of a booking made with a credential › D1 customer1's cookie owns the booking it makes through POST /api/bookings, whatever user_id the body names": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 owner of a booking made with a credential › D1 provider1's Bearer does not become the owner of the booking it makes through POST /api/bookings": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 owner of a booking made with a credential › D1 the admin's Bearer does not become the owner of the booking it makes through POST /api/bookings": {
+      "outcome": "PASS"
+    },
     "defects.spec.js › D1 receipt page › AC6 receipt: customer1 opening customer2's booking sees Booking Not Found and none of its fields": {
       "outcome": "PASS"
     },
@@ -2382,6 +2394,9 @@
     "defects.spec.js › D3 customer lookup › D3 customer1 POST /api/customer/bookings with customer2's booking_id is 403": {
       "outcome": "PASS"
     },
+    "defects.spec.js › D3 owner reads their own booking › D3 customer1 POST /api/customer/bookings with customer1's own booking_id is 200 with that booking number": {
+      "outcome": "PASS"
+    },
     "defects.spec.js › D6 uploads › D6 anonymous DELETE /api/upload?url= is 401 and the file still serves": {
       "outcome": "PASS"
     },
@@ -2389,6 +2404,18 @@
       "outcome": "PASS"
     },
     "defects.spec.js › D6 uploads › D6 customer1, provider1 and admin can each upload a PNG: 200 with a url that serves": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › Reviews, GET /api/reviews › AC6 customer1 GET /api/reviews lists customer1's review and none of customer2's, and an admin lists both": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › Reviews, GET /api/reviews › AC6 customer1 GET /api/reviews?booking_id= naming customer2's booking is 200 and lists nothing": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › Reviews, GET /api/reviews › AC6 customer1 GET /api/reviews?customer_id= naming customer1 is 200 with customer1's review and not customer2's": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › Reviews, GET /api/reviews › AC6 customer1 GET /api/reviews?customer_id= naming customer2 is 403 and shows none of customer2's review": {
       "outcome": "PASS"
     },
     "fixtures-guard.spec.js › Fixture guard - reserved email names › does not treat \"\" as a reserved name": {
