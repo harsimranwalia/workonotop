@@ -252,10 +252,12 @@ test.describe('Ownership: customers/[id]', () => {
 
     // Each customer writes their own profile, a marker in hear_about that is read back and then restored: customer 1 (id 1) and customer 2
     // (id 2). Customer 1 alone cannot tell the binds `caller.id` from a literal 1 (they are the same number), so customer 2's write is the one
-    // that does: it must be answered with row 2, stored on row 2, and leave row 1 as it was. Red if the UPDATE's `WHERE id = ?` binds a literal 1
-    // (customer 2's marker would land on customer 1's row: the admin's read of row 2 holds none, of row 1 holds it) or a literal 2 (customer 1's
-    // marker would land on customer 2's row), or if the SELECT that echoes the row back binds a literal 1 (customer 2's answer would be row 1:
-    // its id is 1, not 2). A write to another customer's path id is refused before either query: that is the case above.
+    // that does. Red if the UPDATE's `WHERE id = ?` binds a literal 1: the write carries customer 2's phone, which row 2 already holds, so the
+    // UNIQUE index on users.phone (database/schema.js:35) refuses it, the route answers 500 and the case is red at "customer 2 writes customer 2"
+    // (the recorded run); a literal 2 from customer 1's leg is refused the same way. The read-backs that follow the write (its id must be 2, row 2
+    // must hold customer 2's marker, row 1 must be as it was) would catch a write whose values do not collide; they have not been seen red for
+    // this bind. Red too if the SELECT that echoes the row back binds a literal 1 (customer 2's answer would be row 1: its id is 1, not 2).
+    // A write to another customer's path id is refused before either query: that is the case above.
     test('Ownership PUT /api/customers/[id]: customer1 writes their own profile (a marker in hear_about, read back, then restored)', async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
         const customer2 = await signedInAs(playwright, baseURL, 'customer2');
@@ -846,10 +848,12 @@ test.describe('Ownership: chat', () => {
 // ---------------------------------------------------------------------------------------------------------------------
 // POST /api/mobile/push-token. Clause: the body's userId must equal caller.id and a named userType must equal caller.role, else 403
 // (the row written is the caller's, in the column of the caller's role; an admin may also name 'customer', which is what the app
-// sends for every role that is not a provider, and what is stored is caller.role: design Amendment 7). customer 1 and provider 1
-// share the id 1, so the type check is what keeps provider1 from registering a token on customer 1's row and the reverse.
-// Nothing reads mobile_auth_users back through any route, so the column chosen by role and the stored user_type cannot be shown
-// by a case: what the cases show is the status and the saved message, and the refusals.
+// sends for every role that is not a provider, and what is stored is caller.role: design Amendment 7). The column comes from caller.role
+// and a new row's user_type is caller.role, whatever the body names (route.js:29, :54), so the userId and userType comparisons decide
+// the status and not the row: a request that contradicts the credential is a 403, where without them it would be a 200 that writes the
+// caller's own row. A mobile login that finds that row (the same account on the same device_id) updates it without writing user_type
+// (auth/mobile/login/route.js:136-146), and the refresh route mints its token's role from the stored user_type (auth/mobile/refresh/route.js:40,
+// :73-75); no case here does that: what the cases show is the status, the saved message and the refusals.
 // ---------------------------------------------------------------------------------------------------------------------
 test.describe('Ownership: mobile/push-token', () => {
     const tokenBody = (userId, userType) => ({ userId, ...(userType ? { userType } : {}), pushToken: `e2e-ownership-token-${Date.now()}`, platform: 'android', deviceId: 'e2e-ownership' });
@@ -866,9 +870,9 @@ test.describe('Ownership: mobile/push-token', () => {
         }
     });
 
-    // Red if the userId comparison is deleted (a token would be stored for account 2, or the admin's id), or the userType comparison is
-    // (provider1 naming customer 1's id and type, or customer1 naming provider 1's, would be stored on the other id space's row), or the
-    // admin's nameable types widen (an admin naming 'provider', a customer or provider naming 'admin').
+    // Red if the userId comparison is deleted, or the userType comparison is: the request is answered 200 where this case expects 403, and it
+    // writes the caller's own row, not another account's (the row's id, column and type come from caller.id and caller.role, route.js:29, :34,
+    // :54, never from the body). Red too if the admin's nameable types widen (an admin naming 'provider', a customer or provider naming 'admin').
     test("Ownership POST /api/mobile/push-token: a userId naming another account, or the other id space's type, is 403", async ({ request, baseURL }) => {
         const as = await credentials(baseURL);
         const refused = [
