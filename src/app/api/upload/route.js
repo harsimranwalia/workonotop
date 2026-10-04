@@ -2,8 +2,11 @@
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { NextResponse } from 'next/server';
+import { requireCaller } from '@/lib/api-auth';
 
 export async function POST(request) {
+  const auth = await requireCaller(request, ['customer', 'provider', 'admin']);
+  if (!auth.ok) return auth.response;
   try {
     const formData = await request.formData();
     const file = formData.get('file');
@@ -66,6 +69,8 @@ export async function POST(request) {
 }
 
 export async function DELETE(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { searchParams } = new URL(request.url);
     const fileUrl = searchParams.get('url');
