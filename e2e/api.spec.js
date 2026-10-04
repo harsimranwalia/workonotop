@@ -2,6 +2,10 @@
 import { test, expect } from '@playwright/test';
 import { getCredentialHeaders } from './auth/credentials.js';
 
+// The admin twins send a fixture session cookie, and a Playwright trace records the request headers of the API contexts it
+// traces (the config keeps one per failed case). Tracing is off, as in e2e/auth-matrix.spec.js, so no trace holds a token.
+test.use({ trace: 'off' });
+
 // The fixture admin's adminAuth cookie, as request headers (e2e/auth/credentials.js, style 'admin-cookie').
 const adminHeaders = async (baseURL) => (await getCredentialHeaders(baseURL))['admin-cookie'];
 
