@@ -285,37 +285,37 @@ export const matrix = [
     },
     {
         route: '/api/admin/provider-jobs', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: response includes the whole provider row (password hash, reset_token, email_verificati…',
+        note: 'Before ENG-021 there was no auth, so anyone got this and now only an admin does: the response includes the whole provider row (password hash, reset_token, email_verificati… ENG-021 guard: src/app/api/admin/provider-jobs/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/provider-jobs', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/providers', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Token read then ignored. sp.* leaks every provider\'s password hash, live reset_token and email_…',
+        note: 'Until ENG-021 the handler read a token (the adminAuth or provider_token cookie, or a Bearer) and ignored it; that dead read is deleted. sp.* returns, to an admin only now, every provider\'s password hash, live reset_token and email_… ENG-021 guard: src/app/api/admin/providers/route.js:166-167 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/providers', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/providers', method: 'PUT', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Anyone can approve or reject any provider; rejectionReason goes unescaped into an email sent fr… Probe (round 3, 2026-10-02): UPDATE service_providers in src/app/api/admin/providers/route.js:260 and :274 and sendEmail at :302 and :309 need action approve or reject; the probe sends none. The SELECT at :284 binds an undefined providerId and the driver refuses it, so logActivity (:290) is not reached: stopped by the missing action and the driver refusing undefined binds, not by a validation. Validate both before :257, or hold the row, first.',
+        note: 'Before ENG-021 anyone could approve or reject any provider (now an admin only); rejectionReason goes unescaped into an email sent fr… Probe (round 3, 2026-10-02): UPDATE service_providers in src/app/api/admin/providers/route.js:246 and :260 and sendEmail at :288 and :295 need action approve or reject; the probe sends none. The SELECT at :270 binds an undefined providerId and the driver refuses it, so logActivity (:276) is not reached: stopped by the missing action and the driver refusing undefined binds, not by a validation. Validate both before :243, or hold the row, first. ENG-021 guard: providers/route.js:235-236 (requireCaller(request, [\'admin\']), ahead of the body read at :238); only the admin style gets past it and then behaves as the probe line above describes. The cookie/Bearer token read the handler had was never used and is deleted; the line numbers in the probe line are the ones after this change.',
         probe: { path: '/api/admin/providers', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/providers/[providerId]', method: 'PUT', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: anyone can rewrite any provider\'s email then use forgot-password: account takeover. \'E…',
+        note: 'Before ENG-021 there was no auth: anyone could rewrite any provider\'s email then use forgot-password: account takeover (the PUT is admin only now). \'E… ENG-021 guard: src/app/api/admin/providers/[providerId]/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/providers/999999999', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/providers/[providerId]', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: irreversible cascade hard-delete of a provider and all their bookings, invoices, chat …',
+        note: 'Before ENG-021 there was no auth, so anyone could trigger (now only an admin can) the irreversible cascade hard-delete of a provider and all their bookings, invoices, chat … ENG-021 guard: src/app/api/admin/providers/[providerId]/route.js:35-36 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/providers/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/providers/[providerId]/documents', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: provider contact data and all KYC document records for any provider id; error.message …',
+        note: 'Before ENG-021 there was no auth: provider contact data and all KYC document records were readable for any provider id (now by an admin only); error.message … ENG-021 guard: src/app/api/admin/providers/[providerId]/documents/route.js:9-10 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/providers/999999999/documents', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/providers/[providerId]/documents', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: approve_all marks every KYC document verified (verification bypass); reject_all resets…',
+        note: 'Before ENG-021 there was no auth, so anyone could use this and now only an admin can: approve_all marks every KYC document verified (verification bypass); reject_all resets… ENG-021 guard: src/app/api/admin/providers/[providerId]/documents/route.js:45-46 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/providers/999999999/documents', body: {}, anon: 401 },
     },
     {
