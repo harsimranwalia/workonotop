@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { execute } from '@/lib/db';
 import { notifyUser, sendPushNotification } from '@/lib/push';
+import { requireCaller } from '@/lib/api-auth';
 
 export async function POST(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
     const { userId, role, title, message, token } = body;
