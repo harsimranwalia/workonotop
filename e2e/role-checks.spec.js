@@ -2,7 +2,7 @@
 // ENG-022 (design ENG-004, "Interfaces"; ticket ENG-022): the role checks of the admin, shared admin-only and catalogue
 // routes. One named case per converted `roles` row of the 85 the ticket owns, plus the cases a row's split or ownership
 // needs, so the baseline shows each. The two cron routes and the five reset/OTP routes are not here (e2e/cron-secret.spec.js
-// and e2e/s1-reset-otp.spec.js); the two catalogue reads that stay public are in the second describe below.
+// and e2e/s1-reset-otp.spec.js); the two catalogue reads that stay public are in the describe 'Role check catalogue reads' below.
 //
 // Per row (the 75 rows of ADMIN_BEFORE; `PUT /api/provider` has its own cases): the row's matrix probe is sent as the matrix
 // sends it (e2e/auth/route-matrix.js: an id no row has, an empty body or none). No credential is 401
@@ -10,13 +10,17 @@
 // adminAuth cookie (a real signature, the wrong role) are each 403 { success: false, message: 'Forbidden' }; the admin's
 // cookie gets the status and the top-level keys the route answered before the change. Style: e2e/defects.spec.js, D2.
 //
-// Nothing here writes to a fixture row except the provider cases, which put a marker in provider1's `bio` and put it back
-// (in `finally`); every other write is the matrix's probe on an id no row has. The credentials are the fixture accounts'.
+// Writes to a fixture row: the provider cases put a marker in a provider's `bio` (provider1's; provider2's in the ownership case)
+// and restore the profile in `finally`; the catalogue cases create and delete a service and a location, in `finally`; the
+// notifications PUT case marks the admin's two fixture notifications read, which no route marks unread, so the fixture
+// command (npm run db:fixtures) puts them back. Every other write is the matrix's probe on an id no row has. The credentials
+// are the fixture accounts'.
 import { test, expect } from '@playwright/test';
 import crypto from 'node:crypto';
 import { getCredentialHeaders } from './auth/credentials.js';
 import { matrix } from './auth/route-matrix.js';
 import { users, providers } from '../database/fixtures/accounts.js';
+import { notifications } from '../database/fixtures/notifications.js';
 
 // Every request carries a fixture account's session header and a trace records request headers: tracing is off, as in
 // e2e/auth-matrix.spec.js. A failure message names the case, the status and the account, never a header.
@@ -271,52 +275,78 @@ test.describe('Role check PUT /api/provider', () => {
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
-// /api/admin/notifications: the signed-in admin's own rows. The fixtures hold no notification row, so absence cannot be shown
-// by a row that is not the admin's; what is asserted is the contract on whatever the table holds: every row listed belongs to
-// the admin (user_id the admin's, user_type 'admin'), a query naming someone else changes nothing, and the Bearer and the
-// cookie are the same admin. The PUT is sent with an id no notification has.
+// /api/admin/notifications: the signed-in admin's own rows. database/fixtures/notifications.js holds four rows: the admin's two
+// (users id 3, user_type 'admin'), one 'admin' row of another owner (user_id 1) and one row on the admin's id with the user_type
+// 'customer'. The route's WHERE clause is the only thing that keeps the last two out of the admin's answer, so the reads assert
+// the exact ids listed: a dropped clause, or an owner taken from the query, lists one of them. The PUT cases mark the admin's own
+// two rows by id and with `all`, with a body that names another owner each time, which tells the caller's identity from the
+// body's. No route reads another owner's rows, so whether a PUT leaves THEM untouched cannot be asked of the app here and is not
+// asserted. A PUT marks a row read and nothing marks one unread: the PUT case starts by asserting both are unread (a run on
+// fixtures an earlier run has used says so) and leaves them read; `npm run db:fixtures` puts them back.
 // ---------------------------------------------------------------------------------------------------------------------
 test.describe('Role check /api/admin/notifications', () => {
-    const OTHER = `user_id=${CUSTOMER1.id}&user_type=customer`;
+    const [OWN_FIRST, OWN_SECOND, OTHER_ADMIN, OTHER_TYPE] = notifications.tables.notifications;
+    const OWN = [OWN_SECOND.id, OWN_FIRST.id]; // newest first, the route's order
+    // Every query that names another owner: the user_id alone, the user_type alone, and both.
+    const NAMING_ANOTHER_OWNER = [`user_id=${CUSTOMER1.id}`, 'user_type=customer', `user_id=${CUSTOMER1.id}&user_type=customer`];
 
     test("Role check GET /api/admin/notifications: only the signed-in admin's own rows, by cookie and by Bearer, and no query names another owner", async ({ request, baseURL }) => {
         const as = await credentials(baseURL);
         const idsOf = (body) => body.data.map((row) => row.id);
-        let plain = null;
         for (const [who, headers] of [['admin cookie', as.admin], ['admin Bearer', as.adminBearer]]) {
             const response = await request.get('/api/admin/notifications', { headers });
             expect(response.status(), `${who}: status`).toBe(200);
             const body = await response.json();
             expect(body.success, `${who}: success`).toBe(true);
             expect(Array.isArray(body.data), `${who}: data is a list`).toBe(true);
+            expect(idsOf(body), `${who}: the admin's two rows, newest first, and not ${OTHER_ADMIN.id} (another admin-type owner) or ${OTHER_TYPE.id} (the admin's id, a customer-type owner)`).toEqual(OWN);
             for (const row of body.data) {
                 expect(Number(row.user_id), `${who}: row ${row.id} belongs to the admin`).toBe(ADMIN.id);
                 expect(row.user_type, `${who}: row ${row.id} is an admin notification`).toBe('admin');
             }
-            if (plain === null) plain = idsOf(body);
-            expect(idsOf(body), `${who}: the same rows as the other credential`).toEqual(plain);
         }
-        const named = await request.get(`/api/admin/notifications?${OTHER}`, { headers: as.admin });
-        expect(named.status(), 'a query naming another owner: status').toBe(200);
-        expect(idsOf(await named.json()), 'a query naming another owner changes nothing').toEqual(plain);
+        for (const query of NAMING_ANOTHER_OWNER) {
+            const named = await request.get(`/api/admin/notifications?${query}`, { headers: as.admin });
+            expect(named.status(), `?${query}: status`).toBe(200);
+            expect(idsOf(await named.json()), `?${query}: a query naming another owner changes nothing`).toEqual(OWN);
+        }
         for (const [who, headers] of [['customer1 cookie', as.customer], ['provider1 cookie', as.provider], ['customer1 Bearer', as.customerBearer], ['provider1 Bearer', as.providerBearer]]) {
-            const body = await expectRefusal(await request.get(`/api/admin/notifications?${OTHER}`, { headers }), 403, who);
+            const body = await expectRefusal(await request.get(`/api/admin/notifications?${NAMING_ANOTHER_OWNER[2]}`, { headers }), 403, who);
             expect(body, `${who}: no data key`).not.toHaveProperty('data');
         }
     });
 
     test('Role check PUT /api/admin/notifications: an admin marking an id no notification has gets { success: true }, any other caller is refused and a body naming another owner is ignored', async ({ request, baseURL }) => {
         const as = await credentials(baseURL);
-        const data = { id: 999999999, user_id: CUSTOMER1.id, user_type: 'customer' };
-        for (const [who, headers] of [['admin cookie', as.admin], ['admin Bearer', as.adminBearer]]) {
+        const naming = { user_id: CUSTOMER1.id, user_type: 'customer' }; // another owner, named in every body below
+        const unread = { [OWN_FIRST.id]: 0, [OWN_SECOND.id]: 0 };
+        // What the admin's own list says about each row's is_read, by id.
+        const state = async () => {
+            const response = await request.get('/api/admin/notifications', { headers: as.admin });
+            expect(response.status(), 'the admin lists their notifications').toBe(200);
+            return Object.fromEntries((await response.json()).data.map((row) => [row.id, Number(row.is_read)]));
+        };
+        const put = async (who, headers, data) => {
             const response = await request.put('/api/admin/notifications', { headers, data });
             expect(response.status(), `${who}: status`).toBe(200);
             expect(await response.json(), `${who}: body`).toEqual({ success: true });
+        };
+        expect(await state(), "the admin's two notifications start unread (the fixture command, npm run db:fixtures, loads them so)").toEqual(unread);
+
+        for (const [who, headers] of [['admin cookie', as.admin], ['admin Bearer', as.adminBearer]]) {
+            await put(who, headers, { id: 999999999, ...naming });
         }
-        await expectRefusal(await request.put('/api/admin/notifications', { data }), 401, 'no credential');
+        expect(await state(), 'an id no notification has marks nothing').toEqual(unread);
+        await expectRefusal(await request.put('/api/admin/notifications', { data: { id: OWN_FIRST.id, ...naming } }), 401, 'no credential');
         for (const [who, headers] of [['customer1 cookie', as.customer], ['provider1 cookie', as.provider], ['customer1 Bearer', as.customerBearer], ['provider1 Bearer', as.providerBearer]]) {
-            await expectRefusal(await request.put('/api/admin/notifications', { headers, data }), 403, who);
+            await expectRefusal(await request.put('/api/admin/notifications', { headers, data: { id: OWN_FIRST.id, ...naming } }), 403, who);
         }
+        expect(await state(), 'a refused caller marks nothing').toEqual(unread);
+
+        await put('admin cookie, id', as.admin, { id: OWN_FIRST.id, ...naming });
+        expect(await state(), `PUT { id: ${OWN_FIRST.id} } marks that row and no other, whoever the body names`).toEqual({ [OWN_FIRST.id]: 1, [OWN_SECOND.id]: 0 });
+        await put('admin Bearer, all', as.adminBearer, { all: true, ...naming });
+        expect(await state(), "PUT { all: true } marks the admin's own rows, whoever the body names").toEqual({ [OWN_FIRST.id]: 1, [OWN_SECOND.id]: 1 });
     });
 });
 
