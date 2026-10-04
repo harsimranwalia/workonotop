@@ -2,18 +2,13 @@ import { NextResponse } from 'next/server';
 import { execute } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { notifyUser } from '@/lib/push';
+import { requireCronSecret } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
-  // Simple auth for cron (optional, but recommended in production)
-  const authHeader = request.headers.get('authorization');
-  const url = new URL(request.url);
-  const querySecret = url.searchParams.get('secret');
-  
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}` && querySecret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-  }
+  const secret = requireCronSecret(request);
+  if (!secret.ok) return secret.response;
 
   try {
     const results = { onboarding: 0, night_before: 0 };
