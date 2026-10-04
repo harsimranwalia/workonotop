@@ -1,18 +1,11 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { verifyToken } from '@/lib/jwt';
-
-async function verifyAdmin(request) {
-  const token = request.cookies.get('adminAuth')?.value;
-  if (!token) return false;
-  return !!verifyToken(token);
-}
+import { requireCaller } from '@/lib/api-auth';
 
 export async function GET(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
-    const admin = await verifyAdmin(request);
-    if (!admin) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-
     const { id } = await params;
     const rows = await pool.execute(`
       SELECT d.*, s.name as state_name 
@@ -33,10 +26,9 @@ export async function GET(request, { params }) {
 }
 
 export async function PUT(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
-    const admin = await verifyAdmin(request);
-    if (!admin) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-
     const { id } = await params;
     const body = await request.json();
     const { name, state_id, is_active } = body;
@@ -58,10 +50,9 @@ export async function PUT(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
-    const admin = await verifyAdmin(request);
-    if (!admin) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-
     const { id } = await params;
 
     await pool.execute('DELETE FROM districts WHERE id = ?', [id]);
