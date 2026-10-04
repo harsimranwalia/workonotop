@@ -108,22 +108,14 @@ import { NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import { execute } from '@/lib/db'
-import { verifyToken } from '@/lib/jwt'
+import { requireCaller } from '@/lib/api-auth'
 import { logActivity } from '@/lib/logger'
 
 export async function POST(request) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
+  const providerId = auth.caller.id
   try {
-    const token = request.cookies.get('provider_token')?.value
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Not authenticated' }, { status: 401 })
-    }
-
-    const decoded = verifyToken(token)
-    if (!decoded || decoded.type !== 'provider') {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 })
-    }
-
-    const providerId = decoded.providerId
     const formData = await request.formData()
     const file = formData.get('file')
     const documentType = formData.get('type') || 'profile_photo'
@@ -191,7 +183,7 @@ export async function POST(request) {
     logActivity({
       actor_id: providerId,
       actor_type: 'provider',
-      actor_name: decoded.name || 'Provider',
+      actor_name: auth.caller.email || 'Provider',
       action: 'PROVIDER_DOCUMENT_UPLOADED',
       entity_type: 'document',
       entity_id: providerId, // or the document id if we had it easily, using providerId for now
