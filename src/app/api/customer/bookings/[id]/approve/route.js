@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { withConnection } from '@/lib/db'
-import { verifyToken } from '@/lib/jwt'
+import { requireCaller } from '@/lib/api-auth'
 import { sendEmail } from '@/lib/email'
 import { notifyUser } from '@/lib/push'
 import { logActivity } from '@/lib/logger'
@@ -152,20 +152,9 @@ function disputeProviderHtml({ bookingNumber, serviceName, customerName, provide
 
 // ── POST handler ──────────────────────────────────────────────────────────────
 export async function POST(request, { params }) {
-  let token = request.cookies.get('customer_token')?.value || request.cookies.get('user_token')?.value
-
-  // Support Bearer token for mobile
-  if (!token) {
-    const authHeader = request.headers.get('authorization')
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.split(' ')[1]
-    }
-  }
-
-  if (!token) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
-
-  const decoded = verifyToken(token)
-  if (!decoded) return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 })
+  const auth = await requireCaller(request, ['customer']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
 
   const { id } = await params
   const { action, dispute_reason, source, success_url, cancel_url } = await request.json()
@@ -196,10 +185,15 @@ export async function POST(request, { params }) {
           LEFT JOIN services          s  ON b.service_id  = s.id
           LEFT JOIN users             u  ON b.user_id     = u.id
           WHERE b.id = ? AND b.user_id = ?
-        `, [id, decoded.id])
+        `, [id, caller.id])
 
         if (!booking) {
           await connection.query('ROLLBACK')
+          // A booking that exists but is not the caller's own is a 403, never the 404 below; one that does not exist keeps the 404.
+          const [[existing]] = await connection.execute('SELECT id FROM bookings WHERE id = ?', [id])
+          if (existing) {
+            return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
+          }
           return NextResponse.json({ success: false, message: 'Booking not found' }, { status: 404 })
         }
 
@@ -245,7 +239,7 @@ export async function POST(request, { params }) {
             `INSERT INTO disputes 
              (booking_id, raised_by_user_id, reason, status, created_at)
              VALUES (?, ?, ?, 'open', NOW())`,
-            [id, decoded.id, dispute_reason]
+            [id, caller.id, dispute_reason]
           )
 
           await connection.query('COMMIT')
@@ -509,7 +503,7 @@ export async function POST(request, { params }) {
 
           // Log Activity
           logActivity({
-            actor_id: decoded.id,
+            actor_id: caller.id,
             actor_type: 'customer',
             actor_name: customerName,
             action: 'BOOKING_APPROVED',
