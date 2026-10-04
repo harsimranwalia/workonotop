@@ -1,38 +1,19 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { execute } from '@/lib/db';
-import { verifyToken } from '@/lib/jwt';
-import { getMobileSession } from '@/lib/mobile-auth';
+import { requireCaller } from '@/lib/api-auth';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock', { apiVersion: '2026-05-27.dahlia' });
 
 export async function POST(request) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
+  const providerId = auth.caller.id;
   console.log('\n' + '='.repeat(80));
   console.log('🚀 CREATE STRIPE ACCOUNT CALLED');
   console.log('='.repeat(80));
 
   try {
-    // 1. Check Mobile Session (via Authorization Header + DB)
-    let decoded = await getMobileSession(request);
-    let providerId = decoded?.providerId;
-
-    // 2. Fallback to Web Session (via Cookies)
-    if (!decoded) {
-      const token = request.cookies.get('provider_token')?.value;
-      if (token) {
-        decoded = verifyToken(token);
-        if (decoded && decoded.type === 'provider') {
-          providerId = decoded.providerId;
-        }
-      }
-    }
-
-    if (!decoded || !providerId) {
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized or session expired' },
-        { status: 401 }
-      );
-    }
     const body = await request.json();
 
     // ✅ FIX: Use environment variable for URLs
