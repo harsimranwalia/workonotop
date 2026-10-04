@@ -31,12 +31,13 @@
 // them away when the case deletes it, so no fixture chat grows and no case needs freshly loaded fixtures.
 //
 // NOT covered here, and why (read from the code and the dev database, not guessed):
-//   POST /api/payment/create-intent  the module builds `new Stripe(process.env.STRIPE_SECRET_KEY)` at import and the dev app sets no
-//                                    STRIPE_SECRET_KEY, so every request answers a 500 HTML page before the handler runs (the
-//                                    before-snapshot of 2026-10-04 01:46: 500 for every credential style). Nothing of the route is
-//                                    observable, and the handler takes no booking at all (service_id, service_price, additional_price,
-//                                    service_name; the booking is made after the payment), so there is no booking to own: its owner
-//                                    is the Stripe customer of caller.id. A skipped case below says so.
+//   POST /api/payment/create-intent  the route takes NO booking (service_id, service_price, additional_price, service_name; the booking is made
+//                                    after the payment), so the ticket's "the booking named in the body must be the caller's own" has no
+//                                    booking to name: the route's ownership is the caller's own users row (the Stripe customer), and
+//                                    builder A made a body user_id or booking_id naming another account a 403. Before that commit the
+//                                    module built `new Stripe(process.env.STRIPE_SECRET_KEY)` at import and the dev app sets no key, so every
+//                                    request answered a 500 page and nothing was observable. The case below sends no service_price, so it
+//                                    never reaches the Stripe code whatever the clause does.
 //   /api/user/addresses and [id]     the dev database has no `user_addresses` table (SHOW TABLES, 2026-10-04): every address read or
 //                                    write that reaches the query answers 500. Only the refusals decided before the query are cases here.
 //   POST /api/auth/change-password   every fixture password lacks a character the route's password rule demands, so a request that
@@ -510,8 +511,22 @@ test.describe('Ownership: customer booking routes', () => {
         }
     });
 
-    // POST /api/payment/create-intent is a row of the ticket, but nothing of it is observable here: see the header.
-    test.skip('Ownership POST /api/payment/create-intent: not observable in the dev app (no STRIPE_SECRET_KEY: the module throws at import, every request is a 500 page) and the handler takes no booking', () => {});
+    // The route reads no booking of its own; its ownership is the caller's users row. A body naming another account (user_id) or another account's
+    // booking (booking_id) is 403 before any Stripe call; the owner's request reaches the route's own validation (400 'Service price is required').
+    // No request here carries a service_price, so none can reach the Stripe code. Red if either refusal is deleted: the request would answer that 400.
+    test("Ownership POST /api/payment/create-intent: a body naming customer 2 as user_id or customer 2's booking as booking_id is 403, the owner reaches the route's own validation", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        for (const [style, headers] of customerStyles(as)) {
+            for (const data of [{ user_id: CUSTOMER2.id }, { booking_id: BOOKING2.id }, { user_id: CUSTOMER2.id, booking_id: BOOKING2.id }]) {
+                const who = `customer1 by ${style} naming ${Object.keys(data).join('+')}`;
+                await expectForbidden(await request.post('/api/payment/create-intent', { headers, data }), who, BOOKING2_STRINGS);
+            }
+            for (const data of [{}, { user_id: CUSTOMER1.id }, { booking_id: BOOKING1.id }]) {
+                const who = `customer1 by ${style} naming ${Object.keys(data).join('+') || 'nothing'}`;
+                await expectAnswer(await request.post('/api/payment/create-intent', { headers, data }), 400, 'Service price is required', who);
+            }
+        }
+    });
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
