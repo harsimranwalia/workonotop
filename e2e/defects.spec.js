@@ -1,7 +1,9 @@
 // @ts-check
 // ENG-021 (design ENG-004, "The four defects" and "AC6 cross-account tests"): one named case per defect leg, so the
-// baseline shows each. Every case is written to FAIL on the code before this branch (the routes were open) and to PASS
-// on it; the cases that say "admin ... as before" and the control reads are guards that hold on both.
+// baseline shows each. Every case fails on the code before this branch (the routes were open) and passes on it, except two
+// guards that hold on both and pin what the admin and the allowed roles keep: D1 "admin GET ... lists both fixture
+// bookings" and D6 "customer1, provider1 and admin can each upload". (Measured: against a scratch copy of 2038c73, 34 of
+// the 48 cases of this file and api.spec.js failed and 14 passed, those two among the 14.)
 //
 //   D1  bookings: list, change, delete        D3  a customer's bookings by email or user_id
 //   D2  admin finance data (15 route rows)    D6  uploads
