@@ -141,23 +141,17 @@
 // app/api/provider/profile/route.js
 import { NextResponse } from 'next/server'
 import { execute } from '@/lib/db'
-import { verifyToken } from '@/lib/jwt'
+import { requireCaller } from '@/lib/api-auth'
 import { logActivity } from '@/lib/logger'
 
 // GET - Fetch full profile
 export async function GET(request) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   try {
-    const token = request.cookies.get('provider_token')?.value
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Not authenticated' }, { status: 401 })
-    }
-
-    const decoded = verifyToken(token)
-    if (!decoded || decoded.type !== 'provider') {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 })
-    }
-
-    const providerId = decoded.providerId
+    // Ownership: the caller's own provider row (and its documents), the id from the verified caller and nothing else.
+    const providerId = caller.id
 
     // Get provider details from service_providers
     const providers = await execute(
@@ -264,18 +258,13 @@ export async function GET(request) {
 
 // PUT - Update profile
 export async function PUT(request) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   try {
-    const token = request.cookies.get('provider_token')?.value
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Not authenticated' }, { status: 401 })
-    }
-
-    const decoded = verifyToken(token)
-    if (!decoded || decoded.type !== 'provider') {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 })
-    }
-
-    const providerId = decoded.providerId
+    // Ownership: the UPDATE and the uniqueness checks below bind providerId, which is caller.id; an id, provider_id
+    // or email in the body or query is never read as the row to write.
+    const providerId = caller.id
 
     const body = await request.json()
     const { name, email, phone, specialty, experience_years, bio, location, city, service_cities, skills } = body
