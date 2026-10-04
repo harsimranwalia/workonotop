@@ -1064,3 +1064,257 @@ test.describe('Ownership: provider/availability and provider/profile writes', ()
         }
     });
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// POST /api/provider/onboarding/profile, /onboarding/update-step, /onboarding/stripe-complete and POST /api/provider/upload
+// (ENG-023 hop 2). None of these routes takes a row to act on: the provider id is auth.caller.id and nothing the request
+// carries, so there is no foreign id to send. What a case can show is the other half of the clause: the provider who calls moves
+// THEIR OWN row. The cases act as provider 2 (signedInAs; the default credential, provider 1, is then the row that must not move),
+// read provider 1's /api/provider/me and /api/provider/onboarding/documents answers before and after and require the text to be
+// byte for byte the same, and then do the same the other way round (provider 1 writes, provider 2's row stays). A body that names
+// provider 1 (id, provider_id, providerId) is sent with provider 2's writes: the handlers destructure only their own fields
+// (profile route.js:11, update-step :11, stripe-complete :18), so those keys are never read.
+// Clauses (HEAD): onboarding/profile/route.js:8 and the UPDATE's last bind :39; onboarding/update-step/route.js:8 and :27;
+// onboarding/stripe-complete/route.js:11, the fallback lookup :23-26, the UPDATE :93 and the INSERT :107; provider/upload/route.js:117,
+// the file name :144, the INSERT :162, the avatar UPDATE :169 and the count :177-179.
+// No wrong-table hazard in these handlers: they read and write service_providers and provider_* tables only, so the overlap of
+// provider 1 and customer 1 (both id 1) never decides a row, and the cases are provider against provider.
+// What a write leaves behind: update-step restores onboarding_step in `finally` (it needs a truthy step), profile is put back with
+// PUT /api/provider/profile, uploaded files are unlinked from public/uploads. Rows no public route removes stay until the fixtures
+// are reloaded: provider_documents rows (upload), documents_uploaded and avatar_url of provider 2 (upload), the provider_bank_accounts
+// row and stripe_account_id of provider 2 (stripe-complete), activity-log rows.
+// NOT covered, and why (read from the code and the fixtures):
+//   POST /api/provider/onboarding/create-stripe-account  after the provider lookup (route.js:29-32) every path except the 404 at
+//        :34-39 calls Stripe (:51 or :73); the only stop before Stripe is the body read failing (:17), which comes before providerId
+//        is used, and the 404 needs a session for a provider row that does not exist. No request can be shown to stop before Stripe
+//        while depending on the owner, so none is sent.
+//   POST /api/provider/onboarding/upload-document  both fixture providers have documents_verified = 1 (database/fixtures/accounts.js),
+//        so route.js:35-40 answers 403 'Documents already verified, cannot modify' for either of them before any write: the lookup
+//        at :30-33 cannot be told from one bound to the other provider, and the success path is unreachable. The only public path
+//        that clears the flag (admin reject_all, admin/providers/[providerId]/documents/route.js) says in its own comment that it
+//        notifies the provider by email, and resets other flags that cannot be put back.
+//   POST onboarding/complete and GET onboarding/stripe-return are not sendable from a provider (ticket rule 71).
+// ---------------------------------------------------------------------------------------------------------------------
+test.describe('Ownership: provider onboarding writes and provider/upload', () => {
+    const tag = () => `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+
+    // The provider row as the provider's own two reads show it, kept as text so "byte for byte" is a string comparison:
+    // /me (bio, specialty, city, location, cities, skills, avatar_url, flags) and /onboarding/documents (the documents, the
+    // counts, onboarding_step).
+    async function rowOf(request, headers, who) {
+        const me = await expectOk(await request.get('/api/provider/me', { headers }), `${who} reads /me`);
+        const docs = await expectOk(await request.get('/api/provider/onboarding/documents', { headers }), `${who} reads /onboarding/documents`);
+        return { me: me.text, docs: docs.text, row: me.body.provider, documents: docs.body.documents, provider: docs.body.provider };
+    }
+
+    // update-step needs a truthy step, so a start step of 0 or NULL cannot be put back by it (the fixtures are reloaded after the run).
+    async function stepBack(request, headers, original) {
+        if (original) await request.post('/api/provider/onboarding/update-step', { headers, data: { step: original } });
+    }
+
+    // Puts the fields onboarding/profile wrote back through PUT /api/provider/profile (it writes NULL for what is not sent).
+    async function profileBack(request, headers, account, original) {
+        const asArray = (value) => {
+            if (value === null || value === undefined) return undefined;
+            try {
+                const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+                return Array.isArray(parsed) ? parsed : undefined;
+            } catch {
+                return undefined;
+            }
+        };
+        await request.put('/api/provider/profile', {
+            headers,
+            data: {
+                name: account.name, email: account.email, phone: account.phone,
+                specialty: original.specialty ?? undefined, experience_years: original.experience_years ?? undefined,
+                bio: original.bio ?? undefined, location: original.location ?? undefined, city: original.city ?? undefined,
+                service_cities: asArray(original.service_cities), skills: asArray(original.skills),
+            },
+        });
+    }
+
+    // The keys a request could use to name provider 1 as the row to write: none of the handlers reads them.
+    const NAMING_PROVIDER1 = { id: PROVIDER1.id, provider_id: PROVIDER1.id, providerId: PROVIDER1.id };
+
+    // Red if onboarding/profile/route.js:8 `const providerId = auth.caller.id;` reads the row from the body instead (`request.json()`
+    // .id), or the UPDATE's last bind (:39) is a literal 1: provider 2's call would write provider 1's row, so provider 2 would
+    // keep its start bio and provider 1's /me would carry provider 2's marker.
+    test("Ownership POST /api/provider/onboarding/profile: provider2 writes only provider 2's row (a body naming provider 1 is ignored) and provider1 only provider 1's", async ({ request, baseURL, playwright }) => {
+        const as = await credentials(baseURL);
+        const p2 = await signedInAs(playwright, baseURL, 'provider2');
+        const before1 = await rowOf(request, as.provider, 'provider1');
+        const before2 = await rowOf(request, p2, 'provider2');
+        const key = tag();
+        const mine = (n) => ({ bio: `E2E ownership onboarding bio ${n} ${key}`, specialty: `e2e-specialty-${n}`, experience_years: 40 + n, city: `E2E City ${n}`, location: `E2E Location ${n}`, service_cities: [], skills: [`e2e-skill-${n}`] });
+        try {
+            const wrote = await expectOk(await request.post('/api/provider/onboarding/profile', { headers: p2, data: { ...mine(2), ...NAMING_PROVIDER1 } }), 'provider2 writes the onboarding profile');
+            expect(wrote.body.message, 'provider2 write: message').toBe('Profile updated successfully');
+            const after2 = await rowOf(request, p2, 'provider2 after its write');
+            expect(after2.row.bio, "provider 2's bio is the marker").toBe(mine(2).bio);
+            expect(after2.row.specialty, "provider 2's specialty").toBe('e2e-specialty-2');
+            expect(Number(after2.row.experience_years), "provider 2's experience_years").toBe(42);
+            expect(after2.row.city, "provider 2's city").toBe('E2E City 2');
+            expect(after2.row.location, "provider 2's location").toBe('E2E Location 2');
+            expect(after2.me, "provider 2's skills").toContain('e2e-skill-2');
+            expect(Number(after2.provider.onboarding_step), "provider 2's onboarding_step (route.js sets 2)").toBe(2);
+            const after1 = await rowOf(request, as.provider, 'provider1 after provider 2 wrote');
+            expect(after1.me, "provider 1's /me is byte for byte what it was").toBe(before1.me);
+            expect(after1.docs, "provider 1's /onboarding/documents is byte for byte what it was").toBe(before1.docs);
+            expectNoneOf(after1.me + after1.docs, [mine(2).bio, 'e2e-specialty-2', 'e2e-skill-2'], 'provider1 after provider 2 wrote');
+
+            // The other way round: provider 1 writes, provider 2's row stays what provider 2's own write left.
+            await expectOk(await request.post('/api/provider/onboarding/profile', { headers: as.provider, data: mine(1) }), 'provider1 writes the onboarding profile');
+            const again1 = await rowOf(request, as.provider, 'provider1 after its write');
+            expect(again1.row.bio, "provider 1's bio is the marker").toBe(mine(1).bio);
+            expect(again1.row.city, "provider 1's city").toBe('E2E City 1');
+            const again2 = await rowOf(request, p2, 'provider2 after provider 1 wrote');
+            expect(again2.me, "provider 2's /me is what its own write left").toBe(after2.me);
+            expect(again2.docs, "provider 2's /onboarding/documents is what its own write left").toBe(after2.docs);
+        } finally {
+            await profileBack(request, p2, PROVIDER2, before2.row);
+            await profileBack(request, as.provider, PROVIDER1, before1.row);
+            await stepBack(request, p2, before2.provider.onboarding_step);
+            await stepBack(request, as.provider, before1.provider.onboarding_step);
+        }
+        // Reached only when every assertion above held: both rows are back to where they started.
+        const end1 = await rowOf(request, as.provider, 'provider1 at the end');
+        const end2 = await rowOf(request, p2, 'provider2 at the end');
+        expect(end1.row, "provider 1's row is back to its start").toEqual(before1.row);
+        expect(end2.row, "provider 2's row is back to its start").toEqual(before2.row);
+        expect(end1.provider.onboarding_step, "provider 1's step is back").toEqual(before1.provider.onboarding_step);
+        expect(end2.provider.onboarding_step, "provider 2's step is back").toEqual(before2.provider.onboarding_step);
+    });
+
+    // Red if update-step/route.js:8 `const providerId = auth.caller.id;` takes the row from the body (`id`), or the bind at :27 is a
+    // literal 1: provider 2's step would land on provider 1's row (and the echo `step` alone would still look right).
+    test("Ownership POST /api/provider/onboarding/update-step: provider2 moves only provider 2's onboarding_step (a body naming provider 1 is ignored) and provider1 only provider 1's", async ({ request, baseURL, playwright }) => {
+        const as = await credentials(baseURL);
+        const p2 = await signedInAs(playwright, baseURL, 'provider2');
+        const before1 = await rowOf(request, as.provider, 'provider1');
+        const before2 = await rowOf(request, p2, 'provider2');
+        expect([6, 7], 'the probe steps differ from the start steps').not.toContain(Number(before1.provider.onboarding_step));
+        expect([6, 7], 'the probe steps differ from the start steps').not.toContain(Number(before2.provider.onboarding_step));
+        try {
+            const wrote = await expectOk(await request.post('/api/provider/onboarding/update-step', { headers: p2, data: { step: 7, ...NAMING_PROVIDER1 } }), 'provider2 moves its step');
+            expect(wrote.body.step, 'provider2: the echo').toBe(7);
+            expect(wrote.body.message, 'provider2: message').toBe('Onboarding step updated successfully');
+            const after2 = await rowOf(request, p2, 'provider2 after its write');
+            expect(Number(after2.provider.onboarding_step), "provider 2's onboarding_step is 7").toBe(7);
+            const after1 = await rowOf(request, as.provider, 'provider1 after provider 2 wrote');
+            expect(after1.docs, "provider 1's /onboarding/documents is byte for byte what it was").toBe(before1.docs);
+            expect(after1.me, "provider 1's /me is byte for byte what it was").toBe(before1.me);
+            expect(Number(after1.provider.onboarding_step), "provider 1's onboarding_step is its start value").toBe(Number(before1.provider.onboarding_step));
+
+            // The other way round.
+            await expectOk(await request.post('/api/provider/onboarding/update-step', { headers: as.provider, data: { step: 6 } }), 'provider1 moves its step');
+            const again1 = await rowOf(request, as.provider, 'provider1 after its write');
+            expect(Number(again1.provider.onboarding_step), "provider 1's onboarding_step is 6").toBe(6);
+            const again2 = await rowOf(request, p2, 'provider2 after provider 1 wrote');
+            expect(again2.docs, "provider 2's row is what its own write left").toBe(after2.docs);
+            expect(again2.me, "provider 2's /me is what its own write left").toBe(after2.me);
+        } finally {
+            await stepBack(request, p2, before2.provider.onboarding_step);
+            await stepBack(request, as.provider, before1.provider.onboarding_step);
+        }
+        const end1 = await rowOf(request, as.provider, 'provider1 at the end');
+        const end2 = await rowOf(request, p2, 'provider2 at the end');
+        expect(end1.docs, "provider 1's row is back to its start").toBe(before1.docs);
+        expect(end2.docs, "provider 2's row is back to its start").toBe(before2.docs);
+    });
+
+    const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+    const uploadAs = (request, headers, type) => request.post('/api/provider/upload', { headers, multipart: { file: { name: 'e2e-ownership.png', mimeType: 'image/png', buffer: PNG }, type } });
+
+    // Red if upload/route.js:117 `const providerId = auth.caller.id` is replaced by a literal 1 or a body field: the file name
+    // (:144, answered as `url`), the document row (:162), the avatar (:169) and the documents_uploaded count (:177-179) would all be
+    // provider 1's. The type is one of the provider_documents.document_type ENUM values (database/schema.sql:132; any other word is
+    // 'Data truncated' at the INSERT, after the file is written), never a path: the traversal on `type` is an open proposal, not this
+    // case. The files are 70-byte PNGs that land in public/uploads/<id>-<type>-<ms>.png and are unlinked in `finally`: every file of
+    // that shape made at or after the case's start, which also removes a file a failed request left behind.
+    test("Ownership POST /api/provider/upload: provider2's file name, document rows, count and avatar are provider 2's, provider 1's row is unchanged, and provider1's upload is provider 1's", async ({ request, baseURL, playwright }) => {
+        const as = await credentials(baseURL);
+        const p2 = await signedInAs(playwright, baseURL, 'provider2');
+        const before1 = await rowOf(request, as.provider, 'provider1');
+        const before2 = await rowOf(request, p2, 'provider2');
+        expect(before2.documents, 'provider 2 starts with no documents (an earlier run of this case leaves rows of provider 2 that no route removes: run `npm run db:fixtures` first)').toEqual([]);
+        expect(before2.row.avatar_url, 'provider 2 starts without an avatar (an earlier run of this case leaves rows of provider 2 that no route removes: run `npm run db:fixtures` first)').toBeNull();
+        const startedAt = Date.now() - 1000;
+        try {
+            const first = await expectOk(await uploadAs(request, p2, 'other'), 'provider2 uploads a document');
+            expect(first.body.url, "provider 2's file name starts with provider 2's id").toMatch(/^\/uploads\/2-other-\d+\.png$/);
+            const photo = await expectOk(await uploadAs(request, p2, 'profile_photo'), 'provider2 uploads a profile photo');
+            expect(photo.body.url, "provider 2's photo name starts with provider 2's id").toMatch(/^\/uploads\/2-profile_photo-\d+\.png$/);
+
+            const after2 = await rowOf(request, p2, 'provider2 after its uploads');
+            expect(after2.documents.map((d) => [d.provider_id, d.document_type, d.document_url, d.status]).sort(), "provider 2's two document rows").toEqual(
+                [[2, 'other', first.body.url, 'pending'], [2, 'profile_photo', photo.body.url, 'pending']].sort());
+            expect(Number(after2.provider.documents_uploaded), "provider 2's documents_uploaded is the count of its own rows (fixture: 1)").toBe(2);
+            expect(after2.row.avatar_url, "provider 2's avatar is its photo").toBe(photo.body.url);
+            const after1 = await rowOf(request, as.provider, 'provider1 after provider 2 uploaded');
+            expect(after1.me, "provider 1's /me is byte for byte what it was").toBe(before1.me);
+            expect(after1.docs, "provider 1's /onboarding/documents is byte for byte what it was").toBe(before1.docs);
+
+            // The other way round: provider 1's upload is provider 1's, and provider 2's row stays what its own uploads left.
+            const theirs = await expectOk(await uploadAs(request, as.provider, 'other'), 'provider1 uploads a document');
+            expect(theirs.body.url, "provider 1's file name starts with provider 1's id").toMatch(/^\/uploads\/1-other-\d+\.png$/);
+            const again1 = await rowOf(request, as.provider, 'provider1 after its upload');
+            expect(again1.documents.map((d) => [d.provider_id, d.document_url]), "provider 1's one document row").toEqual([[1, theirs.body.url]]);
+            expect(again1.row.avatar_url, "provider 1's avatar did not move").toEqual(before1.row.avatar_url);
+            const again2 = await rowOf(request, p2, 'provider2 after provider 1 uploaded');
+            expect(again2.me, "provider 2's /me is what its own uploads left").toBe(after2.me);
+            expect(again2.docs, "provider 2's /onboarding/documents is what its own uploads left").toBe(after2.docs);
+        } finally {
+            const { readdir, unlink } = await import('node:fs/promises');
+            const nodePath = await import('node:path');
+            const folder = nodePath.join(process.cwd(), 'public', 'uploads');
+            for (const name of await readdir(folder)) {
+                const made = /^[12]-(other|profile_photo)-(\d+)\.png$/.exec(name);
+                if (made && Number(made[2]) >= startedAt) await unlink(nodePath.join(folder, name)).catch(() => {});
+            }
+        }
+    });
+
+    // stripe-complete reaches Stripe only through `stripe` (route.js:6), which is null while STRIPE_SECRET_KEY is empty; :39-41 throws
+    // before :42 `stripe.accounts.retrieve`, and :52-82 falls through to the writes. The `{}` requests stop at :29-35 whatever the key
+    // is. So the case sends nothing unless the runner's list of the app's variable NAMES (E2E_APP_ENV_NAMES, never values) is defined
+    // and lacks STRIPE_SECRET_KEY.
+    // Red if stripe-complete/route.js:11 takes the row from the body, or the fallback lookup's bind (:24) is a literal 1 (provider 2's
+    // `{}` would answer 400 and provider 1's would find provider 2's account), or the UPDATE's (:93) or the INSERT's (:107) provider
+    // bind is a literal 1 (provider 1's row would carry step 4).
+    test("Ownership POST /api/provider/onboarding/stripe-complete: provider2's account id lands on provider 2's row only and the fallback lookup is each caller's own (no request reaches Stripe)", async ({ request, baseURL, playwright }) => {
+        const names = process.env.E2E_APP_ENV_NAMES;
+        test.skip(names === undefined || names.split(',').map((name) => name.trim()).includes('STRIPE_SECRET_KEY'), 'the app has a Stripe key (or the runner did not list the names): stripe-complete would call Stripe');
+        const as = await credentials(baseURL);
+        const p2 = await signedInAs(playwright, baseURL, 'provider2');
+        const before1 = await rowOf(request, as.provider, 'provider1');
+        const before2 = await rowOf(request, p2, 'provider2');
+        expect(Number(before1.provider.onboarding_step), 'provider 1 does not start on step 4').not.toBe(4);
+        expect(Number(before2.provider.onboarding_step), 'provider 2 does not start on step 4').not.toBe(4);
+        try {
+            // Nobody has a payout account row yet: the fallback finds nothing and the route stops at :29-35, before Stripe and before any write.
+            await expectAnswer(await request.post('/api/provider/onboarding/stripe-complete', { headers: as.provider, data: {} }), 400, 'Stripe account ID missing', 'provider1, no account yet (an earlier run of this case leaves rows of provider 2 that no route removes: run `npm run db:fixtures` first)');
+            await expectAnswer(await request.post('/api/provider/onboarding/stripe-complete', { headers: p2, data: {} }), 400, 'Stripe account ID missing', 'provider2, no account yet (an earlier run of this case leaves rows of provider 2 that no route removes: run `npm run db:fixtures` first)');
+
+            // provider 2 links an account id (the body also names provider 1 three ways): only provider 2's row moves.
+            const linked = await expectOk(await request.post('/api/provider/onboarding/stripe-complete', { headers: p2, data: { accountId: 'acct_e2e_ownership_probe', ...NAMING_PROVIDER1 } }), 'provider2 links its account');
+            expect(linked.body.step, 'provider2 link: step').toBe(4);
+            expect(linked.body.isComplete, 'provider2 link: isComplete (no Stripe answer)').toBe(false);
+            const after2 = await rowOf(request, p2, 'provider2 after linking');
+            expect(Number(after2.provider.onboarding_step), "provider 2's onboarding_step is 4").toBe(4);
+            const after1 = await rowOf(request, as.provider, 'provider1 after provider 2 linked');
+            expect(after1.me, "provider 1's /me is byte for byte what it was").toBe(before1.me);
+            expect(after1.docs, "provider 1's /onboarding/documents is byte for byte what it was").toBe(before1.docs);
+
+            // Now provider 2 has an account row and provider 1 has none: the fallback lookup answers each caller's own.
+            await expectAnswer(await request.post('/api/provider/onboarding/stripe-complete', { headers: as.provider, data: {} }), 400, 'Stripe account ID missing', "provider1 does not find provider 2's account");
+            const found = await expectOk(await request.post('/api/provider/onboarding/stripe-complete', { headers: p2, data: {} }), "provider2 finds its own account through the fallback");
+            expect(found.body.step, 'provider2 fallback: step').toBe(4);
+            const end1 = await rowOf(request, as.provider, 'provider1 after the fallbacks');
+            expect(end1.docs, "provider 1's row is still what it was").toBe(before1.docs);
+        } finally {
+            await stepBack(request, p2, before2.provider.onboarding_step);
+            await stepBack(request, as.provider, before1.provider.onboarding_step);
+        }
+    });
+});
