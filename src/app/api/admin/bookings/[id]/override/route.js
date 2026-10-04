@@ -1,19 +1,11 @@
 import { NextResponse } from 'next/server'
 import { execute, getConnection } from '@/lib/db'
-import { verifyToken } from '@/lib/jwt'
+import { requireCaller } from '@/lib/api-auth';
 
 export async function PUT(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
-    const token = request.cookies.get('adminAuth')?.value
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
-    }
-
-    const decoded = await verifyToken(token)
-    if (!decoded || decoded.role !== 'admin') {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
-    }
-
     const { id: booking_id } = await params
     const { worker_count, actual_duration_minutes, reason } = await request.json()
 
@@ -60,7 +52,7 @@ export async function PUT(request, { params }) {
         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           booking_id,
-          decoded.adminId || decoded.id || 1,
+          auth.caller.id,
           booking.worker_count || 1,
           worker_count,
           booking.actual_duration_minutes || 0,
