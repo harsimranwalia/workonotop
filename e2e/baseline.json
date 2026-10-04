@@ -27,19 +27,31 @@
     "admin.spec.js › Admin Panel - Auth Protection › should redirect /admin/users to login when not authenticated": {
       "outcome": "PASS"
     },
-    "api.spec.js › API Routes › DELETE /api/bookings without id should return 400": {
+    "api.spec.js › API Routes › DELETE /api/bookings without id and without a credential should return 401": {
       "outcome": "PASS"
     },
-    "api.spec.js › API Routes › GET /api/bookings should return success response": {
+    "api.spec.js › API Routes › DELETE /api/bookings without id as admin should return 400": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › GET /api/bookings as admin should return success response": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › GET /api/bookings with email filter as admin should return response": {
       "outcome": "PASS"
     },
     "api.spec.js › API Routes › GET /api/bookings with email filter should return response": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › GET /api/bookings without a credential should return 401": {
       "outcome": "PASS"
     },
     "api.spec.js › API Routes › GET /api/categories should return success response": {
       "outcome": "PASS"
     },
     "api.spec.js › API Routes › GET /api/customers should return response": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › GET /api/reviews as admin should return response": {
       "outcome": "PASS"
     },
     "api.spec.js › API Routes › GET /api/reviews should return response": {
@@ -60,7 +72,10 @@
     "api.spec.js › API Routes › POST /api/bookings with partial data should return 400": {
       "outcome": "PASS"
     },
-    "api.spec.js › API Routes › PUT /api/bookings without id should return 400": {
+    "api.spec.js › API Routes › PUT /api/bookings without id and without a credential should return 401": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › PUT /api/bookings without id as admin should return 400": {
       "outcome": "PASS"
     },
     "auth-admin-page.spec.js › Admin page guard › GET /admin with a garbage adminAuth value is a 307 to /admin/login and clears the cookie": {
@@ -718,8 +733,7 @@
       "error": "Error: src/app/api/admin/districts/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` ..."
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/providers/[providerId] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/providers/[providerId]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [r..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/seo/[id] uses the guard": {
       "outcome": "FAIL",
@@ -752,8 +766,7 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/bookings uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/bookings/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outside a co..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/categories uses the guard": {
       "outcome": "FAIL",
@@ -769,7 +782,7 @@
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/reviews uses the guard": {
       "outcome": "FAIL",
-      "error": "Error: src/app/api/reviews/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outside a com..."
+      "error": "Error: src/app/api/reviews/route.js: DELETE does not have `const auth = await requireCaller(request, [roles])` outside a comment (awaited, a literal roles list, the result kept)"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/service-locations uses the guard": {
       "outcome": "FAIL",
@@ -780,8 +793,7 @@
       "error": "Error: src/app/api/services/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outside a co..."
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/upload uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/upload/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outside a comm..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/user/addresses/[id] uses the guard": {
       "outcome": "FAIL",
@@ -824,24 +836,19 @@
       "error": "Error: src/app/api/admin/districts/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` out..."
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/earnings uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/earnings/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/invoices uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/invoices/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/invoices/[id]/preview uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/invoices/[id]/preview/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/invoices/[id]/preview/download uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/invoices/[id]/preview/download/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(reques..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/logs uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/logs/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a com..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/me uses the guard": {
       "outcome": "FAIL",
@@ -852,20 +859,16 @@
       "error": "Error: src/app/api/admin/notifications/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outs..."
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/payouts uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/payouts/route.js: does not import requireCaller from '@/lib/api-auth'; GET takes no request parameter to hand to requireCaller"
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/provider-jobs uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/provider-jobs/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outs..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/providers uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/providers/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/providers/[providerId]/documents uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/providers/[providerId]/documents/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(requ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/seo uses the guard": {
       "outcome": "FAIL",
@@ -929,12 +932,10 @@
       "error": "Error: src/app/api/auth/me/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a commen..."
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/bookings uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/bookings/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a comme..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/bookings/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/bookings/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/bookings/[id]/invoice/download uses the guard": {
       "outcome": "SKIPPED"
@@ -960,8 +961,7 @@
       "error": "Error: src/app/api/customer/booking-details/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])`..."
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/customer/bookings uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/customer/bookings/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outsid..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/customer/invoices uses the guard": {
       "outcome": "FAIL",
@@ -1048,8 +1048,7 @@
       "error": "Error: src/app/api/provider/status/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside ..."
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/reviews uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/reviews/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a commen..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/stats uses the guard": {
       "outcome": "FAIL",
@@ -1072,8 +1071,7 @@
       "error": "Error: src/app/api/admin/disputes/route.js: does not import requireCaller from '@/lib/api-auth'; PATCH does not have `const auth = await requireCaller(request, [roles])` outside..."
     },
     "auth-coverage.spec.js › Auth wiring › PATCH /api/admin/invoices uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/invoices/route.js: does not import requireCaller from '@/lib/api-auth'; PATCH does not have `const auth = await requireCaller(request, [roles])` outside..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PATCH /api/admin/service-locations/[id] uses the guard": {
       "outcome": "FAIL",
@@ -1101,12 +1099,10 @@
       "error": "Error: src/app/api/admin/districts/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside..."
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/invoices/generate uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/invoices/generate/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])`..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/providers/[providerId]/documents uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/providers/[providerId]/documents/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(req..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/seo uses the guard": {
       "outcome": "FAIL",
@@ -1153,12 +1149,10 @@
       "error": "Error: src/app/api/auth/change-password/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` ou..."
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/bookings/[id]/reassign uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/bookings/[id]/reassign/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/bookings/[id]/restart uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/bookings/[id]/restart/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` o..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/categories uses the guard": {
       "outcome": "FAIL",
@@ -1173,8 +1167,7 @@
       "error": "Error: src/app/api/chat/mark-read/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside ..."
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/customer/bookings uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/customer/bookings/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outsi..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/customer/bookings/[id]/approve uses the guard": {
       "outcome": "FAIL",
@@ -1250,7 +1243,7 @@
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/reviews uses the guard": {
       "outcome": "FAIL",
-      "error": "Error: src/app/api/reviews/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a comme..."
+      "error": "Error: src/app/api/reviews/route.js: POST does not have `const auth = await requireCaller(request, [roles])` outside a comment (awaited, a literal roles list, the result kept)"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/service-locations uses the guard": {
       "outcome": "FAIL",
@@ -1268,8 +1261,7 @@
       "error": "Error: src/app/api/test/push/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a com..."
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/upload uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/upload/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a commen..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/user/addresses uses the guard": {
       "outcome": "FAIL",
@@ -1296,12 +1288,10 @@
       "error": "Error: src/app/api/admin/notifications/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outs..."
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/providers uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/providers/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/providers/[providerId] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/providers/[providerId]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [role..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/providers/approve uses the guard": {
       "outcome": "FAIL",
@@ -1336,8 +1326,7 @@
       "error": "Error: src/app/api/admin/testimonials/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` ..."
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/bookings uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/bookings/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a comme..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/categories uses the guard": {
       "outcome": "FAIL",
@@ -1414,6 +1403,15 @@
     "auth-guard.spec.js › Auth guard - how it is called › the guard never reads the body, on a refusal or on success": {
       "outcome": "PASS"
     },
+    "auth-guard.spec.js › Auth guard - ids and role claims (ENG-021) › a role claim that is none of admin, provider, user or customer is refused outright, even when type is recognised": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - ids and role claims (ENG-021) › an id signed as its digits is returned as a number: \"21\" is 21, 21 stays 21, a provider's providerId \"21\" is 21": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - ids and role claims (ENG-021) › the real web payloads still pass, and a role of null is no role claim at all": {
+      "outcome": "PASS"
+    },
     "auth-guard.spec.js › Auth guard - refusals › a customer on an admin route is 403 Forbidden, never 401, by cookie and by Bearer": {
       "outcome": "PASS"
     },
@@ -1435,6 +1433,27 @@
     "auth-guard.spec.js › Auth guard - refusals › no credential is 401 Unauthorized": {
       "outcome": "PASS"
     },
+    "auth-guard.spec.js › Auth guard - the Bearer path with a session lookup (ENG-021) › F1(a): a verified token whose type is special-purpose is 401 as a Bearer even when it carries a role": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - the Bearer path with a session lookup (ENG-021) › F1(b): a verified token whose role and type name different roles is 401 as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - the Bearer path with a session lookup (ENG-021) › F1(c): \"Bearer <valid> x\", \"<valid> x y\" and the same with a tab are 401, with norows and with down; the bare token passes": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - the Bearer path with a session lookup (ENG-021) › an admin by Bearer on a customer-only or a provider-only route is 403, never 401, with norows and with down": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - the Bearer path with a session lookup (ENG-021) › the cookie path never touches the database: a request a cookie settles makes zero lookups": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - the Bearer path with a session lookup (ENG-021) › the issued-string path survives: a stored string that does not verify is a session of the row's user_type; with no row it is 401": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - the Bearer path with a session lookup (ENG-021) › the normal mobile tokens of all three roles still pass as a Bearer, with norows and with down": {
+      "outcome": "PASS"
+    },
     "auth-guard.spec.js › Auth guard - what counts as a session › a cookie sent twice is decided by the later one, as request.cookies.get does: garbage last is 401, valid last is a session": {
       "outcome": "PASS"
     },
@@ -1444,10 +1463,40 @@
     "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \" \" is 401 for every role, as a cookie and as a Bearer": {
       "outcome": "PASS"
     },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \" 5 \" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
     "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \"\" is 401 for every role, as a cookie and as a Bearer": {
       "outcome": "PASS"
     },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \"0\" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \"007\" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \"1.5\" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \"1e3\" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \"5abc\" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \"9007199254740993\" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is -3 is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
     "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is 0 is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is 1.5 is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is 9007199254740992 is 401 for every role, as a cookie and as a Bearer": {
       "outcome": "PASS"
     },
     "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is true is 401 for every role, as a cookie and as a Bearer": {
@@ -1471,15 +1520,14 @@
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/cities/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/cities/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: DELETE /api/admin/cities/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/districts/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/districts/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: DELETE /api/admin/districts/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/providers/[providerId]": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/providers/[providerId] [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/seo/[id]": {
       "outcome": "FAIL",
@@ -1487,23 +1535,23 @@
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/service-areas/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/service-areas/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: DELETE /api/admin/service-areas/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/service-locations/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/service-locations/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: DELETE /api/admin/service-locations/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/skills/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/skills/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: DELETE /api/admin/skills/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/states/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/states/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: DELETE /api/admin/states/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/testimonials/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/testimonials/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: DELETE /api/admin/testimonials/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/ai-gateway/v1/seo": {
       "outcome": "PASS"
@@ -1512,8 +1560,7 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/bookings": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/bookings [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/categories": {
       "outcome": "FAIL",
@@ -1540,12 +1587,11 @@
       "error": "Error: DELETE /api/services [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/upload": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/upload [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/user/addresses/[id]": {
       "outcome": "FAIL",
-      "error": "Error: DELETE /api/user/addresses/[id] [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+3 more)"
+      "error": "Error: DELETE /api/user/addresses/[id] [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/blogs": {
       "outcome": "FAIL",
@@ -1557,15 +1603,15 @@
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/cities": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/cities [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/admin/cities [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/cities/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/cities/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/admin/cities/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/deletion-requests": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/deletion-requests [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/admin/deletion-requests [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/disputes": {
       "outcome": "FAIL",
@@ -1577,55 +1623,46 @@
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/districts": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/districts [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/admin/districts [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/districts/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/districts/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/admin/districts/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/earnings": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/earnings [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/invoices": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/invoices [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/invoices/[id]/preview": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/invoices/[id]/preview [roles (admin)] answered wrongly: none (no credential): got 404, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/invoices/[id]/preview/download": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/invoices/[id]/preview/download [roles (admin)] answered wrongly: none (no credential): got 404, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/logs": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/logs [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/me": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/me [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/admin/me [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/notifications": {
       "outcome": "FAIL",
       "error": "Error: GET /api/admin/notifications [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/payouts": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/payouts [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/provider-jobs": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/provider-jobs [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/providers": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/providers [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/providers/[providerId]/documents": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/providers/[providerId]/documents [roles (admin)] answered wrongly: none (no credential): got 404, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/seo": {
       "outcome": "FAIL",
@@ -1637,19 +1674,19 @@
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/service-areas": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/service-areas [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/admin/service-areas [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/service-areas/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/service-areas/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/admin/service-areas/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/service-locations": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/service-locations [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/admin/service-locations [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/service-locations/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/service-locations/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/admin/service-locations/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/settings": {
       "outcome": "FAIL",
@@ -1657,23 +1694,23 @@
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/skills": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/skills [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/admin/skills [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/skills/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/skills/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/admin/skills/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/states": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/states [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/admin/states [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/states/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/states/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/admin/states/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/testimonials": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/admin/testimonials [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/admin/testimonials [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/ai-gateway/openapi.json": {
       "outcome": "PASS"
@@ -1691,12 +1728,10 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/bookings": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/bookings [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/bookings/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/bookings/[id] [roles (admin)] answered wrongly: none (no credential): got 404, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/bookings/[id]/invoice/download": {
       "outcome": "SKIPPED"
@@ -1722,19 +1757,18 @@
     },
     "auth-matrix.spec.js › Role by route › GET /api/customer/booking-details": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/customer/booking-details [roles (customer)] answered wrongly: provider-cookie (provider), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: GET /api/customer/booking-details [roles (customer)] answered wrongly: provider-cookie (provider), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customer/bookings": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/customer/bookings [roles (customer, admin)] answered wrongly: none (no credential): got 400, want 401 (+2 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customer/invoices": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/customer/invoices [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+3 more)"
+      "error": "Error: GET /api/customer/invoices [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customer/reviews": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/customer/reviews [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+3 more)"
+      "error": "Error: GET /api/customer/reviews [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customers": {
       "outcome": "FAIL",
@@ -1756,70 +1790,70 @@
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/availability": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/availability [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: GET /api/provider/availability [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/available-jobs": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/available-jobs [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: GET /api/provider/available-jobs [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/available-jobs/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/available-jobs/[id] [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/provider/available-jobs/[id] [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/bookings": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/bookings [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: GET /api/provider/bookings [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/check-verification": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/dashboard-stats": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/dashboard-stats [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: GET /api/provider/dashboard-stats [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/jobs": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/jobs [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: GET /api/provider/jobs [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/[id]": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/jobs/[id] [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: GET /api/provider/jobs/[id] [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/photos": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/jobs/photos [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: GET /api/provider/jobs/photos [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/time-tracking": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/jobs/time-tracking [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/provider/jobs/time-tracking [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/me": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/me [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: GET /api/provider/me [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/onboarding/documents": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/onboarding/documents [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: GET /api/provider/onboarding/documents [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/onboarding/stripe-return": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/onboarding/stripe-return [roles (provider)] answered wrongly: none (no credential): got 500, want 401 (+3 more)"
+      "error": "Error: GET /api/provider/onboarding/stripe-return [roles (provider)] answered wrongly: none (no credential): got 500, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/payouts": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/payouts [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/provider/payouts [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/profile": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/profile [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/provider/profile [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/ratings": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/ratings [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: GET /api/provider/ratings [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/status": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/provider/status [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: GET /api/provider/status [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/validate-reset-token": {
       "outcome": "PASS"
@@ -1828,8 +1862,7 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/reviews": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/reviews [roles (customer, admin)] answered wrongly: none (no credential): got 200, want 401 (+2 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/seo": {
       "outcome": "PASS"
@@ -1855,27 +1888,26 @@
     },
     "auth-matrix.spec.js › Role by route › GET /api/user/addresses": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/user/addresses [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+3 more)"
+      "error": "Error: GET /api/user/addresses [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/user/settings": {
       "outcome": "FAIL",
-      "error": "Error: GET /api/user/settings [roles (customer, provider)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+2 more)"
+      "error": "Error: GET /api/user/settings [roles (customer, provider)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PATCH /api/admin/deletion-requests": {
       "outcome": "FAIL",
-      "error": "Error: PATCH /api/admin/deletion-requests [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: PATCH /api/admin/deletion-requests [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PATCH /api/admin/disputes": {
       "outcome": "FAIL",
       "error": "Error: PATCH /api/admin/disputes [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PATCH /api/admin/invoices": {
-      "outcome": "FAIL",
-      "error": "Error: PATCH /api/admin/invoices [roles (admin)] answered wrongly: none (no credential): got 500, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PATCH /api/admin/service-locations/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PATCH /api/admin/service-locations/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: PATCH /api/admin/service-locations/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PATCH /api/ai-gateway/v1/seo": {
       "outcome": "PASS"
@@ -1892,15 +1924,14 @@
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/cities": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/cities [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: POST /api/admin/cities [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/districts": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/districts [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: POST /api/admin/districts [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/invoices/generate": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/admin/invoices/generate [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/login": {
       "outcome": "PASS"
@@ -1909,8 +1940,7 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/providers/[providerId]/documents": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/admin/providers/[providerId]/documents [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/seo": {
       "outcome": "FAIL",
@@ -1918,11 +1948,11 @@
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/service-areas": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/service-areas [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: POST /api/admin/service-areas [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/service-locations": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/service-locations [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: POST /api/admin/service-locations [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/settings": {
       "outcome": "FAIL",
@@ -1930,15 +1960,15 @@
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/skills": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/skills [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: POST /api/admin/skills [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/states": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/states [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: POST /api/admin/states [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/testimonials": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/admin/testimonials [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: POST /api/admin/testimonials [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/ai-gateway/v1/seo": {
       "outcome": "PASS"
@@ -1957,7 +1987,7 @@
     },
     "auth-matrix.spec.js › Role by route › POST /api/auth/change-password": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/auth/change-password [roles (customer, provider)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+2 more)"
+      "error": "Error: POST /api/auth/change-password [roles (customer, provider)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/auth/data-deletion": {
       "outcome": "PASS"
@@ -2002,12 +2032,10 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/bookings/[id]/reassign": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/bookings/[id]/reassign [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/bookings/[id]/restart": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/bookings/[id]/restart [roles (admin)] answered wrongly: none (no credential): got 500, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/categories": {
       "outcome": "FAIL",
@@ -2022,20 +2050,19 @@
       "error": "Error: POST /api/chat/mark-read [roles (customer, provider, admin)] answered wrongly: none (no credential): got 400, want 401"
     },
     "auth-matrix.spec.js › Role by route › POST /api/customer/bookings": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/customer/bookings [roles (customer, admin)] answered wrongly: none (no credential): got 400, want 401 (+2 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/customer/bookings/[id]/approve": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/customer/bookings/[id]/approve [roles (customer)] answered wrongly: provider-cookie (provider), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: POST /api/customer/bookings/[id]/approve [roles (customer)] answered wrongly: provider-cookie (provider), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/customer/bookings/[id]/cancel": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/customer/bookings/[id]/cancel [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+3 more)"
+      "error": "Error: POST /api/customer/bookings/[id]/cancel [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/customer/reviews": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/customer/reviews [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+3 more)"
+      "error": "Error: POST /api/customer/reviews [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/customers": {
       "outcome": "FAIL",
@@ -2043,34 +2070,34 @@
     },
     "auth-matrix.spec.js › Role by route › POST /api/mobile/push-token": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/mobile/push-token [roles (customer, provider)] answered wrongly: none (no credential): got 400, want 401 (+1 more)"
+      "error": "Error: POST /api/mobile/push-token [roles (customer, provider)] answered wrongly: none (no credential): got 400, want 401 (+2 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/payment/create-intent": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/payment/create-intent [roles (customer)] answered wrongly: none (no credential): got 500, want 401 (+3 more)"
+      "error": "Error: POST /api/payment/create-intent [roles (customer)] answered wrongly: none (no credential): got 500, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/availability": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/availability [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: POST /api/provider/availability [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/available-jobs": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/available-jobs [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: POST /api/provider/available-jobs [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/available-jobs/[id]": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/available-jobs/[id] [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: POST /api/provider/available-jobs/[id] [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/forgot-password": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/jobs/photos": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/jobs/photos [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: POST /api/provider/jobs/photos [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/jobs/time-tracking": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/jobs/time-tracking [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: POST /api/provider/jobs/time-tracking [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/login": {
       "outcome": "PASS"
@@ -2080,27 +2107,27 @@
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/complete": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/complete [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: POST /api/provider/onboarding/complete [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/create-stripe-account": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/create-stripe-account [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: POST /api/provider/onboarding/create-stripe-account [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/profile": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/profile [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: POST /api/provider/onboarding/profile [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/stripe-complete": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/stripe-complete [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: POST /api/provider/onboarding/stripe-complete [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/update-step": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/update-step [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: POST /api/provider/onboarding/update-step [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/upload-document": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/upload-document [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: POST /api/provider/onboarding/upload-document [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/reset-password": {
       "outcome": "PASS"
@@ -2110,14 +2137,14 @@
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/upload": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/provider/upload [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: POST /api/provider/upload [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/verify-otp": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/reviews": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/reviews [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+3 more)"
+      "error": "Error: POST /api/reviews [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/service-locations": {
       "outcome": "FAIL",
@@ -2135,12 +2162,11 @@
       "error": "Error: POST /api/test/push [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/upload": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/upload [roles (customer, provider, admin)] answered wrongly: none (no credential): got 500, want 401"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/user/addresses": {
       "outcome": "FAIL",
-      "error": "Error: POST /api/user/addresses [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+3 more)"
+      "error": "Error: POST /api/user/addresses [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/blogs/[id]": {
       "outcome": "FAIL",
@@ -2148,27 +2174,25 @@
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/bookings/[id]/override": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/bookings/[id]/override [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: PUT /api/admin/bookings/[id]/override [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/cities/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/cities/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: PUT /api/admin/cities/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/districts/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/districts/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: PUT /api/admin/districts/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/notifications": {
       "outcome": "FAIL",
       "error": "Error: PUT /api/admin/notifications [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/providers": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/providers [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/providers/[providerId]": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/providers/[providerId] [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/providers/approve": {
       "outcome": "FAIL",
@@ -2180,31 +2204,30 @@
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/service-areas": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/service-areas [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: PUT /api/admin/service-areas [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/service-areas/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/service-areas/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: PUT /api/admin/service-areas/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/service-locations/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/service-locations/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: PUT /api/admin/service-locations/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/skills/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/skills/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: PUT /api/admin/skills/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/states/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/states/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: PUT /api/admin/states/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/testimonials/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/testimonials/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: PUT /api/admin/testimonials/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/bookings": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/bookings [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/categories": {
       "outcome": "FAIL",
@@ -2224,11 +2247,11 @@
     },
     "auth-matrix.spec.js › Role by route › PUT /api/provider/availability": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/provider/availability [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+2 more)"
+      "error": "Error: PUT /api/provider/availability [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/provider/profile": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/provider/profile [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "error": "Error: PUT /api/provider/profile [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/services": {
       "outcome": "FAIL",
@@ -2236,11 +2259,11 @@
     },
     "auth-matrix.spec.js › Role by route › PUT /api/user/addresses/[id]": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/user/addresses/[id] [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+3 more)"
+      "error": "Error: PUT /api/user/addresses/[id] [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/user/settings": {
       "outcome": "FAIL",
-      "error": "Error: PUT /api/user/settings [roles (customer, provider)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+2 more)"
+      "error": "Error: PUT /api/user/settings [roles (customer, provider)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+3 more)"
     },
     "booking-flow.spec.js › Booking Flow › booking details should have input fields for customer info": {
       "outcome": "PASS"
@@ -2261,6 +2284,111 @@
       "outcome": "PASS"
     },
     "booking-flow.spec.js › Booking Flow › should load booking success page": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › AC6 cross-account bookings › AC6 customer1 asking for customer2's booking on /api/bookings/[id] is 403 and shows none of its fields": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › AC6 cross-account bookings › AC6 customer1 asking for customer2's bookings on /api/customer/bookings is 403 and shows none of their fields": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › AC6 cross-account bookings › AC6 customer1 posting customer2's booking_id to /api/customer/bookings is 403 and shows none of its fields": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 bookings › D1 admin GET /api/bookings is 200 and lists both fixture bookings": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 bookings › D1 anonymous DELETE /api/bookings?id= is 401 and the booking is still there": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 bookings › D1 anonymous GET /api/bookings is 401 and returns no booking": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 bookings › D1 anonymous PUT /api/bookings?id= is 401 and the booking is unchanged": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 bookings › D1 customer1 and provider1 get 403 on GET, PUT and DELETE /api/bookings and the booking is unchanged": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 receipt page › AC6 receipt: customer1 opening customer2's booking sees Booking Not Found and none of its fields": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 receipt page › D1 receipt: a guest right after checkout sees the receipt from the tab's saved booking and never asks /api/bookings/[id]": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 receipt page › D1 receipt: a guest whose tab holds no matching saved booking sees Booking Not Found and none of the booking's fields": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 receipt page › D1 receipt: customer1 with no saved booking sees their own booking from /api/customer/booking-details": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 DELETE /api/admin/providers/[providerId] is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/earnings is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/invoices is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/invoices/[id]/preview is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/invoices/[id]/preview/download is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/logs is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/payouts is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/provider-jobs is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/providers is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/providers/[providerId]/documents is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 PATCH /api/admin/invoices is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 POST /api/admin/invoices/generate is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 POST /api/admin/providers/[providerId]/documents is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 PUT /api/admin/providers is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 PUT /api/admin/providers/[providerId] is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D3 customer lookup › D3 anonymous GET /api/bookings?email= is 401 and returns no booking data": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D3 customer lookup › D3 anonymous GET /api/customer/bookings with ?email= or ?user_id= is 401": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D3 customer lookup › D3 customer1 GET /api/customer/bookings is 200 with customer1's booking and not customer2's": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D3 customer lookup › D3 customer1 GET /api/customer/bookings?user_id= or ?email= naming customer2 is 403": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D3 customer lookup › D3 customer1 POST /api/customer/bookings with customer2's booking_id is 403": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D6 uploads › D6 anonymous DELETE /api/upload?url= is 401 and the file still serves": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D6 uploads › D6 anonymous POST /api/upload is 401, returns no url and writes no file": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D6 uploads › D6 customer1, provider1 and admin can each upload a PNG: 200 with a url that serves": {
       "outcome": "PASS"
     },
     "fixtures-guard.spec.js › Fixture guard - reserved email names › does not treat \"\" as a reserved name": {
