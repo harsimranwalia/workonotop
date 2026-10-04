@@ -250,9 +250,20 @@ test.describe('Ownership: customers/[id]', () => {
         }
     });
 
-    // Red if the UPDATE's `WHERE id = ?` stops binding caller.id (the marker would land elsewhere or nowhere).
-    test('Ownership PUT /api/customers/[id]: customer1 writes their own profile (a marker in hear_about, read back, then restored)', async ({ request, baseURL }) => {
+    // Each customer writes their own profile, a marker in hear_about that is read back and then restored: customer 1 (id 1) and customer 2
+    // (id 2). Customer 1 alone cannot tell the binds `caller.id` from a literal 1 (they are the same number), so customer 2's write is the one
+    // that does: it must be answered with row 2, stored on row 2, and leave row 1 as it was. Red if the UPDATE's `WHERE id = ?` binds a literal 1
+    // (customer 2's marker would land on customer 1's row: the admin's read of row 2 holds none, of row 1 holds it) or a literal 2 (customer 1's
+    // marker would land on customer 2's row), or if the SELECT that echoes the row back binds a literal 1 (customer 2's answer would be row 1:
+    // its id is 1, not 2). A write to another customer's path id is refused before either query: that is the case above.
+    test('Ownership PUT /api/customers/[id]: customer1 writes their own profile (a marker in hear_about, read back, then restored)', async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
+        const customer2 = await signedInAs(playwright, baseURL, 'customer2');
+        const profileAsAdmin = async (id) => {
+            const read = await request.get(`/api/customers/${id}`, { headers: as.admin });
+            expect(read.status(), `admin reads customer ${id}`).toBe(200);
+            return (await read.json()).data;
+        };
         const marker = `e2e-ownership-own-${Date.now()}`;
         const own = { first_name: CUSTOMER1.first_name, last_name: CUSTOMER1.last_name, phone: CUSTOMER1.phone, receive_offers: 0 };
         try {
@@ -264,6 +275,21 @@ test.describe('Ownership: customers/[id]', () => {
             expect((await other.json()).data.hear_about, "customer 2's hear_about is not customer 1's marker").not.toBe(marker);
         } finally {
             await request.put(`/api/customers/${CUSTOMER1.id}`, { headers: as.customer, data: { ...own, hear_about: '' } });
+        }
+        // Customer 2 as the second writer. Both rows are read as the admin first, so "unchanged" after the write is the value read here and not a
+        // guess; customer 2's hear_about must start empty, because the restore below puts it back to empty.
+        const marker2 = `e2e-ownership-own-two-${Date.now()}`;
+        const own2 = { first_name: CUSTOMER2.first_name, last_name: CUSTOMER2.last_name, phone: CUSTOMER2.phone, receive_offers: 0 };
+        const before1 = await profileAsAdmin(CUSTOMER1.id);
+        const before2 = await profileAsAdmin(CUSTOMER2.id);
+        expect(before2.hear_about, "customer 2's hear_about starts empty (the restore below sets it back to that)").toBeNull();
+        try {
+            const { body } = await expectOk(await request.put(`/api/customers/${CUSTOMER2.id}`, { headers: customer2, data: { ...own2, hear_about: marker2 } }), 'customer 2 writes customer 2');
+            expect(body.data.id, "the row customer 2's write answers with is customer 2's (id 2), not customer 1's").toBe(CUSTOMER2.id);
+            expect((await profileAsAdmin(CUSTOMER2.id)).hear_about, "customer 2's stored hear_about is customer 2's marker").toBe(marker2);
+            expect((await profileAsAdmin(CUSTOMER1.id)).hear_about, "customer 1's stored hear_about is what it was, not customer 2's marker").toBe(before1.hear_about);
+        } finally {
+            await request.put(`/api/customers/${CUSTOMER2.id}`, { headers: customer2, data: { ...own2, hear_about: '' } });
         }
     });
 });
@@ -379,8 +405,15 @@ test.describe('Ownership: POST /api/reviews', () => {
         }
     });
 
-    test("Ownership POST /api/reviews: a review for customer 1's own completed booking is stored with customer 1 and the booking's provider, whatever the body names, and a missing booking keeps its 404", async ({ request, baseURL }) => {
+    // The row is written with caller.id and the booking's own provider (the INSERT's `booking.provider_id, caller.id`), and the id spaces
+    // overlap: customer 1 and provider 1 are both id 1, so their leg alone cannot tell caller.id from a literal 1. Customer 2's leg can (their
+    // own completed booking, assigned to provider 2, a body naming customer 2 and provider 2): the stored customer_id must be 2 and the stored
+    // provider_id 2. Red if the INSERT binds a literal 1 where it binds caller.id (customer 2's review would be stored with customer 1) or
+    // where it binds booking.provider_id (it would be stored with provider 1). A body that names other ids is not tried here: the two cases
+    // above answer those with a 403 before the INSERT. The review of each leg is deleted in `finally`.
+    test("Ownership POST /api/reviews: a review for the caller's own completed booking is stored with the caller and the booking's provider, and a missing booking keeps its 404", async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
+        const customer2 = await signedInAs(playwright, baseURL, 'customer2');
         await withProbeBooking(request, as, async (id) => {
             await adminUpdates(request, as, id, { status: 'completed', provider_id: PROVIDER1.id });
             const marker = `e2e-ownership-own-review-${Date.now()}`;
@@ -397,6 +430,24 @@ test.describe('Ownership: POST /api/reviews', () => {
                 await request.delete(`/api/reviews?id=${reviewId}`, { headers: as.admin });
             }
         }, { headers: as.customer });
+        // Customer 2 as the second author: their own probe booking, completed and assigned to provider 2 by the admin.
+        await withProbeBooking(request, as, async (id) => {
+            await adminUpdates(request, as, id, { status: 'completed', provider_id: PROVIDER2.id });
+            const marker = `e2e-ownership-own-review-two-${Date.now()}`;
+            const written = await expectOk(await request.post('/api/reviews', { headers: customer2, data: { booking_id: id, provider_id: PROVIDER2.id, customer_id: CUSTOMER2.id, rating: 4, review: marker } }), 'customer 2 reviews their own booking');
+            const reviewId = written.body.review_id;
+            try {
+                const read = await request.get(`/api/reviews?booking_id=${id}`, { headers: as.admin });
+                expect(read.status(), "admin reads the reviews of customer 2's booking").toBe(200);
+                const rows = (await read.json()).data;
+                expect(rows.length, "one review is stored for customer 2's booking").toBe(1);
+                expect(rows[0].review, "the stored text is customer 2's").toBe(marker);
+                expect(rows[0].customer_id, "the stored customer_id is the caller's 2, not customer 1's").toBe(CUSTOMER2.id);
+                expect(rows[0].provider_id, "the stored provider_id is the booking's own provider 2, not provider 1's").toBe(PROVIDER2.id);
+            } finally {
+                await request.delete(`/api/reviews?id=${reviewId}`, { headers: as.admin });
+            }
+        }, { headers: customer2 });
         const missing = await request.post('/api/reviews', { headers: as.customer, data: { booking_id: MISSING, provider_id: PROVIDER1.id, customer_id: CUSTOMER1.id, rating: 4 } });
         await expectAnswer(missing, 404, 'Booking not found', 'customer1, missing booking');
     });
@@ -748,8 +799,12 @@ test.describe('Ownership: customer account', () => {
         }
     });
 
-    // customer1 and provider1 each set dark_mode_enabled on their own row: the other one (same id, other table) and customer 2 stay off.
-    // Red if the table is chosen by anything but the caller's role, or the UPDATE's id is not caller.id. The flag is restored in `finally`.
+    // customer1, provider1 and customer 2 each set dark_mode_enabled on their own row, and the other two stay off (customer 1 and provider 1 are
+    // both id 1, in two tables; customer 2 is id 2). Red if the table is not chosen by the caller's role (a `users` lookup for everyone turns
+    // customer 1's flag on for provider 1's write; a `service_providers` one turns provider 1's on for customer 1's), or if the UPDATE's id is
+    // not caller.id: a literal 2 puts customer 1's and provider 1's flags on row 2, so the reads after their writes miss them; a literal 1 is
+    // shown by customer 2's write alone (for the other two caller.id is 1): customer 1's flag turns on and customer 2's stays off, so the three
+    // reads give [true, false, false] where [false, false, true] is expected. The flags are cleared again in the body and in `finally`.
     test("Ownership PUT /api/user/settings: a caller changes only their own row, in the table of their role, and a body user_id or provider_id naming anyone else is 403", async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
         const customer2 = await signedInAs(playwright, baseURL, 'customer2');
@@ -763,6 +818,9 @@ test.describe('Ownership: customer account', () => {
             await expectOk(await set(as.providerBearer, true), 'provider1 sets it');
             expect([await dark(as.customer, 'customer1'), await dark(as.provider, 'provider1'), await dark(customer2, 'customer 2')], "only provider 1's row is on (customer 1 has the same id)").toEqual([false, true, false]);
             await expectOk(await set(as.provider, false), 'provider1 clears it');
+            await expectOk(await set(customer2, true), 'customer 2 sets it');
+            expect([await dark(as.customer, 'customer1'), await dark(as.provider, 'provider1'), await dark(customer2, 'customer 2')], "only customer 2's row is on (customer 1 and provider 1 are the id 1, customer 2 the id 2)").toEqual([false, false, true]);
+            await expectOk(await set(customer2, false), 'customer 2 clears it');
             // naming another account is refused and writes nothing
             for (const [who, headers, data] of [
                 ['customer1, user_id 2', as.customer, { user_id: CUSTOMER2.id, dark_mode_enabled: true }],
@@ -775,6 +833,7 @@ test.describe('Ownership: customer account', () => {
         } finally {
             await set(as.customer, false);
             await set(as.provider, false);
+            await set(customer2, false);
         }
     });
 
@@ -1284,7 +1343,14 @@ test.describe('Ownership: provider onboarding writes and provider/upload', () =>
             const folder = nodePath.join(process.cwd(), 'public', 'uploads');
             for (const name of await readdir(folder)) {
                 const made = /^[12]-(other|profile_photo)-(\d+)\.png$/.exec(name);
-                if (made && Number(made[2]) >= startedAt) await unlink(nodePath.join(folder, name)).catch(() => {});
+                if (made && Number(made[2]) >= startedAt) {
+                    try {
+                        await unlink(nodePath.join(folder, name));
+                    } catch (error) {
+                        // A file that is already gone is fine; any other failure to remove one is the case's failure, not swallowed.
+                        if (error.code !== 'ENOENT') throw error;
+                    }
+                }
             }
         }
     });
