@@ -635,27 +635,27 @@ export const matrix = [
     },
     {
         route: '/api/bookings', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'CRITICAL: anonymous delete of any booking plus its invoices, provider_payouts, reviews and chat…',
+        note: 'CRITICAL before ENG-021 (an admin only now): anonymous delete of any booking plus its invoices, provider_payouts, reviews and chat… ENG-021 guard: src/app/api/bookings/route.js:524-525 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/bookings', body: undefined, anon: 401 },
     },
     {
         route: '/api/bookings', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'HIGH: anonymous dump of every booking (name, email, phone, address, lat/long, payment_intent_id…',
+        note: 'HIGH before ENG-021 (an admin only now, ?email= included): anonymous dump of every booking (name, email, phone, address, lat/long, payment_intent_id… ENG-021 guard: src/app/api/bookings/route.js:23-24 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/bookings', body: undefined, anon: 401 },
     },
     {
         route: '/api/bookings', method: 'POST', today: 'partial', kind: 'public', public: 'guest checkout; a credential, if sent, sets the owner (R1)', owner: '-',
-        note: 'HIGH: payment_intent_id only checked truthy (123), never verified with Stripe (client declared … Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Missing required fields (Service, Date, Time, Address, or Email)\'.',
+        note: 'HIGH: payment_intent_id only checked truthy (120), never verified with Stripe (client declared … Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Missing required fields (Service, Date, Time, Address, or Email)\'.',
         probe: { path: '/api/bookings', body: {}, anon: [400] },
     },
     {
         route: '/api/bookings', method: 'PUT', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'CRITICAL: anonymous caller can set any booking\'s status, provider, payment_status and commissio…',
+        note: 'CRITICAL before ENG-021 (an admin only now): an anonymous caller could set any booking\'s status, provider, payment_status and commissio… ENG-021 guard: src/app/api/bookings/route.js:340-341 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. The activity log\'s actor is the verified admin (auth.caller.id, :352-353), not a decoded Bearer.',
         probe: { path: '/api/bookings', body: {}, anon: 401 },
     },
     {
         route: '/api/bookings/[id]', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'HIGH: anonymous read of any booking by sequential id or guessable booking_number (BK + timestam…',
+        note: 'HIGH before ENG-021 (an admin only now): anonymous read of any booking by sequential id or guessable booking_number (BK + timestam… ENG-021 guard: src/app/api/bookings/[id]/route.js:7-8 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/bookings/999999999', body: undefined, anon: 401 },
     },
     {
@@ -665,12 +665,12 @@ export const matrix = [
     },
     {
         route: '/api/bookings/[id]/reassign', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'HIGH: anonymous reassign and reset of any booking, completed or disputed included; old_provider…',
+        note: 'HIGH before ENG-021 (an admin only now): anonymous reassign and reset of any booking, completed or disputed included; old_provider… ENG-021 guard: src/app/api/bookings/[id]/reassign/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/bookings/999999999/reassign', body: {}, anon: 401 },
     },
     {
         route: '/api/bookings/[id]/restart', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'HIGH: anonymous removal of the provider and reset to pending on any booking; no status guard, s… Probe (B2, 2026-10-02): not held, probe unchanged. The handler never reads the body. The UPDATE at restart/route.js:19-31 matches no row for 999999999, and the INSERT into booking_status_history at :34-38 is stopped only by the database: SHOW CREATE TABLE on the dev DB (structure only, 07:01 on 2026-10-02) shows booking_status_history_ibfk_1, booking_id REFERENCES bookings (id) ON DELETE CASCADE, so the INSERT fails, the transaction rolls back (:42-45) and the catch answers 500. A schema without that foreign key would store a history row for a booking that does not exist.',
+        note: 'HIGH before ENG-021 (an admin only now): anonymous removal of the provider and reset to pending on any booking; no status guard, s… Probe (B2, 2026-10-02): not held, probe unchanged. The handler never reads the body. The UPDATE at restart/route.js:22-34 matches no row for 999999999, and the INSERT into booking_status_history at :37-41 is stopped only by the database: SHOW CREATE TABLE on the dev DB (structure only, 07:01 on 2026-10-02) shows booking_status_history_ibfk_1, booking_id REFERENCES bookings (id) ON DELETE CASCADE, so the INSERT fails, the transaction rolls back (:45-48) and the catch answers 500. A schema without that foreign key would store a history row for a booking that does not exist. ENG-021 guard: restart/route.js:6-7 (requireCaller(request, [\'admin\'])), ahead of the UPDATE; it does not read the body either, so the probe (admin style only now) still stops where it did. The line numbers in the probe line above are the ones after this change.',
         probe: { path: '/api/bookings/999999999/restart', body: {}, anon: 401 },
     },
     {
