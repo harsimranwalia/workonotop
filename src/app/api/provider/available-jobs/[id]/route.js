@@ -142,7 +142,7 @@ export async function POST(request, { params }) {
       if (!job) { await connection.query('ROLLBACK'); return NextResponse.json({ success: false, message: 'Job not found' }, { status: 404 }) }
 
       // Ownership, on the locked row: the caller's own job, or an unassigned one open to providers (the clause jobs/[id] has). Another provider's job,
-      // or one that is neither, is a 403, never the 409s below (they stay for the caller's own job).
+      // or one that is neither, is a 403, never the 409 below (it stays for the caller's own job, which has a provider already).
       if (!(job.provider_id === caller.id || (job.provider_id === null && ['pending', 'matching'].includes(job.status)))) {
         await connection.query('ROLLBACK')
         return forbidden()
@@ -151,7 +151,6 @@ export async function POST(request, { params }) {
       const commPct = job.commission_percent !== null ? parseFloat(job.commission_percent) : defaultComm
 
       if (job.provider_id !== null) { await connection.query('ROLLBACK'); return NextResponse.json({ success: false, message: 'Already accepted by another provider' }, { status: 409 }) }
-      if (!['pending', 'matching'].includes(job.status)) { await connection.query('ROLLBACK'); return NextResponse.json({ success: false, message: `Not available (status: ${job.status})` }, { status: 409 }) }
 
       // Update commission if null
       if (job.commission_percent === null) {
