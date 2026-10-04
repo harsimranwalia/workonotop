@@ -127,28 +127,19 @@
 
 import { NextResponse } from 'next/server'
 import { execute } from '@/lib/db'
-import { verifyToken } from '@/lib/jwt'
+import { requireCaller } from '@/lib/api-auth'
 import { promises as fs } from 'fs'
 import path from 'path'
 
 export async function GET(request, { params }) {
+  const auth = await requireCaller(request, ['customer', 'admin']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   try {
     const { id } = await params
-    
-    // Auth check - prioritize Authorization header for mobile
-    const authHeader = request.headers.get('Authorization')
-    let token = authHeader ? authHeader.replace('Bearer ', '') : request.cookies.get('customer_token')?.value
-    
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
-    }
-    const decoded = verifyToken(token)
-    if (!decoded) {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 })
-    }
 
-    // Only allow users to fetch their own profile (unless admin)
-    if (String(decoded.id) !== String(id) && decoded.role !== 'admin') {
+    // Only allow users to fetch their own profile (unless admin): the id in the path is compared with the caller's own.
+    if (String(caller.id) !== String(id) && caller.role !== 'admin') {
       return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
     }
 
@@ -230,23 +221,14 @@ export async function GET(request, { params }) {
 }
 
 export async function PUT(request, { params }) {
+  const auth = await requireCaller(request, ['customer']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   try {
     const { id } = await params
-    
-    // Auth check - prioritize Authorization header for mobile
-    const authHeader = request.headers.get('Authorization')
-    let token = authHeader ? authHeader.replace('Bearer ', '') : request.cookies.get('customer_token')?.value
-    
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
-    }
-    const decoded = verifyToken(token)
-    if (!decoded) {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 })
-    }
 
-    // Only allow users to update their own profile
-    if (String(decoded.id) !== String(id)) {
+    // Only allow users to update their own profile: the id in the path must be the caller's own, and the writes below use the caller's id.
+    if (String(caller.id) !== String(id)) {
       return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
     }
 
@@ -280,7 +262,7 @@ export async function PUT(request, { params }) {
       const bytes = await profile_image.arrayBuffer()
       const buffer = Buffer.from(bytes)
       const ext = profile_image.name.split('.').pop()
-      const filename = `customer_${id}_${Date.now()}.${ext}`
+      const filename = `customer_${caller.id}_${Date.now()}.${ext}`
       const uploadDir = path.join(process.cwd(), 'public', 'uploads')
       
       try {
@@ -310,14 +292,14 @@ export async function PUT(request, { params }) {
     }
     
     query += ` WHERE id = ?`
-    queryParams.push(id)
+    queryParams.push(caller.id)
 
     await execute(query, queryParams)
 
     // Return updated user
     const updated = await execute(
       `SELECT id, email, first_name, last_name, phone, hear_about, receive_offers, image_url, created_at, updated_at FROM users WHERE id = ?`,
-      [id]
+      [caller.id]
     )
 
     return NextResponse.json({ 
