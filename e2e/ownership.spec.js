@@ -40,9 +40,11 @@
 //                                    never reaches the Stripe code whatever the clause does.
 //   /api/user/addresses and [id]     the dev database has no `user_addresses` table (SHOW TABLES, 2026-10-04): every address read or
 //                                    write that reaches the query answers 500. Only the refusals decided before the query are cases here.
-//   POST /api/auth/change-password   every fixture password lacks a character the route's password rule demands, so a request that
-//                                    succeeds cannot be undone, and one that wrongly succeeds on another table's row would change a
-//                                    fixture login; no case sends a valid new password.
+//   POST /api/auth/change-password   every fixture password lacks a character the route's new-password rule demands (:17), so a change
+//                                    that succeeds cannot be undone and no case lets one succeed. The table choice (:27-30; customer 1 and
+//                                    provider 1 are both id 1) is shown by two refusals: a new password that passes the rule and the OTHER
+//                                    role's fixture password as oldPassword is answered 401 'Incorrect current password' by the route's own
+//                                    check (:45), and the logins still open. The UPDATE at :52 is reached by no case.
 import { test, expect } from '@playwright/test';
 import { getCredentialHeaders } from './auth/credentials.js';
 import { RESET_RETRIES } from './support/auth.js';
@@ -1315,6 +1317,53 @@ test.describe('Ownership: provider onboarding writes and provider/upload', () =>
         } finally {
             await stepBack(request, p2, before2.provider.onboarding_step);
             await stepBack(request, as.provider, before1.provider.onboarding_step);
+        }
+    });
+});
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ENG-023 hop 2 (the seat; builder V's report on this row died with the killed pass): POST /api/auth/change-password. The route takes no
+// account from the request: the row is `caller.id` (auth/change-password/route.js:32, :52) in the table of the caller's ROLE (:27-30:
+// `users` for a customer, `service_providers` for a provider). Customer 1 and provider 1 are both id 1, and before hop 1 the route looked in
+// `users` first by the token's id, so a provider's call acted on the customer with that id.
+// A success cannot be put back: every fixture password lacks a character the new-password rule demands (:17, a letter and one of
+// !@#$%^&*(),.?":{}|<>), so a second change back to the fixture password is refused and no case lets a change succeed. What a case can
+// send is a REFUSAL that only the right table gives: a new password that passes the rule, and an oldPassword that is the OTHER role's
+// fixture password. The route's own check (:45) answers 401 'Incorrect current password' when the lookup is in the caller's own table, and
+// a lookup in the wrong table would match, hash the new password and change the other account's password (a 200, which this case sees).
+// The UPDATE (:52) is reached by no case.
+// ---------------------------------------------------------------------------------------------------------------------
+test.describe('Ownership: auth/change-password', () => {
+    // Passes the rule at :17 (a letter, a special character, 8 or more characters); no request below may be accepted, so it is never set.
+    const NEW_PASSWORD = 'e2e-ownership#probe';
+    const change = (request, headers, oldPassword) => request.post('/api/auth/change-password', { headers, data: { oldPassword, newPassword: NEW_PASSWORD } });
+    // Signs a fixture account in through its own login route in a context of its own (no cookie jar is shared with the requests above).
+    const loginStatus = async (playwright, baseURL, who) => {
+        const login = FIXTURE_LOGINS[who];
+        const context = await playwright.request.newContext({ baseURL });
+        try {
+            return (await context.post(login.loginRoute, { data: { email: login.email, password: login.password }, maxRetries: RESET_RETRIES, timeout: 60_000 })).status();
+        } finally {
+            await context.dispose();
+        }
+    };
+
+    // Red if change-password/route.js:27 `if (caller.role === 'provider') {` becomes `if (false) {` (every caller is looked up in `users`: provider 1's
+    // request naming customer 1's password matches customer 1's hash and the answer is 200, customer 1's password changed) or `if (true) {` (every
+    // caller is looked up in `service_providers`: customer 1's request naming provider 1's password matches and the answer is 200).
+    test("Ownership POST /api/auth/change-password: the lookup is in the caller's own table, so a provider naming customer 1's password and a customer naming provider 1's are both refused 401 and nobody's password changes", async ({ request, baseURL, playwright }) => {
+        const as = await credentials(baseURL);
+        expect(CUSTOMER1.id, 'the control: customer 1 and provider 1 share an id, so only the role can tell the two tables apart').toBe(PROVIDER1.id);
+        for (const [style, headers] of providerStyles(as)) {
+            await expectAnswer(await change(request, headers, CUSTOMER1.password), 401, 'Incorrect current password', `provider1 by ${style} names customer 1's password`);
+        }
+        for (const [style, headers] of customerStyles(as)) {
+            await expectAnswer(await change(request, headers, PROVIDER1.password), 401, 'Incorrect current password', `customer1 by ${style} names provider 1's password`);
+        }
+        // Nobody's password moved: both fixture logins still open with the fixture password.
+        for (const who of ['customer1', 'provider1']) {
+            expect(await loginStatus(playwright, baseURL, who), `${who} still signs in with its fixture password`).toBe(200);
         }
     });
 });
