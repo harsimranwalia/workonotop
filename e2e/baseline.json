@@ -48,6 +48,9 @@
     "api.spec.js › API Routes › GET /api/categories should return success response": {
       "outcome": "PASS"
     },
+    "api.spec.js › API Routes › GET /api/customers as admin should return response": {
+      "outcome": "PASS"
+    },
     "api.spec.js › API Routes › GET /api/customers should return response": {
       "outcome": "PASS"
     },
@@ -61,6 +64,9 @@
       "outcome": "PASS"
     },
     "api.spec.js › API Routes › GET /api/services?homepage=true should return only homepage services": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › GET /api/stats as admin should return response": {
       "outcome": "PASS"
     },
     "api.spec.js › API Routes › GET /api/stats should return response": {
@@ -721,43 +727,34 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/blogs/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/blogs/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outs..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/cities/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/cities/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` out..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/districts/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/districts/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/providers/[providerId] uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/seo/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/seo/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outsid..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/service-areas/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/service-areas/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/service-locations/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/service-locations/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [r..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/skills/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/skills/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` out..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/states/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/states/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` out..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/testimonials/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/testimonials/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles]..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/ai-gateway/v1/seo uses the guard": {
       "outcome": "PASS"
@@ -769,28 +766,22 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/categories uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/categories/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outside a ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/customers uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/customers/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outside a c..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/provider uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outside a co..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/reviews uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/reviews/route.js: DELETE does not have `const auth = await requireCaller(request, [roles])` outside a comment (awaited, a literal roles list, the result kept)"
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/service-locations uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/service-locations/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` out..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/services uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/services/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` outside a co..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/upload uses the guard": {
       "outcome": "PASS"
@@ -800,40 +791,31 @@
       "error": "Error: src/app/api/user/addresses/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` o..."
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/blogs uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/blogs/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a co..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/blogs/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/blogs/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/cities uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/cities/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a c..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/cities/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/cities/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outsid..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/deletion-requests uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/deletion-requests/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/disputes uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/disputes/route.js: does not import requireCaller from '@/lib/api-auth'; GET takes no request parameter to hand to requireCaller"
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/disputes/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/disputes/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outs..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/districts uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/districts/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/districts/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/districts/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` out..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/earnings uses the guard": {
       "outcome": "PASS"
@@ -851,12 +833,10 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/me uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/me/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a comme..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/notifications uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/notifications/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outs..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/payouts uses the guard": {
       "outcome": "PASS"
@@ -871,52 +851,40 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/seo uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/seo/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a comm..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/seo/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/seo/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/service-areas uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/service-areas/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outs..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/service-areas/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/service-areas/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])`..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/service-locations uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/service-locations/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/service-locations/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/service-locations/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [role..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/settings uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/settings/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/skills uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/skills/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a c..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/skills/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/skills/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outsid..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/states uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/states/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a c..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/states/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/states/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outsid..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/testimonials uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/testimonials/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outsi..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/ai-gateway/v1/seo uses the guard": {
       "outcome": "PASS"
@@ -949,12 +917,10 @@
       "error": "Error: src/app/api/chat/unread/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a co..."
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/cron/auto-release uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/cron/auto-release/route.js: does not import requireCronSecret from '@/lib/api-auth'; GET does not call requireCronSecret(request)"
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/cron/notifications uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/cron/notifications/route.js: does not import requireCronSecret from '@/lib/api-auth'; GET does not call requireCronSecret(request)"
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/customer/booking-details uses the guard": {
       "outcome": "FAIL",
@@ -972,16 +938,14 @@
       "error": "Error: src/app/api/customer/reviews/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside..."
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/customers uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/customers/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a comm..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/customers/[id] uses the guard": {
       "outcome": "FAIL",
       "error": "Error: src/app/api/customers/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a..."
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a comme..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/availability uses the guard": {
       "outcome": "FAIL",
@@ -1051,8 +1015,7 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/stats uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/stats/route.js: does not import requireCaller from '@/lib/api-auth'; GET takes no request parameter to hand to requireCaller"
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/user/addresses uses the guard": {
       "outcome": "FAIL",
@@ -1063,19 +1026,16 @@
       "error": "Error: src/app/api/user/settings/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a ..."
     },
     "auth-coverage.spec.js › Auth wiring › PATCH /api/admin/deletion-requests uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/deletion-requests/route.js: does not import requireCaller from '@/lib/api-auth'; PATCH does not have `const auth = await requireCaller(request, [roles])..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PATCH /api/admin/disputes uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/disputes/route.js: does not import requireCaller from '@/lib/api-auth'; PATCH does not have `const auth = await requireCaller(request, [roles])` outside..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PATCH /api/admin/invoices uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PATCH /api/admin/service-locations/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/service-locations/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PATCH does not have `const auth = await requireCaller(request, [ro..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PATCH /api/ai-gateway/v1/seo uses the guard": {
       "outcome": "PASS"
@@ -1087,16 +1047,13 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/blogs uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/blogs/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a c..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/cities uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/cities/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/districts uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/districts/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/invoices/generate uses the guard": {
       "outcome": "PASS"
@@ -1105,32 +1062,25 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/seo uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/seo/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a com..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/service-areas uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/service-areas/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` out..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/service-locations uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/service-locations/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])`..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/settings uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/settings/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/skills uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/skills/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/states uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/states/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/testimonials uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/testimonials/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outs..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/ai-gateway/v1/seo uses the guard": {
       "outcome": "PASS"
@@ -1155,8 +1105,7 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/categories uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/categories/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a co..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/chat uses the guard": {
       "outcome": "FAIL",
@@ -1182,8 +1131,7 @@
       "error": "Error: src/app/api/customer/reviews/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outsid..."
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/customers uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/customers/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a com..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/mobile/push-token uses the guard": {
       "outcome": "FAIL",
@@ -1246,19 +1194,16 @@
       "error": "Error: src/app/api/reviews/route.js: POST does not have `const auth = await requireCaller(request, [roles])` outside a comment (awaited, a literal roles list, the result kept)"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/service-locations uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/service-locations/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outsi..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/services uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/services/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a comm..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/stripe/webhook uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/test/push uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/test/push/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a com..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/upload uses the guard": {
       "outcome": "PASS"
@@ -1268,24 +1213,19 @@
       "error": "Error: src/app/api/user/addresses/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside ..."
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/blogs/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/blogs/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/bookings/[id]/override uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/bookings/[id]/override/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [role..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/cities/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/cities/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outsid..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/districts/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/districts/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` out..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/notifications uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/notifications/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outs..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/providers uses the guard": {
       "outcome": "PASS"
@@ -1294,55 +1234,44 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/providers/approve uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/providers/approve/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/seo/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/seo/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/service-areas uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/service-areas/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outs..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/service-areas/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/service-areas/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])`..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/service-locations/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/service-locations/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [role..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/skills/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/skills/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outsid..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/states/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/states/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outsid..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/testimonials/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/admin/testimonials/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/bookings uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/categories uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/categories/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a com..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/customers uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/customers/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a comm..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/customers/[id] uses the guard": {
       "outcome": "FAIL",
       "error": "Error: src/app/api/customers/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a..."
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/provider uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a comme..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/provider/availability uses the guard": {
       "outcome": "FAIL",
@@ -1353,8 +1282,7 @@
       "error": "Error: src/app/api/provider/profile/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside..."
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/services uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/services/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a comme..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/user/addresses/[id] uses the guard": {
       "outcome": "FAIL",
@@ -1515,43 +1443,34 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/blogs/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/blogs/[id] [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/cities/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/cities/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/districts/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/districts/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/providers/[providerId]": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/seo/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/seo/[id] [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/service-areas/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/service-areas/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/service-locations/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/service-locations/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/skills/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/skills/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/states/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/states/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/admin/testimonials/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/admin/testimonials/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/ai-gateway/v1/seo": {
       "outcome": "PASS"
@@ -1563,28 +1482,22 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/categories": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/categories [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/customers": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/customers [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/provider": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/provider [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/reviews": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/reviews [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/service-locations": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/service-locations [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/services": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/services [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/upload": {
       "outcome": "PASS"
@@ -1594,40 +1507,31 @@
       "error": "Error: DELETE /api/user/addresses/[id] [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/blogs": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/blogs [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/blogs/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/blogs/[id] [roles (admin)] answered wrongly: none (no credential): got 404, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/cities": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/cities [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/cities/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/cities/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/deletion-requests": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/deletion-requests [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/disputes": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/disputes [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/disputes/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/disputes/[id] [roles (admin)] answered wrongly: none (no credential): got 404, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/districts": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/districts [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/districts/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/districts/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/earnings": {
       "outcome": "PASS"
@@ -1645,12 +1549,10 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/me": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/me [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/notifications": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/notifications [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/payouts": {
       "outcome": "PASS"
@@ -1665,52 +1567,40 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/seo": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/seo [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/seo/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/seo/[id] [roles (admin)] answered wrongly: none (no credential): got 404, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/service-areas": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/service-areas [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/service-areas/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/service-areas/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/service-locations": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/service-locations [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/service-locations/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/service-locations/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/settings": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/settings [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/skills": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/skills [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/skills/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/skills/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/states": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/states [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/states/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/states/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/testimonials": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/admin/testimonials [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/ai-gateway/openapi.json": {
       "outcome": "PASS"
@@ -1748,12 +1638,10 @@
       "error": "Error: GET /api/chat/unread [roles (customer, provider, admin)] answered wrongly: none (no credential): got 400, want 401"
     },
     "auth-matrix.spec.js › Role by route › GET /api/cron/auto-release": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/cron/auto-release [self] held, nothing sent: the job runs for ANY caller in development mode (route.js:14) and moves money: held until ENG-022 adds requireCronSe..."
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/cron/notifications": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/cron/notifications [self] held, nothing sent: the job runs for ANY caller while CRON_SECRET is unset (route.js:14): held until ENG-022 adds requireCronSecret"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customer/booking-details": {
       "outcome": "FAIL",
@@ -1771,8 +1659,7 @@
       "error": "Error: GET /api/customer/reviews [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customers": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/customers [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customers/[id]": {
       "outcome": "FAIL",
@@ -1785,8 +1672,7 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/provider [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/availability": {
       "outcome": "FAIL",
@@ -1880,8 +1766,7 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/stats": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/stats [roles (admin)] answered wrongly: none (no credential): got 200, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/stripe/webhook": {
       "outcome": "PASS"
@@ -1895,19 +1780,16 @@
       "error": "Error: GET /api/user/settings [roles (customer, provider)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+3 more)"
     },
     "auth-matrix.spec.js › Role by route › PATCH /api/admin/deletion-requests": {
-      "outcome": "FAIL",
-      "error": "Error: PATCH /api/admin/deletion-requests [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PATCH /api/admin/disputes": {
-      "outcome": "FAIL",
-      "error": "Error: PATCH /api/admin/disputes [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PATCH /api/admin/invoices": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PATCH /api/admin/service-locations/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: PATCH /api/admin/service-locations/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PATCH /api/ai-gateway/v1/seo": {
       "outcome": "PASS"
@@ -1919,16 +1801,13 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/blogs": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/admin/blogs [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/cities": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/admin/cities [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/districts": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/admin/districts [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/invoices/generate": {
       "outcome": "PASS"
@@ -1943,32 +1822,25 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/seo": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/admin/seo [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/service-areas": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/admin/service-areas [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/service-locations": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/admin/service-locations [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/settings": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/admin/settings [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/skills": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/admin/skills [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/states": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/admin/states [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/testimonials": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/admin/testimonials [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/ai-gateway/v1/seo": {
       "outcome": "PASS"
@@ -2038,8 +1910,7 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/categories": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/categories [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/chat": {
       "outcome": "FAIL",
@@ -2065,8 +1936,7 @@
       "error": "Error: POST /api/customer/reviews [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/customers": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/customers [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/mobile/push-token": {
       "outcome": "FAIL",
@@ -2147,19 +2017,16 @@
       "error": "Error: POST /api/reviews [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › POST /api/service-locations": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/service-locations [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/services": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/services [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/stripe/webhook": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/test/push": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/test/push [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/upload": {
       "outcome": "PASS"
@@ -2169,24 +2036,19 @@
       "error": "Error: POST /api/user/addresses [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/blogs/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/blogs/[id] [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/bookings/[id]/override": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/bookings/[id]/override [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/cities/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/cities/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/districts/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/districts/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/notifications": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/notifications [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/providers": {
       "outcome": "PASS"
@@ -2195,55 +2057,44 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/providers/approve": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/providers/approve [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/seo/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/seo/[id] [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/service-areas": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/service-areas [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/service-areas/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/service-areas/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/service-locations/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/service-locations/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/skills/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/skills/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/states/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/states/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/testimonials/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/admin/testimonials/[id] [roles (admin)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/bookings": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/categories": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/categories [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/customers": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/customers [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/customers/[id]": {
       "outcome": "FAIL",
       "error": "Error: PUT /api/customers/[id] [roles (customer)] answered wrongly: provider-cookie (provider), role not allowed: got 401, want 403 exactly (+1 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/provider": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/provider [roles (admin, provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/provider/availability": {
       "outcome": "FAIL",
@@ -2254,8 +2105,7 @@
       "error": "Error: PUT /api/provider/profile [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/services": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/services [roles (admin)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/user/addresses/[id]": {
       "outcome": "FAIL",
@@ -2284,6 +2134,36 @@
       "outcome": "PASS"
     },
     "booking-flow.spec.js › Booking Flow › should load booking success page": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/auto-release › Cron /api/cron/auto-release: GET calls requireCronSecret first, imported from @/lib/api-auth": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/auto-release › Cron /api/cron/auto-release: the old checks are gone (development skip, Bearer undefined, skip when CRON_SECRET is unset)": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/auto-release › Cron /api/cron/auto-release: with CRON_SECRET set, no secret and a wrong secret are 401": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/auto-release › Cron /api/cron/auto-release: with CRON_SECRET set, the right secret passes as a Bearer and as ?secret=": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/auto-release › Cron /api/cron/auto-release: with CRON_SECRET unset every request is 401, Bearer undefined and ?secret=undefined included": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/notifications › Cron /api/cron/notifications: GET calls requireCronSecret first, imported from @/lib/api-auth": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/notifications › Cron /api/cron/notifications: the old checks are gone (development skip, Bearer undefined, skip when CRON_SECRET is unset)": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/notifications › Cron /api/cron/notifications: with CRON_SECRET set, no secret and a wrong secret are 401": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/notifications › Cron /api/cron/notifications: with CRON_SECRET set, the right secret passes as a Bearer and as ?secret=": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/notifications › Cron /api/cron/notifications: with CRON_SECRET unset every request is 401, Bearer undefined and ?secret=undefined included": {
       "outcome": "PASS"
     },
     "defects.spec.js › AC6 cross-account bookings › AC6 customer1 asking for customer2's booking on /api/bookings/[id] is 403 and shows none of its fields": {
@@ -2656,6 +2536,291 @@
       "outcome": "PASS"
     },
     "provider.spec.js › Provider Portal - Auth Protection › should redirect protected provider routes to /provider/login": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check /api/admin/notifications › Role check GET /api/admin/notifications: only the signed-in admin's own rows, by cookie and by Bearer, and no query names another owner": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check /api/admin/notifications › Role check PUT /api/admin/notifications: an admin marking an id no notification has gets { success: true }, any other caller is refused and a body naming another owner is ignored": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check PUT /api/provider › Role check PUT /api/provider (?id=): an admin naming a provider that does not exist reaches the handler's validation (400), not a refusal": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check PUT /api/provider › Role check PUT /api/provider (?id=): provider1 naming their own row or another provider's is 403, by cookie and by Bearer": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check PUT /api/provider › Role check PUT /api/provider (no id): an admin is 403, there is no provider profile to update": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check PUT /api/provider › Role check PUT /api/provider (no id): provider1 updates provider1's row and no other, by cookie and by Bearer, whatever id the body names": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check PUT /api/provider › Role check PUT /api/provider: 401 with no credential, 403 for customer1 by cookie and by Bearer and for a customer token in adminAuth, and nothing is written": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/blogs/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/cities/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/districts/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/seo/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/service-areas/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/service-locations/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/skills/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/states/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/testimonials/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/categories: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/customers: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/provider: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/reviews: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/service-locations: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/services: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/blogs/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/blogs: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/cities/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/cities: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/deletion-requests: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/disputes/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/disputes: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/districts/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/districts: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/me: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/notifications: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/seo/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/seo: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/service-areas/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/service-areas: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/service-locations/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/service-locations: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/settings: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/skills/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/skills: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/states/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/states: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/testimonials: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/customers: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/provider: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/stats: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PATCH /api/admin/deletion-requests: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PATCH /api/admin/disputes: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PATCH /api/admin/service-locations/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/blogs: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/cities: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/districts: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/seo: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/service-areas: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/service-locations: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/settings: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/skills: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/states: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/testimonials: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/categories: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/customers: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/service-locations: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/services: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/test/push: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/blogs/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/bookings/[id]/override: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/cities/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/districts/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/notifications: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/providers/approve: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/seo/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/service-areas/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/service-areas: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/service-locations/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/skills/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/states/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/testimonials/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/categories: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/customers: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/services: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check catalogue reads › Role check GET /api/service-locations?admin=true: no credential, customer1 and provider1 get the answer they get without the flag, the admin also gets the inactive location": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check catalogue reads › Role check GET /api/service-locations?includeInactive=true: no credential, customer1 and provider1 get the answer they get without the flag, the admin also gets the inactive location": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check catalogue reads › Role check GET /api/services?admin=true: no credential, customer1 and provider1 get the answer they get without the flag, the admin also gets the inactive service": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check forged tokens › Role check forged tokens GET /api/admin/blogs: a wrong-secret token and a tampered payload are 401 in the adminAuth cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check forged tokens › Role check forged tokens GET /api/admin/me: a wrong-secret token and a tampered payload are 401 in the adminAuth cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check forged tokens › Role check forged tokens GET /api/stats: a wrong-secret token and a tampered payload are 401 in the adminAuth cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check ownership › Role check GET /api/admin/me: returns the signed-in admin and no other, by cookie and by Bearer; every other caller is 403 with no user": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check ownership › Role check PUT /api/provider (?id=): an admin may name any provider and the change lands on the row named and on no other": {
+      "outcome": "PASS"
+    },
+    "s1-reset-otp.spec.js › S1 reset/OTP routes refuse a non-string token, otp or email › POST /api/auth/reset-password: a non-string email or otp is refused with 400 before the query": {
+      "outcome": "PASS"
+    },
+    "s1-reset-otp.spec.js › S1 reset/OTP routes refuse a non-string token, otp or email › POST /api/auth/reset-password: a non-string token is refused with 400 before the query": {
+      "outcome": "PASS"
+    },
+    "s1-reset-otp.spec.js › S1 reset/OTP routes refuse a non-string token, otp or email › POST /api/auth/verify-otp: a non-string email or otp is refused with 400": {
+      "outcome": "PASS"
+    },
+    "s1-reset-otp.spec.js › S1 reset/OTP routes refuse a non-string token, otp or email › POST /api/provider/reset-password: a non-string token, email or otp is refused with 400 before the query": {
+      "outcome": "PASS"
+    },
+    "s1-reset-otp.spec.js › S1 reset/OTP routes refuse a non-string token, otp or email › POST /api/provider/verify-otp: a non-string email or otp is refused with 400": {
       "outcome": "PASS"
     },
     "services.spec.js › Services Page › should display at least one service": {
