@@ -25,11 +25,10 @@
 // provider 2). A case that needs a booking open to providers, or one that nobody has reviewed, makes it itself through the public
 // checkout (POST /api/bookings, as e2e/defects.spec.js does) and deletes it again as admin in `finally`.
 //
-// Writes to a fixture row: the PUT cases put a marker in `hear_about` / a settings flag and restore it in `finally`; the chat
-// POST case adds a message to booking 1 (no route deletes one); POST /api/chat/mark-read marks booking 1's messages read and no
-// route marks one unread, and the push-token case upserts a mobile_auth_users row. So the first window after a run needs the
-// fixtures reloaded (npm run db:fixtures), as the department's run recipe does before every window; the cases that read the chat
-// are ahead of the mark-read case in the file for that reason.
+// Writes to a fixture row: the PUT cases put a marker in `hear_about` / a settings flag and restore it in `finally`, and the
+// push-token case upserts a mobile_auth_users row for customer 1 and provider 1 (device 'e2e-ownership'; nothing reads it back).
+// Every chat message a case posts goes on a booking the case made itself (customer 1's, assigned to provider 1), which cascades
+// them away when the case deletes it, so no fixture chat grows and no case needs freshly loaded fixtures.
 //
 // NOT covered here, and why (read from the code and the dev database, not guessed):
 //   POST /api/payment/create-intent  the module builds `new Stripe(process.env.STRIPE_SECRET_KEY)` at import and the dev app sets no
@@ -513,4 +512,178 @@ test.describe('Ownership: customer booking routes', () => {
 
     // POST /api/payment/create-intent is a row of the ticket, but nothing of it is observable here: see the header.
     test.skip('Ownership POST /api/payment/create-intent: not observable in the dev app (no STRIPE_SECRET_KEY: the module throws at import, every request is a 500 page) and the handler takes no booking', () => {});
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Chat. Clause (chat/route.js, chat/mark-read, chat/unread): the caller must be a participant of the booking, matched BY ROLE:
+// a customer on bookings.user_id, a provider on bookings.provider_id, an admin on any (customer 1 and provider 1 share the id 1,
+// so a comparison that ignores the role lets provider 1 into customer 1's booking); a booking that exists and is not the
+// caller's is 403. GET keeps its existing answer for a booking that does not exist (200, no messages, status 'unknown'), POST its
+// 404. mark-read and unread also refuse a userType that is not the caller's role, and unread a user_id or provider_id naming
+// another account. The fixture chat (database/fixtures/ownership.js): booking 1 holds chat 1 and 2, booking 2 chat 3 and 4.
+// ---------------------------------------------------------------------------------------------------------------------
+test.describe('Ownership: chat', () => {
+    const BOOKING1_CHAT = [CHAT1.message, CHAT2.message];
+    const BOOKING2_CHAT = [CHAT3.message, CHAT4.message];
+    const chatOf = async (request, headers, id) => (await (await request.get(`/api/chat?bookingId=${id}`, { headers })).json()).messages;
+    const everyone = (as) => [...customerStyles(as).map(([s, h]) => [`customer1 by ${s}`, h]), ...providerStyles(as).map(([s, h]) => [`provider1 by ${s}`, h])];
+
+    test("Ownership GET /api/chat: the customer and the provider of booking 1 read its messages and none of booking 2's; a missing booking keeps its empty answer", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        for (const [who, headers] of everyone(as)) {
+            const { text, body } = await expectOk(await request.get(`/api/chat?bookingId=${BOOKING1.id}`, { headers }), who);
+            expectAllOf(text, BOOKING1_CHAT, who);
+            expectNoneOf(text, [...BOOKING2_CHAT, ...CUSTOMER2_STRINGS, ...PROVIDER2_STRINGS], who);
+            expect(body.bookingStatus, `${who}: booking 1's status`).toBe(BOOKING1.status);
+            const missing = await expectOk(await request.get(`/api/chat?bookingId=${MISSING}`, { headers }), `${who}, missing booking`);
+            expect(missing.body.messages, `${who}: no messages for a booking that does not exist`).toEqual([]);
+            expect(missing.body.bookingStatus, `${who}: status of a booking that does not exist`).toBe('unknown');
+        }
+    });
+
+    // Red if the `isParticipant` refusal is deleted from GET: the non-participant reads booking 2's two messages.
+    test("Ownership GET /api/chat: a non-participant asking for booking 2 is 403 and sees none of its messages, and the admin reads it", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        for (const [style, headers] of [['cookie', as.admin], ['bearer', as.adminBearer]]) {
+            const { text } = await expectOk(await request.get(`/api/chat?bookingId=${BOOKING2.id}`, { headers }), `admin by ${style}`);
+            expectAllOf(text, BOOKING2_CHAT, `admin by ${style}`);
+        }
+        for (const [who, headers] of everyone(as)) {
+            await expectForbidden(await request.get(`/api/chat?bookingId=${BOOKING2.id}`, { headers }), `${who} asks for booking 2`, [...BOOKING2_CHAT, ...CUSTOMER2_STRINGS, ...PROVIDER2_STRINGS]);
+        }
+    });
+
+    // customer1 owns this booking (user_id 1) and provider 2 is its provider; provider1's id is also 1 and provider1 is not a participant.
+    // Red if the participant test compares caller.id with either column whatever the role.
+    test("Ownership GET /api/chat: the role decides the column, so provider1 (id 1) is refused on a booking whose customer is user 1 and whose provider is provider 2", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        await withProbeBooking(request, as, async (id) => {
+            await adminUpdates(request, as, id, { provider_id: PROVIDER2.id });
+            const row = await bookingAsAdmin(request, as, id);
+            expect([row.user_id, row.provider_id], 'the probe booking is customer 1\'s with provider 2').toEqual([CUSTOMER1.id, PROVIDER2.id]);
+            await expectOk(await request.get(`/api/chat?bookingId=${id}`, { headers: as.customer }), 'customer1 (the owner)');
+            await expectForbidden(await request.get(`/api/chat?bookingId=${id}`, { headers: as.provider }), 'provider1 (same id, not the provider)');
+            await expectForbidden(await request.get(`/api/chat?bookingId=${id}`, { headers: as.providerBearer }), 'provider1 by Bearer');
+        }, { headers: as.customer });
+    });
+
+    // Red if the participant refusal is deleted from POST: the message would be stored on booking 2 and the admin read would show it.
+    test("Ownership POST /api/chat: a non-participant posting to booking 2 is 403 and no message is added; a missing booking keeps its 404", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const marker = `e2e-ownership-chat-foreign-${Date.now()}`;
+        for (const [who, headers] of everyone(as)) {
+            await expectForbidden(await request.post('/api/chat', { headers, data: { bookingId: BOOKING2.id, message: marker } }), `${who} posts to booking 2`, [marker]);
+            await expectAnswer(await request.post('/api/chat', { headers, data: { bookingId: MISSING, message: marker } }), 404, 'Booking not found', `${who}, missing booking`);
+        }
+        const read = await request.get(`/api/chat?bookingId=${BOOKING2.id}`, { headers: as.admin });
+        const text = await read.text();
+        expectAllOf(text, BOOKING2_CHAT, 'control, booking 2');
+        expectNoneOf(text, [marker], "booking 2's messages");
+    });
+
+    // The case makes its own booking (customer 1's, assigned to provider 1), so the messages it posts go with it (chat_messages.booking_id
+    // cascades) and no fixture chat grows. Red if the sender is taken from the body: a customer who names senderType 'provider' would be
+    // stored as the provider.
+    test("Ownership POST /api/chat: the stored sender is the caller whatever the body names (customer1 and provider1 on their booking)", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const marker = `e2e-ownership-chat-sender-${Date.now()}`;
+        const cases = [
+            ['customer1', as.customer, 'provider', 'customer'],
+            ['provider1', as.providerBearer, 'customer', 'provider'],
+        ];
+        await withProbeBooking(request, as, async (id) => {
+            await adminUpdates(request, as, id, { provider_id: PROVIDER1.id });
+            for (const [who, headers, named, expected] of cases) {
+                const text = `${marker}-${who}`;
+                await expectOk(await request.post('/api/chat', { headers, data: { bookingId: id, message: text, senderType: named, senderId: 2, sender_type: named, sender_id: 2 } }), `${who} posts`);
+                const stored = (await chatOf(request, as.admin, id)).find((m) => m.message === text);
+                expect(stored, `${who}: the posted message is stored`).toBeTruthy();
+                expect(stored.sender_type, `${who}: stored sender_type (the body named '${named}')`).toBe(expected);
+                expect(stored.sender_id, `${who}: stored sender_id (the body named 2)`).toBe(1);
+            }
+        }, { headers: as.customer });
+    });
+
+    test("Ownership GET /api/chat/unread: booking 1's two participants get a count, booking 2, the other side's type and another account's id are 403, the admin may name any", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const unread = (id, type, extra = '') => `/api/chat/unread?bookingId=${id}&userType=${type}${extra}`;
+        for (const [who, headers] of everyone(as)) {
+            const role = who.startsWith('customer') ? 'customer' : 'provider';
+            const other = role === 'customer' ? 'provider' : 'customer';
+            const own = await expectOk(await request.get(unread(BOOKING1.id, role), { headers }), `${who} counts booking 1`);
+            expect(typeof own.body.unreadCount, `${who}: unreadCount`).toBe('number');
+            await expectForbidden(await request.get(unread(BOOKING2.id, role), { headers }), `${who} counts booking 2`);
+            await expectForbidden(await request.get(unread(BOOKING1.id, other), { headers }), `${who} counts booking 1 as ${other}`);
+            await expectForbidden(await request.get(unread(BOOKING1.id, role, `&${role === 'customer' ? 'user_id' : 'provider_id'}=2`), { headers }), `${who} counts booking 1 naming account 2`);
+        }
+        for (const [style, headers] of [['cookie', as.admin], ['bearer', as.adminBearer]]) {
+            const counted = await expectOk(await request.get(unread(BOOKING2.id, 'customer', `&user_id=${CUSTOMER2.id}`), { headers }), `admin by ${style} counts booking 2 for customer 2`);
+            expect(typeof counted.body.unreadCount, `admin by ${style}: unreadCount`).toBe('number');
+        }
+    });
+
+    // The case makes its own booking (customer 1's, assigned to provider 1) with one message from each side, so what it marks is its own and
+    // goes with the booking; booking 2's fixture messages are only compared before and after (whatever their state when the case starts).
+    // Red if the `userType !== caller.role` refusal is deleted (the customer would mark their own message read) or the participant
+    // refusal is (customer 2 would mark the provider's message read).
+    test("Ownership POST /api/chat/mark-read: booking 2, the other side's userType and a non-participant are 403 and change nothing; the customer of a booking marks the provider's message read and not their own", async ({ request, baseURL, playwright }) => {
+        const as = await credentials(baseURL);
+        const customer2 = await signedInAs(playwright, baseURL, 'customer2');
+        const flags = async (id) => Object.fromEntries((await chatOf(request, as.admin, id)).map((m) => [m.message, m.is_read]));
+        const booking2Before = await flags(BOOKING2.id);
+        for (const [who, headers] of everyone(as)) {
+            const role = who.startsWith('customer') ? 'customer' : 'provider';
+            await expectForbidden(await request.post('/api/chat/mark-read', { headers, data: { bookingId: BOOKING2.id, userType: role } }), `${who} marks booking 2`);
+        }
+        expect(await flags(BOOKING2.id), "booking 2's messages after the refused requests").toEqual(booking2Before);
+        await withProbeBooking(request, as, async (id) => {
+            await adminUpdates(request, as, id, { provider_id: PROVIDER1.id });
+            const fromCustomer = `e2e-ownership-mark-customer-${Date.now()}`;
+            const fromProvider = `e2e-ownership-mark-provider-${Date.now()}`;
+            await expectOk(await request.post('/api/chat', { headers: as.customer, data: { bookingId: id, message: fromCustomer } }), 'customer1 posts');
+            await expectOk(await request.post('/api/chat', { headers: as.provider, data: { bookingId: id, message: fromProvider } }), 'provider1 posts');
+            expect(await flags(id), 'both messages start unread').toEqual({ [fromCustomer]: 0, [fromProvider]: 0 });
+            await expectForbidden(await request.post('/api/chat/mark-read', { headers: as.customer, data: { bookingId: id, userType: 'provider' } }), "customer1 marks as the provider's side");
+            await expectForbidden(await request.post('/api/chat/mark-read', { headers: as.providerBearer, data: { bookingId: id, userType: 'customer' } }), "provider1 marks as the customer's side");
+            await expectForbidden(await request.post('/api/chat/mark-read', { headers: customer2, data: { bookingId: id, userType: 'customer' } }), 'customer 2 (a non-participant) marks the booking');
+            expect(await flags(id), 'both messages are still unread after the refused requests').toEqual({ [fromCustomer]: 0, [fromProvider]: 0 });
+            await expectOk(await request.post('/api/chat/mark-read', { headers: as.customer, data: { bookingId: id, userType: 'customer' } }), 'customer1 marks the booking');
+            expect(await flags(id), "customer 1 marked the provider's message read and left their own").toEqual({ [fromCustomer]: 0, [fromProvider]: 1 });
+        }, { headers: as.customer });
+    });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// POST /api/mobile/push-token. Clause: the body's userId must equal caller.id and a named userType must equal caller.role, else 403
+// (the row written is the caller's, in the column of the caller's role). customer 1 and provider 1 share the id 1, so the type
+// check is what keeps provider1 from registering a token on customer 1's row and the reverse.
+// ---------------------------------------------------------------------------------------------------------------------
+test.describe('Ownership: mobile/push-token', () => {
+    const tokenBody = (userId, userType) => ({ userId, ...(userType ? { userType } : {}), pushToken: `e2e-ownership-token-${Date.now()}`, platform: 'android', deviceId: 'e2e-ownership' });
+
+    test('Ownership POST /api/mobile/push-token: a caller registers a token for their own id and role', async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const cases = [['customer1 by cookie', as.customer, CUSTOMER1.id, 'customer'], ['customer1 by Bearer', as.customerBearer, CUSTOMER1.id, undefined], ['provider1 by cookie', as.provider, PROVIDER1.id, 'provider'], ['provider1 by Bearer', as.providerBearer, PROVIDER1.id, 'provider']];
+        for (const [who, headers, userId, userType] of cases) {
+            const { body } = await expectOk(await request.post('/api/mobile/push-token', { headers, data: tokenBody(userId, userType) }), who);
+            expect(body.message, `${who}: message`).toBe('FCM / Push token saved successfully');
+        }
+    });
+
+    // Red if the userId comparison is deleted (a token would be stored for account 2), or the userType comparison is (provider1 naming
+    // customer 1's id and type, or customer1 naming provider 1's, would be stored on the other id space's row).
+    test("Ownership POST /api/mobile/push-token: a userId naming another account, or the other id space's type, is 403", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const refused = [
+            ['customer1 naming customer 2', as.customer, tokenBody(CUSTOMER2.id, 'customer')],
+            ['customer1 naming account 2 with no type', as.customerBearer, tokenBody(CUSTOMER2.id)],
+            ['provider1 naming provider 2', as.provider, tokenBody(PROVIDER2.id, 'provider')],
+            ['provider1 naming provider 2 by Bearer', as.providerBearer, tokenBody(PROVIDER2.id, 'provider')],
+            ['customer1 naming its own id as a provider', as.customer, tokenBody(CUSTOMER1.id, 'provider')],
+            ['provider1 naming its own id as a customer', as.provider, tokenBody(PROVIDER1.id, 'customer')],
+        ];
+        for (const [who, headers, data] of refused) {
+            await expectForbidden(await request.post('/api/mobile/push-token', { headers, data }), who, [data.pushToken]);
+        }
+    });
 });
