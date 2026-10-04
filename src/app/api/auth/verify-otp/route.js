@@ -9,6 +9,12 @@ export async function POST(request) {
             return NextResponse.json({ success: false, message: 'Email and OTP are required' }, { status: 400 })
         }
 
+        // ENG-022 S1: email reaches query() below (src/lib/db.js), which formats a non-string value into the SQL
+        // text rather than binding it; refuse one before that, and before a non-string email reaches .trim() (a 500).
+        if (typeof email !== 'string' || typeof otp !== 'string') {
+            return NextResponse.json({ success: false, message: 'Email and OTP are required' }, { status: 400 })
+        }
+
         const cleanEmail = (email || '').trim().toLowerCase();
         const cleanOtp = (otp || '').toString().trim();
 

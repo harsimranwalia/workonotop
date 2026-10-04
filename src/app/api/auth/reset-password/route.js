@@ -15,6 +15,12 @@ export async function POST(request) {
             return NextResponse.json({ success: false, message: 'Valid token or Email/OTP required' }, { status: 400 })
         }
 
+        // ENG-022 S1: token, email and otp go into query() below, which formats any non-string value into the SQL
+        // text rather than binding it (src/lib/db.js). Refuse anything but a string before that happens.
+        if ([token, email, otp].some((value) => value != null && typeof value !== 'string')) {
+            return NextResponse.json({ success: false, message: 'Valid token or Email/OTP required' }, { status: 400 })
+        }
+
         const passwordRegex = /^(?=.*[a-zA-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
         if (!passwordRegex.test(newPassword)) {
             return NextResponse.json({ success: false, message: 'Password must be at least 8 characters and contain both alphabets and special characters' }, { status: 400 })

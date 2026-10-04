@@ -25,6 +25,15 @@ export async function POST(request) {
       }, { status: 400 })
     }
 
+    // ENG-022 S1: token and otp go into connection.execute() below as the whole bind, and email reaches .trim()
+    // first (a 500 for a non-string); refuse anything but a string for all three before either happens.
+    if ([token, email, otp].some((value) => value != null && typeof value !== 'string')) {
+      return NextResponse.json({
+        success: false,
+        message: 'Valid token or Email/OTP required'
+      }, { status: 400 })
+    }
+
     const passwordRegex = /^(?=.*[a-zA-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
     if (!passwordRegex.test(password)) {
       return NextResponse.json({
