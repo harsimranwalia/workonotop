@@ -806,8 +806,8 @@ export const matrix = [
         probe: { path: '/api/locations', body: undefined, anon: [200] },
     },
     {
-        route: '/api/mobile/push-token', method: 'POST', today: 'partial', kind: 'roles', roles: ['customer', 'provider'], owner: 'body userId must equal caller',
-        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/mobile/push-token/route.js:6-7, requireCaller(request, [customer, provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (body userId must equal caller) comes from auth.caller, never from a request field; 403 refusals src/app/api/mobile/push-token/route.js:22. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Auth is log-only (L22-24), identity from body: anyone can overwrite any account\'s push token or…',
+        route: '/api/mobile/push-token', method: 'POST', today: 'partial', kind: 'roles', roles: ['customer', 'provider', 'admin'], owner: 'body userId must equal caller',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/mobile/push-token/route.js:6-7, requireCaller(request, [customer, provider, admin]): no credential is 401 and a wrong role 403 before the body is read; admin is in the row since round 2 of ENG-023, for the admin signed in on the app, who registers a device like any role: design Amendment 7, which replaces the customer, provider of the Appendix A row). The body userId must equal auth.caller.id and a named userType must be the caller role (an admin may also name customer, which is what the app sends for every role that is not a provider); the stored user_type and the column are chosen from caller.role, never from the body; 403 refusals src/app/api/mobile/push-token/route.js:25. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Auth is log-only (L22-24), identity from body: anyone can overwrite any account\'s push token or…',
         probe: { path: '/api/mobile/push-token', body: {}, anon: 401 },
     },
     {

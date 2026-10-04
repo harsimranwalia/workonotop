@@ -3,7 +3,7 @@ import { execute } from '@/lib/db';
 import { requireCaller } from '@/lib/api-auth';
 
 export async function POST(request) {
-  const auth = await requireCaller(request, ['customer', 'provider']);
+  const auth = await requireCaller(request, ['customer', 'provider', 'admin']);
   if (!auth.ok) return auth.response;
   const caller = auth.caller;
   try {
@@ -17,8 +17,11 @@ export async function POST(request) {
     }
 
     // The token is registered for the caller only: the body's userId must be the caller's own id, and a userType, when
-    // the body names one, must be the caller's role. Anything else is a 403, never a write for another account.
-    if (String(userId) !== String(caller.id) || (userType && userType !== caller.role)) {
+    // the body names one, must be the caller's role; an admin may also name 'customer', which is what the app sends for every
+    // role that is not a provider (mobile/src/context/AuthContext.js:181). What is stored is caller.role, never the body's
+    // userType. Anything else is a 403, never a write for another account.
+    const nameable = caller.role === 'admin' ? ['admin', 'customer'] : [caller.role];
+    if (String(userId) !== String(caller.id) || (userType && !nameable.includes(userType))) {
       return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 

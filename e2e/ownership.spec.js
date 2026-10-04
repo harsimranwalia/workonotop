@@ -26,7 +26,7 @@
 // checkout (POST /api/bookings, as e2e/defects.spec.js does) and deletes it again as admin in `finally`.
 //
 // Writes to a fixture row: the PUT cases put a marker in `hear_about` / a settings flag and restore it in `finally`, and the
-// push-token case upserts a mobile_auth_users row for customer 1 and provider 1 (device 'e2e-ownership'; nothing reads it back).
+// push-token cases upsert a mobile_auth_users row for customer 1, provider 1 and the admin (device 'e2e-ownership'; nothing reads it back).
 // Every chat message a case posts goes on a booking the case made itself (customer 1's, assigned to provider 1), which cascades
 // them away when the case deletes it, so no fixture chat grows and no case needs freshly loaded fixtures.
 //
@@ -672,23 +672,30 @@ test.describe('Ownership: chat', () => {
 
 // ---------------------------------------------------------------------------------------------------------------------
 // POST /api/mobile/push-token. Clause: the body's userId must equal caller.id and a named userType must equal caller.role, else 403
-// (the row written is the caller's, in the column of the caller's role). customer 1 and provider 1 share the id 1, so the type
-// check is what keeps provider1 from registering a token on customer 1's row and the reverse.
+// (the row written is the caller's, in the column of the caller's role; an admin may also name 'customer', which is what the app
+// sends for every role that is not a provider, and what is stored is caller.role: design Amendment 7). customer 1 and provider 1
+// share the id 1, so the type check is what keeps provider1 from registering a token on customer 1's row and the reverse.
+// Nothing reads mobile_auth_users back through any route, so the column chosen by role and the stored user_type cannot be shown
+// by a case: what the cases show is the status and the saved message, and the refusals.
 // ---------------------------------------------------------------------------------------------------------------------
 test.describe('Ownership: mobile/push-token', () => {
     const tokenBody = (userId, userType) => ({ userId, ...(userType ? { userType } : {}), pushToken: `e2e-ownership-token-${Date.now()}`, platform: 'android', deviceId: 'e2e-ownership' });
 
     test('Ownership POST /api/mobile/push-token: a caller registers a token for their own id and role', async ({ request, baseURL }) => {
         const as = await credentials(baseURL);
-        const cases = [['customer1 by cookie', as.customer, CUSTOMER1.id, 'customer'], ['customer1 by Bearer', as.customerBearer, CUSTOMER1.id, undefined], ['provider1 by cookie', as.provider, PROVIDER1.id, 'provider'], ['provider1 by Bearer', as.providerBearer, PROVIDER1.id, 'provider']];
+        const cases = [['customer1 by cookie', as.customer, CUSTOMER1.id, 'customer'], ['customer1 by Bearer', as.customerBearer, CUSTOMER1.id, undefined], ['provider1 by cookie', as.provider, PROVIDER1.id, 'provider'], ['provider1 by Bearer', as.providerBearer, PROVIDER1.id, 'provider'],
+            // The admin signed in on the app registers a token like any role, and the app names 'customer' for it: red if admin leaves the row's roles
+            // (403 for each) or if the type check refuses what the app sends.
+            ['admin by Bearer, naming the type the app sends (customer)', as.adminBearer, ADMIN.id, 'customer'], ['admin by cookie, naming its own type', as.admin, ADMIN.id, 'admin'], ['admin by Bearer, no type', as.adminBearer, ADMIN.id, undefined]];
         for (const [who, headers, userId, userType] of cases) {
             const { body } = await expectOk(await request.post('/api/mobile/push-token', { headers, data: tokenBody(userId, userType) }), who);
             expect(body.message, `${who}: message`).toBe('FCM / Push token saved successfully');
         }
     });
 
-    // Red if the userId comparison is deleted (a token would be stored for account 2), or the userType comparison is (provider1 naming
-    // customer 1's id and type, or customer1 naming provider 1's, would be stored on the other id space's row).
+    // Red if the userId comparison is deleted (a token would be stored for account 2, or the admin's id), or the userType comparison is
+    // (provider1 naming customer 1's id and type, or customer1 naming provider 1's, would be stored on the other id space's row), or the
+    // admin's nameable types widen (an admin naming 'provider', a customer or provider naming 'admin').
     test("Ownership POST /api/mobile/push-token: a userId naming another account, or the other id space's type, is 403", async ({ request, baseURL }) => {
         const as = await credentials(baseURL);
         const refused = [
@@ -698,6 +705,11 @@ test.describe('Ownership: mobile/push-token', () => {
             ['provider1 naming provider 2 by Bearer', as.providerBearer, tokenBody(PROVIDER2.id, 'provider')],
             ['customer1 naming its own id as a provider', as.customer, tokenBody(CUSTOMER1.id, 'provider')],
             ['provider1 naming its own id as a customer', as.provider, tokenBody(PROVIDER1.id, 'customer')],
+            ['customer1 naming the admin\'s id', as.customer, tokenBody(ADMIN.id, 'customer')],
+            ['admin naming customer 1\'s id with a type it may name', as.adminBearer, tokenBody(CUSTOMER1.id, 'customer')],
+            ['admin naming the provider type on its own id', as.admin, tokenBody(ADMIN.id, 'provider')],
+            ['customer1 naming the admin type on its own id', as.customer, tokenBody(CUSTOMER1.id, 'admin')],
+            ['provider1 naming the admin type on its own id', as.provider, tokenBody(PROVIDER1.id, 'admin')],
         ];
         for (const [who, headers, data] of refused) {
             await expectForbidden(await request.post('/api/mobile/push-token', { headers, data }), who, [data.pushToken]);
