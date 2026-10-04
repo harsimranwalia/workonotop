@@ -96,15 +96,24 @@
 
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
+import { requireCaller } from '@/lib/api-auth'
 
 // GET all reviews
 export async function GET(request) {
+  const auth = await requireCaller(request, ['customer', 'admin']);
+  if (!auth.ok) return auth.response;
+  const isCustomer = auth.caller.role === 'customer'
   try {
     const { searchParams } = new URL(request.url)
     const providerId = searchParams.get('provider_id')
     const bookingId = searchParams.get('booking_id')
     const customerId = searchParams.get('customer_id')
     const rating = searchParams.get('rating')
+
+    // A customer may name only themselves in customer_id (anyone else is a 403); an admin may name anyone.
+    if (isCustomer && customerId && String(customerId) !== String(auth.caller.id)) {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
+    }
 
     let sql = `
       SELECT 
@@ -123,6 +132,12 @@ export async function GET(request) {
       WHERE 1=1
     `
     const params = []
+
+    // A customer sees only the reviews of their own bookings (the booking's user_id is the caller); an admin sees all.
+    if (isCustomer) {
+      sql += ' AND b.user_id = ?'
+      params.push(auth.caller.id)
+    }
 
     if (providerId) {
       sql += ' AND r.provider_id = ?'
