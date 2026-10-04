@@ -13,6 +13,7 @@
 // Nothing here writes to a fixture row except the provider cases, which put a marker in provider1's `bio` and put it back
 // (in `finally`); every other write is the matrix's probe on an id no row has. The credentials are the fixture accounts'.
 import { test, expect } from '@playwright/test';
+import crypto from 'node:crypto';
 import { getCredentialHeaders } from './auth/credentials.js';
 import { matrix } from './auth/route-matrix.js';
 import { users, providers } from '../database/fixtures/accounts.js';
@@ -412,6 +413,98 @@ test.describe('Role check catalogue reads', () => {
                 if (id) {
                     const gone = await request.delete(`/api/service-locations?id=${id}`, { headers: as.admin });
                     expect(gone.status(), 'cleanup: the inactive service location is deleted').toBe(200);
+                }
+            }
+        });
+    }
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Ownership and forged tokens: the shapes of QA's ENG-021 probes (Q1 to Q5: a caller may act only on what is theirs, naming
+// someone else is refused, an admin may name anyone) applied to this ticket's rows that have an ownership dimension, and one
+// forged-token case per family. The ownership legs of PUT /api/provider (provider1 updates only their own row; naming any
+// provider is 403) and of /api/admin/notifications are above; here are the admin's side of PUT /api/provider and GET
+// /api/admin/me. The forged tokens are built with node:crypto (HS256), never printed, and need no dependency.
+// ---------------------------------------------------------------------------------------------------------------------
+const base64url = (value) => Buffer.from(value).toString('base64url');
+const claimsOf = (jwt) => JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString('utf8'));
+const signHS256 = (claims, secret) => {
+    const signingInput = `${base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${base64url(JSON.stringify(claims))}`;
+    return `${signingInput}.${crypto.createHmac('sha256', secret).update(signingInput).digest('base64url')}`;
+};
+
+test.describe('Role check ownership', () => {
+    test('Role check PUT /api/provider (?id=): an admin may name any provider and the change lands on the row named and on no other', async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const marker = 'role-check-admin-marker';
+        const list = async () => {
+            const response = await request.get('/api/provider', { headers: as.admin });
+            expect(response.status(), 'admin lists the providers').toBe(200);
+            return (await response.json()).data;
+        };
+        const edit = (headers, bio) => request.put(`/api/provider?id=${PROVIDER2.id}`, {
+            headers,
+            data: { name: PROVIDER2.name, email: PROVIDER2.email, phone: PROVIDER2.phone, ...(bio ? { bio } : {}) },
+        });
+        const before = await list();
+        const provider1Before = JSON.stringify(before.find((row) => row.id === PROVIDER1.id));
+        try {
+            for (const [who, headers] of [['admin cookie', as.admin], ['admin Bearer', as.adminBearer]]) {
+                const response = await edit(headers, `${marker}-${who.split(' ')[1]}`);
+                expect(response.status(), `${who}: naming provider2`).toBe(200);
+                const after = await list();
+                expect(after.find((row) => row.id === PROVIDER2.id).bio, `${who}: provider2's bio is the new one`).toBe(`${marker}-${who.split(' ')[1]}`);
+                expect(JSON.stringify(after.find((row) => row.id === PROVIDER1.id)), `${who}: provider1's row is untouched`).toBe(provider1Before);
+            }
+        } finally {
+            const restored = await edit(as.admin);
+            expect(restored.status(), "cleanup: provider2's profile restored").toBe(200);
+        }
+    });
+
+    test('Role check GET /api/admin/me: returns the signed-in admin and no other, by cookie and by Bearer; every other caller is 403 with no user', async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        for (const [who, headers] of [['admin cookie', as.admin], ['admin Bearer', as.adminBearer]]) {
+            const response = await request.get('/api/admin/me', { headers });
+            expect(response.status(), `${who}: status`).toBe(200);
+            const body = await response.json();
+            expect(body.success, `${who}: success`).toBe(true);
+            expect(body.user.id, `${who}: the admin's id`).toBe(ADMIN.id);
+            expect(body.user.email, `${who}: the admin's email`).toBe(ADMIN.email);
+            expect(body.user.role, `${who}: role`).toBe('admin');
+        }
+        for (const [who, headers] of [['customer1 cookie', as.customer], ['provider1 cookie', as.provider], ['customer1 Bearer', as.customerBearer], ['provider1 Bearer', as.providerBearer], ["customer1's token in adminAuth", as.customerTokenAsAdmin]]) {
+            const body = await expectRefusal(await request.get('/api/admin/me', { headers }), 403, who);
+            expect(body, `${who}: no user key`).not.toHaveProperty('user');
+        }
+    });
+});
+
+// A token signed with a wrong secret, and a real token whose payload was changed after signing, are no session at all: 401, never
+// 403 (a wrong role is 403, a forged one is not a role) and never 200. In the adminAuth cookie and as a Bearer, on one admin
+// catalogue row, one shared row and the identity route.
+test.describe('Role check forged tokens', () => {
+    for (const [method, route, key] of [['GET', '/api/admin/blogs', 'data'], ['GET', '/api/stats', 'data'], ['GET', '/api/admin/me', 'user']]) {
+        test(`Role check forged tokens ${method} ${route}: a wrong-secret token and a tampered payload are 401 in the adminAuth cookie and as a Bearer`, async ({ request, baseURL }) => {
+            const row = matrix.find((entry) => entry.method === method && entry.route === route);
+            expect(row, `the route matrix has a row for ${method} ${route}`).toBeTruthy();
+            const styles = await getCredentialHeaders(baseURL);
+            const adminToken = styles['admin-cookie'].cookie.slice('adminAuth='.length);
+            const customerToken = styles['customer-cookie'].cookie.slice('customer_token='.length);
+            const [head, , signature] = adminToken.split('.');
+            const [customerHead, , customerSignature] = customerToken.split('.');
+            const adminClaims = claimsOf(adminToken);
+            const customerClaims = claimsOf(customerToken);
+            const forged = {
+                'wrong-secret token with the admin claims': signHS256(adminClaims, `not-the-app-secret-${Math.random()}`),
+                'admin token with a changed id': `${head}.${base64url(JSON.stringify({ ...adminClaims, id: CUSTOMER1.id }))}.${signature}`,
+                "customer1's token with its claims changed to admin": `${customerHead}.${base64url(JSON.stringify({ ...customerClaims, role: 'admin', type: 'admin' }))}.${customerSignature}`,
+            };
+            for (const [what, token] of Object.entries(forged)) {
+                for (const [carrier, headers] of [['adminAuth cookie', { cookie: `adminAuth=${token}` }], ['Bearer', { authorization: `Bearer ${token}` }]]) {
+                    const response = await request.fetch(row.probe.path + (row.probe.query || ''), { method, headers, data: row.probe.body, maxRedirects: 0 });
+                    const body = await expectRefusal(response, 401, `${what} as ${carrier}`);
+                    expect(body, `${what} as ${carrier}: no ${key} key`).not.toHaveProperty(key);
                 }
             }
         });
