@@ -687,3 +687,257 @@ test.describe('Ownership: mobile/push-token', () => {
         }
     });
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Customer account: auth/me, user/settings, user/addresses. Clause: the row is caller.id's in the table of caller.role (a
+// customer's in `users`, a provider's in `service_providers`; customer 1 and provider 1 are both id 1, so a lookup by id alone, or
+// users-first, answers the wrong person); a user_id or provider_id naming anyone else is 403.
+// ---------------------------------------------------------------------------------------------------------------------
+test.describe('Ownership: customer account', () => {
+    // Red if /api/auth/me looks the id up in `users` whatever the role: provider1 would be shown customer 1's profile.
+    test('Ownership GET /api/auth/me: each caller gets their own profile from the table of their role (customer 1 and provider 1 share the id 1), the admin the admin', async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const profile = async (headers, who) => (await expectOk(await request.get('/api/auth/me', { headers }), who));
+        for (const [style, headers] of customerStyles(as)) {
+            const who = `customer1 by ${style}`;
+            const { text, body } = await profile(headers, who);
+            expect(body.user.email, `${who}: email`).toBe(CUSTOMER1.email);
+            expect(body.user.role, `${who}: role`).toBe('customer');
+            expectNoneOf(text, [PROVIDER1.email, PROVIDER1.phone, PROVIDER1.name], who);
+        }
+        for (const [style, headers] of providerStyles(as)) {
+            const who = `provider1 by ${style}`;
+            const { text, body } = await profile(headers, who);
+            expect(body.user.email, `${who}: email`).toBe(PROVIDER1.email);
+            expect(body.user.name, `${who}: name`).toBe(PROVIDER1.name);
+            expectNoneOf(text, [CUSTOMER1.email, CUSTOMER1.phone, 'Customer One'], who);
+        }
+        for (const [style, headers] of [['cookie', as.admin], ['bearer', as.adminBearer]]) {
+            const who = `admin by ${style}`;
+            const { body } = await profile(headers, who);
+            expect(body.user.email, `${who}: email`).toBe(ADMIN.email);
+        }
+    });
+
+    // customer1 and provider1 each set dark_mode_enabled on their own row: the other one (same id, other table) and customer 2 stay off.
+    // Red if the table is chosen by anything but the caller's role, or the UPDATE's id is not caller.id. The flag is restored in `finally`.
+    test("Ownership PUT /api/user/settings: a caller changes only their own row, in the table of their role, and a body user_id or provider_id naming anyone else is 403", async ({ request, baseURL, playwright }) => {
+        const as = await credentials(baseURL);
+        const customer2 = await signedInAs(playwright, baseURL, 'customer2');
+        const dark = async (headers, who) => (await expectOk(await request.get('/api/user/settings', { headers }), who)).body.data.dark_mode_enabled;
+        const set = (headers, value) => request.put('/api/user/settings', { headers, data: { dark_mode_enabled: value } });
+        expect([await dark(as.customer, 'customer1'), await dark(as.provider, 'provider1'), await dark(customer2, 'customer 2')], 'every dark_mode_enabled starts off').toEqual([false, false, false]);
+        try {
+            await expectOk(await set(as.customerBearer, true), 'customer1 sets it');
+            expect([await dark(as.customer, 'customer1'), await dark(as.provider, 'provider1'), await dark(customer2, 'customer 2')], "only customer 1's row is on (provider 1 has the same id, another table)").toEqual([true, false, false]);
+            await expectOk(await set(as.customer, false), 'customer1 clears it');
+            await expectOk(await set(as.providerBearer, true), 'provider1 sets it');
+            expect([await dark(as.customer, 'customer1'), await dark(as.provider, 'provider1'), await dark(customer2, 'customer 2')], "only provider 1's row is on (customer 1 has the same id)").toEqual([false, true, false]);
+            await expectOk(await set(as.provider, false), 'provider1 clears it');
+            // naming another account is refused and writes nothing
+            for (const [who, headers, data] of [
+                ['customer1, user_id 2', as.customer, { user_id: CUSTOMER2.id, dark_mode_enabled: true }],
+                ['customer1 by Bearer, user_id 2', as.customerBearer, { user_id: CUSTOMER2.id, dark_mode_enabled: true }],
+                ['provider1, provider_id 2', as.provider, { provider_id: PROVIDER2.id, dark_mode_enabled: true }],
+            ]) {
+                await expectForbidden(await request.put('/api/user/settings', { headers, data }), who);
+            }
+            expect(await dark(customer2, 'customer 2'), "customer 2's flag after the refused requests").toBe(false);
+        } finally {
+            await set(as.customer, false);
+            await set(as.provider, false);
+        }
+    });
+
+    test('Ownership GET /api/user/settings: a caller reads their own row; a user_id or provider_id naming another account is 403', async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        for (const [style, headers] of customerStyles(as)) {
+            await expectOk(await request.get(`/api/user/settings?user_id=${CUSTOMER1.id}`, { headers }), `customer1 by ${style}, own user_id`);
+            await expectForbidden(await request.get(`/api/user/settings?user_id=${CUSTOMER2.id}`, { headers }), `customer1 by ${style}, user_id 2`);
+        }
+        for (const [style, headers] of providerStyles(as)) {
+            await expectOk(await request.get(`/api/user/settings?provider_id=${PROVIDER1.id}`, { headers }), `provider1 by ${style}, own provider_id`);
+            await expectForbidden(await request.get(`/api/user/settings?provider_id=${PROVIDER2.id}`, { headers }), `provider1 by ${style}, provider_id 2`);
+        }
+    });
+
+    // The refusals the address routes decide BEFORE they query: the dev database has no user_addresses table, so a request that reaches the
+    // query answers 500 and the owner's read, the write for oneself and both [id] routes cannot be observed (see the header).
+    test("Ownership GET /api/user/addresses and POST /api/user/addresses: a user_id naming another customer is 403 before any query", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const address = { name: 'E2E ownership', address_line1: '1 Probe Street', city: 'Calgary' };
+        for (const [style, headers] of customerStyles(as)) {
+            await expectForbidden(await request.get(`/api/user/addresses?user_id=${CUSTOMER2.id}`, { headers }), `GET by ${style}, user_id 2`);
+            await expectForbidden(await request.post('/api/user/addresses', { headers, data: { ...address, user_id: CUSTOMER2.id } }), `POST by ${style}, user_id 2`);
+        }
+    });
+
+    test.skip('Ownership GET /api/user/addresses: the owner reads their addresses (not observable: the dev database has no user_addresses table, the query answers 500)', () => {});
+    test.skip('Ownership DELETE /api/user/addresses/[id] and PUT /api/user/addresses/[id]: another customer\'s address is 403 (not observable: no user_addresses table, no address row to ask for)', () => {});
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Provider routes. Clause: the provider id is auth.caller.id in every query (never a token field or a parameter); a provider_id
+// naming another provider is 403 on payouts and ratings; jobs/[id], jobs/photos and jobs/time-tracking filter by owner in their
+// own query, so another provider's booking answers each route's existing 404 (the design's named exception), and so does a
+// booking that does not exist. A control first shows the strings are served to the provider who owns them (provider 2's own read).
+// ---------------------------------------------------------------------------------------------------------------------
+test.describe('Ownership: provider routes', () => {
+    // jobs/[id]: the caller's own job, or an open one (unassigned, pending or matching), else the route's existing 404 'Job not found'.
+    // Red if `b.provider_id = ?` is dropped (case 1: booking 2 would be served) or `AND b.status IN (...)` / `b.provider_id IS NULL` is
+    // (cases 2 and 3: the cancelled and the provider-2 probe bookings would be served).
+    test("Ownership GET /api/provider/jobs/[id]: provider1 gets their own job and an open one; another provider's booking, a cancelled unassigned one and a missing one keep the 404", async ({ request, baseURL, playwright }) => {
+        const as = await credentials(baseURL);
+        const provider2 = await signedInAs(playwright, baseURL, 'provider2');
+        const control = await expectOk(await request.get(`/api/provider/jobs/${BOOKING2.id}`, { headers: provider2 }), 'control: provider 2 reads booking 2');
+        expectAllOf(control.text, [BOOKING2.booking_number, BOOKING2.address_line1], 'control: provider 2');
+        for (const [style, headers] of providerStyles(as)) {
+            const who = `provider1 by ${style}`;
+            const own = await expectOk(await request.get(`/api/provider/jobs/${BOOKING1.id}`, { headers }), who);
+            expect(own.body.data.booking_number, `${who}: booking 1`).toBe(BOOKING1.booking_number);
+            expectNoneOf(own.text, BOOKING2_STRINGS, who);
+            const foreign = await request.get(`/api/provider/jobs/${BOOKING2.id}`, { headers });
+            await expectAnswer(foreign, 404, 'Job not found', `${who} asks for booking 2`);
+            expectNoneOf(JSON.stringify(await foreign.json().catch(() => ({}))), BOOKING2_STRINGS, `${who} asks for booking 2`);
+            await expectAnswer(await request.get(`/api/provider/jobs/${MISSING}`, { headers }), 404, 'Job not found', `${who}, missing booking`);
+        }
+        await withProbeBooking(request, as, async (id) => {
+            const open = await expectOk(await request.get(`/api/provider/jobs/${id}`, { headers: as.provider }), 'provider1, open booking');
+            expect(open.body.data.id, 'the open booking is the one asked for').toBe(id);
+            await adminUpdates(request, as, id, { status: 'cancelled' });
+            await expectAnswer(await request.get(`/api/provider/jobs/${id}`, { headers: as.provider }), 404, 'Job not found', 'provider1, cancelled unassigned booking');
+        });
+        await withProbeBooking(request, as, async (id) => {
+            await adminUpdates(request, as, id, { provider_id: PROVIDER2.id });
+            await expectAnswer(await request.get(`/api/provider/jobs/${id}`, { headers: as.provider }), 404, 'Job not found', 'provider1, booking assigned to provider 2');
+        });
+    });
+
+    // The three lists: provider1 gets their own rows and none of provider 2's, which provider 2's own read does hold.
+    test("Ownership GET /api/provider/jobs, GET /api/provider/bookings and GET /api/provider/available-jobs: provider1's lists hold booking 1 and none of booking 2", async ({ request, baseURL, playwright }) => {
+        const as = await credentials(baseURL);
+        const provider2 = await signedInAs(playwright, baseURL, 'provider2');
+        const lists = [
+            ['/api/provider/jobs', [BOOKING1.booking_number, BOOKING1.address_line1], [BOOKING2.booking_number, BOOKING2.address_line1, BOOKING2.job_description, 'Customer Two'], [BOOKING2.booking_number, BOOKING2.address_line1]],
+            ['/api/provider/bookings', ['Customer One'], ['Customer Two'], ['Customer Two']],
+            ['/api/provider/available-jobs', [], [...BOOKING2_STRINGS, 'Customer Two'], []],
+        ];
+        for (const [path, ownHas, ownLacks, provider2Has] of lists) {
+            expectAllOf((await expectOk(await request.get(path, { headers: provider2 }), `control: provider 2 ${path}`)).text, provider2Has, `control: provider 2 ${path}`);
+            for (const [style, headers] of providerStyles(as)) {
+                const who = `provider1 by ${style} ${path}`;
+                const { text } = await expectOk(await request.get(path, { headers }), who);
+                expectAllOf(text, ownHas, who);
+                expectNoneOf(text, ownLacks, who);
+            }
+        }
+    });
+
+    // POST claims an open job. A booking another provider has is not claimable (the route's own 409 and nothing changes), an open one
+    // becomes provider 1's. Red if the claim stops reading the provider from the caller (the id in the UPDATE).
+    test("Ownership POST /api/provider/available-jobs: provider1 claims an open booking and it becomes theirs; booking 2 stays provider 2's; a missing booking keeps its 404", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        await expectAnswer(await request.post('/api/provider/available-jobs', { headers: as.provider, data: { booking_id: BOOKING2.id } }), 409, 'Job already accepted by another provider', 'provider1 claims booking 2');
+        const booking2 = await bookingAsAdmin(request, as, BOOKING2.id);
+        expect([booking2.provider_id, booking2.status], "booking 2 after the refused claim").toEqual([PROVIDER2.id, BOOKING2.status]);
+        await expectAnswer(await request.post('/api/provider/available-jobs', { headers: as.providerBearer, data: { booking_id: MISSING } }), 404, 'Job not found', 'provider1, missing booking');
+        await withProbeBooking(request, as, async (id) => {
+            await expectOk(await request.post('/api/provider/available-jobs', { headers: as.provider, data: { booking_id: id } }), 'provider1 claims the open booking');
+            expect((await bookingAsAdmin(request, as, id)).provider_id, 'the claimed booking is provider 1\'s').toBe(PROVIDER1.id);
+        });
+    });
+
+    // Red if any of the three queries stops binding caller.id, or the `provider_id` refusal is deleted. The second payout of provider 2
+    // (database/fixtures/ownership.js, 23.45) is the string only provider 2's answer holds: payouts 1 and 2 are both 64.00.
+    test("Ownership GET /api/provider/payouts: provider1 gets their own earnings and payouts and not provider 2's 23.45, and a provider_id naming provider 2 is 403", async ({ request, baseURL, playwright }) => {
+        const as = await credentials(baseURL);
+        const provider2 = await signedInAs(playwright, baseURL, 'provider2');
+        const amount = String(SECOND_PAYOUT_OF_PROVIDER2.amount);
+        expectAllOf((await expectOk(await request.get('/api/provider/payouts', { headers: provider2 }), 'control: provider 2')).text, [amount], 'control: provider 2 holds the second payout');
+        for (const [style, headers] of providerStyles(as)) {
+            for (const path of ['/api/provider/payouts', `/api/provider/payouts?provider_id=${PROVIDER1.id}`, '/api/provider/payouts?provider_id=']) {
+                const who = `provider1 by ${style} ${path}`;
+                const { text, body } = await expectOk(await request.get(path, { headers }), who);
+                expectNoneOf(text, [amount], who);
+                expect(body.data.balances.total_earnings, `${who}: provider 1's earnings, one 64.00 payout`).toBe(64);
+            }
+            await expectForbidden(await request.get(`/api/provider/payouts?provider_id=${PROVIDER2.id}`, { headers }), `provider1 by ${style} ?provider_id=2`, [amount]);
+        }
+    });
+
+    test("Ownership GET /api/provider/ratings: provider1 gets their own review and not provider 2's, and a provider_id naming provider 2 is 403", async ({ request, baseURL, playwright }) => {
+        const as = await credentials(baseURL);
+        const provider2 = await signedInAs(playwright, baseURL, 'provider2');
+        expectAllOf((await expectOk(await request.get('/api/provider/ratings', { headers: provider2 }), 'control: provider 2')).text, [REVIEW2.review], 'control: provider 2 holds review 2');
+        for (const [style, headers] of providerStyles(as)) {
+            for (const path of ['/api/provider/ratings', `/api/provider/ratings?provider_id=${PROVIDER1.id}`]) {
+                const who = `provider1 by ${style} ${path}`;
+                const { text } = await expectOk(await request.get(path, { headers }), who);
+                expectAllOf(text, [REVIEW1.review], who);
+                expectNoneOf(text, [REVIEW2.review, 'Customer Two'], who);
+            }
+            await expectForbidden(await request.get(`/api/provider/ratings?provider_id=${PROVIDER2.id}`, { headers }), `provider1 by ${style} ?provider_id=2`, [REVIEW2.review]);
+        }
+    });
+
+    test("Ownership GET /api/provider/dashboard-stats: provider1's recent jobs hold booking 1 and not booking 2", async ({ request, baseURL, playwright }) => {
+        const as = await credentials(baseURL);
+        const provider2 = await signedInAs(playwright, baseURL, 'provider2');
+        const ids = (body) => body.stats.recentJobs.map((job) => job.id);
+        expect(ids((await expectOk(await request.get('/api/provider/dashboard-stats', { headers: provider2 }), 'control: provider 2')).body), 'control: provider 2 sees booking 2').toContain(BOOKING2.id);
+        for (const [style, headers] of providerStyles(as)) {
+            const who = `provider1 by ${style}`;
+            const { body } = await expectOk(await request.get('/api/provider/dashboard-stats', { headers }), who);
+            expect(ids(body), `${who}: recent jobs`).toContain(BOOKING1.id);
+            expect(ids(body), `${who}: recent jobs`).not.toContain(BOOKING2.id);
+            expect(body.stats.averageRating, `${who}: provider 1's average rating, not provider 2's`).toBe(REVIEW1.rating);
+        }
+    });
+
+    // me, profile, status, availability and onboarding/documents read the provider row of caller.id. provider1 shares the id 1 with
+    // customer 1, so a lookup in `users`, or a token id that is not the provider's, would answer with customer 1.
+    test("Ownership GET /api/provider/me, /profile, /onboarding/documents: provider1 gets provider 1's row, not provider 2's and not customer 1's (same id)", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        for (const path of ['/api/provider/me', '/api/provider/profile', '/api/provider/onboarding/documents']) {
+            for (const [style, headers] of providerStyles(as)) {
+                const who = `provider1 by ${style} ${path}`;
+                const { text } = await expectOk(await request.get(path, { headers }), who);
+                expectAllOf(text, [PROVIDER1.name, ...(path === '/api/provider/profile' ? [] : [PROVIDER1.email])], who);
+                expectNoneOf(text, [...PROVIDER2_STRINGS, CUSTOMER1.email, CUSTOMER1.phone, 'Customer One'], who);
+            }
+        }
+        for (const [style, headers] of providerStyles(as)) {
+            expect((await expectOk(await request.get('/api/provider/status', { headers }), `provider1 by ${style} status`)).body.status, 'status').toBe(PROVIDER1.status);
+            expect((await expectOk(await request.get('/api/provider/availability', { headers }), `provider1 by ${style} availability`)).body.is_available, 'is_available').toBe(true);
+        }
+    });
+
+    // Photos and the timer address a booking by the query or the body; both filter by owner in their own query, so booking 2 answers the
+    // route's 404 (the same text as a booking that does not exist) and a write to booking 2 is not made. Red if `provider_id = ?` is dropped
+    // from the booking lookup: the refused POSTs would reach booking 2.
+    test("Ownership GET and POST /api/provider/jobs/photos and /jobs/time-tracking: provider1 reaches booking 1, booking 2 and a missing booking keep the 404 and booking 2 is unchanged", async ({ request, baseURL, playwright }) => {
+        const as = await credentials(baseURL);
+        const provider2 = await signedInAs(playwright, baseURL, 'provider2');
+        const photoUrl = `/uploads/e2e-ownership-${Date.now()}.png`;
+        const before = await bookingAsAdmin(request, as, BOOKING2.id);
+        expect((await expectOk(await request.get(`/api/provider/jobs/photos?booking_id=${BOOKING2.id}`, { headers: provider2 }), 'control: provider 2 reads the photos of booking 2')).body.data, 'control: the photos answer has before and after').toHaveProperty('before');
+        for (const [style, headers] of providerStyles(as)) {
+            const who = `provider1 by ${style}`;
+            await expectOk(await request.get(`/api/provider/jobs/photos?booking_id=${BOOKING1.id}`, { headers }), `${who} photos of booking 1`);
+            await expectOk(await request.get(`/api/provider/jobs/time-tracking?booking_id=${BOOKING1.id}`, { headers }), `${who} timer of booking 1`);
+            await expectAnswer(await request.get(`/api/provider/jobs/photos?booking_id=${BOOKING2.id}`, { headers }), 404, 'Booking not found or not assigned to you', `${who} photos of booking 2`);
+            await expectAnswer(await request.get(`/api/provider/jobs/photos?booking_id=${MISSING}`, { headers }), 404, 'Booking not found or not assigned to you', `${who} photos of a missing booking`);
+            await expectAnswer(await request.get(`/api/provider/jobs/time-tracking?booking_id=${BOOKING2.id}`, { headers }), 404, 'Booking not found', `${who} timer of booking 2`);
+            await expectAnswer(await request.post('/api/provider/jobs/photos', { headers, data: { booking_id: BOOKING2.id, photo_url: photoUrl, photo_type: 'before' } }), 404, 'Booking not found or not assigned to you', `${who} posts a photo to booking 2`);
+            await expectAnswer(await request.post('/api/provider/jobs/time-tracking', { headers, data: { booking_id: BOOKING2.id, action: 'start' } }), 404, 'Booking not found or not assigned to you', `${who} starts the timer of booking 2`);
+        }
+        const listed = await request.get(`/api/provider/jobs/photos?booking_id=${BOOKING2.id}`, { headers: provider2 });
+        expectNoneOf(await listed.text(), [photoUrl], "booking 2's photos as provider 2 reads them");
+        const after = await bookingAsAdmin(request, as, BOOKING2.id);
+        for (const column of ['status', 'job_timer_status', 'start_time', 'end_time', 'updated_at', 'before_photos_uploaded']) {
+            expect(after[column], `booking 2's ${column} after the refused photo and timer requests`).toEqual(before[column]);
+        }
+        // The owner's own start on completed booking 1 reaches the route's state check and stops there, writing nothing.
+        await expectAnswer(await request.post('/api/provider/jobs/time-tracking', { headers: as.provider, data: { booking_id: BOOKING1.id, action: 'start' } }), 400, 'Job must be confirmed to start', 'provider1 starts the timer of completed booking 1');
+    });
+});
