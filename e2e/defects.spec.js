@@ -10,6 +10,9 @@
 //   D2  admin finance data (15 route rows)    D6  uploads
 //   AC6 customer1 asks for customer2's booking and gets 403 and none of its fields
 //   D1 receipt page: the website's receipt no longer asks the admin-only GET /api/bookings/[id] (browser cases, one of them AC6)
+//   Added after code review round 1 (B1, B2, N10), at the end of the file: GET /api/reviews as a customer (four cases), who owns a
+//   booking made through POST /api/bookings with a credential (four cases), and a customer's own booking on POST /api/customer/bookings.
+//   They are not in the 34 of 48 count: each was seen red against its own mutation instead (the PR text names the mutations).
 //
 // Credentials come from getCredentialHeaders (e2e/auth/credentials.js): the fixture accounts' own cookies. Nothing here
 // writes to a fixture row. A write is only ever sent to a row the case created (a guest booking made through the
@@ -30,9 +33,10 @@ import { bookings } from '../database/fixtures/bookings.js';
 // token. A failure message names the case, the status and the account, never a header.
 test.use({ trace: 'off' });
 
-const [CUSTOMER1, CUSTOMER2] = users;
+const [CUSTOMER1, CUSTOMER2, ADMIN] = users;
 const [PROVIDER1, PROVIDER2] = providers;
 const [BOOKING1, BOOKING2] = bookings.tables.bookings;
+const [REVIEW1, REVIEW2] = bookings.tables.provider_reviews;
 
 // Strings that belong to customer 2's fixture booking and to no other fixture row: what customer 1 must never be shown.
 const CUSTOMER2_STRINGS = [BOOKING2.booking_number, BOOKING2.customer_email, BOOKING2.customer_phone, BOOKING2.address_line1, BOOKING2.job_description];
@@ -49,6 +53,9 @@ async function credentials(baseURL) {
         provider: styles['provider-cookie'],
         admin: styles['admin-cookie'],
         customerTokenAsAdmin: { cookie: `adminAuth=${customerToken}` },
+        customerBearer: styles['customer-bearer'],
+        providerBearer: styles['provider-bearer'],
+        adminBearer: styles['admin-bearer'],
     };
 }
 
@@ -68,19 +75,21 @@ function expectNoneOf(text, strings, who) {
     }
 }
 
-// A booking the case makes itself through the public guest checkout (POST /api/bookings stays public), so a write probe
-// never touches a fixture row. `run(id, body)` gets its id and the body that was posted; the row is deleted again as admin,
-// even when `run` fails.
-async function withProbeBooking(request, as, run) {
+// A booking the case makes itself through the public checkout (POST /api/bookings stays public), so a write probe never touches
+// a fixture row. `run(id, body)` gets its id and the body that was posted; the row is deleted again as admin, even when `run`
+// fails. With no options the checkout is a guest's. `headers` sends a credential with the POST and `fields` adds to the body or
+// replaces one of its fields (the owner cases send both: a credential and a body user_id).
+async function withProbeBooking(request, as, run, { headers = {}, fields = {} } = {}) {
     const tag = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
     const body = {
         service_id: 1, service_name: 'Fixture Standard Clean', service_price: 80, additional_price: 40,
         first_name: 'E2E', last_name: 'Probe', email: `e2e-probe-${tag}@workontap.test`, phone: '+14035550199',
         job_date: '2026-02-01', job_time_slot: '09:00', job_description: 'E2E probe booking, deleted by the case.',
         address_line1: '1 Probe Street', city: 'Calgary', payment_intent_id: `pi_e2e_probe_${tag}`,
+        ...fields,
     };
-    const created = await request.post('/api/bookings', { data: body });
-    expect(created.status(), 'guest checkout makes the probe booking').toBe(200);
+    const created = await request.post('/api/bookings', { data: body, headers });
+    expect(created.status(), 'checkout makes the probe booking').toBe(200);
     const id = (await created.json()).booking_id;
     expect(Number.isInteger(id), 'the probe booking has an id').toBe(true);
     try {
@@ -547,5 +556,142 @@ test.describe('AC6 cross-account bookings', () => {
             const body = await expectRefusal(response, 403, who);
             expectNoneOf(JSON.stringify(body), CUSTOMER2_STRINGS, who);
         }
+    });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// GET /api/reviews (customer or admin; moved here from the design's seam 4). A customer's list is the reviews of their own
+// bookings (AND b.user_id = caller.id), a customer_id naming anyone else is 403 (an admin may name anyone), and every row
+// carries the review author's name and email, so a customer who saw another account's review would see a stranger's address.
+// Each case first shows the other account's review IS served to someone entitled (an admin), so an absence means the route
+// held it back. The fixtures give each booking one review, written by the booking's own customer (database/fixtures/bookings.js).
+// ---------------------------------------------------------------------------------------------------------------------
+test.describe('Reviews, GET /api/reviews', () => {
+    // What customer 2's review carries in the answer and customer 1's list must not: the review text, the author's name and
+    // email (the route joins users), the booking number and the provider's name.
+    const CUSTOMER2_REVIEW_STRINGS = [REVIEW2.review, CUSTOMER2.email, `${CUSTOMER2.first_name} ${CUSTOMER2.last_name}`, BOOKING2.booking_number, PROVIDER2.name];
+
+    // The admin's read of `url`, which must hold customer 2's review text.
+    async function expectAdminServesReview2(request, as, url) {
+        const control = await request.get(url, { headers: as.admin });
+        expect(control.status(), `control: admin ${url}: status`).toBe(200);
+        expect((await control.text()).includes(REVIEW2.review), `control: the admin's read of ${url} holds customer2's review`).toBe(true);
+    }
+
+    test("AC6 customer1 GET /api/reviews lists customer1's review and none of customer2's, and an admin lists both", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const control = await request.get('/api/reviews', { headers: as.admin });
+        expect(control.status(), 'control: admin: status').toBe(200);
+        const controlText = await control.text();
+        for (const text of [REVIEW1.review, REVIEW2.review]) {
+            expect(controlText.includes(text), `control: the admin list holds ${JSON.stringify(text)}`).toBe(true);
+        }
+
+        const response = await request.get('/api/reviews', { headers: as.customer });
+        expect(response.status(), 'customer1: status').toBe(200);
+        const text = await response.text();
+        const body = JSON.parse(text);
+        expect(body.success, 'customer1: success').toBe(true);
+        expect(body.data.map((row) => row.review), "customer1's list is their own review and nothing else").toEqual([REVIEW1.review]);
+        expectNoneOf(text, CUSTOMER2_REVIEW_STRINGS, 'customer1 list');
+    });
+
+    test("AC6 customer1 GET /api/reviews?customer_id= naming customer2 is 403 and shows none of customer2's review", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const url = `/api/reviews?customer_id=${CUSTOMER2.id}`;
+        await expectAdminServesReview2(request, as, url);
+
+        const body = await expectRefusal(await request.get(url, { headers: as.customer }), 403, 'customer1 asks for ?customer_id=customer2');
+        expectNoneOf(JSON.stringify(body), CUSTOMER2_REVIEW_STRINGS, 'customer1 asks for ?customer_id=customer2');
+    });
+
+    test("AC6 customer1 GET /api/reviews?booking_id= naming customer2's booking is 200 and lists nothing", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const url = `/api/reviews?booking_id=${BOOKING2.id}`;
+        await expectAdminServesReview2(request, as, url);
+
+        const response = await request.get(url, { headers: as.customer });
+        expect(response.status(), 'customer1: status').toBe(200);
+        const text = await response.text();
+        const body = JSON.parse(text);
+        expect(body.success, 'customer1: success').toBe(true);
+        expect(body.data, "customer1: no review of customer2's booking").toEqual([]);
+        expectNoneOf(text, CUSTOMER2_REVIEW_STRINGS, 'customer1 asks for customer2\'s booking');
+    });
+
+    test("AC6 customer1 GET /api/reviews?customer_id= naming customer1 is 200 with customer1's review and not customer2's", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const response = await request.get(`/api/reviews?customer_id=${CUSTOMER1.id}`, { headers: as.customer });
+        expect(response.status(), 'customer1: status').toBe(200);
+        const text = await response.text();
+        const body = JSON.parse(text);
+        expect(body.success, 'customer1: success').toBe(true);
+        expect(body.data.map((row) => row.review), "customer1's own customer_id lists their own review").toEqual([REVIEW1.review]);
+        expectNoneOf(text, CUSTOMER2_REVIEW_STRINGS, 'customer1 asks for their own customer_id');
+    });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// D1, who owns a booking made through POST /api/bookings with a credential. The route stays public (guest checkout), so no
+// credential is refused; what a credential changes is the new row's user_id. A verified customer (cookie or Bearer) owns the
+// booking they make, whatever user_id the body names. A provider's or an admin's session is not a customer and does not
+// override, so the body's user_id stays (what a request with no customer credential has always got: the design's residual
+// R1, which no case here asks for). Before this branch the route took the id of a Bearer of any role as the owner, so the
+// provider and admin cases assert first that the Bearer's own id is NOT the owner, and the body names an account other than
+// the Bearer's own: the fixture provider1 has id 1, the same number as customer1, and the admin has id 3. Each case makes its
+// own booking and reads its owner as an admin; withProbeBooking deletes it again.
+// ---------------------------------------------------------------------------------------------------------------------
+test.describe('D1 owner of a booking made with a credential', () => {
+    async function ownerOfNewBooking(request, as, headers, fields) {
+        let owner;
+        await withProbeBooking(request, as, async (id) => {
+            const row = await rowAsAdmin(request, as, id);
+            expect(row, 'admin reads the booking the case made').not.toBeNull();
+            owner = row.user_id;
+        }, { headers, fields });
+        return owner;
+    }
+
+    test("D1 customer1's cookie owns the booking it makes through POST /api/bookings, whatever user_id the body names", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const owner = await ownerOfNewBooking(request, as, as.customer, { user_id: CUSTOMER2.id });
+        expect(owner, "owner: customer1's id, not the customer2 the body named").toBe(CUSTOMER1.id);
+    });
+
+    test("D1 customer1's Bearer owns the booking it makes through POST /api/bookings, whatever user_id the body names", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const owner = await ownerOfNewBooking(request, as, as.customerBearer, { user_id: CUSTOMER2.id });
+        expect(owner, "owner: customer1's id, not the customer2 the body named").toBe(CUSTOMER1.id);
+    });
+
+    test("D1 provider1's Bearer does not become the owner of the booking it makes through POST /api/bookings", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const owner = await ownerOfNewBooking(request, as, as.providerBearer, { user_id: CUSTOMER2.id });
+        expect(owner, "owner: not provider1's own id (the Bearer's)").not.toBe(PROVIDER1.id);
+        expect(owner, "owner: the body's user_id, as with no customer credential").toBe(CUSTOMER2.id);
+    });
+
+    test("D1 the admin's Bearer does not become the owner of the booking it makes through POST /api/bookings", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const owner = await ownerOfNewBooking(request, as, as.adminBearer, { user_id: CUSTOMER1.id });
+        expect(owner, "owner: not the admin's own id (the Bearer's)").not.toBe(ADMIN.id);
+        expect(owner, "owner: the body's user_id, as with no customer credential").toBe(CUSTOMER1.id);
+    });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// The owner's own path on POST /api/customer/bookings (code review round 1, N10). Every other case on this route is a refusal, so
+// a customer branch that matched nothing would lock every owner out with every one of them green.
+// ---------------------------------------------------------------------------------------------------------------------
+test.describe('D3 owner reads their own booking', () => {
+    test("D3 customer1 POST /api/customer/bookings with customer1's own booking_id is 200 with that booking number", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const response = await request.post('/api/customer/bookings', { headers: as.customer, data: { booking_id: BOOKING1.id } });
+        expect(response.status(), 'customer1: status').toBe(200);
+        const text = await response.text();
+        const body = JSON.parse(text);
+        expect(body.success, 'customer1: success').toBe(true);
+        expect(body.data.booking_number, "customer1's own booking comes back").toBe(BOOKING1.booking_number);
+        expectNoneOf(text, CUSTOMER2_STRINGS, 'customer1 reads their own booking');
     });
 });

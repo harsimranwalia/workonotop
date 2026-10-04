@@ -1,17 +1,19 @@
 // database/fixtures/bookings.js
-// Two finished jobs, one per customer and provider pair, and the invoice and payout row each one left behind, so a
+// Two finished jobs, one per customer and provider pair, and the invoice, payout and review row each one left behind, so a
 // test that crosses accounts has another account's row to ask for. Plain data with no imports. The identity rules in
 // accounts.js bind this set too: customer_email is the customer's own @workontap.test address, names and phones are
 // the fixture accounts', addresses are invented, and every timestamp is FIXED_AT or a fixed time, so two loads
 // write the same bytes.
 //
-//   booking 1  customer 1 (user 1)  with provider 1   BK-FIXTURE-0001   invoice 1, payout 1
-//   booking 2  customer 2 (user 2)  with provider 2   BK-FIXTURE-0002   invoice 2, payout 2
+//   booking 1  customer 1 (user 1)  with provider 1   BK-FIXTURE-0001   invoice 1, payout 1, review 1
+//   booking 2  customer 2 (user 2)  with provider 2   BK-FIXTURE-0002   invoice 2, payout 2, review 2
 //
 // Why invoices and payouts: the admin finance routes read them (admin/earnings: bookings LEFT JOIN invoices, then
 // invoices; admin/invoices: invoices; admin/payouts: provider_payouts joined to bookings), so an admin sees a row of
-// each. The booking numbers, addresses and descriptions are distinct per account so that a test can assert by
-// absence: customer 1's answer holds none of customer 2's strings.
+// each. GET /api/reviews reads provider_reviews joined to users, service_providers, bookings and services, and a
+// customer's list is the reviews of their own bookings (the booking's user_id), so each booking has one review, written by
+// the booking's own customer (provider_reviews.booking_id is unique). The booking numbers, addresses, descriptions and review
+// texts are distinct per account so that a test can assert by absence: customer 1's answer holds none of customer 2's strings.
 //
 // Money follows the catalogue: service 1 (Fixture Standard Clean) is 80.00 with 40.00 an hour of overtime, and the
 // commission is the 20 percent of system_settings.default_commission, so the provider's share is 64.00. The payout is
@@ -23,6 +25,7 @@ const FIXED_AT = '2026-01-01 00:00:00';
 const JOB_DATE = '2026-01-15';
 const STARTED_AT = '2026-01-15 09:00:00';
 const ENDED_AT = '2026-01-15 11:00:00';
+const REVIEWED_AT = '2026-01-16 10:00:00';
 
 const SERVICE_NAME = 'Fixture Standard Clean';
 const PRICE = 80.0;
@@ -115,6 +118,19 @@ const payout = ({ id, providerId, bookingId }) => ({
   updated_at: FIXED_AT,
 });
 
+// One review per booking (provider_reviews.booking_id is unique), written by the booking's own customer for its own provider.
+const review = ({ id, bookingId, providerId, customerId, rating, text }) => ({
+  id,
+  booking_id: bookingId,
+  provider_id: providerId,
+  customer_id: customerId,
+  rating,
+  review: text,
+  is_anonymous: 0,
+  created_at: REVIEWED_AT,
+  updated_at: REVIEWED_AT,
+});
+
 export const bookings = {
   name: 'bookings',
   tables: {
@@ -149,5 +165,9 @@ export const bookings = {
       invoice({ id: 2, number: 'INV-FIXTURE-0002', bookingId: 2, userId: 2, providerId: 2 }),
     ],
     provider_payouts: [payout({ id: 1, providerId: 1, bookingId: 1 }), payout({ id: 2, providerId: 2, bookingId: 2 })],
+    provider_reviews: [
+      review({ id: 1, bookingId: 1, providerId: 1, customerId: 1, rating: 5, text: 'Fixture review one: Fixture Customer One found the clean thorough and on time.' }),
+      review({ id: 2, bookingId: 2, providerId: 2, customerId: 2, rating: 4, text: 'Fixture review two: Fixture Customer Two found the clean tidy and friendly.' }),
+    ],
   },
 };
