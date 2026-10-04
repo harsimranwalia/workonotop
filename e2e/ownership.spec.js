@@ -399,3 +399,118 @@ test.describe('Ownership: POST /api/reviews', () => {
         await expectAnswer(missing, 404, 'Booking not found', 'customer1, missing booking');
     });
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Customer booking routes. Clauses (each route file): booking-details, approve and cancel find the booking and answer 403 when
+// it exists and bookings.user_id is not caller.id (404 'Booking not found' when it does not exist); invoices lists
+// b.user_id = caller.id and answers 403 for a user_id or an email naming anyone else; customer/reviews GET and POST answer 403 for
+// a customer_id that is not caller.id, a booking that is not the caller's and (POST) a provider_id that is not the booking's.
+// ---------------------------------------------------------------------------------------------------------------------
+test.describe('Ownership: customer booking routes', () => {
+    // Red if the 403 branch after the owner-filtered query is deleted: the foreign booking answers the 404 (the old answer).
+    test("Ownership GET /api/customer/booking-details: customer1 reads booking 1, booking 2 is 403 and shows none of its fields, a missing booking is 404", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        await expectServedToAdmin(request, as, `/api/bookings/${BOOKING2.id}`, BOOKING2_STRINGS, 'booking 2');
+        for (const [style, headers] of customerStyles(as)) {
+            const who = `customer1 by ${style}`;
+            const own = await expectOk(await request.get(`/api/customer/booking-details?bookingId=${BOOKING1.id}`, { headers }), who);
+            expect(own.body.data[0].booking_number, `${who}: booking 1`).toBe(BOOKING1.booking_number);
+            expectNoneOf(own.text, BOOKING2_STRINGS, who);
+            await expectForbidden(await request.get(`/api/customer/booking-details?bookingId=${BOOKING2.id}`, { headers }), `${who} asks for booking 2`, BOOKING2_STRINGS);
+            await expectAnswer(await request.get(`/api/customer/booking-details?bookingId=${MISSING}`, { headers }), 404, 'Booking not found', `${who}, missing booking`);
+        }
+    });
+
+    // Booking 1 is `completed`, so the owner's approve reaches the route's own status check and stops there (a 400 that names the
+    // status), writing nothing. Red if the ownership 403 is deleted: the foreign request would answer that 400 about booking 2's status.
+    test("Ownership POST /api/customer/bookings/[id]/approve: customer1 on booking 1 reaches the status check, on booking 2 is 403 and booking 2 is unchanged, a missing booking is 404", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const before = await bookingAsAdmin(request, as, BOOKING2.id);
+        for (const [style, headers] of customerStyles(as)) {
+            const who = `customer1 by ${style}`;
+            await expectAnswer(await request.post(`/api/customer/bookings/${BOOKING1.id}/approve`, { headers, data: { action: 'approve' } }), 400, "Booking status is 'completed', expected 'awaiting_approval'", `${who} approves booking 1`);
+            await expectForbidden(await request.post(`/api/customer/bookings/${BOOKING2.id}/approve`, { headers, data: { action: 'approve' } }), `${who} approves booking 2`, ['expected', ...BOOKING2_STRINGS]);
+            await expectForbidden(await request.post(`/api/customer/bookings/${BOOKING2.id}/approve`, { headers, data: { action: 'dispute', dispute_reason: 'e2e ownership probe' } }), `${who} disputes booking 2`);
+            await expectAnswer(await request.post(`/api/customer/bookings/${MISSING}/approve`, { headers, data: { action: 'approve' } }), 404, 'Booking not found', `${who}, missing booking`);
+        }
+        const after = await bookingAsAdmin(request, as, BOOKING2.id);
+        expect(after.status, "booking 2's status after the refused approve and dispute").toBe(before.status);
+        expect(after.updated_at, "booking 2's updated_at after the refused approve and dispute").toBe(before.updated_at);
+    });
+
+    // customer1 cancels a booking they own (200, cancelled); customer 2, signed in as themselves, is refused on customer 1's pending
+    // booking and it stays pending. Red if the `String(booking.user_id) !== String(customerId)` comparison is deleted.
+    test("Ownership POST /api/customer/bookings/[id]/cancel: customer1 cancels their own pending booking, customer 2 cannot cancel it, and customer1 cannot cancel booking 2", async ({ request, baseURL, playwright }) => {
+        const as = await credentials(baseURL);
+        const customer2 = await signedInAs(playwright, baseURL, 'customer2');
+        await withProbeBooking(request, as, async (id) => {
+            await expectForbidden(await request.post(`/api/customer/bookings/${id}/cancel`, { headers: customer2, data: {} }), "customer 2 cancels customer 1's booking");
+            expect((await bookingAsAdmin(request, as, id)).status, 'after the refused cancel').toBe('pending');
+            await expectOk(await request.post(`/api/customer/bookings/${id}/cancel`, { headers: as.customerBearer, data: {} }), 'customer1 cancels their own booking');
+            expect((await bookingAsAdmin(request, as, id)).status, 'after the owner cancels').toBe('cancelled');
+        }, { headers: as.customer });
+        await expectAnswer(await request.post(`/api/customer/bookings/${BOOKING1.id}/cancel`, { headers: as.customer, data: {} }), 400, 'Booking cannot be cancelled. Current status: completed', 'customer1 cancels completed booking 1');
+        await expectForbidden(await request.post(`/api/customer/bookings/${BOOKING2.id}/cancel`, { headers: as.customer, data: {} }), 'customer1 cancels booking 2', BOOKING2_STRINGS);
+        await expectForbidden(await request.post(`/api/customer/bookings/${BOOKING2.id}/cancel`, { headers: as.customerBearer, data: {} }), 'customer1 by Bearer cancels booking 2', BOOKING2_STRINGS);
+        expect((await bookingAsAdmin(request, as, BOOKING2.id)).status, "booking 2's status after the refused cancels").toBe(BOOKING2.status);
+        await expectAnswer(await request.post(`/api/customer/bookings/${MISSING}/cancel`, { headers: as.customer, data: {} }), 404, 'Booking not found', 'customer1, missing booking');
+    });
+
+    // Red if the SQL loses `AND b.user_id = ?` (the old `i.user_id = ? OR b.customer_email = ?` took both parameters as the account).
+    test("Ownership GET /api/customer/invoices: customer1 lists their own invoice and not customer 2's; ?user_id=, ?email= and both naming customer 2 are 403", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const INVOICE1 = bookings.tables.invoices[0].invoice_number;
+        const INVOICE2 = bookings.tables.invoices[1].invoice_number;
+        await expectServedToAdmin(request, as, '/api/admin/invoices', [INVOICE2], 'invoice 2');
+        const own = [`/api/customer/invoices`, `/api/customer/invoices?user_id=${CUSTOMER1.id}`, `/api/customer/invoices?email=${encodeURIComponent(CUSTOMER1.email)}`];
+        for (const [style, headers] of customerStyles(as)) {
+            for (const path of own) {
+                const who = `customer1 by ${style} ${path}`;
+                const { text } = await expectOk(await request.get(path, { headers }), who);
+                expectAllOf(text, [INVOICE1], who);
+                expectNoneOf(text, [INVOICE2, ...BOOKING2_STRINGS], who);
+            }
+            for (const query of [`user_id=${CUSTOMER2.id}`, `email=${encodeURIComponent(CUSTOMER2.email)}`, `user_id=${CUSTOMER1.id}&email=${encodeURIComponent(CUSTOMER2.email)}`, `user_id=${CUSTOMER2.id}&email=${encodeURIComponent(CUSTOMER1.email)}`]) {
+                await expectForbidden(await request.get(`/api/customer/invoices?${query}`, { headers }), `customer1 by ${style} ?${query}`, [INVOICE2, ...BOOKING2_STRINGS, ...CUSTOMER2_STRINGS]);
+            }
+        }
+    });
+
+    test("Ownership GET /api/customer/reviews: customer1 reads the state of their own booking's review, and a customer_id or a booking that is not theirs is 403", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        for (const [style, headers] of customerStyles(as)) {
+            const who = `customer1 by ${style}`;
+            const own = await expectOk(await request.get(`/api/customer/reviews?booking_id=${BOOKING1.id}&customer_id=${CUSTOMER1.id}`, { headers }), who);
+            expect(own.body.data.has_reviewed, `${who}: booking 1 has its review`).toBe(true);
+            expect(own.body.data.existing_review.review, `${who}: customer 1's review text`).toBe(REVIEW1.review);
+            expectNoneOf(own.text, [REVIEW2.review], who);
+            for (const query of [`booking_id=${BOOKING2.id}&customer_id=${CUSTOMER2.id}`, `booking_id=${BOOKING2.id}&customer_id=${CUSTOMER1.id}`, `booking_id=${BOOKING1.id}&customer_id=${CUSTOMER2.id}`]) {
+                await expectForbidden(await request.get(`/api/customer/reviews?${query}`, { headers }), `${who} ?${query}`, [REVIEW2.review, ...CUSTOMER2_STRINGS]);
+            }
+            await expectAnswer(await request.get(`/api/customer/reviews?booking_id=${MISSING}&customer_id=${CUSTOMER1.id}`, { headers }), 404, 'Booking not found', `${who}, missing booking`);
+        }
+    });
+
+    // Booking 1 is paid and already reviewed, so the owner's POST reaches the route's own 400 about the existing review, which is how
+    // an allowed request is told from the refusals. Red if any of the three 403 clauses is deleted: that clause's request would answer
+    // the same 400 (booking 2 is paid and reviewed too).
+    test("Ownership POST /api/customer/reviews: customer1 on booking 1 reaches the review check; booking 2, a customer_id naming customer 2 and a provider_id naming provider 2 are 403 and add no review", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const marker = `e2e-ownership-customer-review-${Date.now()}`;
+        const sent = (booking, provider, customer) => ({ booking_id: booking, provider_id: provider, customer_id: customer, rating: 5, review: marker });
+        for (const [style, headers] of customerStyles(as)) {
+            const who = `customer1 by ${style}`;
+            await expectAnswer(await request.post('/api/customer/reviews', { headers, data: sent(BOOKING1.id, PROVIDER1.id, CUSTOMER1.id) }), 400, 'You have already reviewed this provider', `${who} reviews booking 1`);
+            await expectForbidden(await request.post('/api/customer/reviews', { headers, data: sent(BOOKING2.id, PROVIDER2.id, CUSTOMER1.id) }), `${who} reviews booking 2`, [marker]);
+            await expectForbidden(await request.post('/api/customer/reviews', { headers, data: sent(BOOKING1.id, PROVIDER1.id, CUSTOMER2.id) }), `${who}, customer_id naming customer 2`, [marker]);
+            await expectForbidden(await request.post('/api/customer/reviews', { headers, data: sent(BOOKING1.id, PROVIDER2.id, CUSTOMER1.id) }), `${who}, provider_id naming provider 2`, [marker]);
+        }
+        for (const id of [BOOKING1.id, BOOKING2.id]) {
+            const read = await request.get(`/api/reviews?booking_id=${id}`, { headers: as.admin });
+            expectNoneOf(await read.text(), [marker], `the reviews of booking ${id}`);
+        }
+    });
+
+    // POST /api/payment/create-intent is a row of the ticket, but nothing of it is observable here: see the header.
+    test.skip('Ownership POST /api/payment/create-intent: not observable in the dev app (no STRIPE_SECRET_KEY: the module throws at import, every request is a 500 page) and the handler takes no booking', () => {});
+});
