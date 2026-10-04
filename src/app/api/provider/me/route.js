@@ -1,30 +1,14 @@
 import { NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
 import { execute } from '@/lib/db';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+import { requireCaller } from '@/lib/api-auth';
 
 export async function GET(request) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller;
   try {
-    const authHeader = request.headers.get('Authorization');
-    const token = authHeader ? authHeader.replace('Bearer ', '') : request.cookies.get('provider_token')?.value;
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, message: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (!decoded || decoded.type !== 'provider') {
-      return NextResponse.json(
-        { success: false, message: 'Invalid token' },
-        { status: 401 }
-      );
-    }
-
-    const providerId = decoded.providerId || decoded.id;
+    // Ownership: the caller's own provider row, the id from the verified caller and nothing else.
+    const providerId = caller.id;
 
     const providers = await execute(
       `SELECT id, name, email, phone, status, email_verified,
