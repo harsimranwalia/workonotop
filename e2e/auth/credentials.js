@@ -14,8 +14,9 @@
 //                  The admin by Bearer (ENG-021) is the same route with the admin fixture's login: the route finds an
 //                  admin in `users` whatever role is asked for and signs { role: 'admin', type: 'admin' }. The app's admin
 //                  screens send a Bearer only, so a route that is converted to the guard needs a style that shows a real
-//                  mobile admin token getting through it. It is not one of the design's three original Bearer/cookie
-//                  pairs, which is why it comes last: answer annotations list the styles in this order.
+//                  mobile admin token getting through it. It is not one of the five styles the design lists (the customer,
+//                  provider and admin cookies and the customer and provider Bearers), which is why it comes last: answer
+//                  annotations list the styles in this order.
 import { request } from '@playwright/test';
 import { FIXTURE_LOGINS } from '../../database/fixtures/accounts.js';
 import { RESET_RETRIES } from '../support/auth.js';
