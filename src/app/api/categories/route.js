@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server'
 import { execute } from '@/lib/db'  // ✅ CHANGE: query → execute
 import { logActivity } from '@/lib/logger'
+import { requireCaller } from '@/lib/api-auth'
 
 // GET all service categories
 export async function GET() {
@@ -27,6 +28,8 @@ export async function GET() {
 
 // POST create new category
 export async function POST(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { name, slug, icon, description, display_order, image_url } = await request.json()
 
@@ -70,6 +73,8 @@ export async function POST(request) {
 
 // PUT update category
 export async function PUT(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { id, name, slug, icon, description, is_active, display_order, image_url } = await request.json()
 
@@ -109,6 +114,8 @@ export async function PUT(request) {
 
 // DELETE category
 export async function DELETE(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
