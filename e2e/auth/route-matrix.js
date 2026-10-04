@@ -562,7 +562,7 @@ export const matrix = [
     },
     {
         route: '/api/auth/change-password', method: 'POST', today: 'full', kind: 'roles', roles: ['customer', 'provider'], owner: 'own account (table by role)',
-        note: 'Looks up users first by token id, ignoring token role: a provider token with id N hits users.id…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/auth/change-password/route.js:7-8, requireCaller(request, [customer, provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own account (table by role)) comes from auth.caller, never from a request field; caller.id bound at src/app/api/auth/change-password/route.js:32, :52. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Looks up users first by token id, ignoring token role: a provider token with id N hits users.id…',
         probe: { path: '/api/auth/change-password', body: {}, anon: 401 },
     },
     {
@@ -592,7 +592,7 @@ export const matrix = [
     },
     {
         route: '/api/auth/me', method: 'GET', today: 'full', kind: 'roles', roles: ['customer', 'provider', 'admin'], owner: 'own profile (table by role)',
-        note: 'Reset/verification JWTs (type claim, providerId) accepted and fall to users lookup by providerI…',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/auth/me/route.js:12-13, requireCaller(request, [customer, provider, admin]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own profile (table by role)) comes from auth.caller, never from a request field; caller.id bound at src/app/api/auth/me/route.js:18. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Reset/verification JWTs (type claim, providerId) accepted and fall to users lookup by providerI…',
         probe: { path: '/api/auth/me', body: undefined, anon: 401 },
     },
     {
@@ -697,22 +697,22 @@ export const matrix = [
     },
     {
         route: '/api/chat', method: 'GET', today: 'none', kind: 'roles', roles: ['customer', 'provider', 'admin'], owner: 'participant of the booking (user_id or provider_id); admin all',
-        note: 'HIGH: anonymous read of any booking\'s full chat history by sequential bookingId, with sender id…',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/chat/route.js:21-22, requireCaller(request, [customer, provider, admin]): no credential is 401 and a wrong role 403 before the body is read). Ownership (participant of the booking (user_id or provider_id); admin all) comes from auth.caller, never from a request field; 403 refusals src/app/api/chat/route.js:43. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): HIGH: anonymous read of any booking\'s full chat history by sequential bookingId, with sender id…',
         probe: { path: '/api/chat', body: undefined, anon: 401 },
     },
     {
         route: '/api/chat', method: 'POST', today: 'partial', kind: 'roles', roles: ['customer', 'provider', 'admin'], owner: 'participant of the booking (user_id or provider_id); admin all',
-        note: 'MEDIUM: any logged-in user can post into any booking\'s chat and trigger an email and push with …',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/chat/route.js:91-92, requireCaller(request, [customer, provider, admin]): no credential is 401 and a wrong role 403 before the body is read). Ownership (participant of the booking (user_id or provider_id); admin all) comes from auth.caller, never from a request field; 403 refusals src/app/api/chat/route.js:127. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): MEDIUM: any logged-in user can post into any booking\'s chat and trigger an email and push with …',
         probe: { path: '/api/chat', body: {}, anon: 401 },
     },
     {
         route: '/api/chat/mark-read', method: 'POST', today: 'partial', kind: 'roles', roles: ['customer', 'provider', 'admin'], owner: 'participant of the booking (user_id or provider_id); admin all',
-        note: 'LOW: token only verified, never used; any logged-in user can mark any booking\'s messages read; …',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/chat/mark-read/route.js:16-17, requireCaller(request, [customer, provider, admin]): no credential is 401 and a wrong role 403 before the body is read). Ownership (participant of the booking (user_id or provider_id); admin all) comes from auth.caller, never from a request field; 403 refusals src/app/api/chat/mark-read/route.js:30, :35. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): LOW: token only verified, never used; any logged-in user can mark any booking\'s messages read; …',
         probe: { path: '/api/chat/mark-read', body: {}, anon: 401 },
     },
     {
         route: '/api/chat/unread', method: 'GET', today: 'partial', kind: 'roles', roles: ['customer', 'provider', 'admin'], owner: 'participant of the booking (user_id or provider_id); admin all',
-        note: 'LOW: returns only a count, but any logged-in user can probe any booking; client userType picks …',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/chat/unread/route.js:16-17, requireCaller(request, [customer, provider, admin]): no credential is 401 and a wrong role 403 before the body is read). Ownership (participant of the booking (user_id or provider_id); admin all) comes from auth.caller, never from a request field; 403 refusals src/app/api/chat/unread/route.js:35, :36, :42. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): LOW: returns only a count, but any logged-in user can probe any booking; client userType picks …',
         probe: { path: '/api/chat/unread', body: undefined, anon: 401 },
     },
     {
@@ -727,7 +727,7 @@ export const matrix = [
     },
     {
         route: '/api/customer/booking-details', method: 'GET', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'bookings.user_id = caller (today enforced, role not)',
-        note: 'LOW: ownership enforced, role is not; a provider or admin JWT whose id equals a customer\'s user… The website\'s receipt page (src/app/booking/success/[id]/page.js) reads it too since ENG-021, for a signed-in customer whose tab holds no saved booking (design ENG-004 Amendment 6).',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/customer/booking-details/route.js:137-138, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). Ownership (bookings.user_id = caller (today enforced, role not)) comes from auth.caller, never from a request field; 403 refusals src/app/api/customer/booking-details/route.js:178. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): LOW: ownership enforced, role is not; a provider or admin JWT whose id equals a customer\'s user… The website\'s receipt page (src/app/booking/success/[id]/page.js) reads it too since ENG-021, for a signed-in customer whose tab holds no saved booking (design ENG-004 Amendment 6).',
         probe: { path: '/api/customer/booking-details', body: undefined, anon: 401 },
     },
     {
@@ -742,27 +742,27 @@ export const matrix = [
     },
     {
         route: '/api/customer/bookings/[id]/approve', method: 'POST', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'bookings.user_id = caller (today enforced, role not)',
-        note: 'MEDIUM: moves money; role unchecked, a provider JWT whose id equals the customer\'s users.id pas…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/customer/bookings/[id]/approve/route.js:155-156, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). Ownership (bookings.user_id = caller (today enforced, role not)) comes from auth.caller, never from a request field; 403 refusals src/app/api/customer/bookings/[id]/approve/route.js:195. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): MEDIUM: moves money; role unchecked, a provider JWT whose id equals the customer\'s users.id pas…',
         probe: { path: '/api/customer/bookings/999999999/approve', body: {}, anon: 401 },
     },
     {
         route: '/api/customer/bookings/[id]/cancel', method: 'POST', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'bookings.user_id = caller (today enforced, role not)',
-        note: 'LOW: ownership enforced, role is not; a provider JWT whose id collides with a customer\'s users.…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/customer/bookings/[id]/cancel/route.js:7-8, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). Ownership (bookings.user_id = caller (today enforced, role not)) comes from auth.caller, never from a request field; 403 refusals src/app/api/customer/bookings/[id]/cancel/route.js:27. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): LOW: ownership enforced, role is not; a provider JWT whose id collides with a customer\'s users.…',
         probe: { path: '/api/customer/bookings/999999999/cancel', body: {}, anon: 401 },
     },
     {
         route: '/api/customer/invoices', method: 'GET', today: 'none', kind: 'roles', roles: ['customer'], owner: 'bookings.user_id = caller; a `?user_id=`/`?email=` naming anyone else: 403',
-        note: 'HIGH: ?user_id=null passes the guard (10) but adds no WHERE filter (28-34), returning every cus…',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/customer/invoices/route.js:6-7, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). Ownership (bookings.user_id = caller; a `?user_id=`/`?email=` naming anyone else: 403) comes from auth.caller, never from a request field; 403 refusals src/app/api/customer/invoices/route.js:19, :22. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): HIGH: ?user_id=null passes the guard (10) but adds no WHERE filter (28-34), returning every cus…',
         probe: { path: '/api/customer/invoices', body: undefined, anon: 401 },
     },
     {
         route: '/api/customer/reviews', method: 'GET', today: 'none', kind: 'roles', roles: ['customer'], owner: 'own booking; customer_id from caller',
-        note: 'LOW: with sequential booking_id and customer_id anyone reads review text, rating and invoice st…',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/customer/reviews/route.js:145-146, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own booking; customer_id from caller) comes from auth.caller, never from a request field; 403 refusals src/app/api/customer/reviews/route.js:161, :167. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): LOW: with sequential booking_id and customer_id anyone reads review text, rating and invoice st…',
         probe: { path: '/api/customer/reviews', body: undefined, anon: 401 },
     },
     {
         route: '/api/customer/reviews', method: 'POST', today: 'none', kind: 'roles', roles: ['customer'], owner: 'own booking; customer_id from caller',
-        note: 'HIGH: anonymous review on any paid booking, attributed to any customer_id and counted against A…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/customer/reviews/route.js:11-12, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own booking; customer_id from caller) comes from auth.caller, never from a request field; 403 refusals src/app/api/customer/reviews/route.js:34, :43, :44. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): HIGH: anonymous review on any paid booking, attributed to any customer_id and counted against A…',
         probe: { path: '/api/customer/reviews', body: {}, anon: 401 },
     },
     {
@@ -787,12 +787,12 @@ export const matrix = [
     },
     {
         route: '/api/customers/[id]', method: 'GET', today: 'partial', kind: 'roles', roles: ['customer', 'admin'], owner: 'users.id = caller',
-        note: 'Role not checked: mobile/Google provider tokens carry id, so provider N passes as customer N; a… Probe (B2, 2026-10-02; QA F7): allowed [403, 404]. An ownership row: the probe id is nobody own, so the ALLOWED customer is refused 403 by the handler own ownership check (customers/[id]/route.js:151-153) and the allowed admin gets 404 (no user 999999999, :193-195). Either status is legitimate for an allowed role; a 401 is not. Today the admin cookie answers 401, because the handler reads only the customer_token cookie (:140), and that stays wrong.',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/customers/[id]/route.js:135-136, requireCaller(request, [customer, admin]): no credential is 401 and a wrong role 403 before the body is read). Ownership (users.id = caller) comes from auth.caller, never from a request field; 403 refusals src/app/api/customers/[id]/route.js:143. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Role not checked: mobile/Google provider tokens carry id, so provider N passes as customer N; a… Probe (B2, 2026-10-02; QA F7): allowed [403, 404]. An ownership row: the probe id is nobody own, so the ALLOWED customer is refused 403 by the handler own ownership check (customers/[id]/route.js:151-153) and the allowed admin gets 404 (no user 999999999, :193-195). Either status is legitimate for an allowed role; a 401 is not. Today the admin cookie answers 401, because the handler reads only the customer_token cookie (:140), and that stays wrong.',
         probe: { path: '/api/customers/999999999', body: undefined, anon: 401, allowed: [403, 404] },
     },
     {
         route: '/api/customers/[id]', method: 'PUT', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'users.id = caller',
-        note: 'Upload extension comes from client filename, no type/size check, written to public/uploads (L28… Probe (B2, 2026-10-02; QA F7): allowed [400, 403, 404]. An ownership row: the probe id is nobody own, so the ALLOWED customer is refused 403 by the ownership check (customers/[id]/route.js:249-251), which runs before the body is read (:253-271), the file write (:279-295) and the UPDATE (:315). A conversion that answers 404 for a missing user, or validates first and answers 400 (first_name and last_name are required, :273-275), is as legitimate; a 401 is not. No credential reaches a write with {}.',
+        note: 'ENG-023, converted: the guard is the first statement of PUT (src/app/api/customers/[id]/route.js:224-225, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). Ownership (users.id = caller) comes from auth.caller, never from a request field; 403 refusals src/app/api/customers/[id]/route.js:232. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Upload extension comes from client filename, no type/size check, written to public/uploads (L28… Probe (B2, 2026-10-02; QA F7): allowed [400, 403, 404]. An ownership row: the probe id is nobody own, so the ALLOWED customer is refused 403 by the ownership check (customers/[id]/route.js:249-251), which runs before the body is read (:253-271), the file write (:279-295) and the UPDATE (:315). A conversion that answers 404 for a missing user, or validates first and answers 400 (first_name and last_name are required, :273-275), is as legitimate; a 401 is not. No credential reaches a write with {}.',
         probe: { path: '/api/customers/999999999', body: {}, anon: 401, allowed: [400, 403, 404] },
     },
     {
@@ -807,12 +807,12 @@ export const matrix = [
     },
     {
         route: '/api/mobile/push-token', method: 'POST', today: 'partial', kind: 'roles', roles: ['customer', 'provider'], owner: 'body userId must equal caller',
-        note: 'Auth is log-only (L22-24), identity from body: anyone can overwrite any account\'s push token or…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/mobile/push-token/route.js:6-7, requireCaller(request, [customer, provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (body userId must equal caller) comes from auth.caller, never from a request field; 403 refusals src/app/api/mobile/push-token/route.js:22. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Auth is log-only (L22-24), identity from body: anyone can overwrite any account\'s push token or…',
         probe: { path: '/api/mobile/push-token', body: {}, anon: 401 },
     },
     {
         route: '/api/payment/create-intent', method: 'POST', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'own booking',
-        note: 'Charge amount comes from client body service_price (L56-60), not re-read from services; error b…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/payment/create-intent/route.js:15-16, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own booking) comes from auth.caller, never from a request field; 403 refusals src/app/api/payment/create-intent/route.js:25, :30. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Charge amount comes from client body service_price (L56-60), not re-read from services; error b…',
         probe: { path: '/api/payment/create-intent', body: {}, anon: 401 },
     },
     {
@@ -832,42 +832,42 @@ export const matrix = [
     },
     {
         route: '/api/provider/availability', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own availability flag',
-        note: 'Sound gate; no check on provider status, so suspended or deleted providers with a live token st…',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/availability/route.js:7-8, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own availability flag) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/availability/route.js:10. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Sound gate; no check on provider status, so suspended or deleted providers with a live token st…',
         probe: { path: '/api/provider/availability', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/availability', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own availability flag',
-        note: 'Can run ALTER TABLE service_providers from the request path after an UPDATE error (L72-76); err… Probe (B2, 2026-10-02): body undefined. availability/route.js:62 reads the body (`await request.json()`) before the first side effect, the UPDATE at :66-69 and, after its error, the ALTER TABLE at :74-76, so a request with no body throws there and the catch at :93 answers 500: nothing is written and no schema is changed, for any credential. The old probe, {}, passed :62 and set the fixture provider offline (the is_available column exists on the dev schema, so the ALTER TABLE did not run).',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/availability/route.js:28-29, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own availability flag) comes from auth.caller, never from a request field; auth.caller read at src/app/api/provider/availability/route.js:30. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Can run ALTER TABLE service_providers from the request path after an UPDATE error (L72-76); err… Probe (B2, 2026-10-02): body undefined. availability/route.js:62 reads the body (`await request.json()`) before the first side effect, the UPDATE at :66-69 and, after its error, the ALTER TABLE at :74-76, so a request with no body throws there and the catch at :93 answers 500: nothing is written and no schema is changed, for any credential. The old probe, {}, passed :62 and set the fixture provider offline (the is_available column exists on the dev schema, so the ALTER TABLE did not run).',
         probe: { path: '/api/provider/availability', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/availability', method: 'PUT', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own availability flag',
-        note: 'Identical to POST via handleToggle (L42-44), including the ALTER TABLE fallback and the error.m… Probe (B2, 2026-10-02): body undefined, for the reason given on POST (handleToggle reads the body at availability/route.js:62, before the UPDATE at :66-69; the catch at :93 answers 500; nothing is written).',
+        note: 'ENG-023, converted: the guard is the first statement of PUT (src/app/api/provider/availability/route.js:34-35, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own availability flag) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/availability/route.js:42. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Identical to POST via handleToggle (L42-44), including the ALTER TABLE fallback and the error.m… Probe (B2, 2026-10-02): body undefined, for the reason given on POST (handleToggle reads the body at availability/route.js:62, before the UPDATE at :66-69; the catch at :93 answers 500; nothing is written).',
         probe: { path: '/api/provider/availability', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/available-jobs', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own assigned jobs plus the open pool',
-        note: '?all=true removes the service-area filter (L128); postal_code unmasked (L198) while address_lin…',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/available-jobs/route.js:22-23, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own assigned jobs plus the open pool) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/available-jobs/route.js:29. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): ?all=true removes the service-area filter (L128); postal_code unmasked (L198) while address_lin…',
         probe: { path: '/api/provider/available-jobs', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/available-jobs', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'claims open jobs',
-        note: 'Any provider token can accept any open job: no approval, onboarding, status, area or availabili…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/available-jobs/route.js:304-305, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (claims open jobs) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/available-jobs/route.js:308. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Any provider token can accept any open job: no approval, onboarding, status, area or availabili…',
         probe: { path: '/api/provider/available-jobs', body: {}, anon: 401 },
     },
     {
         route: '/api/provider/available-jobs/[id]', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own job, or an open-pool job (provider_id IS NULL); never another provider\'s',
-        note: 'IDOR: any provider reads full address, instructions and assigned provider_id of ANY booking id …',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/available-jobs/[id]/route.js:24-25, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own job, or an open-pool job (provider_id IS NULL); never another providers) comes from auth.caller, never from a request field; 403 refusals src/app/api/provider/available-jobs/[id]/route.js:55. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): IDOR: any provider reads full address, instructions and assigned provider_id of ANY booking id …',
         probe: { path: '/api/provider/available-jobs/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/available-jobs/[id]', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own job, or an open-pool job (provider_id IS NULL); never another provider\'s',
-        note: 'No active/approved status check; customer-notify code reads job.user_id and customer_email neve…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/available-jobs/[id]/route.js:118-119, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own job, or an open-pool job (provider_id IS NULL); never another providers) comes from auth.caller, never from a request field; 403 refusals src/app/api/provider/available-jobs/[id]/route.js:148. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): No active/approved status check; customer-notify code reads job.user_id and customer_email neve…',
         probe: { path: '/api/provider/available-jobs/999999999', body: {}, anon: 401 },
     },
     {
         route: '/api/provider/bookings', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own assigned bookings',
-        note: '?status= comma list is bound as parameters (L48-52), no injection; shows customer names for own…',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/bookings/route.js:6-7, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own assigned bookings) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/bookings/route.js:9. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): ?status= comma list is bound as parameters (L48-52), no injection; shows customer names for own…',
         probe: { path: '/api/provider/bookings', body: undefined, anon: 401 },
     },
     {
@@ -877,7 +877,7 @@ export const matrix = [
     },
     {
         route: '/api/provider/dashboard-stats', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own stats',
-        note: 'Sound gate and ownership; no provider status check.',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/dashboard-stats/route.js:6-7, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own stats) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/dashboard-stats/route.js:10. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Sound gate and ownership; no provider status check.',
         probe: { path: '/api/provider/dashboard-stats', body: undefined, anon: 401 },
     },
     {
@@ -887,32 +887,32 @@ export const matrix = [
     },
     {
         route: '/api/provider/jobs', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own assigned jobs',
-        note: 'Returns customer email and phone for every own job incl. completed and cancelled (L52-55); no s…',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/jobs/route.js:7-8, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own assigned jobs) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/route.js:10. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Returns customer email and phone for every own job incl. completed and cancelled (L52-55); no s…',
         probe: { path: '/api/provider/jobs', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/jobs/[id]', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own job, or an open-pool job; never another provider\'s',
-        note: 'SELECT b.* (L31) returns the full booking row incl. customer contact and address for any unassi…',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/jobs/[id]/route.js:7-8, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own job, or an open-pool job; never another providers) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/[id]/route.js:28. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): SELECT b.* (L31) returns the full booking row incl. customer contact and address for any unassi…',
         probe: { path: '/api/provider/jobs/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/jobs/photos', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'photos of own assigned jobs',
-        note: 'Ownership verified before reading (L156-166); SELECT * returns all job_photos columns.',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/jobs/photos/route.js:112-113, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (photos of own assigned jobs) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/photos/route.js:130. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Ownership verified before reading (L156-166); SELECT * returns all job_photos columns.',
         probe: { path: '/api/provider/jobs/photos', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/jobs/photos', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'photos on own assigned jobs',
-        note: 'photo_url is any client string stored unvalidated (L31,85), may be an external URL; EXIF read o…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/jobs/photos/route.js:11-12, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (photos on own assigned jobs) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/photos/route.js:40, :71. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): photo_url is any client string stored unvalidated (L31,85), may be an external URL; EXIF read o…',
         probe: { path: '/api/provider/jobs/photos', body: {}, anon: 401 },
     },
     {
         route: '/api/provider/jobs/time-tracking', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own job timer',
-        note: 'Sound ownership (L571); cookie-only, so Bearer mobile clients cannot call it.',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/jobs/time-tracking/route.js:552-553, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own job timer) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/time-tracking/route.js:573. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Sound ownership (L571); cookie-only, so Bearer mobile clients cannot call it.',
         probe: { path: '/api/provider/jobs/time-tracking', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/jobs/time-tracking', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own assigned job',
-        note: 'Client-supplied submitted_duration_minutes and submitted_headcount (L185,191) set final_provide…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/jobs/time-tracking/route.js:11-12, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own assigned job) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/time-tracking/route.js:35, :60, :116, :136, :153, :238 .... Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Client-supplied submitted_duration_minutes and submitted_headcount (L185,191) set final_provide…',
         probe: { path: '/api/provider/jobs/time-tracking', body: {}, anon: 401 },
     },
     {
@@ -927,67 +927,67 @@ export const matrix = [
     },
     {
         route: '/api/provider/me', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own profile',
-        note: 'Bad or expired token yields 500 not 401 (still refused); logs the whole provider record (L65), …',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/me/route.js:6-7, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own profile) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/me/route.js:11. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Bad or expired token yields 500 not 401 (still refused); logs the whole provider record (L65), …',
         probe: { path: '/api/provider/me', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/onboarding/complete', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own onboarding',
-        note: 'Reads docs and Stripe status (L39-48) but never enforces them; status IF(active, active, pendin… Probe (B2, 2026-10-02): holdAllowed. The handler never reads the body, so a request from an ALLOWED provider, whatever it carries, runs the UPDATE of onboarding_completed, onboarding_step and status at complete/route.js:54-63 and mails ADMIN_EMAIL, whose default is a real person address, at :83-90. The provider cookie and the provider Bearer are therefore not sent. None and every wrong role are sent: each stops at the 401 at :28-34 (no provider_token cookie, no providerId in a customer Bearer session) before any of it. Keep the hold until the converting ticket proves the allowed path another way (a fixture provider the handler may rewrite, or a stub of the mail send).',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/onboarding/complete/route.js:7-8, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own onboarding) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/onboarding/complete/route.js:9. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Reads docs and Stripe status (L39-48) but never enforces them; status IF(active, active, pendin… Probe (B2, 2026-10-02): holdAllowed. The handler never reads the body, so a request from an ALLOWED provider, whatever it carries, runs the UPDATE of onboarding_completed, onboarding_step and status at complete/route.js:54-63 and mails ADMIN_EMAIL, whose default is a real person address, at :83-90. The provider cookie and the provider Bearer are therefore not sent. None and every wrong role are sent: each stops at the 401 at :28-34 (no provider_token cookie, no providerId in a customer Bearer session) before any of it. Keep the hold until the converting ticket proves the allowed path another way (a fixture provider the handler may rewrite, or a stub of the mail send).',
         probe: { path: '/api/provider/onboarding/complete', body: {}, anon: 401, holdAllowed: 'an allowed provider request rewrites onboarding_completed, onboarding_step and status (complete/route.js:54-63) and mails ADMIN_EMAIL (:83-90) whatever the body' },
     },
     {
         route: '/api/provider/onboarding/create-stripe-account', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own payout account',
-        note: 'Client refreshUrl and returnUrl are forwarded to Stripe as redirect targets (L40-45); error bod… Probe (B2, 2026-10-02): body undefined. create-stripe-account/route.js:36 reads the body (`await request.json()`) before the first database read (:48) and before every Stripe call (:70, :73, :92), so a request with no body throws there and the catch at :148 answers 500: no outbound call, no write. The old probe, {}, passed :36 and reached stripe.accounts.create at :92.',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/onboarding/create-stripe-account/route.js:9-10, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own payout account) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/onboarding/create-stripe-account/route.js:11. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Client refreshUrl and returnUrl are forwarded to Stripe as redirect targets (L40-45); error bod… Probe (B2, 2026-10-02): body undefined. create-stripe-account/route.js:36 reads the body (`await request.json()`) before the first database read (:48) and before every Stripe call (:70, :73, :92), so a request with no body throws there and the catch at :148 answers 500: no outbound call, no write. The old probe, {}, passed :36 and reached stripe.accounts.create at :92.',
         probe: { path: '/api/provider/onboarding/create-stripe-account', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/onboarding/documents', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own KYC documents',
-        note: 'Returns admin_notes (internal reviewer notes, L33) and ID or insurance document_url to the prov…',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/onboarding/documents/route.js:6-7, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own KYC documents) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/onboarding/documents/route.js:8. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Returns admin_notes (internal reviewer notes, L33) and ID or insurance document_url to the prov…',
         probe: { path: '/api/provider/onboarding/documents', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/onboarding/profile', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own profile',
-        note: 'Only bio is validated (L34-43); other fields unvalidated; resets onboarding_step to 2 even for …',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/onboarding/profile/route.js:6-7, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own profile) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/onboarding/profile/route.js:8. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Only bio is validated (L34-43); other fields unvalidated; resets onboarding_step to 2 even for …',
         probe: { path: '/api/provider/onboarding/profile', body: {}, anon: 401 },
     },
     {
         route: '/api/provider/onboarding/stripe-complete', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own payout account',
-        note: 'Client body accountId (L39) is stored as payout account and can mark onboarding complete from a… Probe (B2, 2026-10-02): body undefined. stripe-complete/route.js:38 reads the body (`await request.json()`) before the first database read (:43), the Stripe call (:63) and the UPDATE at :107, so a request with no body throws there and the catch at :145 answers 500: nothing is read, called or written. The old probe, {}, reached :43 and stopped at the 400 at :50-56 only because no provider has a bank-account row (provider_bank_accounts had 0 rows on the dev DB at 07:04 on 2026-10-02): harmless by data, not by construction.',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/onboarding/stripe-complete/route.js:9-10, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own payout account) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/onboarding/stripe-complete/route.js:11. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Client body accountId (L39) is stored as payout account and can mark onboarding complete from a… Probe (B2, 2026-10-02): body undefined. stripe-complete/route.js:38 reads the body (`await request.json()`) before the first database read (:43), the Stripe call (:63) and the UPDATE at :107, so a request with no body throws there and the catch at :145 answers 500: nothing is read, called or written. The old probe, {}, reached :43 and stopped at the 400 at :50-56 only because no provider has a bank-account row (provider_bank_accounts had 0 rows on the dev DB at 07:04 on 2026-10-02): harmless by data, not by construction.',
         probe: { path: '/api/provider/onboarding/stripe-complete', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/onboarding/stripe-return', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own Stripe onboarding return',
-        note: 'State-changing GET: cross-site navigation carries the SameSite=Lax cookie and forces onboarding… Probe (round 3, 2026-10-02): a GET has no body and no id, so nothing in the request can gate this handler. It reads only the provider_token cookie (stripe-return/route.js:140), which only the provider-cookie style carries (a Bearer style carries no cookie, e2e/auth/credentials.js:12-13), so no credential, the customer and admin cookies and both Bearers take the no-token branch at :142-144 (a redirect to /provider/login). With the provider cookie the handler selects provider_bank_accounts for provider 1 (:154-157) and an empty result redirects (:161-166). A row would reach stripe.accounts.retrieve (:172), UPDATE service_providers (:187-195) and the provider_bank_accounts upsert (:198-213); a Stripe error naming a missing account runs the UPDATE at :242 and the DELETE at :248. Two accidents stop it today. The table is empty: database/fixtures hold six files, whose sets insert into users, service_providers, service_categories, services, system_settings, bookings, invoices, provider_payouts and provider_reviews, load.js:134-136 empties every table first, and grep -c provider_bank_accounts prints 0 for each of the six files there; no probe adds a row (the other INSERT sites, create-stripe-account/route.js:124, stripe-complete/route.js:119 and stripe/webhook/route.js:256 and :270, sit behind the body reads at create-stripe-account/route.js:36 and stripe-complete/route.js:38 and the missing-signature 400 at webhook/route.js:19-24). And STRIPE_SECRET_KEY is unset on the dev app (loadEnvConfig in the app container at 08:52 on 2026-10-02, printing only set or unset), so stripe is null (:132) and :169-171 throws before :172. Harmless by data and configuration, not by construction: on the paths the probe takes (the no-token branch and the empty table) the handler ends before any side effect whether the redirect URL is built or not, and on this dev app NEXT_PUBLIC_APP_URL is unset too, so new URL(path, undefined) throws ERR_INVALID_URL at :143, :148, :163-165 and in the outer catch own redirect (:262-264) and the answer is 500 (the baseline records none (no credential): got 500). A fixture that adds a bank-account row for provider 1 must make this row holdAllowed first, in the same change, so the allowed provider is not sent; a Stripe key on the dev stack lifts the second stop. No holdAllowed is added now: it would change the recorded error text of this case in e2e/baseline.json.',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/onboarding/stripe-return/route.js:135-136, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own Stripe onboarding return) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/onboarding/stripe-return/route.js:137. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): State-changing GET: cross-site navigation carries the SameSite=Lax cookie and forces onboarding… Probe (round 3, 2026-10-02): a GET has no body and no id, so nothing in the request can gate this handler. It reads only the provider_token cookie (stripe-return/route.js:140), which only the provider-cookie style carries (a Bearer style carries no cookie, e2e/auth/credentials.js:12-13), so no credential, the customer and admin cookies and both Bearers take the no-token branch at :142-144 (a redirect to /provider/login). With the provider cookie the handler selects provider_bank_accounts for provider 1 (:154-157) and an empty result redirects (:161-166). A row would reach stripe.accounts.retrieve (:172), UPDATE service_providers (:187-195) and the provider_bank_accounts upsert (:198-213); a Stripe error naming a missing account runs the UPDATE at :242 and the DELETE at :248. Two accidents stop it today. The table is empty: database/fixtures hold six files, whose sets insert into users, service_providers, service_categories, services, system_settings, bookings, invoices, provider_payouts and provider_reviews, load.js:134-136 empties every table first, and grep -c provider_bank_accounts prints 0 for each of the six files there; no probe adds a row (the other INSERT sites, create-stripe-account/route.js:124, stripe-complete/route.js:119 and stripe/webhook/route.js:256 and :270, sit behind the body reads at create-stripe-account/route.js:36 and stripe-complete/route.js:38 and the missing-signature 400 at webhook/route.js:19-24). And STRIPE_SECRET_KEY is unset on the dev app (loadEnvConfig in the app container at 08:52 on 2026-10-02, printing only set or unset), so stripe is null (:132) and :169-171 throws before :172. Harmless by data and configuration, not by construction: on the paths the probe takes (the no-token branch and the empty table) the handler ends before any side effect whether the redirect URL is built or not, and on this dev app NEXT_PUBLIC_APP_URL is unset too, so new URL(path, undefined) throws ERR_INVALID_URL at :143, :148, :163-165 and in the outer catch own redirect (:262-264) and the answer is 500 (the baseline records none (no credential): got 500). A fixture that adds a bank-account row for provider 1 must make this row holdAllowed first, in the same change, so the allowed provider is not sent; a Stripe key on the dev stack lifts the second stop. No holdAllowed is added now: it would change the recorded error text of this case in e2e/baseline.json.',
         probe: { path: '/api/provider/onboarding/stripe-return', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/onboarding/update-step', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own onboarding_step',
-        note: 'step taken from body, any value or type, unvalidated (L31-47). Bearer branch also accepts email…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/onboarding/update-step/route.js:6-7, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own onboarding_step) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/onboarding/update-step/route.js:8. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): step taken from body, any value or type, unvalidated (L31-47). Bearer branch also accepts email…',
         probe: { path: '/api/provider/onboarding/update-step', body: {}, anon: 401 },
     },
     {
         route: '/api/provider/onboarding/upload-document', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own onboarding documents',
-        note: 'Path built L116-119: path.join(public/uploads/providers, `${providerId}-${documentType}-${Date.…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/onboarding/upload-document/route.js:10-11, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own onboarding documents) comes from auth.caller, never from a request field; 403 refusals src/app/api/provider/onboarding/upload-document/route.js:38. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Path built L116-119: path.join(public/uploads/providers, `${providerId}-${documentType}-${Date.…',
         probe: { path: '/api/provider/onboarding/upload-document', body: {}, anon: 401 },
     },
     {
         route: '/api/provider/payouts', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own earnings and payouts',
-        note: 'Cookie only (mobile Bearer not supported); no suspended/deleted-status check on a 7-day token; …',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/payouts/route.js:6-7, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own earnings and payouts) comes from auth.caller, never from a request field; 403 refusals src/app/api/provider/payouts/route.js:14. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Cookie only (mobile Bearer not supported); no suspended/deleted-status check on a 7-day token; …',
         probe: { path: '/api/provider/payouts', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/profile', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own profile',
-        note: 'Cookie only; no password hash selected; L1-130 is a commented-out older copy of the file (dead …',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/profile/route.js:149-150, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own profile) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/profile/route.js:154. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Cookie only; no password hash selected; L1-130 is a commented-out older copy of the file (dead …',
         probe: { path: '/api/provider/profile', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/profile', method: 'PUT', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own profile',
-        note: 'Explicit column allowlist (status not writable), but email and phone change with no re-verifica…',
+        note: 'ENG-023, converted: the guard is the first statement of PUT (src/app/api/provider/profile/route.js:261-262, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own profile) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/profile/route.js:267. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Explicit column allowlist (status not writable), but email and phone change with no re-verifica…',
         probe: { path: '/api/provider/profile', body: {}, anon: 401 },
     },
     {
         route: '/api/provider/ratings', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own reviews',
-        note: 'Cookie only; shows reviewer first and last name unless is_anonymous (L185); L1-111 is a comment…',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/ratings/route.js:118-119, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own reviews) comes from auth.caller, never from a request field; 403 refusals src/app/api/provider/ratings/route.js:126. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Cookie only; shows reviewer first and last name unless is_anonymous (L185); L1-111 is a comment…',
         probe: { path: '/api/provider/ratings', body: undefined, anon: 401 },
     },
     {
@@ -1002,12 +1002,12 @@ export const matrix = [
     },
     {
         route: '/api/provider/status', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own status',
-        note: 'Bearer branch also accepts email_verification/password_reset JWTs (carry providerId) with no ac…',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/status/route.js:6-7, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own status) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/status/route.js:13. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Bearer branch also accepts email_verification/password_reset JWTs (carry providerId) with no ac…',
         probe: { path: '/api/provider/status', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/upload', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own documents and avatar',
-        note: 'Path built L150-160: path.join(public/uploads, `${providerId}-${documentType}-${Date.now()}${pa…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/upload/route.js:115-116, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own documents and avatar) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/upload/route.js:117. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Path built L150-160: path.join(public/uploads, `${providerId}-${documentType}-${Date.now()}${pa…',
         probe: { path: '/api/provider/upload', body: {}, anon: 401 },
     },
     {
@@ -1037,7 +1037,7 @@ export const matrix = [
     },
     {
         route: '/api/reviews', method: 'POST', today: 'none', kind: 'roles', roles: ['customer'], owner: 'own completed booking; customer_id from caller',
-        note: 'Anyone can post a review as any customer for any completed booking, attach it to any provider_i…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/reviews/route.js:186-187, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own completed booking; customer_id from caller) comes from auth.caller, never from a request field; 403 refusals src/app/api/reviews/route.js:219, :236, :237. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Anyone can post a review as any customer for any completed booking, attach it to any provider_i…',
         probe: { path: '/api/reviews', body: {}, anon: 401 },
     },
     {
@@ -1122,32 +1122,32 @@ export const matrix = [
     },
     {
         route: '/api/user/addresses', method: 'GET', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'user_id = caller',
-        note: 'Any valid JWT accepted: provider and admin mobile tokens carry id = their own table id (auth/mo…',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/user/addresses/route.js:13-14, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). Ownership (user_id = caller) comes from auth.caller, never from a request field; 403 refusals src/app/api/user/addresses/route.js:17. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Any valid JWT accepted: provider and admin mobile tokens carry id = their own table id (auth/mo…',
         probe: { path: '/api/user/addresses', body: undefined, anon: 401 },
     },
     {
         route: '/api/user/addresses', method: 'POST', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'user_id = caller',
-        note: 'Same flaw: provider or admin token id used as users.id, so a provider writes addresses into the…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/user/addresses/route.js:33-34, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). Ownership (user_id = caller) comes from auth.caller, never from a request field; 403 refusals src/app/api/user/addresses/route.js:41. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Same flaw: provider or admin token id used as users.id, so a provider writes addresses into the…',
         probe: { path: '/api/user/addresses', body: {}, anon: 401 },
     },
     {
         route: '/api/user/addresses/[id]', method: 'DELETE', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'user_id = caller',
-        note: 'Same id-namespace flaw: a provider or admin token with the matching numeric id can delete that …',
+        note: 'ENG-023, converted: the guard is the first statement of DELETE (src/app/api/user/addresses/[id]/route.js:53-54, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). Ownership (user_id = caller) comes from auth.caller, never from a request field; 403 refusals src/app/api/user/addresses/[id]/route.js:64. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Same id-namespace flaw: a provider or admin token with the matching numeric id can delete that …',
         probe: { path: '/api/user/addresses/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/user/addresses/[id]', method: 'PUT', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'user_id = caller',
-        note: 'Same id-namespace flaw; SET list built from fixed column names only (L37-42), so no injection.',
+        note: 'ENG-023, converted: the guard is the first statement of PUT (src/app/api/user/addresses/[id]/route.js:8-9, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). Ownership (user_id = caller) comes from auth.caller, never from a request field; 403 refusals src/app/api/user/addresses/[id]/route.js:22. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Same id-namespace flaw; SET list built from fixed column names only (L37-42), so no injection.',
         probe: { path: '/api/user/addresses/999999999', body: {}, anon: 401 },
     },
     {
         route: '/api/user/settings', method: 'GET', today: 'partial', kind: 'roles', roles: ['customer', 'provider'], owner: 'own row',
-        note: 'Admin or other-role token falls through to users by decoded.id (low impact); web provider token…',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/user/settings/route.js:13-14, requireCaller(request, [customer, provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own row) comes from auth.caller, never from a request field; 403 refusals src/app/api/user/settings/route.js:18. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Admin or other-role token falls through to users by decoded.id (low impact); web provider token…',
         probe: { path: '/api/user/settings', body: undefined, anon: 401 },
     },
     {
         route: '/api/user/settings', method: 'PUT', today: 'partial', kind: 'roles', roles: ['customer', 'provider'], owner: 'own row',
-        note: 'Same: admin or other-role token writes the users row with the same numeric id (low impact); onl…',
+        note: 'ENG-023, converted: the guard is the first statement of PUT (src/app/api/user/settings/route.js:53-54, requireCaller(request, [customer, provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own row) comes from auth.caller, never from a request field; 403 refusals src/app/api/user/settings/route.js:63. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Same: admin or other-role token writes the users row with the same numeric id (low impact); onl…',
         probe: { path: '/api/user/settings', body: {}, anon: 401 },
     },
 ];
