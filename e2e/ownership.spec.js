@@ -956,3 +956,111 @@ test.describe('Ownership: provider routes', () => {
         await expectAnswer(await request.post('/api/provider/jobs/time-tracking', { headers: as.provider, data: { booking_id: BOOKING1.id, action: 'start' } }), 400, 'Job must be confirmed to start', 'provider1 starts the timer of completed booking 1');
     });
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ENG-023 hop 2 (builder V): POST and PUT /api/provider/availability, PUT /api/provider/profile. Rows with NO foreign parameter:
+// the provider id is `caller.id` only (availability/route.js:42 `const providerId = caller.id;`, bound at :49 and :65 in
+// `WHERE id = ?`; profile/route.js:267 `const providerId = caller.id`, bound in the two uniqueness checks :277 and :280, in the
+// UPDATE at :300 and in the echo SELECT at :323). Neither route reads a `users` row, so the two overlapping id spaces (customer 1
+// and provider 1 are both id 1) matter here only as "the literal 1 is provider 1's id". A body that names another account
+// (`provider_id`, `providerId`, `id`, `user_id`: the names a handler might read) is sent on purpose and must move nothing.
+// Each case: provider 2 writes (provider 2 is the foreign account for the default credential), a READ shows the row that moved is
+// provider 2's and provider 1's is what it was before; then provider 1 writes by cookie and by Bearer and provider 2's row is
+// what it was; provider 2's and provider 1's rows are put back in `finally`.
+// ---------------------------------------------------------------------------------------------------------------------
+test.describe('Ownership: provider/availability and provider/profile writes', () => {
+    // The flag as GET /api/provider/availability shows it to the provider who asks (availability/route.js:11-19): a boolean.
+    const flagOf = async (request, headers, who) => (await expectOk(await request.get('/api/provider/availability', { headers }), who)).body.is_available;
+    // Every id-shaped field name a handler might read, all naming `other`.
+    const naming = (other) => ({ provider_id: other.id, providerId: other.id, id: other.id, user_id: other.id });
+    // One case per verb: POST and PUT both end in handleToggle (availability/route.js:30 and :36 -> :40).
+    const availabilityCase = (method) => async ({ request, baseURL, playwright }) => {
+        const as = await credentials(baseURL);
+        const provider2 = await signedInAs(playwright, baseURL, 'provider2');
+        const send = (headers, data) => request[method.toLowerCase()]('/api/provider/availability', { headers, data });
+        const before1 = await flagOf(request, as.provider, 'provider1 reads their flag before');
+        const before2 = await flagOf(request, provider2, 'provider2 reads their flag before');
+        try {
+            // Provider 2 flips THEIR flag; the body names provider 1 in every id field.
+            const moved = await expectOk(await send(provider2, { is_available: !before2, ...naming(PROVIDER1) }), `provider2 ${method}s their flag`);
+            expect(moved.body.is_available, `provider2 ${method}: the answer`).toBe(!before2);
+            expect(moved.body.message, `provider2 ${method}: the answer's message`).toBe(`You are now ${before2 ? 'Offline' : 'Online'}`);
+            expect(await flagOf(request, provider2, 'provider2 reads their flag after'), "provider 2's flag after provider 2's own write").toBe(!before2);
+            for (const [style, headers] of providerStyles(as)) {
+                expect(await flagOf(request, headers, `provider1 by ${style} reads their flag`), `provider 1's flag after provider 2's ${method} (read by provider1 by ${style})`).toBe(before1);
+            }
+            await expectOk(await send(provider2, { is_available: before2 }), 'provider2 puts their flag back');
+            expect(await flagOf(request, provider2, 'provider2 reads their flag put back'), "provider 2's flag put back").toBe(before2);
+            // Provider 1 flips THEIR flag, by cookie and by Bearer; the body names provider 2 in every id field.
+            for (const [style, headers] of providerStyles(as)) {
+                const current = await flagOf(request, headers, `provider1 by ${style} reads their flag`);
+                const own = await expectOk(await send(headers, { is_available: !current, ...naming(PROVIDER2) }), `provider1 by ${style} ${method}s their flag`);
+                expect(own.body.is_available, `provider1 by ${style} ${method}: the answer`).toBe(!current);
+                expect(await flagOf(request, headers, `provider1 by ${style} reads their flag after`), `provider 1's flag after provider 1's own ${method} by ${style}`).toBe(!current);
+                expect(await flagOf(request, provider2, 'provider2 reads their flag'), `provider 2's flag after provider 1's ${method} by ${style}`).toBe(before2);
+            }
+        } finally {
+            await send(provider2, { is_available: before2 });
+            await send(as.provider, { is_available: before1 });
+        }
+    };
+
+    // Red if availability/route.js:42 `const providerId = caller.id;` becomes `const providerId = 1;` (provider 2's write lands on provider 1's
+    // row: provider 2's flag stays, provider 1's moves) or takes the id from the body (`provider_id` ?? caller.id: the same, and provider
+    // 1's write naming provider 2 moves provider 2's flag).
+    test("Ownership POST /api/provider/availability: provider2's toggle moves provider 2's flag and not provider 1's, and provider1's toggle by cookie and Bearer leaves provider 2's flag alone, whatever ids the body names", availabilityCase('POST'));
+    // The same clause through the PUT export (availability/route.js:33-37), which has its own guard lines and shares handleToggle.
+    test("Ownership PUT /api/provider/availability: provider2's toggle moves provider 2's flag and not provider 1's, and provider1's toggle by cookie and Bearer leaves provider 2's flag alone, whatever ids the body names", availabilityCase('PUT'));
+
+    // Red if profile/route.js:267 `const providerId = caller.id` becomes `1` or reads the body's id: provider 2's own email is then "in use" by
+    // another id (the uniqueness check at :277 finds row 2 with `id != 1`), so provider 2's write answers 400. Red if the UPDATE's last bind (:300)
+    // stops being providerId: the write lands on another row and the answer, read by `WHERE id = ?` at :323, lacks the marker. Red if the echo
+    // SELECT's bind (:323) stops being providerId: the answer carries provider 1's email.
+    test("Ownership PUT /api/provider/profile: provider2 writes provider 2's profile and not provider 1's, and provider1's write by cookie and Bearer leaves provider 2's profile alone, whatever ids the body names", async ({ request, baseURL, playwright }) => {
+        const as = await credentials(baseURL);
+        const provider2 = await signedInAs(playwright, baseURL, 'provider2');
+        const profileOf = async (headers, who) => (await expectOk(await request.get('/api/provider/profile', { headers }), who)).body.data;
+        // A PUT body that writes a row back as GET read it. GET turns a NULL service_cities or skills into [] and the PUT stores [] as '[]', so an
+        // empty list is left out (NULL stays NULL); an empty text field is null on both sides.
+        const bodyOf = (row, over = {}) => ({
+            name: row.name, email: row.email, phone: row.phone, specialty: row.specialty, experience_years: row.experience_years,
+            bio: row.bio, location: row.location, city: row.city,
+            service_cities: row.service_cities.length ? row.service_cities : undefined, skills: row.skills.length ? row.skills : undefined, ...over,
+        });
+        const OTHERS_OF_2 = [PROVIDER1.email, PROVIDER1.phone, PROVIDER1.name, CUSTOMER1.email, CUSTOMER1.phone, 'Customer One'];
+        const OTHERS_OF_1 = [PROVIDER2.email, PROVIDER2.phone, PROVIDER2.name, CUSTOMER2.email, CUSTOMER2.phone, 'Customer Two'];
+        const before1 = await profileOf(as.provider, 'provider1 reads their profile before');
+        const before2 = await profileOf(provider2, 'provider2 reads their profile before');
+        expect(before1.id, 'the control: provider 1 reads provider 1').toBe(PROVIDER1.id);
+        expect(before2.id, 'the control: provider 2 reads provider 2').toBe(PROVIDER2.id);
+        const marker = `e2e-ownership-profile-${Date.now()}`;
+        try {
+            // Provider 2 writes THEIR profile (a marker in bio and location); the body names provider 1 in every id field.
+            const put2 = await expectOk(await request.put('/api/provider/profile', { headers: provider2, data: { ...bodyOf(before2, { bio: marker, location: marker }), ...naming(PROVIDER1) } }), 'provider2 writes their profile');
+            expect(put2.body.data.id, "the answer is provider 2's row").toBe(PROVIDER2.id);
+            expect(put2.body.data.email, "the answer carries provider 2's email").toBe(PROVIDER2.email);
+            expect(put2.body.data.bio, "the answer carries provider 2's marker").toBe(marker);
+            expectNoneOf(put2.text, OTHERS_OF_2, 'provider2 writes their profile');
+            const after2 = await profileOf(provider2, 'provider2 reads their profile after');
+            expect(after2.bio, "provider 2's bio after their own write").toBe(marker);
+            expect(after2.location, "provider 2's location after their own write").toBe(marker);
+            for (const [style, headers] of providerStyles(as)) {
+                expect(await profileOf(headers, `provider1 by ${style} reads their profile`), `provider 1's whole profile after provider 2's write (read by provider1 by ${style})`).toEqual(before1);
+            }
+            // Provider 1 writes THEIR profile, by cookie and by Bearer; the body names provider 2 in every id field.
+            for (const [style, headers] of providerStyles(as)) {
+                const own = `${marker}-p1-${style}`;
+                const put1 = await expectOk(await request.put('/api/provider/profile', { headers, data: { ...bodyOf(before1, { bio: own, location: own }), ...naming(PROVIDER2) } }), `provider1 by ${style} writes their profile`);
+                expect(put1.body.data.id, `provider1 by ${style}: the answer is provider 1's row`).toBe(PROVIDER1.id);
+                expect(put1.body.data.email, `provider1 by ${style}: the answer carries provider 1's email`).toBe(PROVIDER1.email);
+                expect(put1.body.data.bio, `provider1 by ${style}: the answer carries provider 1's marker`).toBe(own);
+                expectNoneOf(put1.text, OTHERS_OF_1, `provider1 by ${style} writes their profile`);
+                expect((await profileOf(headers, `provider1 by ${style} reads their profile after`)).bio, `provider 1's bio after their own write by ${style}`).toBe(own);
+                expect(await profileOf(provider2, 'provider2 reads their profile'), `provider 2's whole profile after provider 1's write by ${style}`).toEqual(after2);
+            }
+        } finally {
+            await request.put('/api/provider/profile', { headers: provider2, data: bodyOf(before2) });
+            await request.put('/api/provider/profile', { headers: as.provider, data: bodyOf(before1) });
+        }
+    });
+});
