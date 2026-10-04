@@ -160,3 +160,59 @@ test.describe('D1 bookings', () => {
         expect(numbers, 'admin sees customer 2\'s fixture booking').toContain(BOOKING2.booking_number);
     });
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// D2: admin finance data. The 15 rows of the eleven route files, each probed as the route matrix probes it (e2e/auth/
+// route-matrix.js: an id no row has, an empty body or none), so every write is stopped before it changes anything.
+// Per row: no credential 401; customer1's cookie 403; provider1's cookie 403; customer1's OWN token copied into an
+// adminAuth cookie 403 (a real signature, the wrong role: the copied-cookie escalation a local verifyAdmin let through);
+// admin the status and the top-level keys the route answered before the change (the EM's snapshot of 2026-10-03 16:53,
+// taken anonymously while the routes were open: keys only, never values), or, for a write, anything but 401 and 403.
+// ---------------------------------------------------------------------------------------------------------------------
+const D2_ROWS = [
+    ['GET', '/api/admin/earnings', { status: 200, keys: ['data', 'success'] }],
+    ['GET', '/api/admin/invoices', { status: 200, keys: ['data', 'success'] }],
+    ['PATCH', '/api/admin/invoices'],
+    ['GET', '/api/admin/invoices/[id]/preview', { status: 404, html: true }],
+    ['GET', '/api/admin/invoices/[id]/preview/download', { status: 404, keys: ['message', 'success'] }],
+    ['POST', '/api/admin/invoices/generate'],
+    ['GET', '/api/admin/logs', { status: 200, keys: ['data', 'pagination', 'success'] }],
+    ['GET', '/api/admin/payouts', { status: 200, keys: ['data', 'success'] }],
+    ['GET', '/api/admin/provider-jobs', { status: 400, keys: ['message', 'success'] }],
+    ['GET', '/api/admin/providers', { status: 200, keys: ['data', 'success'] }],
+    ['PUT', '/api/admin/providers'],
+    ['PUT', '/api/admin/providers/[providerId]'],
+    ['DELETE', '/api/admin/providers/[providerId]'],
+    ['GET', '/api/admin/providers/[providerId]/documents', { status: 404, keys: ['message', 'success'] }],
+    ['POST', '/api/admin/providers/[providerId]/documents'],
+];
+
+test.describe('D2 admin finance data', () => {
+    for (const [method, route, expected] of D2_ROWS) {
+        test(`D2 ${method} ${route} is admin only`, async ({ request, baseURL }) => {
+            const row = matrix.find((entry) => entry.method === method && entry.route === route);
+            expect(row, `the route matrix has a row for ${method} ${route}`).toBeTruthy();
+            expect(row.roles, 'the row allows the admin alone').toEqual(['admin']);
+            const as = await credentials(baseURL);
+            const url = row.probe.path + (row.probe.query || '');
+            const send = (headers) => request.fetch(url, { method, headers, data: row.probe.body, maxRedirects: 0 });
+
+            await expectRefusal(await send(as.none), 401, 'no credential');
+            await expectRefusal(await send(as.customer), 403, 'customer1 cookie');
+            await expectRefusal(await send(as.provider), 403, 'provider1 cookie');
+            await expectRefusal(await send(as.customerTokenAsAdmin), 403, "customer1's token in the adminAuth cookie");
+
+            const admin = await send(as.admin);
+            if (!expected) {
+                expect([401, 403], 'admin: a write is not refused').not.toContain(admin.status());
+                return;
+            }
+            expect(admin.status(), 'admin: status as before').toBe(expected.status);
+            if (expected.html) {
+                expect(admin.headers()['content-type'] || '', 'admin: content type as before').toContain('text/html');
+            } else {
+                expect(Object.keys(await admin.json()).sort(), 'admin: top-level keys as before').toEqual(expected.keys);
+            }
+        });
+    }
+});
