@@ -42,37 +42,17 @@
 
 // app/api/admin/me/route.js
 import { NextResponse } from 'next/server'
-import jwt from 'jsonwebtoken'
 import { execute } from '@/lib/db'
-
-const JWT_SECRET = process.env.JWT_SECRET
+import { requireCaller } from '@/lib/api-auth';
 
 export async function GET(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
-    const token = request.cookies.get('adminAuth')?.value
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    // ✅ Step 1: JWT verify karo
-    let payload
-    try {
-      payload = jwt.verify(token, JWT_SECRET)
-    } catch {
-      return NextResponse.json(
-        { success: false, message: 'Invalid or expired token' },
-        { status: 401 }
-      )
-    }
-
     // ✅ Step 2: Database se user check karo
     const users = await execute(
       "SELECT id, email, role FROM users WHERE id = ? AND role = 'admin'",
-      [payload.id]
+      [auth.caller.id]
     )
 
     if (!users || users.length === 0) {
