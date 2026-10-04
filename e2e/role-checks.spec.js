@@ -30,7 +30,7 @@ const [PROVIDER1, PROVIDER2] = providers;
 // were still as ENG-021 left them). Data, copied: this spec does not read the snapshot file. [method, route, status, the
 // answer's top-level keys sorted and joined with a comma]; keys only, never values. 75 rows: the 58 admin rows of the
 // ticket's tasks A and B and the 17 shared rows of task C (customers, provider GET and DELETE, categories, services,
-// service-locations, reviews DELETE, stats, test/push); the 17th shared row, PUT /api/provider, is below.
+// service-locations, reviews DELETE, stats, test/push); the 18th shared roles row, PUT /api/provider, is below.
 // Two rows answered 500 before (GET /api/admin/service-areas/[id], PUT /api/admin/testimonials/[id]) and are pinned at 500:
 // the change must not touch what the admin gets, the dev database lacks what those two handlers read.
 const ADMIN_BEFORE = [
