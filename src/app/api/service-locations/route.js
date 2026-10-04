@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { execute, query } from '@/lib/db';
+import { callerFrom, requireCaller } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +11,9 @@ export async function GET(request) {
     const serviceSlug = searchParams.get('serviceSlug') || searchParams.get('service');
     const locationSlug = searchParams.get('locationSlug') || searchParams.get('location');
     const limit = searchParams.get('limit');
-    const includeInactive = searchParams.get('includeInactive') === 'true' || searchParams.get('admin') === 'true';
+    const asksForInactive = searchParams.get('includeInactive') === 'true' || searchParams.get('admin') === 'true';
+    // The inactive rows are an admin's to see: for any other caller the flags are ignored, as if they were not sent.
+    const includeInactive = asksForInactive && (await callerFrom(request, ['admin'])) !== null;
 
     let sql = `
       SELECT 
@@ -75,6 +78,8 @@ export async function GET(request) {
 
 // POST create or upsert service location
 export async function POST(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const {
       id,
@@ -194,6 +199,8 @@ export async function POST(request) {
 
 // DELETE service location
 export async function DELETE(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
