@@ -5,41 +5,44 @@
 import { NextResponse } from 'next/server';
 import { execute } from '@/lib/db';
 import Stripe from 'stripe';
-import { verifyToken } from '@/lib/jwt';
+import { requireCaller } from '@/lib/api-auth';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-05-27.dahlia' });
+// Null without a key (as bookings/route.js and stripe/webhook/route.js build theirs): a missing key used to make this module throw
+// while it loaded, so the guard below could never answer anyone in an environment without STRIPE_SECRET_KEY.
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-05-27.dahlia' }) : null;
 
 export async function POST(request) {
+  const auth = await requireCaller(request, ['customer']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   try {
-    let token = request.cookies.get('customer_token')?.value || request.cookies.get('user_token')?.value;
-
-    // Support Bearer token for mobile
-    if (!token) {
-      const authHeader = request.headers.get('authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.split(' ')[1];
-      }
-    }
-
-    if (!token) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-
-    const decoded = verifyToken(token);
-    if (!decoded) return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 });
-
     const body = await request.json();
     const { service_id, service_price, additional_price, service_name } = body;
+
+    // The caller is the account the intent is for: a body that names another account (user_id) or another account's
+    // booking (booking_id) is a 403. The route reads neither otherwise, and no caller sends them.
+    if (body.user_id !== undefined && body.user_id !== null && body.user_id !== '' && String(body.user_id) !== String(caller.id)) {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+    }
+    if (body.booking_id) {
+      const [named] = await execute('SELECT user_id FROM bookings WHERE id = ?', [body.booking_id]);
+      if (named && String(named.user_id) !== String(caller.id)) {
+        return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+      }
+    }
 
     if (!service_price) {
       return NextResponse.json({ success: false, message: 'Service price is required' }, { status: 400 });
     }
 
     // ── Check or Create Stripe Customer ──────────────────────────────────────────
-    const users = await execute('SELECT id, email, first_name, last_name, stripe_customer_id FROM users WHERE id = ?', [decoded.id]);
+    const users = await execute('SELECT id, email, first_name, last_name, stripe_customer_id FROM users WHERE id = ?', [caller.id]);
     if (!users || users.length === 0) {
       return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
     }
     
     const user = users[0];
+    if (!stripe) throw new Error('STRIPE_SECRET_KEY is not set');
     let stripeCustomerId = user.stripe_customer_id;
 
     if (!stripeCustomerId) {
