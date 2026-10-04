@@ -1,39 +1,19 @@
 // app/api/provider/onboarding/upload-document/route.js
 import { NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/jwt';
+import { requireCaller } from '@/lib/api-auth';
 import { execute } from '@/lib/db';
-import { getMobileSession } from '@/lib/mobile-auth';
 import { writeFile, mkdir, unlink } from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
 
 export async function POST(request) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
+  const providerId = auth.caller.id;
   console.log('--- UPLOAD DEBUG START ---');
   const url = new URL(request.url);
   console.log(`📬 [API] Incoming document upload request: ${url.pathname}`);
   try {
-    // 1. Check Mobile Session (via Authorization Header + DB)
-    let decoded = await getMobileSession(request);
-    let providerId = decoded?.providerId;
-
-    // 2. Fallback to Web Session (via Cookies)
-    if (!decoded) {
-      const token = request.cookies.get('provider_token')?.value;
-      if (token) {
-        decoded = verifyToken(token);
-        if (decoded && decoded.type === 'provider') {
-          providerId = decoded.providerId;
-        }
-      }
-    }
-
-    if (!decoded || !providerId) {
-      return NextResponse.json(
-        { success: false, message: 'Not authenticated or session expired' },
-        { status: 401 }
-      );
-    }
-
     // Parse form data
     const formData = await request.formData();
     const file = formData.get('file');
