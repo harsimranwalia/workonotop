@@ -907,7 +907,7 @@ export const matrix = [
     },
     {
         route: '/api/provider/jobs/time-tracking', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own job timer',
-        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/jobs/time-tracking/route.js:552-553, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own job timer) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/time-tracking/route.js:573. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Sound ownership (L571); cookie-only, so Bearer mobile clients cannot call it.',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/jobs/time-tracking/route.js:559-560, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own job timer) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/time-tracking/route.js:580. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Sound ownership (L571); cookie-only, so Bearer mobile clients cannot call it.',
         probe: { path: '/api/provider/jobs/time-tracking', body: undefined, anon: 401 },
     },
     {
