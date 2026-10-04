@@ -2418,7 +2418,7 @@
     "ownership.spec.js › Ownership: POST /api/reviews › Ownership POST /api/reviews: a body naming customer 2 as customer_id, or provider 2 as provider_id, on customer 1's own booking is 403": {
       "outcome": "PASS"
     },
-    "ownership.spec.js › Ownership: POST /api/reviews › Ownership POST /api/reviews: a review for customer 1's own completed booking is stored with customer 1 and the booking's provider, whatever the body names, and a missing booking keeps its 404": {
+    "ownership.spec.js › Ownership: POST /api/reviews › Ownership POST /api/reviews: a review for the caller's own completed booking is stored with the caller and the booking's provider, and a missing booking keeps its 404": {
       "outcome": "PASS"
     },
     "ownership.spec.js › Ownership: POST /api/reviews › Ownership POST /api/reviews: customer1 reviewing customer 2's booking is 403 and no review is added to it": {
