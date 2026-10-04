@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/jwt';
 import { query } from '@/lib/db';
-import { getMobileSession } from '@/lib/mobile-auth';
+import { requireCaller } from '@/lib/api-auth';
 
 /**
  * Unified current user endpoint.
@@ -10,48 +9,18 @@ import { getMobileSession } from '@/lib/mobile-auth';
  * 2. Web (Cookies: customer_token, provider_token, adminAuth)
  */
 export async function GET(request) {
+  const auth = await requireCaller(request, ['customer', 'provider', 'admin']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller;
   try {
-    // 1. Try Mobile Session
-    let decoded = await getMobileSession(request);
-    
-    // 2. Try Bearer token (mobile) first, then web session cookies
-    if (!decoded) {
-      let token = null;
-
-      // Bearer header takes priority (mobile app always sends this)
-      const authHeader = request.headers.get('authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.split(' ')[1];
-      }
-
-      // Fall back to web session cookies
-      // NOTE: login route sets 'customer_token' (not 'user_token')
-      if (!token) {
-        token = request.cookies.get('customer_token')?.value ||
-                request.cookies.get('user_token')?.value ||
-                request.cookies.get('provider_token')?.value ||
-                request.cookies.get('adminAuth')?.value;
-      }
-
-      if (token) {
-        decoded = verifyToken(token);
-      }
-    }
-
-    if (!decoded) {
-      return NextResponse.json(
-        { success: false, message: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
-
-    // Identify user and role from token
-    const userId = decoded.id || decoded.providerId;
-    const role = decoded.role || decoded.type;
+    // The profile is the caller's own, in the table of the caller's role (admins and customers are rows of users,
+    // providers of service_providers; the two id spaces overlap, so the role decides).
+    const userId = caller.id;
+    const role = caller.role;
 
     let userData = null;
 
-    if (role === 'provider' || decoded.type === 'provider') {
+    if (role === 'provider') {
       // Lookup in service_providers table
       const providers = await query(
         `SELECT id, name, email, phone, status, specialty, bio, 
