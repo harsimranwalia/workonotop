@@ -365,3 +365,57 @@ test.describe('D6 uploads', () => {
         }
     });
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// AC6 for the bookings routes: customer1 asks for customer2's booking by id and gets 403, and by absence none of the other
+// account's fixture row (its booking number, email, phone, address, description) appears anywhere in the body. Each case
+// first shows the strings ARE served to someone entitled (an admin), so an absence means the route held them back.
+// Not 404: a row the caller does not own is 403 (the mobile app logs the user out on a "not found" 404).
+// ---------------------------------------------------------------------------------------------------------------------
+test.describe('AC6 cross-account bookings', () => {
+    test("AC6 customer1 asking for customer2's booking on /api/bookings/[id] is 403 and shows none of its fields", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const control = await request.get(`/api/bookings/${BOOKING2.id}`, { headers: as.admin });
+        expect(control.status(), 'control: admin reads the booking').toBe(200);
+        expect((await control.text()).includes(BOOKING2.booking_number), 'control: the admin read holds the booking number').toBe(true);
+
+        for (const key of [BOOKING2.id, BOOKING2.booking_number]) {
+            const response = await request.get(`/api/bookings/${key}`, { headers: as.customer });
+            const body = await expectRefusal(response, 403, `customer1 asks for booking ${key}`);
+            expectNoneOf(JSON.stringify(body), CUSTOMER2_STRINGS, `customer1 asks for booking ${key}`);
+        }
+    });
+
+    test("AC6 customer1 asking for customer2's bookings on /api/customer/bookings is 403 and shows none of their fields", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const control = await request.get(`/api/customer/bookings?user_id=${CUSTOMER2.id}`, { headers: as.admin });
+        expect(control.status(), 'control: admin lists customer2\'s bookings').toBe(200);
+        expect((await control.text()).includes(BOOKING2.booking_number), 'control: the admin list holds the booking number').toBe(true);
+
+        const asked = { user_id: String(CUSTOMER2.id), email: encodeURIComponent(CUSTOMER2.email) };
+        for (const [name, value] of Object.entries(asked)) {
+            const response = await request.get(`/api/customer/bookings?${name}=${value}`, { headers: as.customer });
+            const body = await expectRefusal(response, 403, `customer1 asks for ?${name}=customer2`);
+            expectNoneOf(JSON.stringify(body), CUSTOMER2_STRINGS, `customer1 asks for ?${name}=customer2`);
+        }
+    });
+
+    test("AC6 customer1 posting customer2's booking_id to /api/customer/bookings is 403 and shows none of its fields", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const control = await request.post('/api/customer/bookings', { headers: as.admin, data: { booking_id: BOOKING2.id, user_id: CUSTOMER2.id } });
+        expect(control.status(), 'control: admin reads the booking').toBe(200);
+        expect((await control.text()).includes(BOOKING2.booking_number), 'control: the admin read holds the booking number').toBe(true);
+
+        const bodies = [
+            { booking_id: BOOKING2.id },
+            { booking_id: BOOKING2.id, user_id: CUSTOMER2.id },
+            { booking_id: BOOKING2.id, email: CUSTOMER2.email },
+        ];
+        for (const data of bodies) {
+            const who = `customer1 posts ${Object.keys(data).join('+')}`;
+            const response = await request.post('/api/customer/bookings', { headers: as.customer, data });
+            const body = await expectRefusal(response, 403, who);
+            expectNoneOf(JSON.stringify(body), CUSTOMER2_STRINGS, who);
+        }
+    });
+});
