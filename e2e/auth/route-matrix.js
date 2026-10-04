@@ -655,7 +655,7 @@ export const matrix = [
     },
     {
         route: '/api/bookings/[id]', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'HIGH before ENG-021 (an admin only now): anonymous read of any booking by sequential id or guessable booking_number (BK + timestam… ENG-021 guard: src/app/api/bookings/[id]/route.js:7-8 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
+        note: 'HIGH before ENG-021 (an admin only now): anonymous read of any booking by sequential id or guessable booking_number (BK + timestam… ENG-021 guard: src/app/api/bookings/[id]/route.js:7-8 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. Callers: the app\'s admin job screen (mobile/src/screens/admin/AdminJobDetailsScreen.js:35, Bearer) and the web admin page (src/app/admin/bookings/[id]/page.js:34, cookie); the website\'s receipt page (src/app/booking/success/[id]/page.js) no longer calls it (design ENG-004 Amendment 6).',
         probe: { path: '/api/bookings/999999999', body: undefined, anon: 401 },
     },
     {
@@ -725,7 +725,7 @@ export const matrix = [
     },
     {
         route: '/api/customer/booking-details', method: 'GET', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'bookings.user_id = caller (today enforced, role not)',
-        note: 'LOW: ownership enforced, role is not; a provider or admin JWT whose id equals a customer\'s user…',
+        note: 'LOW: ownership enforced, role is not; a provider or admin JWT whose id equals a customer\'s user… The website\'s receipt page (src/app/booking/success/[id]/page.js) reads it too since ENG-021, for a signed-in customer whose tab holds no saved booking (design ENG-004 Amendment 6).',
         probe: { path: '/api/customer/booking-details', body: undefined, anon: 401 },
     },
     {
