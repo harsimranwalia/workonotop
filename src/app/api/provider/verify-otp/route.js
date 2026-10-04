@@ -13,8 +13,8 @@ export async function POST(request) {
             }, { status: 400 })
         }
 
-        // ENG-022 S1: email reaches .trim() next (a 500 for a non-string) and both values go into execute() below;
-        // refuse anything but a string for either first.
+        // ENG-022 S1: a non-string email throws at .trim() below (a 500) and otp is stringified into cleanOtp; refuse
+        // a non-string for either with 400 first (a 500 becomes a 400, a JSON-number otp is not coerced).
         if (typeof email !== 'string' || typeof otp !== 'string') {
             return NextResponse.json({
                 success: false,

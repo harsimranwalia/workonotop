@@ -25,8 +25,8 @@ export async function POST(request) {
       }, { status: 400 })
     }
 
-    // ENG-022 S1: token and otp go into connection.execute() below as the whole bind, and email reaches .trim()
-    // first (a 500 for a non-string); refuse anything but a string for all three before either happens.
+    // ENG-022 S1: token is bound raw by connection.execute() below (a typed bind, not SQL text), a non-string email
+    // throws at .trim() (a 500) and otp is stringified (cleanOtp); refuse anything but a string for all three first.
     if ([token, email, otp].some((value) => value != null && typeof value !== 'string')) {
       return NextResponse.json({
         success: false,
