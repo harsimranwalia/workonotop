@@ -2166,6 +2166,9 @@
     "cron-secret.spec.js › Cron /api/cron/notifications › Cron /api/cron/notifications: with CRON_SECRET unset every request is 401, Bearer undefined and ?secret=undefined included": {
       "outcome": "PASS"
     },
+    "cron-secret.spec.js › Cron source reader: stripComments takes out every comment, whatever comes before it, and keeps every string whole": {
+      "outcome": "PASS"
+    },
     "defects.spec.js › AC6 cross-account bookings › AC6 customer1 asking for customer2's booking on /api/bookings/[id] is 403 and shows none of its fields": {
       "outcome": "PASS"
     },
