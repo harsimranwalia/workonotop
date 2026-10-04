@@ -117,107 +117,107 @@ export const PROBE_IDS = { missing: 999999999 };
 export const matrix = [
     {
         route: '/api/admin/blogs', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth; returns every blog row including drafts (is_published ignored).',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/blogs/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: No auth; returns every blog row including drafts (is_published ignored).',
         probe: { path: '/api/admin/blogs', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/blogs', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Anyone can publish posts; public src/app/blogs/[id]/page.js:205 renders content via dangerously…',
+        note: 'ENG-022: POST calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/blogs/route.js:18-19), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Anyone can publish posts; public src/app/blogs/[id]/page.js:205 renders content via dangerously…',
         probe: { path: '/api/admin/blogs', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/blogs/[id]', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth; any blog, including unpublished, readable by sequential id.',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/blogs/[id]/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: No auth; any blog, including unpublished, readable by sequential id.',
         probe: { path: '/api/admin/blogs/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/blogs/[id]', method: 'PUT', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Anyone can overwrite any post; content is rendered raw on the public page (blogs/[id]/page.js:2…',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/blogs/[id]/route.js:24-25), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Anyone can overwrite any post; content is rendered raw on the public page (blogs/[id]/page.js:2…',
         probe: { path: '/api/admin/blogs/999999999', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/blogs/[id]', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Anyone can hard-delete any blog by sequential id.',
+        note: 'ENG-022: DELETE calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/blogs/[id]/route.js:53-54), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Anyone can hard-delete any blog by sequential id.',
         probe: { path: '/api/admin/blogs/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/bookings/[id]/override', method: 'PUT', today: 'full', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Role trusted from JWT claim, no DB re-check; worker_count and actual_duration_minutes unvalidat…',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/bookings/[id]/override/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Role trusted from JWT claim, no DB re-check; worker_count and actual_duration_minutes unvalidat…',
         probe: { path: '/api/admin/bookings/999999999/override', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/cities', method: 'GET', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'verifyAdmin is a signature check only: any customer, provider, mobile or email-verification JWT…',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/cities/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: verifyAdmin is a signature check only: any customer, provider, mobile or email-verification JWT…',
         probe: { path: '/api/admin/cities', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/cities', method: 'POST', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Same any-JWT check: any signed-up customer or provider can create cities. Cookie only, no Beare…',
+        note: 'ENG-022: POST calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/cities/route.js:83-84), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Same any-JWT check: any signed-up customer or provider can create cities. Cookie only, no Beare…',
         probe: { path: '/api/admin/cities', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/cities/[id]', method: 'GET', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Same any-JWT check as the cities list; low-sensitivity reference data.',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/cities/[id]/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Same any-JWT check as the cities list; low-sensitivity reference data.',
         probe: { path: '/api/admin/cities/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/cities/[id]', method: 'PUT', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Same any-JWT check: any logged-in user can rename or deactivate a city.',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/cities/[id]/route.js:30-31), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Same any-JWT check: any logged-in user can rename or deactivate a city.',
         probe: { path: '/api/admin/cities/999999999', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/cities/[id]', method: 'DELETE', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Same any-JWT check: any logged-in user can delete a city; dependent rows are not handled here.',
+        note: 'ENG-022: DELETE calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/cities/[id]/route.js:54-55), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Same any-JWT check: any logged-in user can delete a city; dependent rows are not handled here.',
         probe: { path: '/api/admin/cities/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/deletion-requests', method: 'GET', today: 'full', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Auth is an HTTP self-call that depends on NEXT_PUBLIC_APP_URL being right; /me reads only the a… Probe (B2, 2026-10-02): not held; see PATCH for the host the probe Cookie header goes to (deletion-requests/route.js:22-24).',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/deletion-requests/route.js:6-7), before the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard: auth was an HTTP self-call that depended on NEXT_PUBLIC_APP_URL being right (/me read only the adminAuth cookie). That self-call (route.js:22-24 at 1d67c30) is gone: the guard reads the cookie or the Bearer in the process. Probe (B2, 2026-10-02): not held. The probe\'s Cookie header no longer leaves the process for this route (see the PATCH row).',
         probe: { path: '/api/admin/deletion-requests', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/deletion-requests', method: 'PATCH', today: 'full', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'status is free text with no allow-list; only marks the request and emails the requester, no dat… Probe (B2, 2026-10-02): not held. The fetch at deletion-requests/route.js:63-65 sends the probe Cookie header to NEXT_PUBLIC_APP_URL (default http://localhost:3000) /api/admin/me before any check. On the dev app that variable is unset (measured with loadEnvConfig in the app container at 07:00 on 2026-10-02, printing only whether it is set and the host name: not set, localhost:3000), so the header goes to the app itself. A stack that sets it to another host must hold this row. With the admin cookie the handler stops at the 400 at :72-74 (id and status are required), before any query or mail.',
+        note: 'ENG-022: PATCH calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/deletion-requests/route.js:42-43), before the body is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard: status is free text with no allow-list; only marks the request and emails the requester, no dat… Probe (B2, 2026-10-02): not held. The fetch of NEXT_PUBLIC_APP_URL /api/admin/me that sent the probe Cookie header to that host before any check (route.js:63-65 at 1d67c30) is gone, so a stack that sets NEXT_PUBLIC_APP_URL to another host no longer needs to hold this row. With the admin cookie the handler stops at the 400 at :47-49 (id and status are required), before any query or mail; every other credential is stopped by the guard at :42-43.',
         probe: { path: '/api/admin/deletion-requests', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/disputes', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: every dispute with customer/provider emails and Stripe payment_intent_id exposed. A co…',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/disputes/route.js:10-11), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: No auth: every dispute with customer/provider emails and Stripe payment_intent_id exposed. A co…',
         probe: { path: '/api/admin/disputes', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/disputes', method: 'PATCH', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Undeclared action/capture_amount/provider_amount (:105,:112) throw, so it returns 500 today; on…',
+        note: 'ENG-022: PATCH calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/disputes/route.js:75-76), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Undeclared action/capture_amount/provider_amount (:110,:117) throw, so it returns 500 today; on…',
         probe: { path: '/api/admin/disputes', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/disputes/[id]', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: any dispute by sequential id with customer/provider emails, Stripe account id and paym…',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/disputes/[id]/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: No auth: any dispute by sequential id with customer/provider emails, Stripe account id and paym…',
         probe: { path: '/api/admin/disputes/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/districts', method: 'GET', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Same any-JWT check as cities: any customer, provider or mobile token in the adminAuth cookie pa…',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/districts/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Same any-JWT check as cities: any customer, provider or mobile token in the adminAuth cookie pa…',
         probe: { path: '/api/admin/districts', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/districts', method: 'POST', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Same any-JWT check: any signed-up customer or provider can create districts.',
+        note: 'ENG-022: POST calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/districts/route.js:76-77), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Same any-JWT check: any signed-up customer or provider can create districts.',
         probe: { path: '/api/admin/districts', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/districts/[id]', method: 'GET', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Same any-JWT check; low-sensitivity reference data.',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/districts/[id]/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Same any-JWT check; low-sensitivity reference data.',
         probe: { path: '/api/admin/districts/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/districts/[id]', method: 'PUT', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Same any-JWT check: any logged-in user can rename or deactivate a district.',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/districts/[id]/route.js:29-30), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Same any-JWT check: any logged-in user can rename or deactivate a district.',
         probe: { path: '/api/admin/districts/999999999', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/districts/[id]', method: 'DELETE', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Same any-JWT check: any logged-in user can delete a district; dependent rows are not handled he…',
+        note: 'ENG-022: DELETE calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/districts/[id]/route.js:53-54), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Same any-JWT check: any logged-in user can delete a district; dependent rows are not handled he…',
         probe: { path: '/api/admin/districts/999999999', body: undefined, anon: 401 },
     },
     {
@@ -267,17 +267,17 @@ export const matrix = [
     },
     {
         route: '/api/admin/me', method: 'GET', today: 'full', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Strongest check in this set (DB-backed role) but keyed on payload.id only; token role/type igno…',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/me/route.js:49-50), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Strongest check in this set (DB-backed role) but keyed on payload.id only; token role/type igno…',
         probe: { path: '/api/admin/me', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/notifications', method: 'GET', today: 'full', kind: 'roles', roles: ['admin'], owner: 'notifications where user_id=token id and user_type=\'admin\'',
-        note: 'Only route in this set accepting both Bearer and cookie. Role comes from the JWT claim, no DB r…',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/notifications/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Only route in this set accepting both Bearer and cookie. Role comes from the JWT claim, no DB r…',
         probe: { path: '/api/admin/notifications', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/notifications', method: 'PUT', today: 'full', kind: 'roles', roles: ['admin'], owner: 'notifications of the token\'s admin',
-        note: 'Ownership enforced in the WHERE clause, so a body id cannot touch another admin\'s rows; role fr…',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/notifications/route.js:26-27), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Ownership enforced in the WHERE clause, so a body id cannot touch another admin\'s rows; role fr…',
         probe: { path: '/api/admin/notifications', body: {}, anon: 401 },
     },
     {
@@ -322,172 +322,172 @@ export const matrix = [
     },
     {
         route: '/api/admin/providers/approve', method: 'PUT', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: approve also forces email_verified=1 and clears the verification token; suspend/reacti…',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/providers/approve/route.js:135-136), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: No auth: approve also forces email_verified=1 and clears the verification token; suspend/reacti…',
         probe: { path: '/api/admin/providers/approve', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/seo', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'UNAUTHENTICATED despite /api/admin path (middleware guards /admin pages only, not /api); return…',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/seo/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: UNAUTHENTICATED despite /api/admin path (middleware guards /admin pages only, not /api); return…',
         probe: { path: '/api/admin/seo', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/seo', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'UNAUTHENTICATED write; header_scripts is rendered as a live script in head by app/layout.js:87 …',
+        note: 'ENG-022: POST calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/seo/route.js:26-27), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: UNAUTHENTICATED write; header_scripts is rendered as a live script in head by app/layout.js:87 …',
         probe: { path: '/api/admin/seo', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/seo/[id]', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'UNAUTHENTICATED delete of any SEO row by sequential id.',
+        note: 'ENG-022: DELETE calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/seo/[id]/route.js:53-54), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: UNAUTHENTICATED delete of any SEO row by sequential id.',
         probe: { path: '/api/admin/seo/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/seo/[id]', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'UNAUTHENTICATED read of any SEO row incl. header_scripts and footer_scripts.',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/seo/[id]/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: UNAUTHENTICATED read of any SEO row incl. header_scripts and footer_scripts.',
         probe: { path: '/api/admin/seo/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/seo/[id]', method: 'PUT', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'UNAUTHENTICATED overwrite of any SEO row incl. header_scripts/footer_scripts, rendered live by …',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/seo/[id]/route.js:24-25), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: UNAUTHENTICATED overwrite of any SEO row incl. header_scripts/footer_scripts, rendered live by …',
         probe: { path: '/api/admin/seo/999999999', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/service-areas', method: 'GET', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes (customer and provider tokens share JWT_SECRET), e.g. a self-regi…',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/service-areas/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes (customer and provider tokens share JWT_SECRET), e.g. a self-regi…',
         probe: { path: '/api/admin/service-areas', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/service-areas', method: 'POST', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes (same verifyAdmin as GET); creates cluster rows.',
+        note: 'ENG-022: POST calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/service-areas/route.js:36-37), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes (same verifyAdmin as GET); creates cluster rows.',
         probe: { path: '/api/admin/service-areas', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/service-areas', method: 'PUT', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes; record id comes from the query string (L83); body fields not val…',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/service-areas/route.js:70-71), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes; record id comes from the query string (L74); body fields not val…',
         probe: { path: '/api/admin/service-areas', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/service-areas/[id]', method: 'DELETE', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
+        note: 'ENG-022: DELETE calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/service-areas/[id]/route.js:50-51), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
         probe: { path: '/api/admin/service-areas/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/service-areas/[id]', method: 'GET', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes; also a bug: const [rows] on execute() result (L17), so a hit ret…',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/service-areas/[id]/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes; also a bug: const [rows] on execute() result (L10), so a hit ret…',
         probe: { path: '/api/admin/service-areas/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/service-areas/[id]', method: 'PUT', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/service-areas/[id]/route.js:24-25), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
         probe: { path: '/api/admin/service-areas/999999999', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/service-locations', method: 'GET', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes; 500 body echoes error.message (L137).',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/service-locations/route.js:10-11), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes; 500 body echoes error.message (L127).',
         probe: { path: '/api/admin/service-locations', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/service-locations', method: 'POST', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any valid JWT passes and is audit-logged as actor_type admin (L232-233); description HTML rende…',
+        note: 'ENG-022: POST calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/service-locations/route.js:135-136), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any valid JWT passes and is audit-logged as actor_type admin (L218-220; the actor is auth.caller.email now); description HTML rende…',
         probe: { path: '/api/admin/service-locations', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/service-locations/[id]', method: 'DELETE', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any valid JWT passes; deletes public landing-page rows; id parsed from URL (L230).',
+        note: 'ENG-022: DELETE calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/service-locations/[id]/route.js:207-208), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any valid JWT passes; deletes public landing-page rows; id parsed from URL (L211).',
         probe: { path: '/api/admin/service-locations/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/service-locations/[id]', method: 'GET', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any valid JWT passes; 500 body echoes error.message (L45).',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/service-locations/[id]/route.js:10-11), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any valid JWT passes; 500 body echoes error.message (L35).',
         probe: { path: '/api/admin/service-locations/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/service-locations/[id]', method: 'PATCH', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any valid JWT passes; toggles is_active, hiding or showing public location pages. Probe (round 3, 2026-10-02): the probe sends PROBE_IDS.missing (999999999) and {}, so the UPDATE at src/app/api/admin/service-locations/[id]/route.js:196 matches no row; the handler then inserts an activity_logs row (:198-205), which every run writes anyway (see the measure in the header above).',
+        note: 'ENG-022: PATCH calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/service-locations/[id]/route.js:167-168), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any valid JWT passes; toggles is_active, hiding or showing public location pages. Probe (round 3, 2026-10-02): the probe sends PROBE_IDS.missing (999999999) and {}, so the UPDATE at src/app/api/admin/service-locations/[id]/route.js:180 matches no row; the handler then inserts an activity_logs row (:182-189), which every run writes anyway (see the measure in the header above).',
         probe: { path: '/api/admin/service-locations/999999999', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/service-locations/[id]', method: 'PUT', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any valid JWT passes; can rewrite slug, canonical and raw-HTML description (rendered unsanitize…',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/service-locations/[id]/route.js:43-44), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any valid JWT passes; can rewrite slug, canonical and raw-HTML description (rendered unsanitize…',
         probe: { path: '/api/admin/service-locations/999999999', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/settings', method: 'GET', today: 'full', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Only DB-backed admin check in this chunk; looks id up in users only, so a mobile/Google provide…',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/settings/route.js:7-8), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Only DB-backed admin check in this chunk; looks id up in users only, so a mobile/Google provide…',
         probe: { path: '/api/admin/settings', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/settings', method: 'POST', today: 'full', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Writes any key/value incl. default_commission (provider commission rate); logs key and value (L…',
+        note: 'ENG-022: POST calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/settings/route.js:24-25), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Writes any key/value incl. default_commission (provider commission rate); logs key and value (L…',
         probe: { path: '/api/admin/settings', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/skills', method: 'GET', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/skills/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
         probe: { path: '/api/admin/skills', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/skills', method: 'POST', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
+        note: 'ENG-022: POST calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/skills/route.js:47-48), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
         probe: { path: '/api/admin/skills', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/skills/[id]', method: 'DELETE', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
+        note: 'ENG-022: DELETE calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/skills/[id]/route.js:54-55), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
         probe: { path: '/api/admin/skills/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/skills/[id]', method: 'GET', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/skills/[id]/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
         probe: { path: '/api/admin/skills/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/skills/[id]', method: 'PUT', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/skills/[id]/route.js:24-25), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
         probe: { path: '/api/admin/skills/999999999', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/states', method: 'GET', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/states/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
         probe: { path: '/api/admin/states', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/states', method: 'POST', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
+        note: 'ENG-022: POST calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/states/route.js:53-54), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
         probe: { path: '/api/admin/states', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/states/[id]', method: 'DELETE', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
+        note: 'ENG-022: DELETE calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/states/[id]/route.js:48-49), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
         probe: { path: '/api/admin/states/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/states/[id]', method: 'GET', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/states/[id]/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
         probe: { path: '/api/admin/states/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/states/[id]', method: 'PUT', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/states/[id]/route.js:24-25), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
         probe: { path: '/api/admin/states/999999999', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/testimonials', method: 'GET', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes; refusal body uses key error, not message.',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/testimonials/route.js:7-8), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes; refusal body uses key error, not message.',
         probe: { path: '/api/admin/testimonials', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/testimonials', method: 'POST', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes; testimonial text is public site content.',
+        note: 'ENG-022: POST calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/testimonials/route.js:22-23), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes; testimonial text is public site content.',
         probe: { path: '/api/admin/testimonials', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/testimonials/[id]', method: 'DELETE', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
+        note: 'ENG-022: DELETE calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/testimonials/[id]/route.js:26-27), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
         probe: { path: '/api/admin/testimonials/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/testimonials/[id]', method: 'PUT', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/testimonials/[id]/route.js:7-8), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Any validly signed JWT passes (customer or provider token in the adminAuth cookie).',
         probe: { path: '/api/admin/testimonials/999999999', body: {}, anon: 401 },
     },
     {
@@ -622,7 +622,7 @@ export const matrix = [
     },
     {
         route: '/api/auth/reset-password', method: 'POST', today: 'partial', kind: 'public', public: 'reset completion; guard is the OTP/token (see S1)', owner: '-',
-        note: 'HIGH, from code reading, not run: query() is client-side escaping (db.js:68) and body otp/token… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'New password is required\'.',
+        note: 'ENG-022 S1 (2026-10-03, 7a86bc2): before the query the handler refuses with 400 { success: false, message: \'Valid token or Email/OTP required\' } any token, email or otp that is present and is not a string (src/app/api/auth/reset-password/route.js:18-22), so an object, an array or a number can no longer reach the SQL (query()/execute() in src/lib/db.js format a non-string value into the SQL text instead of binding it); a string is handled as before. The exploitability probe of the unfixed code did NOT run (see 7a86bc2), so the finding below is from code reading and was not exercised; the cases that pin the 400 are in e2e/s1-reset-otp.spec.js. Census finding, line numbers moved to this file: HIGH, from code reading, not run: query() is client-side escaping (db.js:68) and body otp/token… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'New password is required\'.',
         probe: { path: '/api/auth/reset-password', body: {}, anon: [400] },
     },
     {
@@ -632,7 +632,7 @@ export const matrix = [
     },
     {
         route: '/api/auth/verify-otp', method: 'POST', today: 'partial', kind: 'public', public: 'OTP check (see S1)', owner: '-',
-        note: 'MEDIUM: boolean oracle for the 6-digit reset OTP with no attempt limit; OTP not consumed; NULL … Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Email and OTP are required\'.',
+        note: 'ENG-022 S1 (2026-10-03, 7a86bc2): before the query the handler refuses with 400 { success: false, message: \'Email and OTP are required\' } an email or otp that is not a string (a missing one gets the 400 it always got) (src/app/api/auth/verify-otp/route.js:12-16), so an object, an array or a number can no longer reach the SQL (query()/execute() in src/lib/db.js format a non-string value into the SQL text instead of binding it); a string is handled as before. The exploitability probe of the unfixed code did NOT run (see 7a86bc2), so the finding below is from code reading and was not exercised; the cases that pin the 400 are in e2e/s1-reset-otp.spec.js. Census finding, line numbers moved to this file: MEDIUM: boolean oracle for the 6-digit reset OTP with no attempt limit; OTP not consumed; NULL … Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Email and OTP are required\'.',
         probe: { path: '/api/auth/verify-otp', body: {}, anon: [400] },
     },
     {
@@ -677,7 +677,7 @@ export const matrix = [
     },
     {
         route: '/api/categories', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'HIGH: anonymous delete of any category by id; audit log is forged as Admin id 1 (127-134); effe…',
+        note: 'ENG-022: DELETE calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/categories/route.js:117-118), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: HIGH: anonymous delete of any category by id; audit log is forged as Admin id 1 (134-141); effe…',
         probe: { path: '/api/categories', body: undefined, anon: 401 },
     },
     {
@@ -687,12 +687,12 @@ export const matrix = [
     },
     {
         route: '/api/categories', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'HIGH: anonymous category creation; audit log forged as Admin id 1 (47-55); icon and image_url s…',
+        note: 'ENG-022: POST calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/categories/route.js:31-32), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: HIGH: anonymous category creation; audit log forged as Admin id 1 (50-58); icon and image_url s…',
         probe: { path: '/api/categories', body: {}, anon: 401 },
     },
     {
         route: '/api/categories', method: 'PUT', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'HIGH: anonymous update or deactivation of any category (is_active from body); audit log forged …',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/categories/route.js:76-77), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: HIGH: anonymous update or deactivation of any category (is_active from body); audit log forged …',
         probe: { path: '/api/categories', body: {}, anon: 401 },
     },
     {
@@ -717,12 +717,12 @@ export const matrix = [
     },
     {
         route: '/api/cron/auto-release', method: 'GET', today: 'partial', kind: 'self', self: 'CRON_SECRET, made fail-closed', owner: '-',
-        note: 'MEDIUM: if CRON_SECRET is unset the header \'Bearer undefined\' matches (15); development mode by… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 200. The job ran for an anonymous caller. Known failure: ENG-022 makes it 401 through requireCronSecret, which also refuses with 401 when CRON_SECRET is unset, as it is on the dev app. Probe (B2, 2026-10-02): hold. In development mode every caller is authorized (auto-release/route.js:13-16), so one request, from any credential or none, runs the job: it selects the bookings awaiting approval for 24 hours (:23-33) and for each captures a Stripe payment (:46), creates a transfer (:56) and updates the booking (:69-72). Today it moves nothing only because the dev DB has no such booking (0 with a payment intent at 07:04 on 2026-10-02): harmless by data, not by construction. Remove the hold when ENG-022 makes the route answer 401 through requireCronSecret.',
+        note: 'ENG-022: requireCronSecret(request) is the first statement of GET (src/app/api/cron/auto-release/route.js:10-11). With CRON_SECRET unset, as on the dev app (it must stay unset there), every request is 401, `Bearer undefined` and `?secret=undefined` included; with it set, the secret is accepted as `Authorization: Bearer` or `?secret=` and anything else is 401. The acceptance of \'Bearer undefined\' and the development-mode skip (route.js:13-16 at 1d67c30) are gone. Census finding before the guard: MEDIUM: if CRON_SECRET is unset the header \'Bearer undefined\' matches (15 at 1d67c30); development mode by… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body, before the change: 200, the job ran for an anonymous caller. Probe (B2, 2026-10-02): hold, removed by ENG-022 on 2026-10-03: the row is not held now; it sends all seven credential styles and expects 401 from each (anon [401]). The job\'s first side effect sits behind the guard: it selects the bookings awaiting approval for 24 hours (:14-24) and for each captures a Stripe payment (:37), creates a transfer (:47) and updates the booking (:60-63). Today it moves nothing only because the dev DB has no such booking (0 with a payment intent at 07:04 on 2026-10-02): harmless by data, not by construction (before the change it ran for any caller in development mode and stopped only for want of data; now every request is 401 before the SELECT).',
         probe: { path: '/api/cron/auto-release', body: undefined, anon: [401] },
     },
     {
         route: '/api/cron/notifications', method: 'GET', today: 'partial', kind: 'self', self: 'CRON_SECRET, made fail-closed', owner: '-',
-        note: 'MEDIUM: fail-open, no check at all when CRON_SECRET is unset or empty (14); anonymous caller ca… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 500 \'Internal Server Error\'. The route did not refuse the anonymous caller (the answer is not 401). Known failure: ENG-022 makes it 401 through requireCronSecret, which also refuses with 401 when CRON_SECRET is unset, as it is on the dev app. Probe (B2, 2026-10-02): hold. With CRON_SECRET unset the check at notifications/route.js:14 is skipped, so one request, from any credential or none, runs the job: it selects the providers with stripe_onboarding_complete = 0 (:26-31) and for each sends an email (:46) and a push (:52) and updates onboarding_reminder_stage (:54-57). Today it stops only because that column is not in the dev schema (absent at 07:04 on 2026-10-02), so the SELECT throws and the answer is 500: an accident, not a guard. Probe (round 3, 2026-10-02): the handler holds a second job in the same try (:62-111) that runs when the server hour is 19 or later (:66-69): it selects the confirmed bookings of tomorrow not yet reminded (:72-80) and for each emails and pushes the customer (:87-94) and, when a provider is assigned, the provider (:97-105), then updates bookings (:108). It is not reached today: the first SELECT throws first (:26-31, to the catch at :115-118), and if it were reached it would select nothing: it takes only confirmed bookings of tomorrow (:72-80) and both fixture bookings are completed, with job date 2026-01-15 (database/fixtures hold six files, whose sets insert into users, service_providers, service_categories, services, system_settings, bookings, invoices, provider_payouts and provider_reviews). Remove the hold when ENG-022 makes the route answer 401 through requireCronSecret.',
+        note: 'ENG-022: requireCronSecret(request) is the first statement of GET (src/app/api/cron/notifications/route.js:10-11). With CRON_SECRET unset, as on the dev app (it must stay unset there), every request is 401, `Bearer undefined` and `?secret=undefined` included; with it set, the secret is accepted as `Authorization: Bearer` or `?secret=` and anything else is 401. The check that was skipped when CRON_SECRET was unset or empty (route.js:14 at 1d67c30) is gone. Census finding before the guard: MEDIUM: fail-open, no check at all when CRON_SECRET is unset or empty (14 at 1d67c30); anonymous caller ca… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body, before the change: 500 \'Internal Server Error\' (the route did not refuse the anonymous caller). Probe (B2, 2026-10-02): hold, removed by ENG-022 on 2026-10-03: the row is not held now; it sends all seven credential styles and expects 401 from each (anon [401]). The first job sits behind the guard: it selects the providers with stripe_onboarding_complete = 0 (:21-26) and for each sends an email (:41) and a push (:47) and updates onboarding_reminder_stage (:49-52). Today it stops only because that column is not in the dev schema (absent at 07:04 on 2026-10-02), so the SELECT throws and the answer is 500: an accident, not a guard before the change; now every request is 401 before the SELECT. Probe (round 3, 2026-10-02): the handler holds a second job in the same try (:57-106) that runs when the server hour is 19 or later (:61-64): it selects the confirmed bookings of tomorrow not yet reminded (:67-75) and for each emails and pushes the customer (:82-89) and, when a provider is assigned, the provider (:92-100), then updates bookings (:103). It is not reached today: the first SELECT throws first (:21-26, to the catch at :110-113), and if it were reached it would select nothing: it takes only confirmed bookings of tomorrow (:67-75) and both fixture bookings are completed, with job date 2026-01-15 (database/fixtures hold six files, whose sets insert into users, service_providers, service_categories, services, system_settings, bookings, invoices, provider_payouts and provider_reviews).',
         probe: { path: '/api/cron/notifications', body: undefined, anon: [401] },
     },
     {
@@ -767,22 +767,22 @@ export const matrix = [
     },
     {
         route: '/api/customers', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'CRITICAL: anonymous delete of any users row (admins included) and all their bookings by user_id…',
+        note: 'ENG-022: DELETE calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/customers/route.js:155-156), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: CRITICAL: anonymous delete of any users row (admins included) and all their bookings by user_id…',
         probe: { path: '/api/customers', body: undefined, anon: 401 },
     },
     {
         route: '/api/customers', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'CRITICAL: with no param it returns EVERY user incl. admin accounts (email, phone, role); ?email…',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/customers/route.js:7-8), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: CRITICAL: with no param it returns EVERY user incl. admin accounts (email, phone, role); ?email…',
         probe: { path: '/api/customers', body: undefined, anon: 401 },
     },
     {
         route: '/api/customers', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'CRITICAL: anonymous caller can create a users row with role \'admin\' (86), then log in through /…',
+        note: 'ENG-022: POST calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/customers/route.js:54-55), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: CRITICAL: anonymous caller can create a users row with role \'admin\' (91), then log in through /…',
         probe: { path: '/api/customers', body: {}, anon: 401 },
     },
     {
         route: '/api/customers', method: 'PUT', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'CRITICAL: anonymous password reset of ANY account (customer, provider or admin) by numeric id: …',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/customers/route.js:103-104), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: CRITICAL: anonymous password reset of ANY account (customer, provider or admin) by numeric id: …',
         probe: { path: '/api/customers', body: {}, anon: 401 },
     },
     {
@@ -817,17 +817,17 @@ export const matrix = [
     },
     {
         route: '/api/provider', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Branches: ?id missing gives 400; ?id=N gives full cascade delete. Anyone on the internet can ir…',
+        note: 'ENG-022: DELETE calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/provider/route.js:175-176), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Branches: ?id missing gives 400; ?id=N gives full cascade delete. Anyone on the internet can ir…',
         probe: { path: '/api/provider', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Branches: (a) ?id=X returns one provider incl. email and phone (L18-28); (b) ?status=S returns …',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/provider/route.js:11-12), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Branches: (a) ?id=X returns one provider incl. email and phone (L18-28); (b) ?status=S returns …',
         probe: { path: '/api/provider', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider', method: 'PUT', today: 'partial', kind: 'roles', roles: ['admin', 'provider'], owner: 'the no-`id` branch updates `caller.id` (today `decoded.id` from any role\'s Bearer, `provider/route.js:121-163`; read by me)',
-        note: 'Target in Appendix A: admin (`?id=` branches), provider (no-`id` branch); a customer is refused. Census: Branches: (A) ?id=X with body exactly {status}: sets any provider to active/inactive/suspended/…',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\', \'provider\']) as its first statements (src/app/api/provider/route.js:54-55), before the body is read: no credential is 401 and a customer 403. The split is in the handler: the `?id=` branches (a status change, or a full edit of any provider) are the admin\'s, so a provider naming any provider, their own included, is 403; the no-`id` branch (from the comment at L127) is the provider\'s own profile and updates auth.caller.id, never a query or body value, and an admin there is 403 (there is no provider profile to update). Probe: path /api/provider with {} and no query is the no-`id` branch: a provider reaches the 400 validation (name, email and phone are required) before any UPDATE and an admin is 403, so probe.allowed is [400, 403], which also lets a provider\'s 403 pass; the exact legs (the admin\'s `?id=` branch, a provider\'s 403 on it, the provider\'s own row) are the PUT /api/provider cases of e2e/role-checks.spec.js. Census finding before the guard: Target in Appendix A: admin (`?id=` branches), provider (no-`id` branch); a customer is refused. Census: Branches: (A) ?id=X with body exactly {status}: sets any provider to active/inactive/suspended/…',
         probe: { path: '/api/provider', body: {}, anon: 401, allowed: [400, 403] },
     },
     {
@@ -992,7 +992,7 @@ export const matrix = [
     },
     {
         route: '/api/provider/reset-password', method: 'POST', today: 'partial', kind: 'public', public: 'reset completion; guard is the token/OTP (see S1)', owner: '-',
-        note: 'Token path needs no email and the 6-digit mobile OTP lives in the same reset_token column, so a… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Password required\'.',
+        note: 'ENG-022 S1 (2026-10-03, 7a86bc2): before the query the handler refuses with 400 { success: false, message: \'Valid token or Email/OTP required\' } any token, email or otp that is present and is not a string (src/app/api/provider/reset-password/route.js:28-35), so an object, an array or a number can no longer reach the SQL (query()/execute() in src/lib/db.js format a non-string value into the SQL text instead of binding it); a string is handled as before. The exploitability probe of the unfixed code did NOT run (see 7a86bc2), so the finding below is from code reading and was not exercised; the cases that pin the 400 are in e2e/s1-reset-otp.spec.js. Census finding, line numbers moved to this file: Token path needs no email and the 6-digit mobile OTP lives in the same reset_token column, so a… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Password required\'.',
         probe: { path: '/api/provider/reset-password', body: {}, anon: [400] },
     },
     {
@@ -1012,7 +1012,7 @@ export const matrix = [
     },
     {
         route: '/api/provider/validate-reset-token', method: 'GET', today: 'none', kind: 'public', public: 'reset page link check (see S1)', owner: '-',
-        note: 'Unauthenticated oracle for live reset_token values including 6-digit mobile OTPs, no email need… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 400 \'Token required\'.',
+        note: 'ENG-022 S1 (2026-10-03): no edit was needed here: the token is searchParams.get(\'token\'), which is a string or null by construction, and `if (!token)` is already the 400 (\'Token required\'), so no non-string value can reach the query. The oracle itself (a live reset_token, 6-digit OTPs included, answers valid) is unchanged by this ticket. Census finding: Unauthenticated oracle for live reset_token values including 6-digit mobile OTPs, no email need… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 400 \'Token required\'.',
         probe: { path: '/api/provider/validate-reset-token', body: undefined, anon: [400] },
     },
     {
@@ -1022,12 +1022,12 @@ export const matrix = [
     },
     {
         route: '/api/provider/verify-otp', method: 'POST', today: 'partial', kind: 'public', public: 'OTP check (see S1)', owner: '-',
-        note: '6-digit OTP, no rate limit or lockout, not consumed (so it also opens reset-password); expiry N… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Email and verification code required\'.',
+        note: 'ENG-022 S1 (2026-10-03, 7a86bc2): before the query the handler refuses with 400 { success: false, message: \'Email and verification code required\' } an email or otp that is not a string (a missing one gets the 400 it always got) (src/app/api/provider/verify-otp/route.js:16-23), so an object, an array or a number can no longer reach the SQL (query()/execute() in src/lib/db.js format a non-string value into the SQL text instead of binding it); a string is handled as before. The exploitability probe of the unfixed code did NOT run (see 7a86bc2), so the finding below is from code reading and was not exercised; the cases that pin the 400 are in e2e/s1-reset-otp.spec.js. Census finding, line numbers moved to this file: 6-digit OTP, no rate limit or lockout, not consumed (so it also opens reset-password); expiry N… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Email and verification code required\'.',
         probe: { path: '/api/provider/verify-otp', body: {}, anon: [400] },
     },
     {
         route: '/api/reviews', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Unauthenticated delete of any review by sequential id; provider ratings are recomputed afterwar…',
+        note: 'ENG-022: DELETE calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/reviews/route.js:274-275), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Unauthenticated delete of any review by sequential id; provider ratings are recomputed afterwar…',
         probe: { path: '/api/reviews', body: undefined, anon: 401 },
     },
     {
@@ -1052,37 +1052,37 @@ export const matrix = [
     },
     {
         route: '/api/service-locations', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Unauthenticated delete of any service-location page by id; 500 echoes error.message (L208).',
+        note: 'ENG-022: DELETE calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/service-locations/route.js:202-203), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Unauthenticated delete of any service-location page by id; 500 echoes error.message (L215).',
         probe: { path: '/api/service-locations', body: undefined, anon: 401 },
     },
     {
         route: '/api/service-locations', method: 'GET', today: 'none', kind: 'public', public: 'landing pages; `?admin=`/`?includeInactive=` branches require admin', owner: '-',
-        note: '?includeInactive=true or ?admin=true (L13) drops the is_active filter with no auth (draft rows)… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 200.',
+        note: 'ENG-022: public by design (landing pages, the booking flow), so no guard. ?includeInactive=true or ?admin=true (L14) drops the is_active filter (draft rows) and is honoured only for an admin caller: callerFrom(request, [\'admin\']) at src/app/api/service-locations/route.js:16, the filter at L33; for everyone else the flags are ignored and the answer is exactly the one the request without them gets (no refusal). Census finding before the change: both flags worked with no auth (L13 at 1d67c30). Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body, before the change: 200 (the probe sends no flag, so it is the same request now).',
         probe: { path: '/api/service-locations', body: undefined, anon: [200] },
     },
     {
         route: '/api/service-locations', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Unauthenticated write of public page content (canonical_url, intro, description) that feeds /ap…',
+        note: 'ENG-022: POST calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/service-locations/route.js:81-82), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Unauthenticated write of public page content (canonical_url, intro, description) that feeds /ap…',
         probe: { path: '/api/service-locations', body: {}, anon: 401 },
     },
     {
         route: '/api/services', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Unauthenticated delete of any service; image_url is client-set via POST/PUT, so the unlink can …',
+        note: 'ENG-022: DELETE calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/services/route.js:326-327), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Unauthenticated delete of any service; image_url is client-set via POST/PUT, so the unlink can …',
         probe: { path: '/api/services', body: undefined, anon: 401 },
     },
     {
         route: '/api/services', method: 'GET', today: 'none', kind: 'public', public: 'catalogue; the `?admin=true` branch requires admin', owner: '-',
-        note: '?admin=true (L17, L59) turns off the is_active filter with no auth and exposes all s.* columns;… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 200.',
+        note: 'ENG-022: public by design (the catalogue the landing pages and the booking flow read), so no guard. ?admin=true drops the is_active filter and exposes all s.* columns, and it is honoured only for an admin caller: callerFrom(request, [\'admin\']) at src/app/api/services/route.js:19, the filter at L61; for everyone else the flag is ignored and the answer is exactly the one the request without the flag gets (no refusal). Census finding before the change: the flag worked with no auth (L17, L59 at 1d67c30). Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body, before the change: 200 (the probe sends no flag, so it is the same request now).',
         probe: { path: '/api/services', body: undefined, anon: [200] },
     },
     {
         route: '/api/services', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Unauthenticated creation of services with attacker-chosen price, slug, image_url and skills; au…',
+        note: 'ENG-022: POST calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/services/route.js:140-141), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Unauthenticated creation of services with attacker-chosen price, slug, image_url and skills; au…',
         probe: { path: '/api/services', body: {}, anon: 401 },
     },
     {
         route: '/api/services', method: 'PUT', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Unauthenticated price, name, slug or active-flag change on any service (price source for bookin…',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/services/route.js:221-222), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Unauthenticated price, name, slug or active-flag change on any service (price source for bookin…',
         probe: { path: '/api/services', body: {}, anon: 401 },
     },
     {
@@ -1092,7 +1092,7 @@ export const matrix = [
     },
     {
         route: '/api/stats', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Anyone can read platform-wide business metrics: totalRevenue (L44, L103), bookings by status, c…',
+        note: 'ENG-022: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/stats/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Anyone can read platform-wide business metrics: totalRevenue (L47, L106), bookings by status, c…',
         probe: { path: '/api/stats', body: undefined, anon: 401 },
     },
     {
@@ -1107,7 +1107,7 @@ export const matrix = [
     },
     {
         route: '/api/test/push', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Test endpoint left live: anyone can push arbitrary title and body to any user or provider id, o…',
+        note: 'ENG-022: POST calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/test/push/route.js:7-8), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Test endpoint left live: anyone can push arbitrary title and body to any user or provider id, o…',
         probe: { path: '/api/test/push', body: {}, anon: 401 },
     },
     {
