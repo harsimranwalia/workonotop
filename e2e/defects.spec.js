@@ -3,11 +3,13 @@
 // baseline shows each. Every case fails on the code before this branch (the routes were open) and passes on it, except two
 // guards that hold on both and pin what the admin and the allowed roles keep: D1 "admin GET ... lists both fixture
 // bookings" and D6 "customer1, provider1 and admin can each upload". (Measured: against a scratch copy of 2038c73, 34 of
-// the 48 cases of this file and api.spec.js failed and 14 passed, those two among the 14.)
+// the 48 cases of this file and api.spec.js failed and 14 passed, those two among the 14.) The four D1 receipt cases
+// (Amendment 6) came later and are not in that count.
 //
 //   D1  bookings: list, change, delete        D3  a customer's bookings by email or user_id
 //   D2  admin finance data (15 route rows)    D6  uploads
 //   AC6 customer1 asks for customer2's booking and gets 403 and none of its fields
+//   D1 receipt page: the website's receipt no longer asks the admin-only GET /api/bookings/[id] (browser cases, one of them AC6)
 //
 // Credentials come from getCredentialHeaders (e2e/auth/credentials.js): the fixture accounts' own cookies. Nothing here
 // writes to a fixture row. A write is only ever sent to a row the case created (a guest booking made through the
@@ -23,8 +25,9 @@ import { users, providers } from '../database/fixtures/accounts.js';
 import { bookings } from '../database/fixtures/bookings.js';
 
 // Every request carries a fixture account's session header, and a Playwright trace records the request headers of the API
-// contexts it traces (the config keeps one per failed case). Tracing is off, as in e2e/auth-matrix.spec.js: no trace holds
-// a token. A failure message names the case, the status and the account, never a header.
+// contexts it traces (the config keeps one per failed case); the receipt page cases put customer1's customer_token cookie
+// in a browser context, and a trace records that too. Tracing is off, as in e2e/auth-matrix.spec.js: no trace holds a
+// token. A failure message names the case, the status and the account, never a header.
 test.use({ trace: 'off' });
 
 const [CUSTOMER1, CUSTOMER2] = users;
@@ -66,22 +69,22 @@ function expectNoneOf(text, strings, who) {
 }
 
 // A booking the case makes itself through the public guest checkout (POST /api/bookings stays public), so a write probe
-// never touches a fixture row. `run(id)` gets its id; the row is deleted again as admin, even when `run` fails.
+// never touches a fixture row. `run(id, body)` gets its id and the body that was posted; the row is deleted again as admin,
+// even when `run` fails.
 async function withProbeBooking(request, as, run) {
     const tag = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
-    const created = await request.post('/api/bookings', {
-        data: {
-            service_id: 1, service_name: 'Fixture Standard Clean', service_price: 80, additional_price: 40,
-            first_name: 'E2E', last_name: 'Probe', email: `e2e-probe-${tag}@workontap.test`, phone: '+14035550199',
-            job_date: '2026-02-01', job_time_slot: '09:00', job_description: 'E2E probe booking, deleted by the case.',
-            address_line1: '1 Probe Street', city: 'Calgary', payment_intent_id: `pi_e2e_probe_${tag}`,
-        },
-    });
+    const body = {
+        service_id: 1, service_name: 'Fixture Standard Clean', service_price: 80, additional_price: 40,
+        first_name: 'E2E', last_name: 'Probe', email: `e2e-probe-${tag}@workontap.test`, phone: '+14035550199',
+        job_date: '2026-02-01', job_time_slot: '09:00', job_description: 'E2E probe booking, deleted by the case.',
+        address_line1: '1 Probe Street', city: 'Calgary', payment_intent_id: `pi_e2e_probe_${tag}`,
+    };
+    const created = await request.post('/api/bookings', { data: body });
     expect(created.status(), 'guest checkout makes the probe booking').toBe(200);
     const id = (await created.json()).booking_id;
     expect(Number.isInteger(id), 'the probe booking has an id').toBe(true);
     try {
-        await run(id);
+        await run(id, body);
     } finally {
         await request.delete(`/api/bookings?id=${id}`, { headers: as.admin });
     }
@@ -160,6 +163,120 @@ test.describe('D1 bookings', () => {
         const numbers = body.data.map((row) => row.booking_number);
         expect(numbers, 'admin sees customer 1\'s fixture booking').toContain(BOOKING1.booking_number);
         expect(numbers, 'admin sees customer 2\'s fixture booking').toContain(BOOKING2.booking_number);
+    });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// D1 receipt page (design ENG-004 Amendment 6). GET /api/bookings/[id] is admin-only, so the website's receipt page
+// (src/app/booking/success/[id]/page.js) must not ask it: every guest and signed-in customer reaches that page right after
+// paying and would land on "Booking Not Found". The page shows the receipt from the booking its own tab saved
+// (sessionStorage.lastBooking, written by booking/verify and booking/payment before they open the page) or, for a signed-in
+// owner, from GET /api/customer/booking-details; anyone else sees the error card and none of the booking's fields. Each case
+// drives the page in a browser and records the pathnames it requests (page.on('request')). The cases only read: a probe
+// booking is made and deleted by withProbeBooking, and no fixture row is written. customer1's token goes into the browser
+// context as a cookie and is never printed; a message names pathnames and statuses (tracing is off for the file, above).
+// ---------------------------------------------------------------------------------------------------------------------
+test.describe('D1 receipt page', () => {
+    // The first visit compiles the page, and its first API request compiles the route, in `next dev` (as in
+    // e2e/auth-admin-page.spec.js).
+    test.describe.configure({ timeout: 120_000 });
+    const SETTLE_MS = 60_000;
+
+    // The pathname of every request the page makes and the status each answer carried. Nothing else is kept: no header,
+    // cookie or body.
+    function watchRequests(page) {
+        const watch = { paths: [], statuses: {} };
+        page.on('request', (req) => watch.paths.push(new URL(req.url()).pathname));
+        page.on('response', (res) => { watch.statuses[new URL(res.url()).pathname] = res.status(); });
+        return watch;
+    }
+    const askedFor = (watch, route) => watch.paths.filter((pathname) => pathname === route);
+    const apiAsked = (watch) => watch.paths
+        .filter((pathname) => pathname.startsWith('/api/'))
+        .map((pathname) => `${pathname} ${watch.statuses[pathname] ?? 'no answer'}`);
+
+    // The tab's saved booking, in place before any script of the page runs (a reload keeps it, as sessionStorage does).
+    const saveInTab = (page, saved) => page.addInitScript((value) => {
+        try { window.sessionStorage.setItem('lastBooking', JSON.stringify(value)); } catch { /* a document with no storage */ }
+    }, saved);
+
+    // customer1's own customer_token, cut out of the cookie header the way credentials() cuts it, put in the page's context.
+    async function signInCustomer1(context, as, baseURL) {
+        const value = as.customer.cookie.slice('customer_token='.length);
+        await context.addCookies([{ name: 'customer_token', value, url: baseURL, httpOnly: true }]);
+    }
+
+    // Waits for the page's answer, the receipt or the error card: the spinner is gone, so the requests it made have answered.
+    const settled = (page, who) => expect(
+        page.getByRole('heading', { name: /Booking Confirmed!|Booking Not Found/ }),
+        `${who}: the page shows the receipt or the error card`,
+    ).toBeVisible({ timeout: SETTLE_MS });
+
+    const expectNeverAsked = (watch, route, who) => expect(
+        askedFor(watch, route),
+        `${who}: the page asked ${route} (its API requests: ${JSON.stringify(apiAsked(watch))})`,
+    ).toEqual([]);
+
+    async function expectReceipt(page, bookingNumber, who) {
+        await expect(page.getByRole('heading', { name: 'Booking Confirmed!' }), `${who}: Booking Confirmed! shows`).toBeVisible();
+        await expect(page.getByText(bookingNumber, { exact: true }), `${who}: the booking number shows`).toBeVisible();
+        await expect(page.getByText('Booking Not Found'), `${who}: Booking Not Found is absent`).toHaveCount(0);
+    }
+
+    async function expectErrorCard(page, strings, who) {
+        await expect(page.getByRole('heading', { name: 'Booking Not Found' }), `${who}: Booking Not Found shows`).toBeVisible();
+        expectNoneOf(await page.locator('body').innerText(), strings, who);
+    }
+
+    test("D1 receipt: a guest right after checkout sees the receipt from the tab's saved booking and never asks /api/bookings/[id]", async ({ page, request, baseURL }) => {
+        const who = 'a guest right after checkout';
+        const as = await credentials(baseURL);
+        await withProbeBooking(request, as, async (id, body) => {
+            const row = await rowAsAdmin(request, as, id);
+            expect(row, 'admin reads the probe booking').not.toBeNull();
+            await saveInTab(page, { ...body, booking_id: id, booking_number: row.booking_number });
+            const watch = watchRequests(page);
+            await page.goto(`/booking/success/${id}`);
+            await settled(page, who);
+            expectNeverAsked(watch, `/api/bookings/${id}`, who);
+            expectNeverAsked(watch, '/api/customer/booking-details', who);
+            await expectReceipt(page, row.booking_number, who);
+        });
+    });
+
+    test("D1 receipt: a guest whose tab holds no matching saved booking sees Booking Not Found and none of the booking's fields", async ({ page }) => {
+        const who = 'a guest whose tab holds another booking';
+        await saveInTab(page, { booking_id: BOOKING2.id + 1000000, booking_number: 'BK-E2E-STALE' });
+        const watch = watchRequests(page);
+        await page.goto(`/booking/success/${BOOKING2.id}`);
+        await settled(page, who);
+        expectNeverAsked(watch, `/api/bookings/${BOOKING2.id}`, who);
+        await expectErrorCard(page, [...CUSTOMER2_STRINGS, 'BK-E2E-STALE'], who);
+    });
+
+    test('D1 receipt: customer1 with no saved booking sees their own booking from /api/customer/booking-details', async ({ page, context, baseURL }) => {
+        const who = 'customer1 with no saved booking';
+        const as = await credentials(baseURL);
+        await signInCustomer1(context, as, baseURL);
+        const watch = watchRequests(page);
+        await page.goto(`/booking/success/${BOOKING1.id}`);
+        await settled(page, who);
+        expectNeverAsked(watch, `/api/bookings/${BOOKING1.id}`, who);
+        expect(
+            askedFor(watch, '/api/customer/booking-details').length,
+            `${who}: requests to /api/customer/booking-details (its API requests: ${JSON.stringify(apiAsked(watch))})`,
+        ).toBe(1);
+        await expectReceipt(page, BOOKING1.booking_number, who);
+    });
+
+    test("AC6 receipt: customer1 opening customer2's booking sees Booking Not Found and none of its fields", async ({ page, context, baseURL }) => {
+        const who = "customer1 opening customer2's receipt";
+        const as = await credentials(baseURL);
+        await signInCustomer1(context, as, baseURL);
+        await page.goto(`/booking/success/${BOOKING2.id}`);
+        await settled(page, who);
+        // The page is asserted, not booking-details' status: 404 today, 403 if ENG-023 moves that route to the guard.
+        await expectErrorCard(page, CUSTOMER2_STRINGS, who);
     });
 });
 
