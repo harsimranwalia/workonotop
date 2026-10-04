@@ -318,3 +318,102 @@ test.describe('Role check /api/admin/notifications', () => {
         }
     });
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// The catalogue reads that stay public (ticket ENG-022, task C; matrix rows GET /api/services and GET /api/service-locations,
+// kind `public`): the landing pages and the booking flow read them with no login. The flags that drop the is_active filter
+// (`?admin=true` on services; `?admin=true` and `?includeInactive=true` on service-locations) are honoured for an admin and
+// ignored for everyone else: no refusal, and exactly the answer the request without the flag gets. The fixtures hold no
+// inactive service and no service location at all, so each case makes one inactive row as the admin (the public POST
+// routes' admin-only twins: POST /api/services then PUT it off; POST /api/service-locations with is_active false) and
+// deletes it again in `finally`, even when an assertion fails.
+// ---------------------------------------------------------------------------------------------------------------------
+test.describe('Role check catalogue reads', () => {
+    const stamp = () => `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`;
+
+    // Reads `url` with `headers`: the status and the whole answer as text (so "exactly the answer without the flag" is a string
+    // comparison), plus the ids it lists.
+    const read = async (request, url, headers) => {
+        const response = await request.get(url, { headers });
+        const text = await response.text();
+        let ids = [];
+        try {
+            ids = (JSON.parse(text).data || []).map((row) => row.id);
+        } catch {
+            // not JSON: the status assertion names it
+        }
+        return { status: response.status(), text, ids };
+    };
+
+    // Everything but the admin: the flagged answer is the unflagged one, and the inactive row is not in it.
+    const expectFlagIgnored = async (request, as, path, flag, inactiveId) => {
+        for (const [who, headers] of [['no credential', as.none], ['customer1', as.customer], ['provider1', as.provider]]) {
+            const plain = await read(request, path, headers);
+            const flagged = await read(request, `${path}?${flag}`, headers);
+            expect(plain.status, `${who}: ${path} status`).toBe(200);
+            expect(flagged.status, `${who}: ?${flag} status is the unflagged status`).toBe(200);
+            expect(flagged.ids.length, `${who}: ?${flag} lists as many rows as the unflagged read`).toBe(plain.ids.length);
+            expect(flagged.ids, `${who}: ?${flag} lists the unflagged rows`).toEqual(plain.ids);
+            expect(flagged.ids, `${who}: ?${flag} does not list the inactive row`).not.toContain(inactiveId);
+            expect(flagged.text, `${who}: ?${flag} answers exactly what the request without the flag answers`).toBe(plain.text);
+        }
+    };
+
+    test('Role check GET /api/services?admin=true: no credential, customer1 and provider1 get the answer they get without the flag, the admin also gets the inactive service', async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        let id = null;
+        try {
+            const created = await request.post('/api/services', {
+                headers: as.admin,
+                data: { category_id: 1, name: 'Role Check Inactive Service', slug: `role-check-inactive-${stamp()}`, base_price: 1 },
+            });
+            expect(created.status(), 'admin creates a service').toBe(200);
+            id = (await created.json()).id;
+            expect(id, 'the new service has an id').toBeTruthy();
+            const off = await request.put('/api/services', { headers: as.admin, data: { id, is_active: false } });
+            expect(off.status(), 'admin switches the service off').toBe(200);
+
+            await expectFlagIgnored(request, as, '/api/services', 'admin=true', id);
+            for (const [who, headers] of [['admin cookie', as.admin], ['admin Bearer', as.adminBearer]]) {
+                expect((await read(request, '/api/services', headers)).ids, `${who}: without the flag the inactive service is not listed`).not.toContain(id);
+                const flagged = await read(request, '/api/services?admin=true', headers);
+                expect(flagged.status, `${who}: ?admin=true status`).toBe(200);
+                expect(flagged.ids, `${who}: ?admin=true lists the inactive service`).toContain(id);
+            }
+        } finally {
+            if (id) {
+                const gone = await request.delete(`/api/services?id=${id}`, { headers: as.admin });
+                expect(gone.status(), 'cleanup: the inactive service is deleted').toBe(200);
+            }
+        }
+    });
+
+    for (const flag of ['admin=true', 'includeInactive=true']) {
+        test(`Role check GET /api/service-locations?${flag}: no credential, customer1 and provider1 get the answer they get without the flag, the admin also gets the inactive location`, async ({ request, baseURL }) => {
+            const as = await credentials(baseURL);
+            let id = null;
+            try {
+                const created = await request.post('/api/service-locations', {
+                    headers: as.admin,
+                    data: { service_id: 1, location_name: 'Role Check Town', location_slug: `role-check-${stamp()}`, is_active: false },
+                });
+                expect(created.status(), 'admin creates a service location').toBe(200);
+                id = (await created.json()).id;
+                expect(id, 'the new service location has an id').toBeTruthy();
+
+                await expectFlagIgnored(request, as, '/api/service-locations', flag, id);
+                for (const [who, headers] of [['admin cookie', as.admin], ['admin Bearer', as.adminBearer]]) {
+                    expect((await read(request, '/api/service-locations', headers)).ids, `${who}: without the flag the inactive location is not listed`).not.toContain(id);
+                    const flagged = await read(request, `/api/service-locations?${flag}`, headers);
+                    expect(flagged.status, `${who}: ?${flag} status`).toBe(200);
+                    expect(flagged.ids, `${who}: ?${flag} lists the inactive location`).toContain(id);
+                }
+            } finally {
+                if (id) {
+                    const gone = await request.delete(`/api/service-locations?id=${id}`, { headers: as.admin });
+                    expect(gone.status(), 'cleanup: the inactive service location is deleted').toBe(200);
+                }
+            }
+        });
+    }
+});
