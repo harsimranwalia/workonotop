@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { execute } from '@/lib/db';
-import { verifyToken } from '@/lib/jwt';
+import { requireCaller } from '@/lib/api-auth';
 
 export async function POST(request) {
+  const auth = await requireCaller(request, ['customer', 'provider']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller;
   try {
     const body = await request.json();
     const { userId, userType, pushToken, fcmToken, platform, deviceId } = body;
@@ -13,24 +16,19 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
     }
 
-    // Auth check (optional but recommended for mobile endpoints)
-    const authHeader = request.headers.get('Authorization');
-    const token = authHeader ? authHeader.replace('Bearer ', '') : null;
-    
-    if (token) {
-        const decoded = verifyToken(token);
-        if (!decoded || decoded.id != userId) {
-            console.warn('[PushToken] Auth mismatch or invalid token');
-        }
+    // The token is registered for the caller only: the body's userId must be the caller's own id, and a userType, when
+    // the body names one, must be the caller's role. Anything else is a 403, never a write for another account.
+    if (String(userId) !== String(caller.id) || (userType && userType !== caller.role)) {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 
-    // Upsert into mobile_auth_users
-    const userIdCol = userType === 'provider' ? 'provider_id' : 'user_id';
+    // Upsert into mobile_auth_users (the row is the caller's own, in the column of the caller's role)
+    const userIdCol = caller.role === 'provider' ? 'provider_id' : 'user_id';
     
     // Check if record exists for this user and device
     const existing = await execute(
         `SELECT id FROM mobile_auth_users WHERE ${userIdCol} = ? AND (device_id = ? OR device_id IS NULL) LIMIT 1`,
-        [userId, deviceId || 'mobile_default']
+        [caller.id, deviceId || 'mobile_default']
     );
 
     if (existing.length > 0) {
@@ -50,7 +48,7 @@ export async function POST(request) {
             `INSERT INTO mobile_auth_users 
                 (${userIdCol}, user_type, push_token, push_token_platform, push_token_updated_at, device_id, device_platform)
              VALUES (?, ?, ?, ?, NOW(), ?, ?)`,
-            [userId, userType, targetToken, platform, deviceId || 'mobile_default', platform]
+            [caller.id, caller.role, targetToken, platform, deviceId || 'mobile_default', platform]
         );
     }
 
