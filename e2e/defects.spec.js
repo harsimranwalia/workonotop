@@ -281,3 +281,87 @@ test.describe('D3 customer lookup', () => {
         }
     });
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// D6: uploads. POST /api/upload needs a customer, a provider or an admin; DELETE needs an admin; the guard runs before
+// request.formData(), so a refused upload is not buffered and writes nothing. The runner mounts the worktree that the app
+// serves, so the case reads public/uploads itself (creating it first if it is absent). Files a case makes are deleted again
+// as admin, even when the case fails.
+// ---------------------------------------------------------------------------------------------------------------------
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+const UPLOADS_DIR = path.join(process.cwd(), 'public', 'uploads');
+
+function uploadedFileCount() {
+    mkdirSync(UPLOADS_DIR, { recursive: true });
+    return readdirSync(UPLOADS_DIR).length;
+}
+
+const uploadPng = (request, headers) =>
+    request.post('/api/upload', { headers, multipart: { file: { name: 'e2e-defect-probe.png', mimeType: 'image/png', buffer: PNG } } });
+
+// The body of a response as an object, or {} when it is not JSON, so a cleanup never throws over the case's own failure.
+async function bodyOf(response) {
+    return response.json().catch(() => ({}));
+}
+
+async function removeUploads(request, as, urls) {
+    for (const url of urls) await request.delete(`/api/upload?url=${encodeURIComponent(url)}`, { headers: as.admin });
+}
+
+test.describe('D6 uploads', () => {
+    test('D6 anonymous POST /api/upload is 401, returns no url and writes no file', async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const before = uploadedFileCount();
+        const made = [];
+        try {
+            const response = await uploadPng(request, as.none);
+            const body = await bodyOf(response);
+            if (body.url) made.push(body.url);
+            expect(response.status(), 'no credential: status').toBe(401);
+            expect(body.success, 'no credential: success').toBe(false);
+            expect(body, 'no credential: no url').not.toHaveProperty('url');
+            expect(uploadedFileCount(), 'public/uploads: file count after the refused upload').toBe(before);
+        } finally {
+            await removeUploads(request, as, made);
+        }
+    });
+
+    test('D6 anonymous DELETE /api/upload?url= is 401 and the file still serves', async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const made = [];
+        try {
+            const uploaded = await uploadPng(request, as.admin);
+            expect(uploaded.status(), 'admin uploads the file the case deletes').toBe(200);
+            const { url } = await uploaded.json();
+            expect(typeof url, 'admin: the upload answers a url').toBe('string');
+            made.push(url);
+
+            const response = await request.delete(`/api/upload?url=${encodeURIComponent(url)}`);
+            await expectRefusal(response, 401, 'no credential');
+            const served = await request.get(url);
+            expect(served.status(), 'the file still serves after the anonymous DELETE').toBe(200);
+        } finally {
+            await removeUploads(request, as, made);
+        }
+    });
+
+    test('D6 customer1, provider1 and admin can each upload a PNG: 200 with a url that serves', async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const made = [];
+        try {
+            for (const who of ['customer', 'provider', 'admin']) {
+                const response = await uploadPng(request, as[who]);
+                const body = await bodyOf(response);
+                if (body.url) made.push(body.url);
+                expect(response.status(), `${who}: status`).toBe(200);
+                expect(body.success, `${who}: success`).toBe(true);
+                expect(typeof body.url, `${who}: url`).toBe('string');
+                const served = await request.get(body.url);
+                expect(served.status(), `${who}: the uploaded file serves`).toBe(200);
+                expect(served.headers()['content-type'] || '', `${who}: the file serves as an image`).toContain('image/');
+            }
+        } finally {
+            await removeUploads(request, as, made);
+        }
+    });
+});
