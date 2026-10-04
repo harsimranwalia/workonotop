@@ -1,25 +1,26 @@
 import { NextResponse } from 'next/server';
 import { execute } from '@/lib/db';
-import { verifyToken } from '@/lib/jwt';
+import { requireCaller } from '@/lib/api-auth';
+
+const forbidden = () => NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+
+// The settings are always the caller's own row. A user_id or provider_id (compared as strings) that names anyone
+// else is a 403, never a 404 (the mobile app logs the user out on a "not found").
+const namesAnotherAccount = (caller, ...ids) =>
+  ids.some((id) => id !== null && id !== undefined && id !== '' && String(id) !== String(caller.id));
 
 export async function GET(request) {
+  const auth = await requireCaller(request, ['customer', 'provider']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller;
   try {
-    const authHeader = request.headers.get('Authorization');
-    const token = authHeader ? authHeader.replace('Bearer ', '') : null;
-    
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
+    const { searchParams } = new URL(request.url);
+    if (namesAnotherAccount(caller, searchParams.get('user_id'), searchParams.get('provider_id'))) return forbidden();
 
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 });
-    }
-
-    // Determine target table based on role
-    const isProvider = decoded.role === 'provider' || decoded.type === 'provider';
+    // Determine target table based on the caller's role (a customer's row is in users, a provider's in service_providers)
+    const isProvider = caller.role === 'provider';
     const tableName = isProvider ? 'service_providers' : 'users';
-    const userId = decoded.id;
+    const userId = caller.id;
 
     console.log(`Fetching settings for ${isProvider ? 'provider' : 'user'} ID: ${userId}`);
 
@@ -49,25 +50,17 @@ export async function GET(request) {
 }
 
 export async function PUT(request) {
+  const auth = await requireCaller(request, ['customer', 'provider']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller;
   try {
-    const authHeader = request.headers.get('Authorization');
-    const token = authHeader ? authHeader.replace('Bearer ', '') : null;
-    
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 });
-    }
-
-    // Determine target table based on role
-    const isProvider = decoded.role === 'provider' || decoded.type === 'provider';
+    // Determine target table based on the caller's role
+    const isProvider = caller.role === 'provider';
     const tableName = isProvider ? 'service_providers' : 'users';
-    const userId = decoded.id;
+    const userId = caller.id;
 
     const body = await request.json();
+    if (namesAnotherAccount(caller, body.user_id, body.provider_id)) return forbidden();
     const { push_notifications_enabled, booking_reminders_enabled, dark_mode_enabled, receive_offers } = body;
 
     const queryParams = [];
