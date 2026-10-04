@@ -27,7 +27,7 @@
 //
 // Writes to a fixture row: the PUT cases put a marker in `hear_about` / a settings flag and restore it in `finally`, and the
 // push-token cases upsert a mobile_auth_users row for customer 1, provider 1 and the admin (device 'e2e-ownership'; nothing reads it back).
-// Every chat message a case posts goes on a booking the case made itself (customer 1's, assigned to provider 1), which cascades
+// Every chat message a case posts goes on a booking the case made itself (customer 1's or customer 2's, assigned to provider 1 or 2), which cascades
 // them away when the case deletes it, so no fixture chat grows and no case needs freshly loaded fixtures.
 //
 // NOT covered here, and why (read from the code and the dev database, not guessed):
@@ -606,6 +606,32 @@ test.describe('Ownership: chat', () => {
     const chatOf = async (request, headers, id) => (await (await request.get(`/api/chat?bookingId=${id}`, { headers })).json()).messages;
     const everyone = (as) => [...customerStyles(as).map(([s, h]) => [`customer1 by ${s}`, h]), ...providerStyles(as).map(([s, h]) => [`provider1 by ${s}`, h])];
 
+    // The collision booking: customer 1's (user_id 1), assigned to provider 2 (provider_id 2). Two accounts that are NOT its participants carry
+    // the other column's number as their own id: provider1 (id 1 = the booking's user_id) and customer 2 (id 2 = the booking's provider_id).
+    // An actor is [label, credential, role]: the role is the one it asks in (the userType of unread and mark-read), always its own, so the
+    // guard's role check and those userType clauses let it through and only the participant test can refuse it. The owner and the booking's
+    // provider are the controls: the 200s that show a 403 is not a malformed request. Customer 2 and provider 2 are not credentials of
+    // getCredentialHeaders: they sign in themselves, and customer 2's header is returned for a case that needs it again.
+    async function collisionActors(as, playwright, baseURL) {
+        const customer2 = await signedInAs(playwright, baseURL, 'customer2');
+        const provider2 = await signedInAs(playwright, baseURL, 'provider2');
+        return {
+            customer2,
+            controls: [['customer1 (the owner)', as.customer, 'customer'], ["provider 2 (the booking's provider)", provider2, 'provider']],
+            refused: [
+                ["provider1 by cookie (id 1 is the booking's user_id)", as.provider, 'provider'],
+                ['provider1 by Bearer', as.providerBearer, 'provider'],
+                ["customer 2 (id 2 is the booking's provider_id)", customer2, 'customer'],
+            ],
+        };
+    }
+    const withCollisionBooking = (request, as, run) => withProbeBooking(request, as, async (id) => {
+        await adminUpdates(request, as, id, { provider_id: PROVIDER2.id });
+        const row = await bookingAsAdmin(request, as, id);
+        expect([row.user_id, row.provider_id], "the probe booking is customer 1's with provider 2").toEqual([CUSTOMER1.id, PROVIDER2.id]);
+        await run(id);
+    }, { headers: as.customer });
+
     test("Ownership GET /api/chat: the customer and the provider of booking 1 read its messages and none of booking 2's; a missing booking keeps its empty answer", async ({ request, baseURL }) => {
         const as = await credentials(baseURL);
         for (const [who, headers] of everyone(as)) {
@@ -631,23 +657,35 @@ test.describe('Ownership: chat', () => {
         }
     });
 
-    // customer1 owns this booking (user_id 1) and provider 2 is its provider; provider1's id is also 1 and provider1 is not a participant.
-    // Red if the participant test compares caller.id with either column whatever the role.
-    test("Ownership GET /api/chat: the role decides the column, so provider1 (id 1) is refused on a booking whose customer is user 1 and whose provider is provider 2", async ({ request, baseURL }) => {
+    // The collision booking (see collisionActors): customer1 owns it (user_id 1) and provider 2 is its provider (provider_id 2). provider1 (id 1)
+    // and customer 2 (id 2) are not participants and both ask in their own role, so only the participant test can refuse them. Red if the customer
+    // arm of that test stops testing the role (provider1 would read the thread, by cookie and by Bearer) or the provider arm does (customer 2
+    // would); the owner and provider 2 are the controls (200). This is the GET of chat/route.js, whose copy of the test the POST shares: the
+    // unread and mark-read routes have their own copies, held by their cases below.
+    test("Ownership GET /api/chat: the role decides the column, so provider1 (id 1) is refused on a booking whose customer is user 1 and whose provider is provider 2", async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
+        const customer2 = await signedInAs(playwright, baseURL, 'customer2');
+        const provider2 = await signedInAs(playwright, baseURL, 'provider2');
         await withProbeBooking(request, as, async (id) => {
             await adminUpdates(request, as, id, { provider_id: PROVIDER2.id });
             const row = await bookingAsAdmin(request, as, id);
             expect([row.user_id, row.provider_id], 'the probe booking is customer 1\'s with provider 2').toEqual([CUSTOMER1.id, PROVIDER2.id]);
             await expectOk(await request.get(`/api/chat?bookingId=${id}`, { headers: as.customer }), 'customer1 (the owner)');
+            await expectOk(await request.get(`/api/chat?bookingId=${id}`, { headers: provider2 }), "provider 2 (the booking's provider)");
             await expectForbidden(await request.get(`/api/chat?bookingId=${id}`, { headers: as.provider }), 'provider1 (same id, not the provider)');
             await expectForbidden(await request.get(`/api/chat?bookingId=${id}`, { headers: as.providerBearer }), 'provider1 by Bearer');
+            await expectForbidden(await request.get(`/api/chat?bookingId=${id}`, { headers: customer2 }), "customer 2 (same id as the booking's provider, not the provider)");
         }, { headers: as.customer });
     });
 
     // Red if the participant refusal is deleted from POST: the message would be stored on booking 2 and the admin read would show it.
-    test("Ownership POST /api/chat: a non-participant posting to booking 2 is 403 and no message is added; a missing booking keeps its 404", async ({ request, baseURL }) => {
+    // The collision booking (see collisionActors) is the same clause with the two id spaces crossed: provider1 (id 1 = the booking's user_id) and
+    // customer 2 (id 2 = the booking's provider_id) post in their own role and are refused with nothing stored. Red if the customer arm of the
+    // participant test stops testing the role (provider1's message would be stored) or the provider arm does (customer 2's would be). The owner
+    // and provider 2 post as the controls (200), and the thread, read as the admin, is exactly their two messages before and after the refusals.
+    test("Ownership POST /api/chat: a non-participant posting to booking 2 is 403 and no message is added; a missing booking keeps its 404", async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
+        const { controls, refused } = await collisionActors(as, playwright, baseURL);
         const marker = `e2e-ownership-chat-foreign-${Date.now()}`;
         for (const [who, headers] of everyone(as)) {
             await expectForbidden(await request.post('/api/chat', { headers, data: { bookingId: BOOKING2.id, message: marker } }), `${who} posts to booking 2`, [marker]);
@@ -657,33 +695,70 @@ test.describe('Ownership: chat', () => {
         const text = await read.text();
         expectAllOf(text, BOOKING2_CHAT, 'control, booking 2');
         expectNoneOf(text, [marker], "booking 2's messages");
+        await withCollisionBooking(request, as, async (id) => {
+            const thread = async () => (await chatOf(request, as.admin, id)).map((m) => m.message).sort();
+            for (const [who, headers, role] of controls) {
+                await expectOk(await request.post('/api/chat', { headers, data: { bookingId: id, message: `${marker}-${role}` } }), `${who} posts`);
+            }
+            const posted = [`${marker}-customer`, `${marker}-provider`];
+            expect(await thread(), "the collision booking's thread is the owner's and the provider's message").toEqual(posted);
+            for (const [who, headers] of refused) {
+                await expectForbidden(await request.post('/api/chat', { headers, data: { bookingId: id, message: `${marker}-refused` } }), `${who} posts to the collision booking`, [`${marker}-refused`]);
+            }
+            expect(await thread(), "the collision booking's thread after the refused posts: no message was added").toEqual(posted);
+        });
     });
 
-    // The case makes its own booking (customer 1's, assigned to provider 1), so the messages it posts go with it (chat_messages.booking_id
-    // cascades) and no fixture chat grows. Red if the sender is taken from the body: a customer who names senderType 'provider' would be
-    // stored as the provider.
-    test("Ownership POST /api/chat: the stored sender is the caller whatever the body names (customer1 and provider1 on their booking)", async ({ request, baseURL }) => {
+    // The case makes its own bookings, so the messages it posts go with them (chat_messages.booking_id cascades) and no fixture chat grows.
+    // Two bookings, one per id: on customer 1's (assigned to provider 1) the callers' id is 1 and on customer 2's (assigned to provider 2) it
+    // is 2, and the body names the OTHER id each time. Red if the sender is taken from the body (a customer who names senderType 'provider'
+    // would be stored as the provider, and the sender_id the body names would be stored) or the stored sender_id is not caller.id:
+    // customer1 and provider1 alone cannot tell a literal 1 from caller.id (both are id 1), customer 2 and provider 2 can (a literal 1
+    // would store 1 for them, and the case reads back 2).
+    test("Ownership POST /api/chat: the stored sender is the caller whatever the body names (customer1 and provider1 on their booking)", async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
+        const customer2 = await signedInAs(playwright, baseURL, 'customer2');
+        const provider2 = await signedInAs(playwright, baseURL, 'provider2');
         const marker = `e2e-ownership-chat-sender-${Date.now()}`;
-        const cases = [
-            ['customer1', as.customer, 'provider', 'customer'],
-            ['provider1', as.providerBearer, 'customer', 'provider'],
+        // [who, credential, the senderType the body names, the sender_type stored, the sender_id the body names, the sender_id stored]
+        const firstBooking = [
+            ['customer1', as.customer, 'provider', 'customer', 2, CUSTOMER1.id],
+            ['provider1', as.providerBearer, 'customer', 'provider', 2, PROVIDER1.id],
         ];
-        await withProbeBooking(request, as, async (id) => {
-            await adminUpdates(request, as, id, { provider_id: PROVIDER1.id });
-            for (const [who, headers, named, expected] of cases) {
+        const secondBooking = [
+            ['customer 2', customer2, 'provider', 'customer', 1, CUSTOMER2.id],
+            ['provider 2', provider2, 'customer', 'provider', 1, PROVIDER2.id],
+        ];
+        const postsAndReadsBack = async (id, cases) => {
+            for (const [who, headers, named, expectedType, namedId, expectedId] of cases) {
                 const text = `${marker}-${who}`;
-                await expectOk(await request.post('/api/chat', { headers, data: { bookingId: id, message: text, senderType: named, senderId: 2, sender_type: named, sender_id: 2 } }), `${who} posts`);
+                await expectOk(await request.post('/api/chat', { headers, data: { bookingId: id, message: text, senderType: named, senderId: namedId, sender_type: named, sender_id: namedId } }), `${who} posts`);
                 const stored = (await chatOf(request, as.admin, id)).find((m) => m.message === text);
                 expect(stored, `${who}: the posted message is stored`).toBeTruthy();
-                expect(stored.sender_type, `${who}: stored sender_type (the body named '${named}')`).toBe(expected);
-                expect(stored.sender_id, `${who}: stored sender_id (the body named 2)`).toBe(1);
+                expect(stored.sender_type, `${who}: the stored sender_type is the caller's '${expectedType}' (the body named '${named}')`).toBe(expectedType);
+                expect(stored.sender_id, `${who}: the stored sender_id is the caller's ${expectedId} (the body named ${namedId})`).toBe(expectedId);
             }
+        };
+        await withProbeBooking(request, as, async (id) => {
+            await adminUpdates(request, as, id, { provider_id: PROVIDER1.id });
+            await postsAndReadsBack(id, firstBooking);
         }, { headers: as.customer });
+        await withProbeBooking(request, as, async (id) => {
+            await adminUpdates(request, as, id, { provider_id: PROVIDER2.id });
+            const row = await bookingAsAdmin(request, as, id);
+            expect([row.user_id, row.provider_id], "the second probe booking is customer 2's with provider 2").toEqual([CUSTOMER2.id, PROVIDER2.id]);
+            await postsAndReadsBack(id, secondBooking);
+        }, { headers: customer2 });
     });
 
-    test("Ownership GET /api/chat/unread: booking 1's two participants get a count, booking 2, the other side's type and another account's id are 403, the admin may name any", async ({ request, baseURL }) => {
+    // The collision booking (see collisionActors) against the unread route's own copy of the participant test: provider1 (id 1 = the booking's
+    // user_id) and customer 2 (id 2 = the booking's provider_id) count in their own role and name no account, so the userType clause lets them
+    // through and only the participant test can refuse them. Red if the customer arm of that test stops testing the role (provider1 would get a
+    // count) or the provider arm does (customer 2 would). The owner and provider 2 are the controls: each posts one message, and each is then
+    // answered 200 with a count of 1, the other side's message.
+    test("Ownership GET /api/chat/unread: booking 1's two participants get a count, booking 2, the other side's type and another account's id are 403, the admin may name any", async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
+        const { controls, refused } = await collisionActors(as, playwright, baseURL);
         const unread = (id, type, extra = '') => `/api/chat/unread?bookingId=${id}&userType=${type}${extra}`;
         for (const [who, headers] of everyone(as)) {
             const role = who.startsWith('customer') ? 'customer' : 'provider';
@@ -698,15 +773,34 @@ test.describe('Ownership: chat', () => {
             const counted = await expectOk(await request.get(unread(BOOKING2.id, 'customer', `&user_id=${CUSTOMER2.id}`), { headers }), `admin by ${style} counts booking 2 for customer 2`);
             expect(typeof counted.body.unreadCount, `admin by ${style}: unreadCount`).toBe('number');
         }
+        const marker = `e2e-ownership-unread-${Date.now()}`;
+        await withCollisionBooking(request, as, async (id) => {
+            for (const [who, headers, role] of controls) {
+                await expectOk(await request.post('/api/chat', { headers, data: { bookingId: id, message: `${marker}-${role}` } }), `${who} posts`);
+            }
+            for (const [who, headers, role] of controls) {
+                const counted = await expectOk(await request.get(unread(id, role), { headers }), `${who} counts the collision booking as ${role}`);
+                expect(counted.body.unreadCount, `${who}: the other side's one message is the one unread`).toBe(1);
+            }
+            for (const [who, headers, role] of refused) {
+                await expectForbidden(await request.get(unread(id, role), { headers }), `${who} counts the collision booking as ${role}`);
+            }
+        });
     });
 
     // The case makes its own booking (customer 1's, assigned to provider 1) with one message from each side, so what it marks is its own and
     // goes with the booking; booking 2's fixture messages are only compared before and after (whatever their state when the case starts).
     // Red if the `userType !== caller.role` refusal is deleted (the customer would mark their own message read) or the participant
     // refusal is (customer 2 would mark the provider's message read).
+    // On a second booking of the case's own, the collision booking (see collisionActors), the mark-read route's own copy of the participant test
+    // is held with the id spaces crossed: provider1 (id 1 = the booking's user_id) and customer 2 (id 2 = the booking's provider_id) mark in
+    // their own role, so the userType clause lets them through and only the participant test can refuse them; the flags show that nothing moved.
+    // Red if the customer arm of that test stops testing the role (provider1 would mark the customer's message read) or the provider arm does
+    // (customer 2 would mark the provider's message read). The owner and provider 2 are the controls: each is answered 200 and the flags show
+    // what each marked.
     test("Ownership POST /api/chat/mark-read: booking 2, the other side's userType and a non-participant are 403 and change nothing; the customer of a booking marks the provider's message read and not their own", async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
-        const customer2 = await signedInAs(playwright, baseURL, 'customer2');
+        const { customer2, controls, refused } = await collisionActors(as, playwright, baseURL);
         const flags = async (id) => Object.fromEntries((await chatOf(request, as.admin, id)).map((m) => [m.message, m.is_read]));
         const booking2Before = await flags(BOOKING2.id);
         for (const [who, headers] of everyone(as)) {
@@ -728,6 +822,24 @@ test.describe('Ownership: chat', () => {
             await expectOk(await request.post('/api/chat/mark-read', { headers: as.customer, data: { bookingId: id, userType: 'customer' } }), 'customer1 marks the booking');
             expect(await flags(id), "customer 1 marked the provider's message read and left their own").toEqual({ [fromCustomer]: 0, [fromProvider]: 1 });
         }, { headers: as.customer });
+        await withCollisionBooking(request, as, async (id) => {
+            const from = Object.fromEntries(controls.map(([, , role]) => [role, `e2e-ownership-mark-collision-${role}-${Date.now()}`]));
+            for (const [who, headers, role] of controls) {
+                await expectOk(await request.post('/api/chat', { headers, data: { bookingId: id, message: from[role] } }), `${who} posts`);
+            }
+            const unreadBoth = { [from.customer]: 0, [from.provider]: 0 };
+            expect(await flags(id), 'the collision booking: both messages start unread').toEqual(unreadBoth);
+            for (const [who, headers, role] of refused) {
+                await expectForbidden(await request.post('/api/chat/mark-read', { headers, data: { bookingId: id, userType: role } }), `${who} marks the collision booking as ${role}`);
+            }
+            expect(await flags(id), 'the collision booking: both messages are still unread after the refused requests').toEqual(unreadBoth);
+            // The owner marks as the customer side, which reads the provider's message; provider 2 marks as the provider side, which reads the customer's.
+            const afterEach = [{ [from.customer]: 0, [from.provider]: 1 }, { [from.customer]: 1, [from.provider]: 1 }];
+            for (const [index, [who, headers, role]] of controls.entries()) {
+                await expectOk(await request.post('/api/chat/mark-read', { headers, data: { bookingId: id, userType: role } }), `${who} marks the collision booking as ${role}`);
+                expect(await flags(id), `the collision booking: the flags after ${who} marks as ${role}`).toEqual(afterEach[index]);
+            }
+        });
     });
 });
 
