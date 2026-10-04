@@ -146,7 +146,7 @@ function bearerToken(request) {
 // object getMobileSession returns for it: that object rewrites `type` to `role || type`, which turns a special-purpose
 // or a disagreeing token into a session. Only a string that does not verify can still be a session, as the issued
 // string in mobile_auth_users (a database that is down, or finds no row, reads as null: no session). The fix lives
-// here and not in mobile-auth.js, which about forty other routes use.
+// here and not in mobile-auth.js, which nine other route files import (auth/me, provider/status, seven provider/onboarding).
 //
 // getMobileSession re-reads the header and looks up only its second space-separated word, so a header with
 // whitespace inside ('Bearer <valid> x') would be judged on a different string than this guard has; no token the
