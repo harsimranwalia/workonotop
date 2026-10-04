@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { execute, query, getConnection } from '@/lib/db'
-import { verifyToken } from '@/lib/jwt'
+import { requireCaller } from '@/lib/api-auth'
 import { notifyUser } from '@/lib/push'
 import { sendEmail } from '@/lib/email'
 
@@ -19,33 +19,14 @@ async function getSystemSetting(key, defaultValue = null) {
 
 // ── GET: List available jobs ──────────────────────────────────────────────────
 export async function GET(request) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
   let providerId = null;
   let locationFilter = '';
   let countOnly = false;
 
   try {
-    let token = request.cookies.get('provider_token')?.value
-
-    if (!token) {
-      const authHeader = request.headers.get('Authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.split(' ')[1];
-      }
-    }
-
-    if (!token) return NextResponse.json({ success: false, message: 'Not authenticated' }, { status: 401 })
-
-    const decoded = verifyToken(token)
-    const userType = decoded?.type || decoded?.role;
-
-    if (!decoded || userType !== 'provider') {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 })
-    }
-
-    providerId = decoded.providerId || decoded.id;
-    if (!providerId) {
-      return NextResponse.json({ success: false, message: 'Provider ID missing from token' }, { status: 401 })
-    }
+    providerId = auth.caller.id;
 
     // Fetch default commission once
     const defaultCommRaw = await getSystemSetting('default_commission', '20')
@@ -320,27 +301,11 @@ export async function GET(request) {
 
 // ── POST: Accept a job ────────────────────────────────────────────────────────
 export async function POST(request) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
   let connection
   try {
-    let token = request.cookies.get('provider_token')?.value
-
-    if (!token) {
-      const authHeader = request.headers.get('Authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.split(' ')[1];
-      }
-    }
-
-    if (!token) return NextResponse.json({ success: false, message: 'Not authenticated' }, { status: 401 })
-
-    const decoded = verifyToken(token)
-    const userType = decoded?.type || decoded?.role;
-
-    if (!decoded || userType !== 'provider') {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 })
-    }
-
-    const providerId = decoded.providerId || decoded.id;
+    const providerId = auth.caller.id;
 
     const { booking_id } = await request.json()
     if (!booking_id) return NextResponse.json({ success: false, message: 'booking_id is required' }, { status: 400 })
