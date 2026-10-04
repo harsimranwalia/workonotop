@@ -355,12 +355,22 @@ test.describe('Ownership: provider/available-jobs/[id]', () => {
         }
     });
 
-    test('Ownership POST /api/provider/available-jobs/[id]: provider1 accepts an open booking and it becomes provider 1\'s; a missing booking keeps its 404', async ({ request, baseURL }) => {
+    // The accept's UPDATE stores the provider from the caller (`SET provider_id=? ... WHERE id=?`, bound to [caller.id, id]). Provider 1's id is 1, which is also
+    // what a literal 1 in that bind would store, so provider 1's accept cannot tell the caller from the literal: each provider accepts an open probe booking
+    // of their own and the stored provider is read back as the admin. Red if the bind is a literal 1 (provider 2's accept stores provider 1: the provider-2
+    // assertion fails on 1, not 2) or a literal 2 (provider 1's accept stores provider 2: the provider-1 assertion fails on 2, not 1). A missing booking keeps its 404.
+    test('Ownership POST /api/provider/available-jobs/[id]: provider1 accepts an open booking and it becomes provider 1\'s; a missing booking keeps its 404', async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
+        const provider2 = await signedInAs(playwright, baseURL, 'provider2');
         await withProbeBooking(request, as, async (id) => {
             await expectOk(await request.post(`/api/provider/available-jobs/${id}`, { headers: as.provider, data: {} }), 'provider1 accepts the open booking');
             const row = await bookingAsAdmin(request, as, id);
             expect(row.provider_id, 'the accepted booking is provider 1\'s').toBe(PROVIDER1.id);
+        });
+        await withProbeBooking(request, as, async (id) => {
+            await expectOk(await request.post(`/api/provider/available-jobs/${id}`, { headers: provider2, data: {} }), 'provider2 accepts the open booking');
+            const row = await bookingAsAdmin(request, as, id);
+            expect(row.provider_id, 'the booking provider 2 accepted is stored with provider 2\'s id (2), not provider 1\'s (1)').toBe(PROVIDER2.id);
         });
         await expectAnswer(await request.post(`/api/provider/available-jobs/${MISSING}`, { headers: as.provider, data: {} }), 404, 'Job not found', 'provider1, missing booking');
     });
@@ -902,13 +912,19 @@ test.describe('Ownership: provider routes', () => {
     });
 
     // The three lists: provider1 gets their own rows and none of provider 2's, which provider 2's own read does hold.
+    // jobs and bookings are read from the fixture bookings (booking 1 is provider 1's, booking 2 provider 2's). available-jobs cannot be: it lists the
+    // caller's own assignments only while they are `pending` or `matching`, and unassigned rows in the open statuses, and both fixture bookings are
+    // `completed` and assigned, so a leg built on them holds nothing and passes whatever provider the list is bound to. Its leg, after the loop, uses
+    // two probe bookings the admin assigns, one to each provider (the route moves an assigned booking to `matching`): each provider's list must hold
+    // the probe assigned to them (a row with its id and booking number) and not the other's. Red if the list's provider is not the caller: a literal 1
+    // at `providerId = auth.caller.id` (provider 2's list loses its probe and shows provider 1's), a literal 2 there (provider 1's list loses its probe
+    // and shows provider 2's), or the `b.provider_id = ?` arm deleted (neither list holds its own assignment). The jobs and bookings legs are as they were.
     test("Ownership GET /api/provider/jobs, GET /api/provider/bookings and GET /api/provider/available-jobs: provider1's lists hold booking 1 and none of booking 2", async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
         const provider2 = await signedInAs(playwright, baseURL, 'provider2');
         const lists = [
             ['/api/provider/jobs', [BOOKING1.booking_number, BOOKING1.address_line1], [BOOKING2.booking_number, BOOKING2.address_line1, BOOKING2.job_description, 'Customer Two'], [BOOKING2.booking_number, BOOKING2.address_line1]],
             ['/api/provider/bookings', ['Customer One'], ['Customer Two'], ['Customer Two']],
-            ['/api/provider/available-jobs', [], [...BOOKING2_STRINGS, 'Customer Two'], []],
         ];
         for (const [path, ownHas, ownLacks, provider2Has] of lists) {
             expectAllOf((await expectOk(await request.get(path, { headers: provider2 }), `control: provider 2 ${path}`)).text, provider2Has, `control: provider 2 ${path}`);
@@ -919,12 +935,44 @@ test.describe('Ownership: provider routes', () => {
                 expectNoneOf(text, ownLacks, who);
             }
         }
+
+        // available-jobs: a probe booking assigned to each provider. A list holds a probe when `data` has a row with its id and booking number.
+        const listPath = '/api/provider/available-jobs';
+        await withProbeBooking(request, as, async (idFor1) => {
+            await withProbeBooking(request, as, async (idFor2) => {
+                await adminUpdates(request, as, idFor1, { provider_id: PROVIDER1.id });
+                await adminUpdates(request, as, idFor2, { provider_id: PROVIDER2.id });
+                const [probe1, probe2] = [await bookingAsAdmin(request, as, idFor1), await bookingAsAdmin(request, as, idFor2)];
+                expect([probe1.provider_id, probe2.provider_id], 'the probe bookings are assigned to provider 1 and to provider 2').toEqual([PROVIDER1.id, PROVIDER2.id]);
+                for (const probe of [probe1, probe2]) {
+                    expect(typeof probe.booking_number, `probe booking ${probe.id} has a booking number to look for`).toBe('string');
+                    expect(['pending', 'matching'], `probe booking ${probe.id} is in a status the list's own-assignment arm lists`).toContain(probe.status);
+                }
+                // The control: provider 2's list holds the probe assigned to provider 2 and not provider 1's.
+                const control = await expectOk(await request.get(listPath, { headers: provider2 }), `control: provider 2 ${listPath}`);
+                expect(control.body.data.find((job) => job.id === idFor2)?.booking_number, `control: provider 2's list holds the booking assigned to provider 2 (id ${idFor2})`).toBe(probe2.booking_number);
+                expect(control.body.data.map((job) => job.id), `control: provider 2's list holds the booking assigned to provider 1 (id ${idFor1})`).not.toContain(idFor1);
+                expectNoneOf(control.text, [probe1.booking_number], `control: provider 2 ${listPath}, the booking assigned to provider 1`);
+                // Provider 1, by cookie and by Bearer: the probe assigned to provider 1 and not provider 2's, nor any string of booking 2.
+                for (const [style, headers] of providerStyles(as)) {
+                    const who = `provider1 by ${style} ${listPath}`;
+                    const { text, body } = await expectOk(await request.get(listPath, { headers }), who);
+                    expect(body.data.find((job) => job.id === idFor1)?.booking_number, `${who}: the list holds the booking assigned to provider 1 (id ${idFor1})`).toBe(probe1.booking_number);
+                    expect(body.data.map((job) => job.id), `${who}: the list holds the booking assigned to provider 2 (id ${idFor2})`).not.toContain(idFor2);
+                    expectNoneOf(text, [probe2.booking_number, ...BOOKING2_STRINGS, 'Customer Two'], who);
+                }
+            });
+        });
     });
 
     // POST claims an open job. A booking another provider has is not claimable (the route's own 409 and nothing changes), an open one
-    // becomes provider 1's. Red if the claim stops reading the provider from the caller (the id in the UPDATE).
-    test("Ownership POST /api/provider/available-jobs: provider1 claims an open booking and it becomes theirs; booking 2 stays provider 2's; a missing booking keeps its 404", async ({ request, baseURL }) => {
+    // becomes the claiming provider's: provider 1 claims one open probe booking and provider 2 another, and the stored provider is read back as
+    // the admin. Provider 1's id is also what a literal 1 in the claim's UPDATE (bound to [providerId, booking_id]) would store, so only provider 2's
+    // claim tells the caller from the literal. Red if that bind is a literal 1 (the booking provider 2 claimed reads back provider 1: the provider-2
+    // assertion fails on 1, not 2) or a literal 2 (the booking provider 1 claimed reads back provider 2: the provider-1 assertion fails on 2, not 1).
+    test("Ownership POST /api/provider/available-jobs: provider1 claims an open booking and it becomes theirs; booking 2 stays provider 2's; a missing booking keeps its 404", async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
+        const provider2 = await signedInAs(playwright, baseURL, 'provider2');
         await expectAnswer(await request.post('/api/provider/available-jobs', { headers: as.provider, data: { booking_id: BOOKING2.id } }), 409, 'Job already accepted by another provider', 'provider1 claims booking 2');
         const booking2 = await bookingAsAdmin(request, as, BOOKING2.id);
         expect([booking2.provider_id, booking2.status], "booking 2 after the refused claim").toEqual([PROVIDER2.id, BOOKING2.status]);
@@ -932,6 +980,10 @@ test.describe('Ownership: provider routes', () => {
         await withProbeBooking(request, as, async (id) => {
             await expectOk(await request.post('/api/provider/available-jobs', { headers: as.provider, data: { booking_id: id } }), 'provider1 claims the open booking');
             expect((await bookingAsAdmin(request, as, id)).provider_id, 'the claimed booking is provider 1\'s').toBe(PROVIDER1.id);
+        });
+        await withProbeBooking(request, as, async (id) => {
+            await expectOk(await request.post('/api/provider/available-jobs', { headers: provider2, data: { booking_id: id } }), 'provider2 claims the open booking');
+            expect((await bookingAsAdmin(request, as, id)).provider_id, 'the booking provider 2 claimed is stored with provider 2\'s id (2), not provider 1\'s (1)').toBe(PROVIDER2.id);
         });
     });
 
