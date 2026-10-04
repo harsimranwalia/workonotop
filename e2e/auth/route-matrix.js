@@ -730,12 +730,12 @@ export const matrix = [
     },
     {
         route: '/api/customer/bookings', method: 'GET', today: 'none', kind: 'roles', roles: ['customer', 'admin'], owner: 'bookings.user_id = caller; a `?user_id=`/`?email=` naming anyone else: 403',
-        note: 'HIGH: anyone reads any customer\'s bookings by sequential ?user_id= or by ?email=: b.* incl. add…',
+        note: 'HIGH before ENG-021: anyone could read any customer\'s bookings by sequential ?user_id= or by ?email=: b.* incl. add… ENG-021 guard: src/app/api/customer/bookings/route.js:18-19 calls requireCaller(request, [\'customer\', \'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. A customer is the caller (no parameter lists their own bookings) and a ?user_id= or ?email= naming anyone else is 403 (namesAnotherAccount at :8-12, checked at :28); an admin may name anyone, as before.',
         probe: { path: '/api/customer/bookings', body: undefined, anon: 401 },
     },
     {
         route: '/api/customer/bookings', method: 'POST', today: 'none', kind: 'roles', roles: ['customer', 'admin'], owner: 'booking_id must belong to caller (`AND b.user_id = caller`)',
-        note: 'HIGH: the verification is a user_id or email the caller supplies; sequential booking_id plus gu…',
+        note: 'HIGH before ENG-021: the verification was a user_id or email the caller supplied; sequential booking_id plus gu… ENG-021 guard: src/app/api/customer/bookings/route.js:120-121 calls requireCaller(request, [\'customer\', \'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. A customer naming another account in the body is 403 (:135); for a customer the SQL adds AND b.user_id = caller.id (:159-162); a booking that exists but is not theirs is 403 (:180-183) and one that does not exist keeps the 404; an admin still selects by the body user_id or email.',
         probe: { path: '/api/customer/bookings', body: {}, anon: 401 },
     },
     {
@@ -1030,7 +1030,7 @@ export const matrix = [
     },
     {
         route: '/api/reviews', method: 'GET', today: 'none', kind: 'roles', roles: ['customer', 'admin'], owner: 'customer: reviews of own bookings',
-        note: 'No filter returns every review with customer name and customer_email (L112-113) even when is_an…',
+        note: 'Before ENG-021 anyone got this and now an admin does (a customer gets only the reviews of their own bookings): with no filter it returns every review with customer name and customer_email (L121-122) even when is_an… ENG-021 guard: src/app/api/reviews/route.js:103-104 calls requireCaller(request, [\'customer\', \'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. A customer_id naming anyone else is 403 for a customer (:114-116), and a customer\'s list is limited to reviews of their own bookings by AND b.user_id = caller.id (:137-140).',
         probe: { path: '/api/reviews', body: undefined, anon: 401 },
     },
     {
@@ -1110,12 +1110,12 @@ export const matrix = [
     },
     {
         route: '/api/upload', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Unauthenticated delete of any file in public/uploads by name, including provider documents and …',
+        note: 'Until ENG-021 anyone could delete (now only an admin can) any file in public/uploads by name, including provider documents and … ENG-021 guard: src/app/api/upload/route.js:72-73 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/upload', body: undefined, anon: 401 },
     },
     {
         route: '/api/upload', method: 'POST', today: 'none', kind: 'roles', roles: ['customer', 'provider', 'admin'], owner: '-',
-        note: 'Path built L42-45: path.join(public/uploads, `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/…',
+        note: 'Path built L45-48: path.join(public/uploads, `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/… ENG-021 guard: src/app/api/upload/route.js:8-9 calls requireCaller(request, [\'customer\', \'provider\', \'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. The guard is ahead of request.formData() at :11, so a refused request is not buffered and nothing is written.',
         probe: { path: '/api/upload', body: {}, anon: 401 },
     },
     {
