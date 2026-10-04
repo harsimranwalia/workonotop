@@ -121,6 +121,7 @@ import { NextResponse } from 'next/server';
 import { execute, withConnection } from '@/lib/db';
 import { sendEmail, getApprovalEmailHtml, getRejectionEmailHtml } from '@/lib/email';
 import { notifyUser } from '@/lib/push';
+import { requireCaller } from '@/lib/api-auth';
 
 // ─── Schema reference ─────────────────────────────────────────────────────────
 // service_providers.status  enum('active','inactive','pending','rejected','suspended')
@@ -131,6 +132,8 @@ import { notifyUser } from '@/lib/push';
 // service_providers.rejection_reason     text
 
 export async function PUT(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   return await withConnection(async (connection) => {
     try {
       const { providerId, action, rejectionReason } = await request.json();
