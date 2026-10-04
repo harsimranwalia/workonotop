@@ -1,5 +1,21 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
+import { getCredentialHeaders } from './auth/credentials.js';
+
+// The fixture admin's adminAuth cookie, as request headers (e2e/auth/credentials.js, style 'admin-cookie').
+const adminHeaders = async (baseURL) => (await getCredentialHeaders(baseURL))['admin-cookie'];
+
+// ENG-021 (design ENG-004, "Existing cases that change"): five cases here asserted the open behaviour of routes that now
+// need a login, or the order of their checks (validation before the guard). Each is rewritten to assert the refusal a
+// request with no credential gets, and is joined by a twin that signs in as the fixture admin and keeps the old assertion.
+// The refusal is 401 { success: false, message: 'Unauthorized' } (src/lib/api-auth.js).
+const expectUnauthorized = async (response) => {
+    expect(response.status()).toBe(401);
+    const data = await response.json();
+    expect(data.success).toBe(false);
+    expect(data.message).toBe('Unauthorized');
+    return data;
+};
 
 test.describe('API Routes', () => {
 
@@ -25,8 +41,15 @@ test.describe('API Routes', () => {
         expect(Array.isArray(data.data)).toBe(true);
     });
 
-    test('GET /api/bookings should return success response', async ({ request }) => {
-        const response = await request.get('/api/bookings');
+    // Was 'GET /api/bookings should return success response' (200 with no credential). The title said success, so it changed.
+    test('GET /api/bookings without a credential should return 401', async ({ request }) => {
+        const data = await expectUnauthorized(await request.get('/api/bookings'));
+        expect(data).not.toHaveProperty('data');
+    });
+
+    // The old assertion, with the admin credential.
+    test('GET /api/bookings as admin should return success response', async ({ request, baseURL }) => {
+        const response = await request.get('/api/bookings', { headers: await adminHeaders(baseURL) });
         expect(response.status()).toBe(200);
 
         const data = await response.json();
@@ -38,8 +61,15 @@ test.describe('API Routes', () => {
         }
     });
 
+    // Title kept: it still tells the truth (the answer is a response, now a refusal).
     test('GET /api/bookings with email filter should return response', async ({ request }) => {
-        const response = await request.get('/api/bookings?email=test@example.com');
+        const data = await expectUnauthorized(await request.get('/api/bookings?email=test@example.com'));
+        expect(data).not.toHaveProperty('data');
+    });
+
+    // The old assertion, with the admin credential.
+    test('GET /api/bookings with email filter as admin should return response', async ({ request, baseURL }) => {
+        const response = await request.get('/api/bookings?email=test@example.com', { headers: await adminHeaders(baseURL) });
         expect(response.status()).toBe(200);
 
         const data = await response.json();
@@ -103,8 +133,15 @@ test.describe('API Routes', () => {
         expect([200, 401, 403]).toContain(response.status());
     });
 
+    // Title kept: it still tells the truth (the answer is a response, now a refusal).
     test('GET /api/reviews should return response', async ({ request }) => {
-        const response = await request.get('/api/reviews');
+        const data = await expectUnauthorized(await request.get('/api/reviews'));
+        expect(data).not.toHaveProperty('data');
+    });
+
+    // The old assertion, with the admin credential.
+    test('GET /api/reviews as admin should return response', async ({ request, baseURL }) => {
+        const response = await request.get('/api/reviews', { headers: await adminHeaders(baseURL) });
         expect(response.status()).toBe(200);
 
         const data = await response.json();
@@ -118,16 +155,32 @@ test.describe('API Routes', () => {
         expect([200, 401, 403, 500]).toContain(response.status());
     });
 
-    test('DELETE /api/bookings without id should return 400', async ({ request }) => {
-        const response = await request.delete('/api/bookings');
+    // Was 'DELETE /api/bookings without id should return 400'. The guard now runs before the validation, so with no
+    // credential the answer is 401, and the old title would lie.
+    test('DELETE /api/bookings without id and without a credential should return 401', async ({ request }) => {
+        await expectUnauthorized(await request.delete('/api/bookings'));
+    });
+
+    // The old assertion, with the admin credential: signed in, the validation answers 400 as before.
+    test('DELETE /api/bookings without id as admin should return 400', async ({ request, baseURL }) => {
+        const response = await request.delete('/api/bookings', { headers: await adminHeaders(baseURL) });
         expect(response.status()).toBe(400);
 
         const data = await response.json();
         expect(data.success).toBe(false);
     });
 
-    test('PUT /api/bookings without id should return 400', async ({ request }) => {
+    // Was 'PUT /api/bookings without id should return 400'. Same reason as the DELETE case above.
+    test('PUT /api/bookings without id and without a credential should return 401', async ({ request }) => {
+        await expectUnauthorized(await request.put('/api/bookings', {
+            data: { status: 'confirmed' }
+        }));
+    });
+
+    // The old assertion, with the admin credential: signed in, the validation answers 400 as before.
+    test('PUT /api/bookings without id as admin should return 400', async ({ request, baseURL }) => {
         const response = await request.put('/api/bookings', {
+            headers: await adminHeaders(baseURL),
             data: { status: 'confirmed' }
         });
 
