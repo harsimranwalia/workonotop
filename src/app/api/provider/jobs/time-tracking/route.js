@@ -512,12 +512,19 @@ Est. Total: $${tEst}
       await connection.query('COMMIT')
 
       // Log Activity (the guard's caller carries no name, the old cookie token did: the name is read from the caller's own
-      // row, and a failed read only leaves the fallback, it never fails an action that has been committed)
-      const [actor] = await execute(`SELECT name FROM service_providers WHERE id = ?`, [caller.id]).catch(() => [])
+      // row on the connection this request already holds, and a failed read is logged and only leaves the fallback, it never
+      // fails an action that has been committed)
+      let actorName = null
+      try {
+        const [[actor]] = await connection.execute(`SELECT name FROM service_providers WHERE id = ?`, [caller.id])
+        actorName = actor?.name || null
+      } catch (nameErr) {
+        console.error('Failed to read the provider name:', nameErr)
+      }
       logActivity({
         actor_id: caller.id,
         actor_type: 'provider',
-        actor_name: actor?.name || 'Provider',
+        actor_name: actorName || 'Provider',
         action: 'JOB_STATUS_UPDATED',
         entity_type: 'booking',
         entity_id: booking_id,
