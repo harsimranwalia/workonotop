@@ -223,6 +223,15 @@ test.describe('D1 receipt page', () => {
         await expect(page.getByText('Booking Not Found'), `${who}: Booking Not Found is absent`).toHaveCount(0);
     }
 
+    // The customer and address strings the markup prints from the booking: a field the page reads under the wrong name (the
+    // saved booking says first_name, the markup reads customer_first_name) would print nothing and the receipt would look right.
+    async function expectShows(page, strings, who) {
+        const text = await page.locator('body').innerText();
+        for (const value of strings) {
+            expect(text.includes(String(value)), `${who}: the receipt shows ${JSON.stringify(value)}`).toBe(true);
+        }
+    }
+
     async function expectErrorCard(page, strings, who) {
         await expect(page.getByRole('heading', { name: 'Booking Not Found' }), `${who}: Booking Not Found shows`).toBeVisible();
         expectNoneOf(await page.locator('body').innerText(), strings, who);
@@ -241,6 +250,7 @@ test.describe('D1 receipt page', () => {
             expectNeverAsked(watch, `/api/bookings/${id}`, who);
             expectNeverAsked(watch, '/api/customer/booking-details', who);
             await expectReceipt(page, row.booking_number, who);
+            await expectShows(page, [`${body.first_name} ${body.last_name}`, body.email, body.phone, body.address_line1], who);
         });
     });
 
@@ -267,6 +277,7 @@ test.describe('D1 receipt page', () => {
             `${who}: requests to /api/customer/booking-details (its API requests: ${JSON.stringify(apiAsked(watch))})`,
         ).toBe(1);
         await expectReceipt(page, BOOKING1.booking_number, who);
+        await expectShows(page, [BOOKING1.customer_email, BOOKING1.customer_phone, BOOKING1.address_line1], who);
     });
 
     test("AC6 receipt: customer1 opening customer2's booking sees Booking Not Found and none of its fields", async ({ page, context, baseURL }) => {

@@ -22,14 +22,37 @@ export default function BookingSuccessPage({ params }) {
     if (bookingId) fetchBooking();
   }, [bookingId]);
 
+  // GET /api/bookings/[id] is admin-only, so this page never asks it. The receipt comes from the booking this tab saved
+  // right after checkout (booking/verify and booking/payment write sessionStorage.lastBooking before they open the page),
+  // or, for a signed-in owner, from their own booking-details; anything else gets the same fixed message.
   const fetchBooking = async () => {
     try {
-      const res = await fetch(`/api/bookings/${bookingId}`);
+      let saved = null;
+      try {
+        saved = JSON.parse(sessionStorage.getItem('lastBooking'));
+      } catch {
+        saved = null; // no saved booking, or one that does not parse
+      }
+      if (saved && String(saved.booking_id) === String(bookingId)) {
+        // The saved booking names the customer fields first_name, last_name, email and phone; the markup reads customer_*.
+        setBooking({
+          ...saved,
+          customer_first_name: saved.first_name,
+          customer_last_name: saved.last_name,
+          customer_email: saved.email,
+          customer_phone: saved.phone,
+        });
+        return;
+      }
+
+      // The session cookie rides along on a same-origin fetch, as it does on the my-bookings page; the route answers an array.
+      const res = await fetch(`/api/customer/booking-details?bookingId=${encodeURIComponent(bookingId)}`);
       const data = await res.json();
-      if (data.success) {
-        setBooking(data.data);
+      if (data.success && data.data?.[0]) {
+        setBooking(data.data[0]);
       } else {
-        setError(data.message || 'Booking not found');
+        // Never the response's own message: a refusal and a missing booking read the same here.
+        setError("We can't show this booking here. If you have an account, sign in and open My Bookings.");
       }
     } catch (err) {
       console.error('Error:', err);
