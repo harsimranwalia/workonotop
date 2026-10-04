@@ -130,11 +130,21 @@ test.describe('API Routes', () => {
         expect(data.data.map((service) => service.name)).not.toContain('Fixture Furniture Assembly');
     });
 
+    // ENG-022: the customer list is admin only. Title kept: it still tells the truth (the answer is a response, now a refusal).
+    // The old assertion accepted 200, 401 or 403 and was true of the open route; it now asserts the refusal, and the admin twin
+    // below asserts the answer.
     test('GET /api/customers should return response', async ({ request }) => {
-        const response = await request.get('/api/customers');
+        const data = await expectUnauthorized(await request.get('/api/customers'));
+        expect(data).not.toHaveProperty('data');
+    });
 
-        // May return 200 or 401 depending on auth requirements
-        expect([200, 401, 403]).toContain(response.status());
+    test('GET /api/customers as admin should return response', async ({ request, baseURL }) => {
+        const response = await request.get('/api/customers', { headers: await adminHeaders(baseURL) });
+        expect(response.status()).toBe(200);
+
+        const data = await response.json();
+        expect(data.success).toBe(true);
+        expect(Array.isArray(data.data)).toBe(true);
     });
 
     // Title kept: it still tells the truth (the answer is a response, now a refusal).
@@ -152,11 +162,19 @@ test.describe('API Routes', () => {
         expect(data).toHaveProperty('success');
     });
 
+    // ENG-022: the platform statistics are admin only. Title kept, same reason as GET /api/customers above.
     test('GET /api/stats should return response', async ({ request }) => {
-        const response = await request.get('/api/stats');
+        const data = await expectUnauthorized(await request.get('/api/stats'));
+        expect(data).not.toHaveProperty('data');
+    });
 
-        // Stats endpoint may have various response codes
-        expect([200, 401, 403, 500]).toContain(response.status());
+    test('GET /api/stats as admin should return response', async ({ request, baseURL }) => {
+        const response = await request.get('/api/stats', { headers: await adminHeaders(baseURL) });
+        expect(response.status()).toBe(200);
+
+        const data = await response.json();
+        expect(data.success).toBe(true);
+        expect(data).toHaveProperty('data');
     });
 
     // Was 'DELETE /api/bookings without id should return 400'. The guard now runs before the validation, so with no
