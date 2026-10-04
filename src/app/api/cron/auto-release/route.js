@@ -2,22 +2,13 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { execute, getConnection } from '@/lib/db'
+import { requireCronSecret } from '@/lib/api-auth'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock', { apiVersion: '2026-05-27.dahlia' })
 
 export async function GET(request) {
-  const authHeader = request.headers.get('authorization')
-  const secretQuery = request.nextUrl.searchParams.get('secret')
-  
-  // Allow if in dev, if header matches, or if query parameter matches
-  const isAuthorized = 
-    process.env.NODE_ENV === 'development' || 
-    authHeader === `Bearer ${process.env.CRON_SECRET}` ||
-    (secretQuery && secretQuery === process.env.CRON_SECRET)
-
-  if (!isAuthorized) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const secret = requireCronSecret(request)
+  if (!secret.ok) return secret.response
 
   // Find all bookings awaiting_approval for more than 24 hours with no customer response
   const expiredBookings = await execute(`
