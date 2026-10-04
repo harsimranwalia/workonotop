@@ -216,3 +216,68 @@ test.describe('D2 admin finance data', () => {
         });
     }
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// D3: a customer's bookings by email or user_id. GET /api/bookings?email= is admin-only with the rest of that route;
+// /api/customer/bookings is for a customer (the caller, never a parameter) or an admin; a parameter naming anyone else is 403.
+// ---------------------------------------------------------------------------------------------------------------------
+test.describe('D3 customer lookup', () => {
+    const CUSTOMER1_STRINGS = [BOOKING1.booking_number, BOOKING1.customer_email, BOOKING1.customer_phone, BOOKING1.address_line1];
+
+    test('D3 anonymous GET /api/bookings?email= is 401 and returns no booking data', async ({ request }) => {
+        const response = await request.get(`/api/bookings?email=${encodeURIComponent(CUSTOMER1.email)}`);
+        const body = await expectRefusal(response, 401, 'no credential');
+        expect(body, 'no data key').not.toHaveProperty('data');
+        expectNoneOf(JSON.stringify(body), CUSTOMER1_STRINGS, 'no credential');
+    });
+
+    test('D3 anonymous GET /api/customer/bookings with ?email= or ?user_id= is 401', async ({ request }) => {
+        const asked = { email: encodeURIComponent(CUSTOMER1.email), user_id: String(CUSTOMER1.id) };
+        for (const [name, value] of Object.entries(asked)) {
+            const response = await request.get(`/api/customer/bookings?${name}=${value}`);
+            const body = await expectRefusal(response, 401, `no credential, ?${name}=`);
+            expect(body, `?${name}=: no data key`).not.toHaveProperty('data');
+            expectNoneOf(JSON.stringify(body), CUSTOMER1_STRINGS, `no credential, ?${name}=`);
+        }
+    });
+
+    test("D3 customer1 GET /api/customer/bookings is 200 with customer1's booking and not customer2's", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const response = await request.get('/api/customer/bookings', { headers: as.customer });
+        expect(response.status(), 'customer1: status').toBe(200);
+        const text = await response.text();
+        const body = JSON.parse(text);
+        expect(body.success, 'customer1: success').toBe(true);
+        const numbers = body.data.map((row) => row.booking_number);
+        expect(numbers, "customer1's own booking is listed").toContain(BOOKING1.booking_number);
+        expect(numbers, "customer2's booking is not listed").not.toContain(BOOKING2.booking_number);
+        expectNoneOf(text, CUSTOMER2_STRINGS, 'customer1 list');
+    });
+
+    test("D3 customer1 GET /api/customer/bookings?user_id= or ?email= naming customer2 is 403", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const asked = { user_id: String(CUSTOMER2.id), email: encodeURIComponent(CUSTOMER2.email) };
+        for (const [name, value] of Object.entries(asked)) {
+            const response = await request.get(`/api/customer/bookings?${name}=${value}`, { headers: as.customer });
+            const body = await expectRefusal(response, 403, `customer1, ?${name}=customer2`);
+            expectNoneOf(JSON.stringify(body), CUSTOMER2_STRINGS, `customer1, ?${name}=customer2`);
+        }
+    });
+
+    // The design's case is the bare booking_id (today that answers 400, because no user_id or email came with it); the two
+    // forms that name customer2 are the same lookup with the account named, which today hands customer2's booking over.
+    test("D3 customer1 POST /api/customer/bookings with customer2's booking_id is 403", async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const bodies = [
+            { booking_id: BOOKING2.id },
+            { booking_id: BOOKING2.id, user_id: CUSTOMER2.id },
+            { booking_id: BOOKING2.id, email: CUSTOMER2.email },
+        ];
+        for (const data of bodies) {
+            const who = `customer1, POST ${Object.keys(data).join('+')}`;
+            const response = await request.post('/api/customer/bookings', { headers: as.customer, data });
+            const body = await expectRefusal(response, 403, who);
+            expectNoneOf(JSON.stringify(body), CUSTOMER2_STRINGS, who);
+        }
+    });
+});
