@@ -103,7 +103,9 @@
 //     matches no row. It is harmless while no row has that id, which depends on the fixtures and on nothing in the row.
 // Where one request from a caller the row allows (or from any caller) does real work, the row is held, with its reason in
 // `probe.hold` or `probe.holdAllowed`. The held rows are:
-//   hold         GET /api/cron/auto-release, GET /api/cron/notifications  (until ENG-022 adds requireCronSecret)
+//   hold         none now (ENG-022 put requireCronSecret in both cron routes and removed their holds: with CRON_SECRET unset, as it
+//                is on the dev app and must stay, every request from any credential, `Bearer undefined` and `?secret=undefined`
+//                included, is 401 before the job runs, so the case sends all seven styles and expects 401 from each)
 //   holdAllowed  POST /api/provider/onboarding/complete                   (keep the hold until the converting ticket proves the
 //                                                                         allowed path another way: a fixture provider the
 //                                                                         handler may rewrite, or a stub of the mail send)
@@ -716,12 +718,12 @@ export const matrix = [
     {
         route: '/api/cron/auto-release', method: 'GET', today: 'partial', kind: 'self', self: 'CRON_SECRET, made fail-closed', owner: '-',
         note: 'MEDIUM: if CRON_SECRET is unset the header \'Bearer undefined\' matches (15); development mode by… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 200. The job ran for an anonymous caller. Known failure: ENG-022 makes it 401 through requireCronSecret, which also refuses with 401 when CRON_SECRET is unset, as it is on the dev app. Probe (B2, 2026-10-02): hold. In development mode every caller is authorized (auto-release/route.js:13-16), so one request, from any credential or none, runs the job: it selects the bookings awaiting approval for 24 hours (:23-33) and for each captures a Stripe payment (:46), creates a transfer (:56) and updates the booking (:69-72). Today it moves nothing only because the dev DB has no such booking (0 with a payment intent at 07:04 on 2026-10-02): harmless by data, not by construction. Remove the hold when ENG-022 makes the route answer 401 through requireCronSecret.',
-        probe: { path: '/api/cron/auto-release', body: undefined, anon: [401], hold: 'the job runs for ANY caller in development mode (route.js:14) and moves money: held until ENG-022 adds requireCronSecret' },
+        probe: { path: '/api/cron/auto-release', body: undefined, anon: [401] },
     },
     {
         route: '/api/cron/notifications', method: 'GET', today: 'partial', kind: 'self', self: 'CRON_SECRET, made fail-closed', owner: '-',
         note: 'MEDIUM: fail-open, no check at all when CRON_SECRET is unset or empty (14); anonymous caller ca… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 500 \'Internal Server Error\'. The route did not refuse the anonymous caller (the answer is not 401). Known failure: ENG-022 makes it 401 through requireCronSecret, which also refuses with 401 when CRON_SECRET is unset, as it is on the dev app. Probe (B2, 2026-10-02): hold. With CRON_SECRET unset the check at notifications/route.js:14 is skipped, so one request, from any credential or none, runs the job: it selects the providers with stripe_onboarding_complete = 0 (:26-31) and for each sends an email (:46) and a push (:52) and updates onboarding_reminder_stage (:54-57). Today it stops only because that column is not in the dev schema (absent at 07:04 on 2026-10-02), so the SELECT throws and the answer is 500: an accident, not a guard. Probe (round 3, 2026-10-02): the handler holds a second job in the same try (:62-111) that runs when the server hour is 19 or later (:66-69): it selects the confirmed bookings of tomorrow not yet reminded (:72-80) and for each emails and pushes the customer (:87-94) and, when a provider is assigned, the provider (:97-105), then updates bookings (:108). It is not reached today: the first SELECT throws first (:26-31, to the catch at :115-118), and if it were reached it would select nothing: it takes only confirmed bookings of tomorrow (:72-80) and both fixture bookings are completed, with job date 2026-01-15 (database/fixtures hold six files, whose sets insert into users, service_providers, service_categories, services, system_settings, bookings, invoices, provider_payouts and provider_reviews). Remove the hold when ENG-022 makes the route answer 401 through requireCronSecret.',
-        probe: { path: '/api/cron/notifications', body: undefined, anon: [401], hold: 'the job runs for ANY caller while CRON_SECRET is unset (route.js:14): held until ENG-022 adds requireCronSecret' },
+        probe: { path: '/api/cron/notifications', body: undefined, anon: [401] },
     },
     {
         route: '/api/customer/booking-details', method: 'GET', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'bookings.user_id = caller (today enforced, role not)',
@@ -826,7 +828,7 @@ export const matrix = [
     {
         route: '/api/provider', method: 'PUT', today: 'partial', kind: 'roles', roles: ['admin', 'provider'], owner: 'the no-`id` branch updates `caller.id` (today `decoded.id` from any role\'s Bearer, `provider/route.js:121-163`; read by me)',
         note: 'Target in Appendix A: admin (`?id=` branches), provider (no-`id` branch); a customer is refused. Census: Branches: (A) ?id=X with body exactly {status}: sets any provider to active/inactive/suspended/…',
-        probe: { path: '/api/provider', body: {}, anon: 401 },
+        probe: { path: '/api/provider', body: {}, anon: 401, allowed: [400, 403] },
     },
     {
         route: '/api/provider/availability', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own availability flag',
