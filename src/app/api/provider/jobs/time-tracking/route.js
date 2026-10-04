@@ -1,20 +1,18 @@
 // app/api/provider/jobs/time-tracking/route.js
 import { NextResponse } from 'next/server'
 import { execute, getConnection } from '@/lib/db'
-import { verifyToken } from '@/lib/jwt'
+import { requireCaller } from '@/lib/api-auth'
 import { sendEmail } from '@/lib/email'
 import { notifyUser } from '@/lib/push'
 import { logActivity } from '@/lib/logger'
 import { sendSMS } from '@/lib/sms'
 
 export async function POST(request) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   let connection
   try {
-    const token = request.cookies.get('provider_token')?.value
-    if (!token) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
-    const decoded = verifyToken(token)
-    if (!decoded || decoded.type !== 'provider') return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 })
-
     const { booking_id, action, notes, work_summary, recommendations, worker_count, estimated_hours, submitted_duration_minutes, submitted_headcount, adjustment_reason } = await request.json()
     if (!booking_id || !action) return NextResponse.json({ success: false, message: 'booking_id and action required' }, { status: 400 })
 
@@ -22,6 +20,9 @@ export async function POST(request) {
     await connection.query('START TRANSACTION')
 
     try {
+      // Ownership, before any write: the booking must be the caller's own (b.provider_id = caller.id). The query filters
+      // by owner, so a booking that is another provider's and one that does not exist both answer the route's existing
+      // 404 below.
       const [[booking]] = await connection.execute(
         `SELECT b.*, s.duration_minutes as standard_duration, s.name as service_name,
                   u.email as customer_email, u.first_name as customer_first_name, u.phone as customer_phone,
@@ -31,7 +32,7 @@ export async function POST(request) {
          LEFT JOIN users u ON b.user_id = u.id
          WHERE b.id = ? AND b.provider_id = ?
          FOR UPDATE`,
-        [booking_id, decoded.providerId]
+        [booking_id, caller.id]
       )
 
       if (!booking) {
@@ -56,7 +57,7 @@ export async function POST(request) {
           // Create the first job session
           await connection.execute(
             `INSERT INTO job_sessions (booking_id, provider_id, clock_in) VALUES (?, ?, ?)`,
-            [booking_id, decoded.providerId, now]
+            [booking_id, caller.id, now]
           )
           await connection.execute(
             `INSERT INTO booking_time_logs (booking_id, action, timestamp, notes) VALUES (?, 'start', ?, ?)`,
@@ -112,7 +113,7 @@ Est. Total: $${tEst}
           // Close the active job session
           await connection.execute(
             `UPDATE job_sessions SET clock_out = ?, session_duration_minutes = TIMESTAMPDIFF(MINUTE, clock_in, ?) WHERE booking_id = ? AND provider_id = ? AND clock_out IS NULL`,
-            [now, now, booking_id, decoded.providerId]
+            [now, now, booking_id, caller.id]
           )
           await connection.execute(
             `INSERT INTO booking_time_logs (booking_id, action, timestamp, notes) VALUES (?, 'pause', ?, ?)`,
@@ -132,7 +133,7 @@ Est. Total: $${tEst}
           // Create a new job session
           await connection.execute(
             `INSERT INTO job_sessions (booking_id, provider_id, clock_in) VALUES (?, ?, ?)`,
-            [booking_id, decoded.providerId, now]
+            [booking_id, caller.id, now]
           )
           await connection.execute(
             `INSERT INTO booking_time_logs (booking_id, action, timestamp, notes) VALUES (?, 'resume', ?, ?)`,
@@ -149,7 +150,7 @@ Est. Total: $${tEst}
           // Close any open job session
           await connection.execute(
             `UPDATE job_sessions SET clock_out = ?, session_duration_minutes = TIMESTAMPDIFF(MINUTE, clock_in, ?) WHERE booking_id = ? AND provider_id = ? AND clock_out IS NULL`,
-            [now, now, booking_id, decoded.providerId]
+            [now, now, booking_id, caller.id]
           )
 
           // Calculate total duration from all job sessions
@@ -234,7 +235,7 @@ Est. Total: $${tEst}
           try {
             const [provider] = await execute(
               `SELECT name FROM service_providers WHERE id = ?`,
-              [decoded.providerId]
+              [caller.id]
             )
 
             // Fetch job photos
@@ -510,11 +511,13 @@ Est. Total: $${tEst}
 
       await connection.query('COMMIT')
 
-      // Log Activity
+      // Log Activity (the guard's caller carries no name, the old cookie token did: the name is read from the caller's own
+      // row, and a failed read only leaves the fallback, it never fails an action that has been committed)
+      const [actor] = await execute(`SELECT name FROM service_providers WHERE id = ?`, [caller.id]).catch(() => [])
       logActivity({
-        actor_id: decoded.providerId,
+        actor_id: caller.id,
         actor_type: 'provider',
-        actor_name: decoded.name || 'Provider',
+        actor_name: actor?.name || 'Provider',
         action: 'JOB_STATUS_UPDATED',
         entity_type: 'booking',
         entity_id: booking_id,
@@ -546,12 +549,10 @@ Est. Total: $${tEst}
 }
 
 export async function GET(request) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   try {
-    const token = request.cookies.get('provider_token')?.value
-    if (!token) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
-    const decoded = verifyToken(token)
-    if (!decoded || decoded.type !== 'provider') return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 })
-
     const { searchParams } = new URL(request.url)
     const booking_id = searchParams.get('booking_id')
     if (!booking_id) return NextResponse.json({ success: false, message: 'booking_id required' }, { status: 400 })
@@ -569,7 +570,7 @@ export async function GET(request) {
       FROM bookings b
       LEFT JOIN services s ON b.service_id = s.id
       WHERE b.id = ? AND b.provider_id = ?`,
-      [booking_id, decoded.providerId]
+      [booking_id, caller.id]
     )
 
     if (bookings.length === 0) return NextResponse.json({ success: false, message: 'Booking not found' }, { status: 404 })
