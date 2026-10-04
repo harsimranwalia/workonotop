@@ -1,28 +1,12 @@
 // app/api/provider/jobs/[id]/route.js - FIXED with cookie auth
 import { NextResponse } from 'next/server'
 import { execute } from '@/lib/db'
-import { verifyToken } from '@/lib/jwt'  // Import from jwt utility
+import { requireCaller } from '@/lib/api-auth'
 
 export async function GET(request, { params }) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
   try {
-    // ✅ Cookie or Bearer auth
-    let token = request.cookies.get('provider_token')?.value
-    if (!token) {
-      const authHeader = request.headers.get('Authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.split(' ')[1];
-      }
-    }
-
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
-    }
-    
-    const decoded = verifyToken(token)
-    if (!decoded || decoded.type !== 'provider') {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 })
-    }
-
     const { id } = await params
 
     // Get job with photo status
@@ -41,7 +25,7 @@ export async function GET(request, { params }) {
       LEFT JOIN service_categories c ON s.category_id = c.id
       LEFT JOIN disputes d ON b.id = d.booking_id
       WHERE b.id = ? AND (b.provider_id = ? OR (b.provider_id IS NULL AND b.status IN ('pending', 'matching')))`,
-      [id, decoded.providerId]  // decoded.providerId used for assigned jobs
+      [id, auth.caller.id]  // the caller's own jobs; a job that is not theirs (or open) stays this route's 404
     )
 
     if (jobs.length === 0) {
