@@ -220,32 +220,32 @@ export const matrix = [
     },
     {
         route: '/api/admin/earnings', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: platform revenue, commission and payout totals plus every invoice row exposed. A cooki…',
+        note: 'Before ENG-021 there was no auth: platform revenue, commission and payout totals plus every invoice row were exposed (now to an admin only). A cooki… ENG-021 guard: src/app/api/admin/earnings/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/earnings', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/invoices', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth; with no filter it returns every invoice row; any invoice readable by id or booking_id.',
+        note: 'Before ENG-021 there was no auth; with no filter it returns every invoice row and any invoice is readable by id or booking_id (now for an admin only). ENG-021 guard: src/app/api/admin/invoices/route.js:7-8 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/invoices', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/invoices', method: 'PATCH', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth; arbitrary status string, no allow-list or existence check: anyone can flip any invoice… Probe (round 3, 2026-10-02): UPDATE invoices at src/app/api/admin/invoices/route.js:53-56, with invoice_id and status read from the body at :50 and no validation. The probe sends {} so both binds are undefined and mysql2 execute (src/lib/db.js:51) refuses them: stopped only by the driver refusing undefined binds, not by a validation (with NULL binds, WHERE id = NULL would still match no row). A body that supplies both fields reaches a real UPDATE: validate them before :53, or hold the row, first.',
+        note: 'Before ENG-021 there was no auth; arbitrary status string, no allow-list or existence check: anyone could flip any invoice (now an admin only)… Probe (round 3, 2026-10-02): UPDATE invoices at src/app/api/admin/invoices/route.js:58-61, with invoice_id and status read from the body at :55 and no validation. The probe sends {} so both binds are undefined and mysql2 execute (src/lib/db.js:51) refuses them: stopped only by the driver refusing undefined binds, not by a validation (with NULL binds, WHERE id = NULL would still match no row). A body that supplies both fields reaches a real UPDATE: validate them before :58, or hold the row, first. ENG-021 guard: invoices/route.js:52-53 (requireCaller(request, [\'admin\']), ahead of the body read at :55); only the admin style gets past it and then behaves as the probe line above describes, the other styles are refused there. The line numbers in that probe line are the ones after this change.',
         probe: { path: '/api/admin/invoices', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/invoices/[id]/preview', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: customer PII by sequential invoice id; booking fields go unescaped into the HTML (stor…',
+        note: 'Before ENG-021 there was no auth: customer PII was served by sequential invoice id (now to an admin only); booking fields go unescaped into the HTML (stor… ENG-021 guard: src/app/api/admin/invoices/[id]/preview/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/invoices/999999999/preview', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/invoices/[id]/preview/download', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: each request launches headless Chrome (DoS) on HTML with unescaped customer-supplied f…',
+        note: 'Before ENG-021 there was no auth, so anyone could do this and now only an admin can: each request launches headless Chrome (DoS) on HTML with unescaped customer-supplied f… ENG-021 guard: src/app/api/admin/invoices/[id]/preview/download/route.js:31-32 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/invoices/999999999/preview/download', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/invoices/generate', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: anyone can create or overwrite customer and provider invoice amounts for any booking; …',
+        note: 'Before ENG-021 there was no auth: anyone could create or overwrite customer and provider invoice amounts for any booking (now an admin only); … ENG-021 guard: src/app/api/admin/invoices/generate/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/invoices/generate', body: {}, anon: 401 },
     },
     {
@@ -260,7 +260,7 @@ export const matrix = [
     },
     {
         route: '/api/admin/logs', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: the whole audit trail is readable; limit is uncapped; limit/offset are parseInt-ed bef…',
+        note: 'Before ENG-021 there was no auth: the whole audit trail was readable by anyone (now by an admin only); limit is uncapped; limit/offset are parseInt-ed bef… ENG-021 guard: src/app/api/admin/logs/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/logs', body: undefined, anon: 401 },
     },
     {
@@ -280,7 +280,7 @@ export const matrix = [
     },
     {
         route: '/api/admin/payouts', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: provider balances, emails and Stripe payout/transfer ids exposed. A cookie-only fix wo…',
+        note: 'Before ENG-021 there was no auth: provider balances, emails and Stripe payout/transfer ids were exposed (now to an admin only). A cookie-only fix wo… ENG-021 guard: src/app/api/admin/payouts/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. GET() took no parameter before ENG-021; it is GET(request) at :5 now.',
         probe: { path: '/api/admin/payouts', body: undefined, anon: 401 },
     },
     {
