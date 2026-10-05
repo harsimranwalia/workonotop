@@ -158,7 +158,8 @@ export async function POST(request) {
                     last_login = NOW(), 
                     device_id = VALUES(device_id),
                     refresh_token = VALUES(refresh_token),
-                    refresh_token_expires = VALUES(refresh_token_expires)`,
+                    refresh_token_expires = VALUES(refresh_token_expires),
+                    user_type = VALUES(user_type)`,
                 [finalUser.id, finalRole, deviceId || 'mobile-app', refreshToken]
             );
             console.log('📱 [GoogleAuth] Mobile session persisted to DB');
