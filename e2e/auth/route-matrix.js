@@ -617,7 +617,7 @@ export const matrix = [
     },
     {
         route: '/api/auth/mobile/refresh', method: 'POST', today: 'full', kind: 'public', public: 'refresh by refresh-token possession', owner: '-',
-        note: 'LOW: rotation mints a fresh 7d JWT; pending_deletion/deleted status is not checked (58-63); JWT… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Refresh token is required\'.',
+        note: 'LOW: rotation mints a fresh 7d JWT; pending_deletion/deleted status is not checked (58-63); JWT… ENG-024: the role of the token it mints comes from the account row the session points to (src/app/api/auth/mobile/refresh/route.js:38-48), and e2e/mobile-refresh-role.spec.js shows it. Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Refresh token is required\'.',
         probe: { path: '/api/auth/mobile/refresh', body: {}, anon: [400] },
     },
     {

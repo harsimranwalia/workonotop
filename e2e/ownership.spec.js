@@ -852,9 +852,10 @@ test.describe('Ownership: chat', () => {
 // sends for every role that is not a provider, and what is stored is caller.role: design Amendment 7). The column comes from caller.role
 // and a new row's user_type is caller.role, whatever the body names (route.js:29, :54), so the userId and userType comparisons decide
 // the status and not the row: a request that contradicts the credential is a 403, where without them it would be a 200 that writes the
-// caller's own row. A mobile login that finds that row (the same account on the same device_id) updates it without writing user_type
-// (auth/mobile/login/route.js:136-146), and the refresh route mints its token's role from the stored user_type (auth/mobile/refresh/route.js:40,
-// :73-75); no case here does that: what the cases show is the status, the saved message and the refusals.
+// caller's own row. A mobile login that finds that row (the same account on the same device_id) updates it and stores the account's type
+// (auth/mobile/login/route.js:136-147), and the refresh route takes its token's role from the account row (auth/mobile/refresh/route.js:38-48):
+// e2e/mobile-refresh-role.spec.js reads the row back through a registration, a sign-in and a refresh; what the cases here show is the status,
+// the saved message and the refusals.
 // ---------------------------------------------------------------------------------------------------------------------
 test.describe('Ownership: mobile/push-token', () => {
     const tokenBody = (userId, userType) => ({ userId, ...(userType ? { userType } : {}), pushToken: `e2e-ownership-token-${Date.now()}`, platform: 'android', deviceId: 'e2e-ownership' });
