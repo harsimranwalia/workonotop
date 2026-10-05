@@ -26,7 +26,7 @@
 // checkout (POST /api/bookings, as e2e/defects.spec.js does) and deletes it again as admin in `finally`.
 //
 // Writes to a fixture row: the PUT cases put a marker in `hear_about` / a settings flag and restore it in `finally`, and the
-// push-token cases upsert a mobile_auth_users row for customer 1, provider 1 and the admin (device 'e2e-ownership'; nothing reads it back).
+// push-token cases upsert a mobile_auth_users row for customer 1, provider 1 and the admin (device 'e2e-ownership'; no case reads it back).
 // Every chat message a case posts goes on a booking the case made itself (customer 1's or customer 2's, assigned to provider 1 or 2), which cascades
 // them away when the case deletes it, so no fixture chat grows and no case needs freshly loaded fixtures.
 //
@@ -253,10 +253,11 @@ test.describe('Ownership: customers/[id]', () => {
     // Each customer writes their own profile, a marker in hear_about that is read back and then restored: customer 1 (id 1) and customer 2
     // (id 2). Customer 1 alone cannot tell the binds `caller.id` from a literal 1 (they are the same number), so customer 2's write is the one
     // that does. Red if the UPDATE's `WHERE id = ?` binds a literal 1: the write carries customer 2's phone, which row 2 already holds, so the
-    // UNIQUE index on users.phone (database/schema.js:35) refuses it, the route answers 500 and the case is red at "customer 2 writes customer 2"
-    // (the recorded run); a literal 2 from customer 1's leg is refused the same way. The read-backs that follow the write (its id must be 2, row 2
-    // must hold customer 2's marker, row 1 must be as it was) would catch a write whose values do not collide; they have not been seen red for
-    // this bind. Red too if the SELECT that echoes the row back binds a literal 1 (customer 2's answer would be row 1: its id is 1, not 2).
+    // UNIQUE index on users.phone (database/schema.js:35) refuses it, the route answers 500 (the catch at customers/[id]/route.js:311-313) and the
+    // case is red at "customer 2 writes customer 2" (the recorded run names that label and does not print the status); a literal 2 from customer 1's
+    // leg is refused the same way. The read-backs of hear_about that follow the write (row 2 must hold customer 2's marker, row 1 must be what it
+    // was) would catch a write whose values do not collide; they have not been seen red for this bind. Red too if the SELECT that echoes the row
+    // back binds a literal 1 (customer 2's answer would be row 1: its id is 1, not 2).
     // A write to another customer's path id is refused before either query: that is the case above.
     test('Ownership PUT /api/customers/[id]: customer1 writes their own profile (a marker in hear_about, read back, then restored)', async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
@@ -871,8 +872,9 @@ test.describe('Ownership: mobile/push-token', () => {
     });
 
     // Red if the userId comparison is deleted, or the userType comparison is: the request is answered 200 where this case expects 403, and it
-    // writes the caller's own row, not another account's (the row's id, column and type come from caller.id and caller.role, route.js:29, :34,
-    // :54, never from the body). Red too if the admin's nameable types widen (an admin naming 'provider', a customer or provider naming 'admin').
+    // writes the caller's own row, not another account's (the account and column come from caller.id and caller.role, route.js:29, :34 and :54, and a
+    // new row's type is caller.role, :54; the body's userId and userType are never written). Red too if the admin's nameable types widen (an admin
+    // naming 'provider', a customer or provider naming 'admin').
     test("Ownership POST /api/mobile/push-token: a userId naming another account, or the other id space's type, is 403", async ({ request, baseURL }) => {
         const as = await credentials(baseURL);
         const refused = [
