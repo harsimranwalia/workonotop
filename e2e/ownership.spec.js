@@ -31,13 +31,13 @@
 // them away when the case deletes it, so no fixture chat grows and no case needs freshly loaded fixtures.
 //
 // NOT covered here, and why (read from the code and the dev database, not guessed):
-//   POST /api/payment/create-intent  the route takes NO booking (service_id, service_price, additional_price, service_name; the booking is made
-//                                    after the payment), so the ticket's "the booking named in the body must be the caller's own" has no
-//                                    booking to name: the route's ownership is the caller's own users row (the Stripe customer), and
-//                                    builder A made a body user_id or booking_id naming another account a 403. Before that commit the
-//                                    module built `new Stripe(process.env.STRIPE_SECRET_KEY)` at import and the dev app sets no key, so every
-//                                    request answered a 500 page and nothing was observable. The case below sends no service_price, so it
-//                                    never reaches the Stripe code whatever the clause does.
+//   POST /api/payment/create-intent  the route takes NO booking (it reads service_id and takes the catalog's price of that service as the
+//                                    amount; the booking is made after the payment), so the ticket's "the booking named in the body must be the
+//                                    caller's own" has no booking to name: the route's ownership is the caller's own users row (the Stripe
+//                                    customer), and builder A made a body user_id or booking_id naming another account a 403. Before that
+//                                    commit the module built `new Stripe(process.env.STRIPE_SECRET_KEY)` at import and the dev app sets no key,
+//                                    so every request answered a 500 page and nothing was observable. The case below names no service, so the
+//                                    catalog read answers 400 before any Stripe call, whatever the clause does.
 //   /api/user/addresses and [id]     the dev database has no `user_addresses` table (SHOW TABLES, 2026-10-04): every address read or
 //                                    write that reaches the query answers 500. Only the refusals decided before the query are cases here.
 //   POST /api/auth/change-password   every fixture password lacks a character the route's new-password rule demands (:17), so a change
