@@ -1,13 +1,12 @@
 // @ts-check
-// The role a mobile access token carries comes from the account row the session points to (users.role for a customer or an
-// admin, service_providers for a provider), never from the type stored on the session row. Eight cases, each titled for what
-// the role comes from:
+// The role in the access token that the mobile refresh route mints comes from the account row the session points to (users.role for a
+// customer or an admin, service_providers for a provider). Eight cases, each titled for what the role comes from:
 //   1  refresh returns the role the account holds, for a session row whose stored type differs from its account;
 //   2, 3  a consistent customer session and a consistent provider session refresh to the claims they carry today;
 //   4  a repeat sign-in on the same device puts the stored type back in step with the account;
 //   5  the three sign-in routes that derive the type from the account re-store it in their upsert (source read, no request);
 //   6, 7, 8  one case per role: a device registration, a sign-in and a refresh keep the role and the id column of the account that
-//            made the call, read back from the row after each step.
+//            made the call, read back from the row after the registration and after the sign-in.
 // Cases 1 to 4 and 6 to 8 sign in through the app's own routes (POST /api/auth/mobile/login, the Bearer of
 // e2e/auth/credentials.js) and read or arrange the session row with a small database helper. The helper refuses every target but the
 // local dev database (assertDevTarget, then assertNoRealPeople, the guard the fixture loader uses) before it opens a write, and it
@@ -108,14 +107,14 @@ async function refresh(request, refreshToken, who) {
     return { claims: claimsOf(body.token), refreshToken: body.refreshToken };
 }
 
-// The payload of a JWT, decoded and not verified: the case asks what the token says, the app verified it when it signed it.
+// The payload of a JWT, decoded and not verified: the case asks what the token says, the app signed it.
 function claimsOf(token) {
     return JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8'));
 }
 
 test.describe('Mobile refresh role', () => {
-    // Red if refresh takes the role from anywhere but the account row: the row below is stored as 'admin' on customer 1's account,
-    // and the token that comes back must say customer.
+    // Red if refresh takes a customer account's role from anything but the account row: the row below is stored as 'admin' on
+    // customer 1's account, and the token that comes back must say customer.
     test('refresh returns the role the account holds', async ({ request }) => {
         const device = `${DEVICE_PREFIX}1`;
         await clearDevice(device);
@@ -125,9 +124,11 @@ test.describe('Mobile refresh role', () => {
         expect(claims.role, 'the refreshed token\'s role').toBe('customer');
         expect(claims.type, 'the refreshed token\'s type').toBe('customer');
         expect(claims.id, 'the refreshed token\'s id').toBe(CUSTOMER1.id);
+        expect(claims.email, 'the refreshed token\'s email').toBe(CUSTOMER1.email);
     });
 
-    // A session whose stored type agrees with its account refreshes to exactly the claims it carries.
+    // A session whose stored type agrees with its account refreshes to a token that names that account: its role, type, id and email
+    // (customer 1 and provider 1 are both id 1, so the email is what tells the two tables apart).
     test('a customer session refreshes to a customer token', async ({ request }) => {
         const device = `${DEVICE_PREFIX}2`;
         await clearDevice(device);
@@ -136,6 +137,7 @@ test.describe('Mobile refresh role', () => {
         expect(claims.role, 'role').toBe('customer');
         expect(claims.type, 'type').toBe('customer');
         expect(claims.id, 'id').toBe(CUSTOMER1.id);
+        expect(claims.email, 'email').toBe(CUSTOMER1.email);
         expect(claims.providerId, 'a customer token names no provider').toBeUndefined();
     });
 
@@ -143,11 +145,23 @@ test.describe('Mobile refresh role', () => {
         const device = `${DEVICE_PREFIX}3`;
         await clearDevice(device);
         const signedIn = await signIn(request, 'provider1', device, 'provider');
-        const { claims } = await refresh(request, signedIn.refreshToken, 'provider1');
+        const first = await refresh(request, signedIn.refreshToken, 'provider1');
+        const { claims } = first;
         expect(claims.role, 'role').toBe('provider');
         expect(claims.type, 'type').toBe('provider');
         expect(claims.id, 'id').toBe(PROVIDER1.id);
         expect(claims.providerId, 'providerId').toBe(PROVIDER1.id);
+        expect(claims.email, 'email').toBe(PROVIDER1.email);
+
+        // Red if refresh takes a provider account's role from the stored type, or chooses the account's table by it: the row below is
+        // stored as 'admin' on provider 1's account, and the token that comes back must still say provider.
+        await setStoredType(first.refreshToken, 'admin');
+        const again = await refresh(request, first.refreshToken, 'provider1');
+        expect(again.claims.role, 'role after the stored type changed').toBe('provider');
+        expect(again.claims.type, 'type after the stored type changed').toBe('provider');
+        expect(again.claims.id, 'id after the stored type changed').toBe(PROVIDER1.id);
+        expect(again.claims.providerId, 'providerId after the stored type changed').toBe(PROVIDER1.id);
+        expect(again.claims.email, 'email after the stored type changed').toBe(PROVIDER1.email);
     });
 
     // Red if the sign-in's upsert leaves the stored type as it found it: the second sign-in is on the same device, so it updates the row.
@@ -180,10 +194,10 @@ test.describe('Mobile refresh role', () => {
     });
 
     // The role and the id column come from the account that made the call. One case per role; each runs on its own device id, and the
-    // device's rows are cleared first because the sign-in and the registration update an existing row and write no type, so only a
-    // row that does not exist yet exercises the INSERT. Steps: a device registration with the account's Bearer (what the app sends:
-    // 'customer' for an admin), the row read back, a sign-in on the same device, the row read back again (one row, unchanged),
-    // a refresh with that sign-in's refresh token, the claims.
+    // device's rows are cleared first because the registration updates an existing row without writing its type
+    // (push-token/route.js:38-48), so only a device with no row yet exercises its INSERT. Steps: a device registration with the
+    // account's Bearer (what the app sends: 'customer' for an admin), the row read back, a sign-in on the same device, the row read
+    // back again (one row, unchanged), a refresh with that sign-in's refresh token, the claims.
     const ROLES = [
         { who: 'customer1', role: 'customer', requested: 'customer', named: 'customer', idColumn: 'user_id', otherColumn: 'provider_id', account: CUSTOMER1, style: 'customer-bearer' },
         { who: 'provider1', role: 'provider', requested: 'provider', named: 'provider', idColumn: 'provider_id', otherColumn: 'user_id', account: PROVIDER1, style: 'provider-bearer' },
@@ -223,6 +237,7 @@ test.describe('Mobile refresh role', () => {
             expect(claims.role, 'the refreshed token\'s role').toBe(spec.role);
             expect(claims.type, 'the refreshed token\'s type').toBe(spec.role);
             expect(claims.id, 'the refreshed token\'s id').toBe(spec.account.id);
+            expect(claims.email, 'the refreshed token\'s email').toBe(spec.account.email);
             if (spec.role === 'provider') expect(claims.providerId, 'the refreshed token\'s providerId').toBe(spec.account.id);
         });
     }
