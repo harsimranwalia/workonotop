@@ -6,6 +6,7 @@ import { sendEmail } from '@/lib/email'
 import { notifyUser } from '@/lib/push'
 import { logActivity } from '@/lib/logger'
 import { sendSMS } from '@/lib/sms'
+import { providerPayout } from '@/lib/booking-price'
 
 export async function POST(request) {
   const auth = await requireCaller(request, ['provider']);
@@ -71,17 +72,9 @@ export async function POST(request) {
           // Send SMS to customer
           const customerPhone = booking.customer_phone;
           if (customerPhone) {
-            const bRate = parseFloat(booking.service_price || 0);
-            const oRate = parseFloat(booking.additional_price || 0);
+            const price = parseFloat(booking.service_price || 0);
             const wCount = parseInt(worker_count || 1, 10);
             const eHours = parseFloat(estimated_hours || 1);
-            
-            const standardHours = standardDuration / 60;
-            let oAmount = 0;
-            if (eHours > standardHours) {
-               oAmount = (eHours - standardHours) * oRate;
-            }
-            const tEst = (bRate + oAmount) * wCount;
             
             const sName = booking.service_name || 'Service';
               const msg = `*WorkOnTap*
@@ -90,11 +83,8 @@ Service: ${sName}
 Your professional has started the job!
 - Professionals: ${wCount}
 - Est. Time: ${eHours} hrs
-- Base Rate: $${bRate}
-- Extra Rate: $${oRate}/hr
 
-Est. Total: $${tEst}
-(Final price based on actual time)`;
+Price: $${price.toFixed(2)}`;
             
             // Fire and forget
             sendSMS(customerPhone, msg).catch(console.error);
@@ -183,24 +173,13 @@ Est. Total: $${tEst}
             }
           }
 
-          const finalDurationMins = (submitted_duration_minutes !== undefined && submitted_duration_minutes !== null) ? submitted_duration_minutes : totalMinutes
-          const overtimeMinutes = Math.max(0, finalDurationMins - standardDuration)
-          const commPct = parseFloat(booking.commission_percent || 20)
-          
-          // Calculate earnings based on worker_count
-          const wCount = booking.worker_count || 1
-          const finalHeadcount = (submitted_headcount !== undefined && submitted_headcount !== null) ? submitted_headcount : wCount
-          
-          const overtimeEarnings = (overtimeMinutes / 60) * overtimeRate * (1 - commPct / 100)
-          
-          let baseProviderAmount = parseFloat(booking.provider_amount || 0)
-          if (baseProviderAmount === 0) {
-            const baseServicePrice = parseFloat(booking.service_price || 0)
-            baseProviderAmount = baseServicePrice * (1 - commPct / 100)
-          }
-          
-          // Total is (Base + Overtime) * workers
-          const finalAmount = (baseProviderAmount + overtimeEarnings) * finalHeadcount
+          // Hours and crew entered at the finish are stored as the provider's entries. The payout is the booking's recorded
+          // price less its commission; overtime_minutes is the measured time past the service's standard duration.
+          const wholeEntry = (value) => (Number.isInteger(value) && value >= 0 && value <= 100000 ? value : null)
+          const enteredMinutes = wholeEntry(submitted_duration_minutes)
+          const enteredHeadcount = wholeEntry(submitted_headcount)
+          const overtimeMinutes = Math.max(0, totalMinutes - standardDuration)
+          const finalAmount = providerPayout(booking)
 
           await connection.execute(
             `UPDATE bookings SET 
@@ -211,12 +190,12 @@ Est. Total: $${tEst}
               submitted_headcount = ?,
               adjustment_reason = ?,
               overtime_minutes = ?,
-              overtime_earnings = ?,
+              overtime_earnings = 0,
               final_provider_amount = ?,
               job_timer_status = 'completed',
               updated_at = NOW()
              WHERE id = ?`,
-            [now, totalMinutes, finalDurationMins, finalHeadcount, adjustment_reason || null, overtimeMinutes, overtimeEarnings, finalAmount, booking_id]
+            [now, totalMinutes, enteredMinutes, enteredHeadcount, adjustment_reason || null, overtimeMinutes, finalAmount, booking_id]
           )
 
           await connection.execute(
@@ -251,8 +230,6 @@ Est. Total: $${tEst}
             const customerName = booking.customer_first_name || 'Customer'
             
             const customerBasePrice = parseFloat(booking.service_price || 0)
-            const customerOvertimeRate = parseFloat(booking.additional_price || 0)
-            const customerFinalAmount = customerBasePrice + (overtimeMinutes > 0 ? (customerOvertimeRate * overtimeMinutes / 60) : 0)
 
             const formatDuration = (mins) => {
               if (!mins) return 'N/A'
@@ -383,18 +360,12 @@ Est. Total: $${tEst}
                       <td style="padding:5px 0;font-size:14px;color:#64748b;">Base Price</td>
                       <td style="padding:5px 0;font-size:14px;font-weight:600;color:#0f172a;text-align:right;">$${customerBasePrice.toFixed(2)}</td>
                     </tr>
-                    ${overtimeMinutes > 0 ? `
-                    <tr>
-                      <td style="padding:5px 0;font-size:14px;color:#64748b;">Overtime (${formatDuration(overtimeMinutes)} @ $${customerOvertimeRate.toFixed(2)}/hr)</td>
-                      <td style="padding:5px 0;font-size:14px;font-weight:600;color:#0f172a;text-align:right;">+$${(customerOvertimeRate * overtimeMinutes / 60).toFixed(2)}</td>
-                    </tr>
-                    ` : ''}
                     <tr>
                       <td colspan="2" style="padding:10px 0;"><hr style="border:none;border-top:1px solid #e2e8f0;" /></td>
                     </tr>
                     <tr>
                       <td style="padding:5px 0;font-size:16px;font-weight:700;color:#0f172a;">Total Amount Due</td>
-                      <td style="padding:5px 0;font-size:18px;font-weight:800;color:#16a34a;text-align:right;">$${customerFinalAmount.toFixed(2)}</td>
+                      <td style="padding:5px 0;font-size:18px;font-weight:800;color:#16a34a;text-align:right;">$${customerBasePrice.toFixed(2)}</td>
                     </tr>
                   </table>
                 </td></tr>
@@ -492,12 +463,12 @@ Est. Total: $${tEst}
             success: true,
             message: 'Job submitted for customer approval',
             data: {
-              total_minutes: finalDurationMins,
+              total_minutes: enteredMinutes ?? totalMinutes,
               system_minutes: totalMinutes,
               standard_minutes: standardDuration,
               overtime_minutes: overtimeMinutes,
               overtime_rate: overtimeRate,
-              overtime_earnings: overtimeEarnings,
+              overtime_earnings: 0,
               base_earnings: parseFloat(booking.provider_amount),
               total_earnings: finalAmount
             }
