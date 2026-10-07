@@ -3,8 +3,8 @@
 // real database and no app request, so they hold the guard to the design's rules (ENG-004 design, Interfaces)
 // before any handler calls it. One case per rule; the route-by-route checks are auth-coverage and auth-matrix.
 //
-// jwt.js reads JWT_SECRET once, when it is first imported, so the spec sets the secret in beforeAll and loads
-// the guard with a dynamic import() after it (a top-level import would run before the secret is set, and a
+// jwt.js reads JWT_SECRET when it signs or checks a token, so the spec sets the secret in beforeAll and loads the
+// guard with a dynamic import() after it (a top-level import would run before the stub pool below is in place, and a
 // top-level import() would also run while Playwright collects the files). The old value is put back afterwards.
 //
 // The Bearer cases reach getMobileSession, which asks the database. db.js uses global.mysqlPool when there is one
