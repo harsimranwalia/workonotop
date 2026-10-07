@@ -15,8 +15,8 @@ function explain(who, route, status, text) {
     if (status === 401) {
         return `${seen}\nFixture ${who} could not sign in: are the fixtures loaded in the database the app reads? Run npm run db:fixtures.`;
     }
-    if (who === 'admin' && status === 500) {
-        return `${seen}\nThe admin login signs its token with JWT_SECRET and has no fallback: is JWT_SECRET set in the app's environment (.env.development.local)?`;
+    if (status === 500) {
+        return `${seen}\nThe sign-in routes sign their tokens with JWT_SECRET and refuse to sign in without it: is JWT_SECRET set in the app's environment (.env.development.local)?`;
     }
     return seen;
 }
