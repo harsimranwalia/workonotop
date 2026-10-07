@@ -2592,6 +2592,30 @@
     "ownership.spec.js › Ownership: provider/available-jobs/[id] › Ownership POST /api/provider/available-jobs/[id]: provider1 accepts an open booking and it becomes provider 1's; a missing booking keeps its 404": {
       "outcome": "PASS"
     },
+    "price-of-record.spec.js › Price of record › a booking records the catalog hourly rate of the service it books and authorizes by it": {
+      "outcome": "PASS"
+    },
+    "price-of-record.spec.js › Price of record › a booking records the catalog price of the service it books": {
+      "outcome": "PASS"
+    },
+    "price-of-record.spec.js › Price of record › create-intent answers 400 for a service the catalog does not offer": {
+      "outcome": "PASS"
+    },
+    "price-of-record.spec.js › Price of record › the finish stores the measured minutes past the standard duration and no overtime earnings": {
+      "outcome": "PASS"
+    },
+    "price-of-record.spec.js › Price of record › the finish stores the payout as the booking's price less its commission, whatever hours and crew are entered": {
+      "outcome": "PASS"
+    },
+    "price-of-record.spec.js › Price of record › the invoice total is the booking's recorded price and its payout follows the commission rule": {
+      "outcome": "PASS"
+    },
+    "price-of-record.spec.js › Price of record › the price of record and the payout follow the catalog row and the commission rule": {
+      "outcome": "PASS"
+    },
+    "price-of-record.spec.js › Price of record › the routes that charge or pay take the amount from the price of record": {
+      "outcome": "PASS"
+    },
     "provider.spec.js › Provider Portal - Auth Protection › provider login page should have form fields": {
       "outcome": "PASS"
     },
