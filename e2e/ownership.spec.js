@@ -853,7 +853,7 @@ test.describe('Ownership: chat', () => {
 // and a new row's user_type is caller.role, whatever the body names (route.js:29, :54), so the userId and userType comparisons decide
 // the status and not the row: a request that contradicts the credential is a 403, where without them it would be a 200 that writes the
 // caller's own row. A mobile login that finds that row (the same account on the same device_id) updates it and stores the account's type
-// (auth/mobile/login/route.js:136-147), and the refresh route takes its token's role from the account row (auth/mobile/refresh/route.js:38-48):
+// (auth/mobile/login/route.js:138-149), and the refresh route takes its token's role from the account row (auth/mobile/refresh/route.js:40-50):
 // e2e/mobile-refresh-role.spec.js reads the row back through a registration, a sign-in and a refresh; what the cases here show is the status,
 // the saved message and the refusals.
 // ---------------------------------------------------------------------------------------------------------------------
@@ -1319,7 +1319,7 @@ test.describe('Ownership: provider/availability and provider/profile writes', ()
 // provider 1 (id, provider_id, providerId) is sent with provider 2's writes: the handlers destructure only their own fields
 // (profile route.js:11, update-step :11, stripe-complete :18), so those keys are never read.
 // Clauses (HEAD): onboarding/profile/route.js:8 and the UPDATE's last bind :39; onboarding/update-step/route.js:8 and :27;
-// onboarding/stripe-complete/route.js:11, the fallback lookup :23-26, the UPDATE :93 and the INSERT :107; provider/upload/route.js:117,
+// onboarding/stripe-complete/route.js:11, the fallback lookup :23-26, the UPDATE :93 and the INSERT :107; provider/upload/route.js:116,
 // the file name :144, the INSERT :162, the avatar UPDATE :169 and the count :177-179.
 // No wrong-table hazard in these handlers: they read and write service_providers and provider_* tables only, so the overlap of
 // provider 1 and customer 1 (both id 1) never decides a row, and the cases are provider against provider.
@@ -1470,7 +1470,7 @@ test.describe('Ownership: provider onboarding writes and provider/upload', () =>
     const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
     const uploadAs = (request, headers, type) => request.post('/api/provider/upload', { headers, multipart: { file: { name: 'e2e-ownership.png', mimeType: 'image/png', buffer: PNG }, type } });
 
-    // Red if upload/route.js:117 `const providerId = auth.caller.id` is replaced by a literal 1 or a body field: the file name
+    // Red if upload/route.js:116 `const providerId = auth.caller.id` is replaced by a literal 1 or a body field: the file name
     // (:144, answered as `url`), the document row (:162), the avatar (:169) and the documents_uploaded count (:177-179) would all be
     // provider 1's. The type is one of the provider_documents.document_type ENUM values (database/schema.sql:132; any other word is
     // 'Data truncated' at the INSERT, after the file is written), never a path: the traversal on `type` is an open proposal, not this

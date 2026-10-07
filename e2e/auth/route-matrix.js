@@ -257,7 +257,7 @@ export const matrix = [
     },
     {
         route: '/api/admin/logout', method: 'POST', today: 'none', kind: 'public', public: 'logout, clears own cookie', owner: '-',
-        note: 'Stateless JWT is not revoked: a stolen adminAuth token stays valid up to 24h after logout. Probe measured on the dev app at 04:49 on 2026-10-02 with no credential and an empty JSON body: 200. Probe (round 3, 2026-10-02): logActivity at src/app/api/admin/logout/route.js:12-19 inserts an ADMIN_LOGGED_OUT row into activity_logs when the adminAuth cookie verifies (:10-11), so the admin-cookie style writes one row per run; the response only puts two cookie deletes on it (:32-33). Nothing stops it: the row is public and no body is read. It is the known activity_logs delta, and no other state changes.',
+        note: 'Stateless JWT is not revoked: a stolen adminAuth token stays valid up to 24h after logout. Probe measured on the dev app at 04:49 on 2026-10-02 with no credential and an empty JSON body: 200. Probe (round 3, 2026-10-02): logActivity at src/app/api/admin/logout/route.js:13-20 inserts an ADMIN_LOGGED_OUT row into activity_logs when the adminAuth cookie verifies (:11-12), so the admin-cookie style writes one row per run; the response only puts two cookie deletes on it (:33-34). Nothing stops it: the row is public and no body is read. It is the known activity_logs delta, and no other state changes.',
         probe: { path: '/api/admin/logout', body: {}, anon: [200] },
     },
     {
@@ -617,7 +617,7 @@ export const matrix = [
     },
     {
         route: '/api/auth/mobile/refresh', method: 'POST', today: 'full', kind: 'public', public: 'refresh by refresh-token possession', owner: '-',
-        note: 'LOW: rotation mints a fresh 7d JWT; pending_deletion/deleted status is not checked (58-63); JWT… ENG-024: the role of the token it mints comes from the account row the session points to (src/app/api/auth/mobile/refresh/route.js:38-48), and e2e/mobile-refresh-role.spec.js shows it. Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Refresh token is required\'.',
+        note: 'LOW: rotation mints a fresh 7d JWT; pending_deletion/deleted status is not checked (58-63); JWT… ENG-024: the role of the token it mints comes from the account row the session points to (src/app/api/auth/mobile/refresh/route.js:40-50), and e2e/mobile-refresh-role.spec.js shows it. Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Refresh token is required\'.',
         probe: { path: '/api/auth/mobile/refresh', body: {}, anon: [400] },
     },
     {
@@ -907,12 +907,12 @@ export const matrix = [
     },
     {
         route: '/api/provider/jobs/time-tracking', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own job timer',
-        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/jobs/time-tracking/route.js:530-531, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own job timer) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/time-tracking/route.js:551. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Sound ownership (L571); cookie-only, so Bearer mobile clients cannot call it.',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/jobs/time-tracking/route.js:339-340, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own job timer) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/time-tracking/route.js:360. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Sound ownership (L571); cookie-only, so Bearer mobile clients cannot call it.',
         probe: { path: '/api/provider/jobs/time-tracking', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/jobs/time-tracking', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own assigned job',
-        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/jobs/time-tracking/route.js:12-13, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own assigned job) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/time-tracking/route.js:36, :61, :106, :126, :143, :217 .... Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Client-supplied submitted_duration_minutes and submitted_headcount (L185,191) set final_provide…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/jobs/time-tracking/route.js:13-14, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own assigned job) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/time-tracking/route.js:37, :62, :107, :127, :144, :218 .... Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Client-supplied submitted_duration_minutes and submitted_headcount (L185,191) set final_provide…',
         probe: { path: '/api/provider/jobs/time-tracking', body: {}, anon: 401 },
     },
     {
@@ -987,7 +987,7 @@ export const matrix = [
     },
     {
         route: '/api/provider/ratings', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own reviews',
-        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/ratings/route.js:118-119, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own reviews) comes from auth.caller, never from a request field; 403 refusals src/app/api/provider/ratings/route.js:126. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Cookie only; shows reviewer first and last name unless is_anonymous (L185); L1-111 is a comment…',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/ratings/route.js:117-118, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own reviews) comes from auth.caller, never from a request field; 403 refusals src/app/api/provider/ratings/route.js:125. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Cookie only; shows reviewer first and last name unless is_anonymous (L185); L1-111 is a comment…',
         probe: { path: '/api/provider/ratings', body: undefined, anon: 401 },
     },
     {
@@ -1007,7 +1007,7 @@ export const matrix = [
     },
     {
         route: '/api/provider/upload', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own documents and avatar',
-        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/upload/route.js:115-116, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own documents and avatar) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/upload/route.js:117. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Path built L150-160: path.join(public/uploads, `${providerId}-${documentType}-${Date.now()}${pa…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/upload/route.js:114-115, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own documents and avatar) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/upload/route.js:116. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Path built L150-160: path.join(public/uploads, `${providerId}-${documentType}-${Date.now()}${pa…',
         probe: { path: '/api/provider/upload', body: {}, anon: 401 },
     },
     {
