@@ -87,6 +87,24 @@ async function withJwtSecret(value, fn) {
     return lines;
 }
 
+/** Runs fn and counts the calls to jsonwebtoken's sign and verify: src/lib/jwt.js calls them through this same default export. */
+async function jwtCallsDuring(fn) {
+    const original = { sign: jwt.sign, verify: jwt.verify };
+    const calls = { sign: 0, verify: 0 };
+    for (const name of ['sign', 'verify']) {
+        jwt[name] = (...args) => {
+            calls[name]++;
+            return original[name].apply(jwt, args);
+        };
+    }
+    try {
+        await fn();
+    } finally {
+        Object.assign(jwt, original);
+    }
+    return calls;
+}
+
 const asCookie = (token) => new Request('http://localhost/api/probe', { headers: { cookie: `customer_token=${token}` } });
 
 async function expectUnauthorized(result) {
@@ -102,16 +120,20 @@ test('with JWT_SECRET unset or blank, no session, verification or reset token is
     expect(typeof lib.jwtSecret, 'src/lib/jwt.js exports jwtSecret').toBe('function');
 
     for (const [label, value] of UNSET_OR_BLANK) {
-        const lines = await withJwtSecret(value, () => {
-            expect(() => lib.jwtSecret(), `${label}: jwtSecret() throws`).toThrow(/JWT_SECRET/);
-            expect(() => lib.generateToken({ id: 11, role: 'user' }), `${label}: generateToken throws`).toThrow(/JWT_SECRET/);
-            expect(() => lib.generateEmailVerificationToken(21, 'provider@workontap.test'), `${label}: generateEmailVerificationToken throws`).toThrow(/JWT_SECRET/);
-            expect(() => lib.generatePasswordResetToken(21, 'provider@workontap.test'), `${label}: generatePasswordResetToken throws`).toThrow(/JWT_SECRET/);
-            expect(lib.verifyToken(session), `${label}: verifyToken answers null`).toBeNull();
-            expect(lib.verifyEmailVerificationToken(verification), `${label}: verifyEmailVerificationToken answers null`).toBeNull();
-            expect(lib.verifyPasswordResetToken(reset), `${label}: verifyPasswordResetToken answers null`).toBeNull();
+        let lines;
+        const calls = await jwtCallsDuring(async () => {
+            lines = await withJwtSecret(value, () => {
+                expect(() => lib.jwtSecret(), `${label}: jwtSecret() throws`).toThrow(/JWT_SECRET/);
+                expect(() => lib.generateToken({ id: 11, role: 'user' }), `${label}: generateToken throws`).toThrow(/JWT_SECRET/);
+                expect(() => lib.generateEmailVerificationToken(21, 'provider@workontap.test'), `${label}: generateEmailVerificationToken throws`).toThrow(/JWT_SECRET/);
+                expect(() => lib.generatePasswordResetToken(21, 'provider@workontap.test'), `${label}: generatePasswordResetToken throws`).toThrow(/JWT_SECRET/);
+                expect(lib.verifyToken(session), `${label}: verifyToken answers null`).toBeNull();
+                expect(lib.verifyEmailVerificationToken(verification), `${label}: verifyEmailVerificationToken answers null`).toBeNull();
+                expect(lib.verifyPasswordResetToken(reset), `${label}: verifyPasswordResetToken answers null`).toBeNull();
+            });
         });
         expect(lines.filter((line) => line.includes('JWT_SECRET')).length, `${label}: each of the three verifiers logged the variable by name`).toBe(3);
+        expect(calls, `${label}: no token is signed or checked against any key`).toEqual({ sign: 0, verify: 0 });
     }
 });
 
@@ -206,11 +228,48 @@ function sourceFiles(dir = 'src') {
     return found.sort();
 }
 
+/**
+ * The calls `jwt.sign(` and `jwt.verify(` in comment-free code, each with the text of its second argument (the key). Parentheses,
+ * brackets and braces nest, and a '...', "..." or `...` string is copied whole, so a comma inside one does not end an argument.
+ * @param {string} text
+ * @returns {{ name: string, key: string }[]}
+ */
+function jwtCallKeys(text) {
+    const calls = [];
+    for (const call of text.matchAll(/\bjwt\.(sign|verify)\(/g)) {
+        let depth = 0;
+        let argument = 0;
+        let key = '';
+        for (let i = call.index + call[0].length; i < text.length; i++) {
+            const ch = text[i];
+            if (ch === "'" || ch === '"' || ch === '`') {
+                let j = i + 1;
+                while (j < text.length && text[j] !== ch) j += text[j] === '\\' ? 2 : 1;
+                if (argument === 1) key += text.slice(i, j + 1);
+                i = j;
+            } else if ('([{'.includes(ch)) {
+                depth++;
+                if (argument === 1) key += ch;
+            } else if (')]}'.includes(ch)) {
+                if (depth === 0) break;
+                depth--;
+                if (argument === 1) key += ch;
+            } else if (ch === ',' && depth === 0) {
+                argument++;
+            } else if (argument === 1) {
+                key += ch;
+            }
+        }
+        calls.push({ name: call[1], key: key.trim() });
+    }
+    return calls;
+}
+
 test('every route that signs or checks a session takes the key from src/lib/jwt.js', () => {
     for (const file of KEY_FILES) {
         const source = code(file);
         expect(source, `${file}: imports jwtSecret from the shared module`).toMatch(/import\s*\{[^}]*\bjwtSecret\b[^}]*\}\s*from\s*['"](?:@\/lib\/jwt|\.\/jwt)(?:\.js)?['"]/);
-        expect(source, `${file}: does not read JWT_SECRET itself`).not.toMatch(/process\.env\.JWT_SECRET/);
+        expect(source, `${file}: does not name JWT_SECRET itself`).not.toMatch(/\bJWT_SECRET\b/);
     }
 
     // A route that signs asks for the key before it reads the request or touches the database: it is the first statement of its try.
@@ -226,8 +285,18 @@ test('every route that signs or checks a session takes the key from src/lib/jwt.
     expect(session.indexOf('jwtSecret('), 'getMobileSession calls jwtSecret() before its query').toBeLessThan(session.indexOf('execute('));
 
     // Across src/, the variable is read in the shared module and in the Edge middleware, which cannot import it.
-    const readers = sourceFiles().filter((file) => /process\.env\.JWT_SECRET/.test(code(file)));
-    expect(readers, 'the files that read process.env.JWT_SECRET').toEqual(['src/lib/jwt.js', 'src/middleware.js']);
+    const readers = sourceFiles().filter((file) => /\bJWT_SECRET\b/.test(code(file)));
+    expect(readers, 'the files that name JWT_SECRET in code').toEqual(['src/lib/jwt.js', 'src/middleware.js']);
+
+    // The files that import jsonwebtoken are the shared module and the nine routes above, so a new signer has to be named here; and every
+    // call to jwt.sign or jwt.verify in them takes its key from `secret` (the route's first statement) or from jwtSecret() itself.
+    const importers = sourceFiles().filter((file) => /from\s*['"]jsonwebtoken['"]/.test(code(file)));
+    expect(importers, 'the files that import jsonwebtoken').toEqual([...SIGNING_ROUTES, 'src/app/api/admin/logout/route.js', 'src/lib/jwt.js'].sort());
+    for (const file of importers) {
+        const calls = jwtCallKeys(code(file));
+        expect(calls.length, `${file}: calls jwt.sign or jwt.verify`).toBeGreaterThan(0);
+        for (const { name, key } of calls) expect(key, `${file}: the key of jwt.${name}`).toMatch(/^(?:secret|jwtSecret\(\s*\))$/);
+    }
 
     // In the raw text, comments included, no file under src/ gives the variable a value to use when it is missing.
     for (const file of sourceFiles()) {
