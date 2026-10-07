@@ -297,7 +297,8 @@ test.describe('Price of record', () => {
     // as the provider's earnings. The first job has a commission of 25 % set by the admin before it starts (80.00 less 25 % is 60.00), the
     // second has none set, so the rule's 20 % applies (64.00). The admin then overrides the second job's hours and crew (10 workers, 600
     // minutes): the invoices keep the price as their total, state no overtime amount and no overtime earnings, keep the commission and the
-    // earnings, and say the minutes entered. The bookings are customer 1's, because the invoice rows name the account the booking belongs to.
+    // earnings, and state the minutes past the standard duration that the 600 entered minutes give. The bookings are customer 1's, because
+    // the invoice rows name the account the booking belongs to.
     test("the invoice total is the booking's recorded price and its payout follows the commission rule", async ({ request, baseURL }) => {
         const as = await headersFor(baseURL);
         const service = await catalogService();
