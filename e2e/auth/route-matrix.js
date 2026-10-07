@@ -142,7 +142,7 @@ export const matrix = [
     },
     {
         route: '/api/admin/bookings/[id]/override', method: 'PUT', today: 'full', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/bookings/[id]/override/route.js:6-7), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Role trusted from JWT claim, no DB re-check; worker_count and actual_duration_minutes unvalidat…',
+        note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/bookings/[id]/override/route.js:7-8), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Role trusted from JWT claim, no DB re-check; worker_count and actual_duration_minutes unvalidat…',
         probe: { path: '/api/admin/bookings/999999999/override', body: {}, anon: 401 },
     },
     {
@@ -247,7 +247,7 @@ export const matrix = [
     },
     {
         route: '/api/admin/invoices/generate', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Before ENG-021 there was no auth: anyone could create or overwrite customer and provider invoice amounts for any booking (now an admin only); … ENG-021 guard: src/app/api/admin/invoices/generate/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
+        note: 'Before ENG-021 there was no auth: anyone could create or overwrite customer and provider invoice amounts for any booking (now an admin only); … ENG-021 guard: src/app/api/admin/invoices/generate/route.js:7-8 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/invoices/generate', body: {}, anon: 401 },
     },
     {
@@ -637,12 +637,12 @@ export const matrix = [
     },
     {
         route: '/api/bookings', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'CRITICAL before ENG-021 (an admin only now): anonymous delete of any booking plus its invoices, provider_payouts, reviews and chat… ENG-021 guard: src/app/api/bookings/route.js:524-525 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
+        note: 'CRITICAL before ENG-021 (an admin only now): anonymous delete of any booking plus its invoices, provider_payouts, reviews and chat… ENG-021 guard: src/app/api/bookings/route.js:530-531 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/bookings', body: undefined, anon: 401 },
     },
     {
         route: '/api/bookings', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'HIGH before ENG-021 (an admin only now, ?email= included): anonymous dump of every booking (name, email, phone, address, lat/long, payment_intent_id… ENG-021 guard: src/app/api/bookings/route.js:23-24 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
+        note: 'HIGH before ENG-021 (an admin only now, ?email= included): anonymous dump of every booking (name, email, phone, address, lat/long, payment_intent_id… ENG-021 guard: src/app/api/bookings/route.js:24-25 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/bookings', body: undefined, anon: 401 },
     },
     {
@@ -652,7 +652,7 @@ export const matrix = [
     },
     {
         route: '/api/bookings', method: 'PUT', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'CRITICAL before ENG-021 (an admin only now): an anonymous caller could set any booking\'s status, provider, payment_status and commissio… ENG-021 guard: src/app/api/bookings/route.js:340-341 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. The activity log\'s actor is the verified admin (auth.caller.id, :352-353), not a decoded Bearer.',
+        note: 'CRITICAL before ENG-021 (an admin only now): an anonymous caller could set any booking\'s status, provider, payment_status and commissio… ENG-021 guard: src/app/api/bookings/route.js:346-347 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. The activity log\'s actor is the verified admin (auth.caller.id, :352-353), not a decoded Bearer.',
         probe: { path: '/api/bookings', body: {}, anon: 401 },
     },
     {
@@ -717,7 +717,7 @@ export const matrix = [
     },
     {
         route: '/api/cron/auto-release', method: 'GET', today: 'partial', kind: 'self', self: 'CRON_SECRET, made fail-closed', owner: '-',
-        note: 'ENG-022: requireCronSecret(request) is the first statement of GET (src/app/api/cron/auto-release/route.js:10-11). With CRON_SECRET unset, as on the dev app (it must stay unset there), every request is 401, `Bearer undefined` and `?secret=undefined` included; with it set, the secret is accepted as `Authorization: Bearer` or `?secret=` and anything else is 401. The acceptance of \'Bearer undefined\' and the development-mode skip (route.js:13-16 at 1d67c30) are gone. Census finding before the guard: MEDIUM: if CRON_SECRET is unset the header \'Bearer undefined\' matches (15 at 1d67c30); development mode by… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body, before the change: 200, the job ran for an anonymous caller. Probe (B2, 2026-10-02): hold, removed by ENG-022 on 2026-10-03: the row is not held now; it sends all seven credential styles and expects 401 from each (anon [401]). The job\'s first side effect sits behind the guard: it selects the bookings awaiting approval for 24 hours (:14-24) and for each captures a Stripe payment (:37), creates a transfer (:47) and updates the booking (:60-63). Today it moves nothing only because the dev DB has no such booking (0 with a payment intent at 07:04 on 2026-10-02): harmless by data, not by construction (before the change it ran for any caller in development mode and stopped only for want of data; now every request is 401 before the SELECT).',
+        note: 'ENG-022: requireCronSecret(request) is the first statement of GET (src/app/api/cron/auto-release/route.js:11-12). With CRON_SECRET unset, as on the dev app (it must stay unset there), every request is 401, `Bearer undefined` and `?secret=undefined` included; with it set, the secret is accepted as `Authorization: Bearer` or `?secret=` and anything else is 401. The acceptance of \'Bearer undefined\' and the development-mode skip (route.js:13-16 at 1d67c30) are gone. Census finding before the guard: MEDIUM: if CRON_SECRET is unset the header \'Bearer undefined\' matches (15 at 1d67c30); development mode by… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body, before the change: 200, the job ran for an anonymous caller. Probe (B2, 2026-10-02): hold, removed by ENG-022 on 2026-10-03: the row is not held now; it sends all seven credential styles and expects 401 from each (anon [401]). The job\'s first side effect sits behind the guard: it selects the bookings awaiting approval for 24 hours (:14-24) and for each captures a Stripe payment (:37), creates a transfer (:47) and updates the booking (:60-63). Today it moves nothing only because the dev DB has no such booking (0 with a payment intent at 07:04 on 2026-10-02): harmless by data, not by construction (before the change it ran for any caller in development mode and stopped only for want of data; now every request is 401 before the SELECT).',
         probe: { path: '/api/cron/auto-release', body: undefined, anon: [401] },
     },
     {
@@ -742,7 +742,7 @@ export const matrix = [
     },
     {
         route: '/api/customer/bookings/[id]/approve', method: 'POST', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'bookings.user_id = caller (today enforced, role not)',
-        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/customer/bookings/[id]/approve/route.js:155-156, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). Ownership (bookings.user_id = caller (today enforced, role not)) comes from auth.caller, never from a request field; 403 refusals src/app/api/customer/bookings/[id]/approve/route.js:195. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): MEDIUM: moves money; role unchecked, a provider JWT whose id equals the customer\'s users.id pas…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/customer/bookings/[id]/approve/route.js:145-146, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). Ownership (bookings.user_id = caller (today enforced, role not)) comes from auth.caller, never from a request field; 403 refusals src/app/api/customer/bookings/[id]/approve/route.js:185. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): MEDIUM: moves money; role unchecked, a provider JWT whose id equals the customer\'s users.id pas…',
         probe: { path: '/api/customer/bookings/999999999/approve', body: {}, anon: 401 },
     },
     {
@@ -812,7 +812,7 @@ export const matrix = [
     },
     {
         route: '/api/payment/create-intent', method: 'POST', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'own booking',
-        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/payment/create-intent/route.js:15-16, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). The route takes no booking (the body is the service and the price; the booking is made after the payment), so the row owner text own booking has no referent: the owner is the users row of caller.id (src/app/api/payment/create-intent/route.js:39, from auth.caller and never from a request field), and a body user_id or booking_id naming another account is a 403, src/app/api/payment/create-intent/route.js:25, :30. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Charge amount comes from client body service_price (L56-60), not re-read from services; error b…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/payment/create-intent/route.js:16-17, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). The route takes no booking (the body is the service and the price; the booking is made after the payment), so the row owner text own booking has no referent: the owner is the users row of caller.id (src/app/api/payment/create-intent/route.js:45, from auth.caller and never from a request field), and a body user_id or booking_id naming another account is a 403, src/app/api/payment/create-intent/route.js:26, :31. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Charge amount comes from client body service_price (L56-60), not re-read from services; error b…',
         probe: { path: '/api/payment/create-intent', body: {}, anon: 401 },
     },
     {
@@ -907,12 +907,12 @@ export const matrix = [
     },
     {
         route: '/api/provider/jobs/time-tracking', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own job timer',
-        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/jobs/time-tracking/route.js:559-560, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own job timer) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/time-tracking/route.js:580. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Sound ownership (L571); cookie-only, so Bearer mobile clients cannot call it.',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/jobs/time-tracking/route.js:530-531, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own job timer) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/time-tracking/route.js:551. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Sound ownership (L571); cookie-only, so Bearer mobile clients cannot call it.',
         probe: { path: '/api/provider/jobs/time-tracking', body: undefined, anon: 401 },
     },
     {
         route: '/api/provider/jobs/time-tracking', method: 'POST', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own assigned job',
-        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/jobs/time-tracking/route.js:11-12, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own assigned job) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/time-tracking/route.js:35, :60, :116, :136, :153, :238 .... Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Client-supplied submitted_duration_minutes and submitted_headcount (L185,191) set final_provide…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/provider/jobs/time-tracking/route.js:12-13, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own assigned job) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/time-tracking/route.js:36, :61, :106, :126, :143, :217 .... Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Client-supplied submitted_duration_minutes and submitted_headcount (L185,191) set final_provide…',
         probe: { path: '/api/provider/jobs/time-tracking', body: {}, anon: 401 },
     },
     {
