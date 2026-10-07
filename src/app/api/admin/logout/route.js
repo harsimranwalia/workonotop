@@ -1,13 +1,14 @@
 // app/api/admin/logout/route.js
 import { NextResponse } from "next/server";
 import jwt from 'jsonwebtoken';
+import { jwtSecret } from '@/lib/jwt';
 import { logActivity } from '@/lib/logger';
 
 export async function POST(request) {
   const token = request.cookies.get('adminAuth')?.value;
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, jwtSecret());
       if (decoded) {
         logActivity({
           actor_id: decoded.id,

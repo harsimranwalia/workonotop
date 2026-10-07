@@ -3,7 +3,6 @@
 // import { getConnection } from '@/lib/db'
 // import jwt from 'jsonwebtoken'
 
-// const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this'
 
 // // GET provider's ratings and reviews
 // export async function GET(request) {
