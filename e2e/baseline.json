@@ -2415,6 +2415,18 @@
     "homepage.spec.js › Homepage › should navigate to /services with the search term when the Search button is clicked": {
       "outcome": "PASS"
     },
+    "job-completed-email.spec.js › the job-completed e-mail keeps unicode and long text whole and shows the default line for an empty summary": {
+      "outcome": "PASS"
+    },
+    "job-completed-email.spec.js › the job-completed e-mail shows names, the service, photo addresses and links as plain text": {
+      "outcome": "PASS"
+    },
+    "job-completed-email.spec.js › the job-completed e-mail shows the provider's summary and recommendations as plain text with their line breaks": {
+      "outcome": "PASS"
+    },
+    "job-completed-email.spec.js › the job-finish route composes the customer's e-mail with src/lib/job-completed-email.js": {
+      "outcome": "PASS"
+    },
     "mobile-refresh-role.spec.js › Mobile refresh role › a customer session refreshes to a customer token": {
       "outcome": "PASS"
     },
@@ -2614,6 +2626,15 @@
       "outcome": "PASS"
     },
     "price-of-record.spec.js › Price of record › the routes that charge or pay take the amount from the price of record": {
+      "outcome": "PASS"
+    },
+    "provider-signup-page.spec.js › Provider sign-up page › the provider sign-up page sends its form in the first response": {
+      "outcome": "PASS"
+    },
+    "provider-signup-page.spec.js › Provider sign-up page › the provider sign-up page shows its form while the session check has not answered": {
+      "outcome": "PASS"
+    },
+    "provider-signup-page.spec.js › Provider sign-up page › valid details on the provider sign-up page create a provider account waiting for e-mail verification": {
       "outcome": "PASS"
     },
     "provider.spec.js › Provider Portal - Auth Protection › provider login page should have form fields": {
@@ -2929,6 +2950,18 @@
       "outcome": "PASS"
     },
     "services.spec.js › Services Page › should navigate to a service detail page when clicked": {
+      "outcome": "PASS"
+    },
+    "session-secret.spec.js › a session signed with a key other than the configured JWT_SECRET is refused and one signed with it is accepted": {
+      "outcome": "PASS"
+    },
+    "session-secret.spec.js › every route that signs or checks a session takes the key from src/lib/jwt.js": {
+      "outcome": "PASS"
+    },
+    "session-secret.spec.js › the API guard answers 401 to a session cookie while JWT_SECRET is unset": {
+      "outcome": "PASS"
+    },
+    "session-secret.spec.js › with JWT_SECRET unset or blank, no session, verification or reset token is signed and none is accepted": {
       "outcome": "PASS"
     },
     "static-pages.spec.js › Static Pages › should have proper page title on homepage": {
