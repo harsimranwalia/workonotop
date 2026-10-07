@@ -54,7 +54,7 @@ export async function GET(request, { params }) {
     // The invoice total is the booking's recorded price; time past the standard duration is shown, not billed.
     const baseSubtotal = Number(booking.service_price);
     const overtimeRateTotal = Number(invoice.overtime_rate);
-    const overtimeSubtotal = Number(invoice.overtime_amount || 0);
+    const overtimeSubtotal = 0;
     const jobTotal = baseSubtotal + overtimeSubtotal;
 
     const alreadyPaid = Number(booking.service_price);
