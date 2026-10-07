@@ -578,8 +578,8 @@ test.describe('Ownership: customer booking routes', () => {
     });
 
     // The route reads no booking of its own; its ownership is the caller's users row. A body naming another account (user_id) or another account's
-    // booking (booking_id) is 403 before any Stripe call; the owner's request reaches the route's own validation (400 'Service price is required').
-    // No request here carries a service_price, so none can reach the Stripe code. Red if either refusal is deleted: the request would answer that 400.
+    // booking (booking_id) is 403 before any Stripe call; the owner's request reaches the route's own validation (400 'This service is not available for booking').
+    // No request here names a service, so none can reach the Stripe code. Red if either refusal is deleted: the request would answer that 400.
     test("Ownership POST /api/payment/create-intent: a body naming customer 2 as user_id or customer 2's booking as booking_id is 403, the owner reaches the route's own validation", async ({ request, baseURL }) => {
         const as = await credentials(baseURL);
         for (const [style, headers] of customerStyles(as)) {
@@ -589,7 +589,7 @@ test.describe('Ownership: customer booking routes', () => {
             }
             for (const data of [{}, { user_id: CUSTOMER1.id }, { booking_id: BOOKING1.id }]) {
                 const who = `customer1 by ${style} naming ${Object.keys(data).join('+') || 'nothing'}`;
-                await expectAnswer(await request.post('/api/payment/create-intent', { headers, data }), 400, 'Service price is required', who);
+                await expectAnswer(await request.post('/api/payment/create-intent', { headers, data }), 400, 'This service is not available for booking', who);
             }
         }
     });
