@@ -139,7 +139,8 @@ function ProviderSignupFormContent() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+      {/* method="post": a submit before the scripts load keeps the fields out of the address */}
+      <form method="post" onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="block text-sm font-bold text-gray-700 ml-1">First Name</label>
