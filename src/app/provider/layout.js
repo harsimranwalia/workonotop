@@ -217,8 +217,8 @@ export default function ProviderLayout({ children }) {
     { href: '/provider/profile', label: 'Profile', icon: User },
   ];
 
-  // The sign-up page is shown at once to visitors with no session; the session check still runs beside it and
-  // redirects a signed-in provider.
+  // The sign-up page is shown at once; the session check still runs beside it and sends a
+  // signed-in provider whose account is not active to the step they are on.
   const shownAtOnce = pathname.startsWith('/provider/signup');
 
   if (loading && !shownAtOnce) return (
