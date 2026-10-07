@@ -5,8 +5,8 @@
 //   6  the customer's name, the provider's name, the service, the booking number, the photo addresses and the two links show as text;
 //   7  unicode and a 10,000-character summary come through whole, and an empty summary shows "Job completed successfully.";
 //   8  the job-finish route composes the e-mail with the module and holds no template of its own (a source read of the route).
-// Cases 5 to 7 run in plain Node, with no browser, no app request and no database. The module has no imports, so beforeAll loads it with
-// a dynamic import(), as the other module specs do, and each case composes the e-mail from values that carry <a href="https://example.test">x</a>,
+// Cases 5 to 7 run in plain Node, with no browser, no app request and no database. The module has no imports, so each case loads it with
+// a dynamic import(), as the other module specs do, and composes the e-mail from values that carry <a href="https://example.test">x</a>,
 // <script>, <b>, ", ', &, "><img src=x>, line breaks, emoji, right-to-left text and a 10,000-character summary. They check the entities and
 // the <br> in the HTML, and that none of <a href="https://example.test", <script, <b> and "><img occurs in it. The e-mail's own markup
 // holds none of the four (each case composes it from plain values first), so one in the HTML came from a value.
@@ -22,9 +22,10 @@ const ROUTE = 'src/app/api/provider/jobs/time-tracking/route.js';
 /** @type {typeof import('../src/lib/job-completed-email.js')} */
 let email;
 
-test.beforeAll(async () => {
+// Cases 5 to 7 each load the module when they start, so a missing module fails those three one by one and case 8 still reads the route.
+async function loadEmail() {
     email = await import('../src/lib/job-completed-email.js');
-});
+}
 
 // Plain values for every field, so that a case changes only the fields it is about.
 const PLAIN = {
@@ -68,7 +69,8 @@ const SUMMARY_SHOWN = 'Cleaned &lt;b&gt;every&lt;/b&gt; window &amp; &quot;frame
 const RECOMMENDATIONS = 'Replace the seal <b>soon</b>.\n\nTreat the frame & "sill" at \'dusk\'\r\n\r\n<script>';
 const RECOMMENDATIONS_SHOWN = 'Replace the seal &lt;b&gt;soon&lt;/b&gt;.<br><br>Treat the frame &amp; &quot;sill&quot; at &#39;dusk&#39;<br><br>&lt;script&gt;';
 
-test("the job-completed e-mail shows the provider's summary and recommendations as plain text with their line breaks", () => {
+test("the job-completed e-mail shows the provider's summary and recommendations as plain text with their line breaks", async () => {
+    await loadEmail();
     expectNoMarkup(compose(), 'the e-mail composed from plain values');
 
     const html = compose({ workSummary: SUMMARY, recommendations: RECOMMENDATIONS });
@@ -83,7 +85,8 @@ test("the job-completed e-mail shows the provider's summary and recommendations 
     expect(email.textAsHtml(null) + email.textAsHtml(undefined), 'no text is no output').toBe('');
 });
 
-test('the job-completed e-mail shows names, the service, photo addresses and links as plain text', () => {
+test('the job-completed e-mail shows names, the service, photo addresses and links as plain text', async () => {
+    await loadEmail();
     expectNoMarkup(compose(), 'the e-mail composed from plain values');
 
     const html = compose({
@@ -136,7 +139,8 @@ const LONG = '0123456789'.repeat(1000);
 const LONG_MIXED = 'a <b> & "c" \'d\'\n'.repeat(625);
 const LONG_MIXED_SHOWN = 'a &lt;b&gt; &amp; &quot;c&quot; &#39;d&#39;<br>'.repeat(625);
 
-test('the job-completed e-mail keeps unicode and long text whole and shows the default line for an empty summary', () => {
+test('the job-completed e-mail keeps unicode and long text whole and shows the default line for an empty summary', async () => {
+    await loadEmail();
     expectNoMarkup(compose(), 'the e-mail composed from plain values');
 
     const html = compose({
