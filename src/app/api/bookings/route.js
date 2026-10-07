@@ -6,6 +6,7 @@ import { notifyUser } from '@/lib/push'
 import { sendEmail } from '@/lib/email'
 import { getClusterFromCity } from '@/lib/location'
 import { logActivity } from '@/lib/logger'
+import { catalogPrice } from '@/lib/booking-price'
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-05-27.dahlia' }) : null
 
@@ -85,7 +86,7 @@ export async function POST(request) {
   try {
     const body = await request.json()
     let {
-      service_id, service_name, service_price, additional_price,
+      service_id, service_name,
       first_name, last_name, name, email, phone,
       job_date, job_time_slot, timing_constraints, job_description, instructions,
       parking_access, elevator_access, has_pets,
@@ -151,11 +152,16 @@ export async function POST(request) {
         : `Selected Dates: ${allDatesString}`;
     }
 
-    const [serviceInfo] = await execute('SELECT duration_minutes FROM services WHERE id = ?', [service_id])
-    const standardDuration = serviceInfo?.duration_minutes || 60
+    // The booking records the catalog's price and hourly rate of its service, read here.
+    const [serviceInfo] = await execute('SELECT duration_minutes, base_price, additional_price, is_active FROM services WHERE id = ?', [service_id])
+    const catalog = catalogPrice(serviceInfo)
+    if (!catalog) {
+      return NextResponse.json({ success: false, message: 'This service is not available for booking' }, { status: 400 })
+    }
+    const standardDuration = serviceInfo.duration_minutes || 60
 
-    const basePrice = parseFloat(service_price || 0)
-    const overtimeRate = parseFloat(additional_price || 0)
+    const basePrice = catalog.price
+    const overtimeRate = catalog.rate
     const maxOvertimeCost = overtimeRate * 2
     const totalAuthorizedAmount = basePrice + maxOvertimeCost
 
@@ -200,7 +206,7 @@ export async function POST(request) {
          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,'pending','not_started','authorized',?,?,?)`,
         [
           bookingNumber, authenticatedUserId || null, service_id || null, service_name || null,
-          service_price || 0, additional_price || 0,
+          basePrice, overtimeRate,
           first_name || '', last_name || '', email || '', phone || '',
           primaryJobDate || null, timeSlotString || null, finalTimingConstraints || null,
           job_description || '', instructions || null,
@@ -319,7 +325,7 @@ export async function POST(request) {
         success: true,
         booking_id: bookingId,
         booking_number: bookingNumber,
-        overtime_rate: additional_price,
+        overtime_rate: overtimeRate,
         standard_duration: standardDuration,
         authorized_amount: totalAuthorizedAmount,
         message: `✅ Booking confirmed. Card authorized for $${totalAuthorizedAmount}`
