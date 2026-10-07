@@ -2,7 +2,7 @@
 // The amounts a booking is charged and paid come from the price recorded when it is booked. Eight cases, each titled for what it shows:
 //   1  a booking records the catalog price of the service it books;
 //   2  a booking records the catalog hourly rate of the service it books and authorizes by it (fixture service 2, whose figures differ
-//      from service 1's, the service the other cases book);
+//      from service 1's, the service cases 1 and 4 to 6 book);
 //   3  create-intent answers 400 for a service the catalog does not offer, and so does the checkout (the case posts to both routes);
 //   4  the finish stores the payout as the booking's price less its commission, whatever hours and crew are entered;
 //   5  the finish stores the measured minutes past the standard duration and no overtime earnings;
@@ -13,16 +13,18 @@
 //   8  the price of record and the payout follow the catalog row and the commission rule (the module's own cases).
 // Cases 1, 2 and 4 to 6 make their booking through the public checkout (a made-up payment intent id, as e2e/defects.spec.js does) and move
 // it with the app's own routes: the admin's booking update and override, the provider's start and stop, the admin's invoice generation.
-// Each booking is deleted again as admin, and the case deletes the rows that delete may leave (booking_audit_logs, which no foreign key
-// removes; job_sessions, which go with the booking unless its delete fails).
+// Each booking is deleted again as admin (the answer of that delete is not checked). The case deletes the booking_audit_logs rows that the
+// admin's override writes (the dev database has no foreign key to remove them) and the job_sessions rows (the database removes them with
+// the booking, so these are left only if that delete fails). The activity_logs rows the app's routes write about the bookings stay.
 // Stored values are read back with a small database helper that checks the target before it connects (assertDevTarget: a local host and
 // the database workontap_db) and the rows once connected (assertNoRealPeople: no e-mail address outside the reserved test names), the two
 // guards the fixture loader uses. It reads the catalog and the stored rows of the cases' own bookings and invoices (by booking id; case 3
 // looks for the e-mail of the booking it expects the checkout to refuse), plants the one closed job session that case 5 measures, and
-// deletes the rows named above (the bookings carry the e-mail prefix 'e2e-eng005-'). It reaches the database the way the department's
-// test command lets it: that container runs with --network host, so the published port 127.0.0.1:3307 is the dev database.
+// deletes the booking_audit_logs and job_sessions rows (the bookings carry the e-mail prefix 'e2e-eng005-'). It reaches the database
+// the way the department's test command lets it: that container runs with --network host, so the published port 127.0.0.1:3307
+// is the dev database.
 // Fixture accounts: the admin is users 3, provider1 is service_providers 1 (database/fixtures/accounts.js); the services are fixture
-// service 1 (every case but case 2) and fixture service 2 (case 2).
+// service 1 (cases 1 and 3 to 6) and fixture service 2 (case 2).
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
