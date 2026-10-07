@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { execute, getConnection } from '@/lib/db'
 import { requireCaller } from '@/lib/api-auth';
+import { providerPayout } from '@/lib/booking-price'
 
 export async function PUT(request, { params }) {
   const auth = await requireCaller(request, ['admin']);
@@ -62,25 +63,21 @@ export async function PUT(request, { params }) {
       )
 
       // ── Recalculate invoice amounts based on new values ──────────────────
+      // The invoice total is the booking's recorded price; time past the standard duration is shown, not billed.
       const standardDuration  = parseInt(booking.service_duration || 60)
       const baseRate          = parseFloat(booking.service_price || 0)
-      const overtimeRatePerHour = parseFloat(booking.additional_price || 0)
       const newActualDuration = parseInt(actual_duration_minutes || 0)
-      const newWorkerCount    = parseInt(worker_count || 1)
 
       let overtimeMinutes = 0
-      let overtimeAmount  = 0
+      const overtimeAmount = 0
       if (newActualDuration > standardDuration) {
         overtimeMinutes = newActualDuration - standardDuration
-        overtimeAmount  = Math.round((overtimeRatePerHour / 60) * overtimeMinutes * 100) / 100
       }
 
-      const totalAmount       = Math.round((baseRate + overtimeAmount) * newWorkerCount * 100) / 100
-      const commissionPercent = parseFloat(booking.commission_percent || 0)
-      const commissionAmount  = Math.round(totalAmount * commissionPercent / 100 * 100) / 100
-      const providerEarnings  = Math.round((totalAmount - commissionAmount) * 100) / 100
-      const totalOvertimeCharged = overtimeAmount * newWorkerCount
-      const overtimeEarnings  = Math.round((totalOvertimeCharged - (totalOvertimeCharged * commissionPercent / 100)) * 100) / 100
+      const totalAmount       = baseRate
+      const providerEarnings  = providerPayout(booking)
+      const commissionAmount  = Math.round((totalAmount - providerEarnings) * 100) / 100
+      const overtimeEarnings  = 0
 
       // Update invoices if they already exist for this booking
       const [existingInvoices] = await connection.execute(
