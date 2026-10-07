@@ -1320,7 +1320,7 @@ test.describe('Ownership: provider/availability and provider/profile writes', ()
 // (profile route.js:11, update-step :11, stripe-complete :18), so those keys are never read.
 // Clauses (HEAD): onboarding/profile/route.js:8 and the UPDATE's last bind :39; onboarding/update-step/route.js:8 and :27;
 // onboarding/stripe-complete/route.js:11, the fallback lookup :23-26, the UPDATE :93 and the INSERT :107; provider/upload/route.js:116,
-// the file name :144, the INSERT :162, the avatar UPDATE :169 and the count :177-179.
+// the file name :143, the INSERT :161, the avatar UPDATE :168 and the count :176-178.
 // No wrong-table hazard in these handlers: they read and write service_providers and provider_* tables only, so the overlap of
 // provider 1 and customer 1 (both id 1) never decides a row, and the cases are provider against provider.
 // What a write leaves behind: update-step restores onboarding_step in `finally` (it needs a truthy step), profile is put back with
@@ -1471,7 +1471,7 @@ test.describe('Ownership: provider onboarding writes and provider/upload', () =>
     const uploadAs = (request, headers, type) => request.post('/api/provider/upload', { headers, multipart: { file: { name: 'e2e-ownership.png', mimeType: 'image/png', buffer: PNG }, type } });
 
     // Red if upload/route.js:116 `const providerId = auth.caller.id` is replaced by a literal 1 or a body field: the file name
-    // (:144, answered as `url`), the document row (:162), the avatar (:169) and the documents_uploaded count (:177-179) would all be
+    // (:143, answered as `url`), the document row (:161), the avatar (:168) and the documents_uploaded count (:176-178) would all be
     // provider 1's. The type is one of the provider_documents.document_type ENUM values (database/schema.sql:132; any other word is
     // 'Data truncated' at the INSERT, after the file is written), never a path: the traversal on `type` is an open proposal, not this
     // case. The files are 70-byte PNGs that land in public/uploads/<id>-<type>-<ms>.png and are unlinked in `finally`: every file of
