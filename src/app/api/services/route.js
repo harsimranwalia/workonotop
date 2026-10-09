@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server'
 import { execute, query } from '@/lib/db'
 import { logActivity } from '@/lib/logger'
+import { callerFrom, requireCaller } from '@/lib/api-auth'
 
 // GET all services
 export async function GET(request) { 
@@ -14,7 +15,8 @@ export async function GET(request) {
     const location = searchParams.get('location') || searchParams.get('locationSlug')
     const homepage = searchParams.get('homepage')
     const limitParams = searchParams.get('limit')
-    const admin = searchParams.get('admin')
+    // ?admin=true drops the is_active filter: it is an admin's to use; for any other caller the flag is ignored, as if it were not sent.
+    const admin = searchParams.get('admin') === 'true' && (await callerFrom(request, ['admin'])) ? 'true' : null
 
     const locationFields = location ? `
         sl.location_name,
@@ -135,6 +137,8 @@ export async function GET(request) {
 
 // POST (similar changes for all methods)
 export async function POST(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const {
       category_id,
@@ -214,6 +218,8 @@ export async function POST(request) {
 
 // PUT update service
 export async function PUT(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const {
       id,
@@ -317,6 +323,8 @@ export async function PUT(request) {
 
 // DELETE service
 export async function DELETE(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

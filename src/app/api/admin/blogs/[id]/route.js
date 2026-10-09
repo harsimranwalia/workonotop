@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { requireCaller } from '@/lib/api-auth';
 
 export async function GET(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const id = params.id;
     const rows = await db.query('SELECT * FROM blogs WHERE id = ?', [id]);
@@ -18,6 +21,8 @@ export async function GET(request, { params }) {
 }
 
 export async function PUT(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const id = params.id;
     const body = await request.json();
@@ -45,6 +50,8 @@ export async function PUT(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const id = params.id;
     await db.query('DELETE FROM blogs WHERE id = ?', [id]);

@@ -271,6 +271,8 @@ export async function POST(request) {
 
 // DELETE review
 export async function DELETE(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

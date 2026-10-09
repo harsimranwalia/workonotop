@@ -1,25 +1,15 @@
 import { NextResponse } from 'next/server';
 import pool, { query, execute } from '@/lib/db';
-import { verifyToken } from '@/lib/jwt';
 import { logActivity } from '@/lib/logger';
+import { requireCaller } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
 
-async function verifyAdmin(request) {
-  const token = request.cookies.get('adminAuth')?.value;
-  if (!token) return null;
-  const decoded = verifyToken(token);
-  return decoded || null;
-}
-
 // GET all service locations with filtering, pagination, and summary stats
 export async function GET(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
-    const admin = await verifyAdmin(request);
-    if (!admin) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const search = (searchParams.get('search') || '').trim();
     const serviceId = searchParams.get('service_id') || searchParams.get('serviceId');
@@ -142,12 +132,9 @@ export async function GET(request) {
 
 // POST create new service location
 export async function POST(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
-    const admin = await verifyAdmin(request);
-    if (!admin) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await request.json();
     const {
       service_id,
@@ -230,7 +217,7 @@ export async function POST(request) {
 
     await logActivity({
       actor_type: 'admin',
-      actor_name: admin.email || 'Admin',
+      actor_name: auth.caller.email || 'Admin',
       action: 'SERVICE_LOCATION_CREATED',
       entity_type: 'service_location',
       entity_id: insertResult.insertId,

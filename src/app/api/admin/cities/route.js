@@ -1,18 +1,11 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { verifyToken } from '@/lib/jwt';
-
-async function verifyAdmin(request) {
-  const token = request.cookies.get('adminAuth')?.value;
-  if (!token) return false;
-  return !!verifyToken(token);
-}
+import { requireCaller } from '@/lib/api-auth';
 
 export async function GET(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
-    const admin = await verifyAdmin(request);
-    if (!admin) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-
     const { searchParams } = new URL(request.url);
     const isAll = searchParams.get('all') === 'true';
     const page = parseInt(searchParams.get('page') || '1');
@@ -87,10 +80,9 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
-    const admin = await verifyAdmin(request);
-    if (!admin) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-
     const body = await request.json();
     const { name, district_id, is_active } = body;
 

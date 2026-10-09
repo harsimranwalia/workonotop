@@ -25,6 +25,15 @@ export async function POST(request) {
       }, { status: 400 })
     }
 
+    // ENG-022 S1: token is bound raw by connection.execute() below (a typed bind, not SQL text), a non-string email
+    // throws at .trim() (a 500) and otp is stringified (cleanOtp); refuse anything but a string for all three first.
+    if ([token, email, otp].some((value) => value != null && typeof value !== 'string')) {
+      return NextResponse.json({
+        success: false,
+        message: 'Valid token or Email/OTP required'
+      }, { status: 400 })
+    }
+
     const passwordRegex = /^(?=.*[a-zA-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
     if (!passwordRegex.test(password)) {
       return NextResponse.json({

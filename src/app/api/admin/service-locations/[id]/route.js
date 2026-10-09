@@ -1,25 +1,15 @@
 import { NextResponse } from 'next/server';
 import { query, execute } from '@/lib/db';
-import { verifyToken } from '@/lib/jwt';
 import { logActivity } from '@/lib/logger';
+import { requireCaller } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
 
-async function verifyAdmin(request) {
-  const token = request.cookies.get('adminAuth')?.value;
-  if (!token) return null;
-  const decoded = verifyToken(token);
-  return decoded || null;
-}
-
 // GET single service location
 export async function GET(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
-    const admin = await verifyAdmin(request);
-    if (!admin) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
     const resolvedParams = await params;
     const id = parseInt(resolvedParams.id, 10);
     if (isNaN(id)) {
@@ -50,12 +40,9 @@ export async function GET(request, { params }) {
 
 // PUT update service location
 export async function PUT(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
-    const admin = await verifyAdmin(request);
-    if (!admin) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
     const resolvedParams = await params;
     const id = parseInt(resolvedParams.id, 10);
     if (isNaN(id)) {
@@ -155,7 +142,7 @@ export async function PUT(request, { params }) {
 
     await logActivity({
       actor_type: 'admin',
-      actor_name: admin.email || 'Admin',
+      actor_name: auth.caller.email || 'Admin',
       action: 'SERVICE_LOCATION_UPDATED',
       entity_type: 'service_location',
       entity_id: id,
@@ -177,12 +164,9 @@ export async function PUT(request, { params }) {
 
 // PATCH toggle active status
 export async function PATCH(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
-    const admin = await verifyAdmin(request);
-    if (!admin) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
     const resolvedParams = await params;
     const id = parseInt(resolvedParams.id, 10);
     if (isNaN(id)) {
@@ -197,7 +181,7 @@ export async function PATCH(request, { params }) {
 
     await logActivity({
       actor_type: 'admin',
-      actor_name: admin.email || 'Admin',
+      actor_name: auth.caller.email || 'Admin',
       action: 'SERVICE_LOCATION_STATUS_TOGGLED',
       entity_type: 'service_location',
       entity_id: id,
@@ -220,12 +204,9 @@ export async function PATCH(request, { params }) {
 
 // DELETE service location
 export async function DELETE(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
-    const admin = await verifyAdmin(request);
-    if (!admin) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
     const resolvedParams = await params;
     const id = parseInt(resolvedParams.id, 10);
     if (isNaN(id)) {
@@ -242,7 +223,7 @@ export async function DELETE(request, { params }) {
 
     await logActivity({
       actor_type: 'admin',
-      actor_name: admin.email || 'Admin',
+      actor_name: auth.caller.email || 'Admin',
       action: 'SERVICE_LOCATION_DELETED',
       entity_type: 'service_location',
       entity_id: id,

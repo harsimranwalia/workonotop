@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
+import { requireCaller } from '@/lib/api-auth'
 
-export async function GET() {
+export async function GET(request) {
+    const auth = await requireCaller(request, ['admin']);
+    if (!auth.ok) return auth.response;
     try {
         // Total bookings/jobs
         const [totalBookingsResult] = await query('SELECT COUNT(*) as total FROM bookings')
