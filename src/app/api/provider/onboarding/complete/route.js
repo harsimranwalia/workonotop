@@ -1,37 +1,16 @@
 import { NextResponse } from 'next/server';
 import { execute } from '@/lib/db';
-import { verifyToken } from '@/lib/jwt';
-import { getMobileSession } from '@/lib/mobile-auth';
+import { requireCaller } from '@/lib/api-auth';
 import { sendEmail, getAdminProviderApplicationSubmittedEmailHtml } from '@/lib/email';
 
 export async function POST(request) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
+  const providerId = auth.caller.id;
   try {
     console.log('='.repeat(60));
     console.log('🚀 ONBOARDING COMPLETE API CALLED');
     console.log('='.repeat(60));
-
-    // 1. Check Mobile Session (via Authorization Header + DB)
-    let decoded = await getMobileSession(request);
-    let providerId = decoded?.providerId;
-
-    // 2. Fallback to Web Session (via Cookies)
-    if (!decoded) {
-      const token = request.cookies.get('provider_token')?.value;
-      if (token) {
-        decoded = verifyToken(token);
-        if (decoded && decoded.type === 'provider') {
-          providerId = decoded.providerId;
-        }
-      }
-    }
-
-    if (!decoded || !providerId) {
-      console.log('❌ Not authenticated');
-      return NextResponse.json(
-        { success: false, message: 'Not authenticated or session expired' },
-        { status: 401 }
-      );
-    }
 
     console.log('✅ Provider ID:', providerId);
 

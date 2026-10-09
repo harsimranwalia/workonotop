@@ -131,33 +131,17 @@
 // app/api/customer/booking-details/route.js
 import { NextResponse } from 'next/server'
 import { withConnection } from '@/lib/db'
-import { verifyToken } from '@/lib/jwt'
+import { requireCaller } from '@/lib/api-auth'
 
 export async function GET(request) {
+  const auth = await requireCaller(request, ['customer']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   try {
-    let token = request.cookies.get('customer_token')?.value
-    
-    // Support Bearer token for mobile apps
-    if (!token) {
-      const authHeader = request.headers.get('authorization')
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.split(' ')[1]
-      }
-    }
-
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
-    }
-
-    const decoded = verifyToken(token)
-    if (!decoded) {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 })
-    }
-
     const { searchParams } = new URL(request.url)
     const bookingId = searchParams.get('bookingId')
     
-    console.log(`🔍 [API BookingDetails] UserID: ${decoded.id}, ReqBookingID: ${bookingId}, Decoded:`, decoded);
+    console.log(`🔍 [API BookingDetails] UserID: ${caller.id}, ReqBookingID: ${bookingId}, Decoded:`, caller);
 
     if (!bookingId) {
       return NextResponse.json({ success: false, message: 'Booking ID required' }, { status: 400 })
@@ -185,9 +169,14 @@ export async function GET(request) {
         LEFT JOIN service_providers  sp ON b.provider_id = sp.id
         WHERE b.id = ? AND b.user_id = ?
         LIMIT 1
-      `, [bookingId, Number(decoded.id)])
+      `, [bookingId, caller.id])
 
       if (!bookings || bookings.length === 0) {
+        // A booking that exists but is not the caller's own is a 403, never the 404 below; one that does not exist keeps the 404.
+        const [existing] = await connection.execute('SELECT id FROM bookings WHERE id = ?', [bookingId])
+        if (existing.length > 0) {
+          return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
+        }
         return NextResponse.json({ success: false, message: 'Booking not found' }, { status: 404 })
       }
 

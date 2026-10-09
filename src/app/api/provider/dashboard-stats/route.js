@@ -1,33 +1,13 @@
 import { NextResponse } from 'next/server';
 import { execute } from '@/lib/db';
-import { verifyToken } from '@/lib/jwt';
+import { requireCaller } from '@/lib/api-auth';
 
 export async function GET(request) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
   try {
-    // Check for token in cookies or Authorization header
-    let token = request.cookies.get('provider_token')?.value;
-    
-    if (!token) {
-        const authHeader = request.headers.get('Authorization');
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            token = authHeader.split(' ')[1];
-        }
-    }
-
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = verifyToken(token);
-    // Support both type (web) and role (mobile) fields
-    const userType = decoded?.type || decoded?.role;
-    
-    if (!decoded || userType !== 'provider') {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 });
-    }
-
-    // Support both providerId (web) and id (mobile)
-    const providerId = decoded.providerId || decoded.id;
+    // The provider is the caller: every query below reads only their own id
+    const providerId = auth.caller.id;
 
     // Get job stats
     const jobStats = await execute(

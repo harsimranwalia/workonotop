@@ -787,8 +787,7 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/user/addresses/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/user/addresses/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; DELETE does not have `const auth = await requireCaller(request, [roles])` o..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/blogs uses the guard": {
       "outcome": "PASS"
@@ -896,8 +895,7 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/auth/me uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/auth/me/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a commen..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/bookings uses the guard": {
       "outcome": "PASS"
@@ -909,12 +907,10 @@
       "outcome": "SKIPPED"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/chat uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/chat/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a comment (..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/chat/unread uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/chat/unread/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a co..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/cron/auto-release uses the guard": {
       "outcome": "PASS"
@@ -923,93 +919,73 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/customer/booking-details uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/customer/booking-details/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])`..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/customer/bookings uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/customer/invoices uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/customer/invoices/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outsid..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/customer/reviews uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/customer/reviews/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/customers uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/customers/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/customers/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/availability uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/availability/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` ou..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/available-jobs uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/available-jobs/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/available-jobs/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/available-jobs/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [role..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/bookings uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/bookings/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outsid..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/dashboard-stats uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/dashboard-stats/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])`..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/jobs/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/jobs/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outsi..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs/photos uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/jobs/photos/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` out..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs/time-tracking uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/jobs/time-tracking/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/me uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/me/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a co..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/onboarding/documents uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/onboarding/documents/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [rol..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/onboarding/stripe-return uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/onboarding/stripe-return/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/payouts uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/payouts/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/profile uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/profile/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/ratings uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/ratings/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/status uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/status/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/reviews uses the guard": {
       "outcome": "PASS"
@@ -1018,12 +994,10 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/user/addresses uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/user/addresses/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/user/settings uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/user/settings/route.js: does not import requireCaller from '@/lib/api-auth'; GET does not have `const auth = await requireCaller(request, [roles])` outside a ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PATCH /api/admin/deletion-requests uses the guard": {
       "outcome": "PASS"
@@ -1095,8 +1069,7 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/auth/change-password uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/auth/change-password/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` ou..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/bookings/[id]/reassign uses the guard": {
       "outcome": "PASS"
@@ -1108,90 +1081,70 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/chat uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/chat/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside a comment ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/chat/mark-read uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/chat/mark-read/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/customer/bookings uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/customer/bookings/[id]/approve uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/customer/bookings/[id]/approve/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [r..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/customer/bookings/[id]/cancel uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/customer/bookings/[id]/cancel/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [ro..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/customer/reviews uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/customer/reviews/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outsid..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/customers uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/mobile/push-token uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/mobile/push-token/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outsi..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/payment/create-intent uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/payment/create-intent/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` o..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/provider/availability uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/availability/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` o..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/provider/available-jobs uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/available-jobs/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])`..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/provider/available-jobs/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/available-jobs/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [rol..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/provider/jobs/photos uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/jobs/photos/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` ou..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/provider/jobs/time-tracking uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/jobs/time-tracking/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [role..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/complete uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/onboarding/complete/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [rol..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/create-stripe-account uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/onboarding/create-stripe-account/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/profile uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/onboarding/profile/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [role..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/stripe-complete uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/onboarding/stripe-complete/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(reques..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/update-step uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/onboarding/update-step/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/upload-document uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/onboarding/upload-document/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(reques..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/provider/upload uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/upload/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/reviews uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/reviews/route.js: POST does not have `const auth = await requireCaller(request, [roles])` outside a comment (awaited, a literal roles list, the result kept)"
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/service-locations uses the guard": {
       "outcome": "PASS"
@@ -1209,8 +1162,7 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/user/addresses uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/user/addresses/route.js: does not import requireCaller from '@/lib/api-auth'; POST does not have `const auth = await requireCaller(request, [roles])` outside ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/admin/blogs/[id] uses the guard": {
       "outcome": "PASS"
@@ -1267,30 +1219,25 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/customers/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/customers/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/provider uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/provider/availability uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/availability/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` ou..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/provider/profile uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/provider/profile/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/services uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/user/addresses/[id] uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/user/addresses/[id]/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outs..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/user/settings uses the guard": {
-      "outcome": "FAIL",
-      "error": "Error: src/app/api/user/settings/route.js: does not import requireCaller from '@/lib/api-auth'; PUT does not have `const auth = await requireCaller(request, [roles])` outside a ..."
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › the wiring check gives every shape of the table its verdict": {
       "outcome": "PASS"
@@ -1503,8 +1450,7 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › DELETE /api/user/addresses/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: DELETE /api/user/addresses/[id] [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/admin/blogs": {
       "outcome": "PASS"
@@ -1630,12 +1576,10 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/chat": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/chat [roles (customer, provider, admin)] answered wrongly: none (no credential): got 400, want 401"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/chat/unread": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/chat/unread [roles (customer, provider, admin)] answered wrongly: none (no credential): got 400, want 401"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/cron/auto-release": {
       "outcome": "PASS"
@@ -1644,26 +1588,22 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customer/booking-details": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/customer/booking-details [roles (customer)] answered wrongly: provider-cookie (provider), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customer/bookings": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customer/invoices": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/customer/invoices [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customer/reviews": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/customer/reviews [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customers": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/customers/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/customers/[id] [roles (customer, admin)] answered wrongly: provider-cookie (provider), role not allowed: got 401, want 403 exactly (+1 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/directory": {
       "outcome": "PASS"
@@ -1675,71 +1615,55 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/availability": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/provider/availability [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/available-jobs": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/provider/available-jobs [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/available-jobs/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/provider/available-jobs/[id] [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/bookings": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/provider/bookings [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/check-verification": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/dashboard-stats": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/provider/dashboard-stats [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/jobs": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/provider/jobs [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/provider/jobs/[id] [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/photos": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/provider/jobs/photos [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/time-tracking": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/provider/jobs/time-tracking [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/me": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/provider/me [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/onboarding/documents": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/provider/onboarding/documents [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/onboarding/stripe-return": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/provider/onboarding/stripe-return [roles (provider)] answered wrongly: none (no credential): got 500, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/payouts": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/provider/payouts [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/profile": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/provider/profile [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/ratings": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/provider/ratings [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/status": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/provider/status [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/validate-reset-token": {
       "outcome": "PASS"
@@ -1772,12 +1696,10 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/user/addresses": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/user/addresses [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/user/settings": {
-      "outcome": "FAIL",
-      "error": "Error: GET /api/user/settings [roles (customer, provider)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PATCH /api/admin/deletion-requests": {
       "outcome": "PASS"
@@ -1858,8 +1780,7 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/auth/change-password": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/auth/change-password [roles (customer, provider)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/auth/data-deletion": {
       "outcome": "PASS"
@@ -1913,61 +1834,49 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/chat": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/chat [roles (customer, provider, admin)] answered wrongly: none (no credential): got 400, want 401"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/chat/mark-read": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/chat/mark-read [roles (customer, provider, admin)] answered wrongly: none (no credential): got 400, want 401"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/customer/bookings": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/customer/bookings/[id]/approve": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/customer/bookings/[id]/approve [roles (customer)] answered wrongly: provider-cookie (provider), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/customer/bookings/[id]/cancel": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/customer/bookings/[id]/cancel [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/customer/reviews": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/customer/reviews [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/customers": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/mobile/push-token": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/mobile/push-token [roles (customer, provider)] answered wrongly: none (no credential): got 400, want 401 (+2 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/payment/create-intent": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/payment/create-intent [roles (customer)] answered wrongly: none (no credential): got 500, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/availability": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/provider/availability [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/available-jobs": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/provider/available-jobs [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/available-jobs/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/provider/available-jobs/[id] [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/forgot-password": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/jobs/photos": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/provider/jobs/photos [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/jobs/time-tracking": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/provider/jobs/time-tracking [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/login": {
       "outcome": "PASS"
@@ -1976,28 +1885,22 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/complete": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/complete [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/create-stripe-account": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/create-stripe-account [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/profile": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/profile [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/stripe-complete": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/stripe-complete [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/update-step": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/update-step [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/upload-document": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/provider/onboarding/upload-document [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/reset-password": {
       "outcome": "PASS"
@@ -2006,15 +1909,13 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/upload": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/provider/upload [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/verify-otp": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/reviews": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/reviews [roles (customer)] answered wrongly: none (no credential): got 400, want 401 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/service-locations": {
       "outcome": "PASS"
@@ -2032,8 +1933,7 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/user/addresses": {
-      "outcome": "FAIL",
-      "error": "Error: POST /api/user/addresses [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/admin/blogs/[id]": {
       "outcome": "PASS"
@@ -2090,30 +1990,25 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/customers/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/customers/[id] [roles (customer)] answered wrongly: provider-cookie (provider), role not allowed: got 401, want 403 exactly (+1 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/provider": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/provider/availability": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/provider/availability [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+3 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/provider/profile": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/provider/profile [roles (provider)] answered wrongly: customer-cookie (customer), role not allowed: got 401, want 403 exactly (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/services": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/user/addresses/[id]": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/user/addresses/[id] [roles (customer)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+4 more)"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/user/settings": {
-      "outcome": "FAIL",
-      "error": "Error: PUT /api/user/settings [roles (customer, provider)] answered wrongly: customer-cookie (customer), role allowed: got 401, want anything but 401 or 403 (+3 more)"
+      "outcome": "PASS"
     },
     "booking-flow.spec.js › Booking Flow › booking details should have input fields for customer info": {
       "outcome": "PASS"
@@ -2518,6 +2413,159 @@
       "outcome": "PASS"
     },
     "homepage.spec.js › Homepage › should navigate to /services with the search term when the Search button is clicked": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: POST /api/reviews › Ownership POST /api/reviews: a body naming customer 2 as customer_id, or provider 2 as provider_id, on customer 1's own booking is 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: POST /api/reviews › Ownership POST /api/reviews: a review for the caller's own completed booking is stored with the caller and the booking's provider, and a missing booking keeps its 404": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: POST /api/reviews › Ownership POST /api/reviews: customer1 reviewing customer 2's booking is 403 and no review is added to it": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: auth/change-password › Ownership POST /api/auth/change-password: the lookup is in the caller's own table, so a provider naming customer 1's password and a customer naming provider 1's are both refused 401 and nobody's password changes": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: chat › Ownership GET /api/chat/unread: booking 1's two participants get a count, booking 2, the other side's type and another account's id are 403, the admin may name any": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: chat › Ownership GET /api/chat: a non-participant asking for booking 2 is 403 and sees none of its messages, and the admin reads it": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: chat › Ownership GET /api/chat: the customer and the provider of booking 1 read its messages and none of booking 2's; a missing booking keeps its empty answer": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: chat › Ownership GET /api/chat: the role decides the column, so provider1 (id 1) is refused on a booking whose customer is user 1 and whose provider is provider 2": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: chat › Ownership POST /api/chat/mark-read: booking 2, the other side's userType and a non-participant are 403 and change nothing; the customer of a booking marks the provider's message read and not their own": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: chat › Ownership POST /api/chat: a non-participant posting to booking 2 is 403 and no message is added; a missing booking keeps its 404": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: chat › Ownership POST /api/chat: the stored sender is the caller whatever the body names (customer1 and provider1 on their booking)": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer account › Ownership DELETE /api/user/addresses/[id] and PUT /api/user/addresses/[id]: another customer's address is 403 (not observable: no user_addresses table, no address row to ask for)": {
+      "outcome": "SKIPPED"
+    },
+    "ownership.spec.js › Ownership: customer account › Ownership GET /api/auth/me: each caller gets their own profile from the table of their role (customer 1 and provider 1 share the id 1), the admin the admin": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer account › Ownership GET /api/user/addresses and POST /api/user/addresses: a user_id naming another customer is 403 before any query": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer account › Ownership GET /api/user/addresses: the owner reads their addresses (not observable: the dev database has no user_addresses table, the query answers 500)": {
+      "outcome": "SKIPPED"
+    },
+    "ownership.spec.js › Ownership: customer account › Ownership GET /api/user/settings: a caller reads their own row; a user_id or provider_id naming another account is 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer account › Ownership PUT /api/user/settings: a caller changes only their own row, in the table of their role, and a body user_id or provider_id naming anyone else is 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer booking routes › Ownership GET /api/customer/booking-details: customer1 reads booking 1, booking 2 is 403 and shows none of its fields, a missing booking is 404": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer booking routes › Ownership GET /api/customer/invoices: customer1 lists their own invoice and not customer 2's; ?user_id=, ?email= and both naming customer 2 are 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer booking routes › Ownership GET /api/customer/reviews: customer1 reads the state of their own booking's review, and a customer_id or a booking that is not theirs is 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer booking routes › Ownership POST /api/customer/bookings/[id]/approve: customer1 on booking 1 reaches the status check, on booking 2 is 403 and booking 2 is unchanged, a missing booking is 404": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer booking routes › Ownership POST /api/customer/bookings/[id]/cancel: customer1 cancels their own pending booking, customer 2 cannot cancel it, and customer1 cannot cancel booking 2": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer booking routes › Ownership POST /api/customer/reviews: customer1 on booking 1 reaches the review check; booking 2, a customer_id naming customer 2 and a provider_id naming provider 2 are 403 and add no review": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer booking routes › Ownership POST /api/payment/create-intent: a body naming customer 2 as user_id or customer 2's booking as booking_id is 403, the owner reaches the route's own validation": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customers/[id] › Ownership GET /api/customers/[id]: customer1 asking for customer 2 is 403 and shows none of customer 2's fields": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customers/[id] › Ownership GET /api/customers/[id]: customer1 reads their own profile, by cookie and by Bearer, and none of customer 2's": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customers/[id] › Ownership GET /api/customers/[id]: the admin reads any customer, and a missing id is 404 for the admin and 403 for customer1": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customers/[id] › Ownership PUT /api/customers/[id]: customer1 writes their own profile (a marker in hear_about, read back, then restored)": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customers/[id] › Ownership PUT /api/customers/[id]: customer1 writing customer 2's profile is 403 and customer 2's row is unchanged": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: mobile/push-token › Ownership POST /api/mobile/push-token: a caller registers a token for their own id and role": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: mobile/push-token › Ownership POST /api/mobile/push-token: a userId naming another account, or the other id space's type, is 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider onboarding writes and provider/upload › Ownership POST /api/provider/onboarding/profile: provider2 writes only provider 2's row (a body naming provider 1 is ignored) and provider1 only provider 1's": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider onboarding writes and provider/upload › Ownership POST /api/provider/onboarding/stripe-complete: provider2's account id lands on provider 2's row only and the fallback lookup is each caller's own (no request reaches Stripe)": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider onboarding writes and provider/upload › Ownership POST /api/provider/onboarding/update-step: provider2 moves only provider 2's onboarding_step (a body naming provider 1 is ignored) and provider1 only provider 1's": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider onboarding writes and provider/upload › Ownership POST /api/provider/upload: provider2's file name, document rows, count and avatar are provider 2's, provider 1's row is unchanged, and provider1's upload is provider 1's": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider routes › Ownership GET /api/provider/dashboard-stats: provider1's recent jobs hold booking 1 and not booking 2": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider routes › Ownership GET /api/provider/jobs, GET /api/provider/bookings and GET /api/provider/available-jobs: provider1's lists hold booking 1 and none of booking 2": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider routes › Ownership GET /api/provider/jobs/[id]: provider1 gets their own job and an open one; another provider's booking, a cancelled unassigned one and a missing one keep the 404": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider routes › Ownership GET /api/provider/me, /profile, /onboarding/documents: provider1 gets provider 1's row, not provider 2's and not customer 1's (same id)": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider routes › Ownership GET /api/provider/payouts: provider1 gets their own earnings and payouts and not provider 2's 23.45, and a provider_id naming provider 2 is 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider routes › Ownership GET /api/provider/ratings: provider1 gets their own review and not provider 2's, and a provider_id naming provider 2 is 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider routes › Ownership GET and POST /api/provider/jobs/photos and /jobs/time-tracking: provider1 reaches booking 1, booking 2 and a missing booking keep the 404 and booking 2 is unchanged": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider routes › Ownership POST /api/provider/available-jobs: provider1 claims an open booking and it becomes theirs; booking 2 stays provider 2's; a missing booking keeps its 404": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider/availability and provider/profile writes › Ownership POST /api/provider/availability: provider2's toggle moves provider 2's flag and not provider 1's, and provider1's toggle by cookie and Bearer leaves provider 2's flag alone, whatever ids the body names": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider/availability and provider/profile writes › Ownership PUT /api/provider/availability: provider2's toggle moves provider 2's flag and not provider 1's, and provider1's toggle by cookie and Bearer leaves provider 2's flag alone, whatever ids the body names": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider/availability and provider/profile writes › Ownership PUT /api/provider/profile: provider2 writes provider 2's profile and not provider 1's, and provider1's write by cookie and Bearer leaves provider 2's profile alone, whatever ids the body names": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider/available-jobs/[id] › Ownership GET /api/provider/available-jobs/[id]: an unassigned pending booking answers 200, a cancelled unassigned one and one assigned to provider 2 answer 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider/available-jobs/[id] › Ownership GET /api/provider/available-jobs/[id]: provider1 asking for provider 2's booking is 403 and shows none of its address, description or customer": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider/available-jobs/[id] › Ownership GET /api/provider/available-jobs/[id]: provider1 gets their own booking (200, is_my_job) and a missing booking keeps its 404": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider/available-jobs/[id] › Ownership POST /api/provider/available-jobs/[id]: provider1 accepting provider 2's booking is 403 and booking 2 stays provider 2's": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider/available-jobs/[id] › Ownership POST /api/provider/available-jobs/[id]: provider1 accepts an open booking and it becomes provider 1's; a missing booking keeps its 404": {
       "outcome": "PASS"
     },
     "provider.spec.js › Provider Portal - Auth Protection › provider login page should have form fields": {

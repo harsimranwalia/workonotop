@@ -1,17 +1,25 @@
 import { NextResponse } from 'next/server'
 import { execute } from '@/lib/db'
+import { requireCaller } from '@/lib/api-auth'
 
 export async function GET(request) {
+  const auth = await requireCaller(request, ['customer']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   try {
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('user_id')
+    let userId = searchParams.get('user_id')
     const email = searchParams.get('email')
+    // 'null' and 'undefined' are what a caller with no id sends; the old query read them as no user_id, and they name no one.
+    if (userId === 'null' || userId === 'undefined') userId = null
 
-    if (!userId && !email) {
-      return NextResponse.json(
-        { success: false, message: 'User ID or email is required' },
-        { status: 400 }
-      )
+    // The customer is the caller: a user_id (compared as strings) or an email (compared without case) that names anyone
+    // else is a 403, never a 404. None at all means their own invoices.
+    if (userId && String(userId) !== String(caller.id)) {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
+    }
+    if (email && String(email).toLowerCase() !== String(caller.email ?? '').toLowerCase()) {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
     }
 
     let sql = `
@@ -25,13 +33,9 @@ export async function GET(request) {
     `
     const params = []
 
-    if (userId && userId !== 'null' && userId !== 'undefined') {
-      sql += ' AND (i.user_id = ? OR b.customer_email = ?)'
-      params.push(userId, email || '')
-    } else if (email) {
-      sql += ' AND b.customer_email = ?'
-      params.push(email)
-    }
+    // Ownership comes from the caller (the booking's user_id), never from a parameter.
+    sql += ' AND b.user_id = ?'
+    params.push(caller.id)
 
     sql += ' ORDER BY i.created_at DESC'
 

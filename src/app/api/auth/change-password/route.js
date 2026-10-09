@@ -1,22 +1,13 @@
 import { NextResponse } from 'next/server';
 import { execute as query } from '@/lib/db';
 import bcrypt from 'bcryptjs';
-import { verifyToken } from '@/lib/jwt';
+import { requireCaller } from '@/lib/api-auth';
 
 export async function POST(request) {
+  const auth = await requireCaller(request, ['customer', 'provider']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller;
   try {
-    const authHeader = request.headers.get('Authorization');
-    const token = authHeader ? authHeader.replace('Bearer ', '') : null;
-
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 });
-    }
-
     const { oldPassword, newPassword } = await request.json();
 
     if (!oldPassword || !newPassword) {
@@ -28,22 +19,19 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: 'Password must be at least 8 characters and contain both alphabets and special characters' }, { status: 400 });
     }
 
-    // 1. Fetch user to check current password
-    // We check both tables just in case, similar to login
+    // 1. Fetch the caller's own row to check the current password, in the table of the caller's role
+    // (a customer's id is a users.id and a provider's a service_providers.id; the two id spaces overlap, so the role decides)
     let user = null;
     let table = 'users';
     let passCol = 'password_hash';
+    if (caller.role === 'provider') {
+      table = 'service_providers';
+      passCol = 'password';
+    }
 
-    const users = await query('SELECT id, password_hash FROM users WHERE id = ?', [decoded.id]);
-    if (users.length > 0) {
-      user = users[0];
-    } else {
-      const providers = await query('SELECT id, password FROM service_providers WHERE id = ?', [decoded.id]);
-      if (providers.length > 0) {
-        user = providers[0];
-        table = 'service_providers';
-        passCol = 'password';
-      }
+    const rows = await query(`SELECT id, ${passCol} FROM ${table} WHERE id = ?`, [caller.id]);
+    if (rows.length > 0) {
+      user = rows[0];
     }
 
     if (!user) {
@@ -61,7 +49,7 @@ export async function POST(request) {
     const salt = await bcrypt.genSalt(10);
     const newHash = await bcrypt.hash(newPassword, salt);
 
-    await query(`UPDATE ${table} SET ${passCol} = ?, updated_at = NOW() WHERE id = ?`, [newHash, decoded.id]);
+    await query(`UPDATE ${table} SET ${passCol} = ?, updated_at = NOW() WHERE id = ?`, [newHash, caller.id]);
 
     return NextResponse.json({ success: true, message: 'Password updated successfully' });
 
