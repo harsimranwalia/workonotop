@@ -75,19 +75,25 @@ test.describe('API Routes', () => {
         expect(data.success).toBe(false);
     });
 
-    test('GET /api/services?is_homepage=1 should return homepage services', async ({ request }) => {
-        const response = await request.get('/api/services?is_homepage=1');
+    test('GET /api/services?homepage=true should return only homepage services', async ({ request }) => {
+        // The route filters on `homepage=true` (src/app/api/services/route.js:15, :78); `is_homepage` is not a
+        // parameter it reads, so the old query got every service back.
+        const response = await request.get('/api/services?homepage=true');
         expect(response.status()).toBe(200);
 
         const data = await response.json();
-        expect(data).toHaveProperty('success');
+        expect(data.success).toBe(true);
 
-        if (data.success && data.data) {
-            // All returned services should have is_homepage = 1
-            for (const service of data.data) {
-                expect(service.is_homepage).toBe(1);
-            }
+        // At least one row, so an empty catalogue cannot pass.
+        expect(data.data.length).toBeGreaterThan(0);
+
+        // All returned services should have is_homepage = 1
+        for (const service of data.data) {
+            expect(service.is_homepage).toBe(1);
         }
+
+        // The fixture catalogue has one active service that is not on the homepage; it must be filtered out.
+        expect(data.data.map((service) => service.name)).not.toContain('Fixture Furniture Assembly');
     });
 
     test('GET /api/customers should return response', async ({ request }) => {

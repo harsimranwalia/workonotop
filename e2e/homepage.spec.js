@@ -6,48 +6,69 @@ test.describe('Homepage', () => {
     test('should load and display the hero section', async ({ page }) => {
         await page.goto('/');
 
-        // Hero heading
+        // Hero heading (src/app/HomeClient.js:70-73)
         const heading = page.locator('h1');
         await expect(heading).toBeVisible();
-        await expect(heading).toContainText('Home maintenance');
+        await expect(heading).toContainText('Cleaning, Moving & Handyman Services in Vancouver');
     });
 
-    test('should display stats section (500,000+ / 96% / 4.8)', async ({ page }) => {
+    test('should display the "Why Choose Work On Tap?" section with its five benefits', async ({ page }) => {
         await page.goto('/');
 
-        await expect(page.getByText('500,000+')).toBeVisible();
-        await expect(page.getByText('96%')).toBeVisible();
-        await expect(page.getByText('4.8')).toBeVisible();
+        // The "500,000+ / 96% / 4.8" stats strip is not on the page any more (none of the three occurs in src);
+        // assert the benefits section the page has now (src/app/HomeClient.js:316-325).
+        await expect(page.getByRole('heading', { name: 'Why Choose Work On Tap?' })).toBeVisible();
+        for (const benefit of [
+            'Multiple Services in One Place',
+            'Practical Services for Everyday Needs',
+            'Services Based on Your Actual Needs',
+            'Simple Service Discovery',
+            'Vancouver & Metro Vancouver Service Area',
+        ]) {
+            await expect(page.getByRole('heading', { name: benefit, exact: true })).toBeVisible();
+        }
     });
 
-    test('should display "How WorkOnTap works" section', async ({ page }) => {
-        await page.goto('/');
+    test('service detail page should display "How WorkOnTap works" section', async ({ page }) => {
+        // The section is not on / any more; it is on the service detail page
+        // (src/app/services/[serviceId]/ServiceDetailClientPage.jsx:203-231).
+        await page.goto('/services/fixture-standard-clean');
 
-        await expect(page.getByText('How WorkOnTap works')).toBeVisible();
-        await expect(page.getByText('1. Tell us what you need')).toBeVisible();
-        await expect(page.getByText('2. Instant matches')).toBeVisible();
-        await expect(page.getByText('3. Pro arrives & fixes it')).toBeVisible();
-        await expect(page.getByText('4. Pay & review')).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'How WorkOnTap works' })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Tell us what you need', exact: true })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Get matched instantly', exact: true })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Chat & confirm', exact: true })).toBeVisible();
     });
 
-    test('should navigate to /services when search bar is clicked', async ({ page }) => {
+    test('should navigate to /services with the search term when the Search button is clicked', async ({ page }) => {
         await page.goto('/');
 
-        // Click the search bar area
+        // The hero search is a controlled input whose Search button has no handler until React has hydrated it
+        // (src/components/AnimatedSearchBar.jsx:81-93): wait for that, or typed text and the click can be lost.
+        const searchButton = page.getByRole('button', { name: 'Search', exact: true });
+        await expect.poll(() => searchButton.evaluate((el) => Object.keys(el).some((key) => key.startsWith('__reactProps$')))).toBe(true);
+
+        // Clicking into the field does not navigate; the Search button (or Enter) does, with the term
+        // (AnimatedSearchBar.jsx:44-54).
         const searchInput = page.locator('input[type="text"]').first();
-        await searchInput.click();
+        await searchInput.fill('furniture assembly');
+        await searchButton.click();
 
-        await expect(page).toHaveURL(/\/services/);
+        // A click-driven navigation to a route next dev has not compiled yet waits on that compile: give it the
+        // navigation allowance (playwright.config.js navigationTimeout), not the 10 s expect budget.
+        await expect(page).toHaveURL(/\/services\?search=furniture%20assembly$/, { timeout: 45_000 });
     });
 
-    test('should have "View all services" link that navigates correctly', async ({ page }) => {
+    test('should have "Explore All Services" link that navigates correctly', async ({ page }) => {
         await page.goto('/');
 
-        const viewAllLink = page.getByRole('link', { name: /View all services/i }).first();
+        const viewAllLink = page.getByRole('link', { name: /Explore All Services/i }).first();
         await expect(viewAllLink).toBeVisible();
         await viewAllLink.click();
 
-        await expect(page).toHaveURL(/\/services/);
+        // Click-driven navigation to a route next dev may have to compile first: the navigation allowance of
+        // playwright.config.js, not the 10 s expect budget.
+        await expect(page).toHaveURL(/\/services$/, { timeout: 45_000 });
     });
 
     test('should display Header and Footer components', async ({ page }) => {
@@ -62,18 +83,27 @@ test.describe('Homepage', () => {
         await expect(footer).toBeVisible();
     });
 
-    test('should display homepage services or fallback message', async ({ page }) => {
+    test('should display the service categories section with links to cleaning, moving and handyman services', async ({ page }) => {
         await page.goto('/');
 
-        // Either services are rendered OR the fallback "No trending services" text
-        const servicesSection = page.getByText('What people in Calgary are doing now');
-        await expect(servicesSection).toBeVisible();
+        // The "What people in Calgary are doing now" block is gone (every current copy line is Vancouver);
+        // the page's services block is src/app/HomeClient.js:101-125.
+        await expect(page.getByRole('heading', { name: 'One Place for the Services You Need Most' })).toBeVisible();
+        for (const [category, label] of [
+            ['cleaning', 'Cleaning Services'],
+            ['movers', 'Moving Services'],
+            ['handyman', 'Handyman Services'],
+        ]) {
+            await expect(page.locator(`a[href="/services?category=${category}"]`, { hasText: label }).first()).toBeVisible();
+        }
     });
 
-    test('should display Homeowner Protection Promise section', async ({ page }) => {
-        await page.goto('/');
+    test('service detail page should display Homeowner Protection Promise section', async ({ page }) => {
+        // The promise is not on / any more; it is on the service detail page
+        // (src/app/services/[serviceId]/ServiceDetailClientPage.jsx:237-240).
+        await page.goto('/services/fixture-standard-clean');
 
-        await expect(page.getByText('Homeowner Protection Promise')).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Homeowner Protection Promise' })).toBeVisible();
         await expect(page.getByText(/100% guaranteed/)).toBeVisible();
     });
 });
