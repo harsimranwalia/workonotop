@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { execute, getConnection } from '@/lib/db';
+import { requireCaller } from '@/lib/api-auth';
 
 export async function PUT(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { providerId } = await params;
     const { name, phone, email } = await request.json();
@@ -29,6 +32,8 @@ export async function PUT(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   let connection;
   try {
     const { providerId } = await params;

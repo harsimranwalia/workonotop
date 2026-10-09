@@ -1,8 +1,11 @@
 // app/api/admin/invoices/route.js - FIXED
 import { NextResponse } from 'next/server'
 import { execute } from '@/lib/db'  // ✅ CHANGE: query → execute
+import { requireCaller } from '@/lib/api-auth';
 
 export async function GET(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { searchParams } = new URL(request.url)
     const booking_id = searchParams.get('booking_id')
@@ -46,6 +49,8 @@ export async function GET(request) {
 }
 
 export async function PATCH(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { invoice_id, status } = await request.json()
 

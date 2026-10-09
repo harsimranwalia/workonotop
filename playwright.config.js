@@ -16,7 +16,7 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 10_000 },
 
-  globalSetup: './e2e/support/preflight.js',
+  globalSetup: ['./e2e/support/preflight.js', './e2e/auth/global-setup.js'],
 
   reporter: [
     ['./e2e/support/verdict-reporter.js'],

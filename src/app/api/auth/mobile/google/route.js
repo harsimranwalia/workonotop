@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import { execute as query } from '@/lib/db';
+import { jwtSecret } from '@/lib/jwt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 const ALLOWED_AUDIENCES = [
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
@@ -13,6 +12,9 @@ const ALLOWED_AUDIENCES = [
 
 export async function POST(request) {
   try {
+    // Sessions are signed with the configured JWT_SECRET (src/lib/jwt.js);
+    // without it this route answers before it reads the request.
+    const secret = jwtSecret();
     const body = await request.json().catch(() => ({}));
     const { token, role = 'user', mode = 'login', device_id = 'mobile-app' } = body;
 
@@ -164,7 +166,7 @@ export async function POST(request) {
         role: dbType,
         type: dbType // Critical for provider-specific routes/middleware
       },
-      JWT_SECRET,
+      secret,
       { expiresIn: '7d' }
     );
     const refreshToken = crypto.randomBytes(64).toString('hex');

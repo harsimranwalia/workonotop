@@ -1,13 +1,26 @@
 import { NextResponse } from 'next/server';
 import { execute, withConnection } from '@/lib/db';
-import { verifyToken } from '@/lib/jwt';
 import { sendEmail } from '@/lib/email';
 import { notifyUser } from '@/lib/push';
+import { requireCaller } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
 
+const forbidden = () => NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+
+// The caller must be a participant of the booking: its customer (bookings.user_id), its provider (bookings.provider_id)
+// or an admin. A guest booking has no user_id, so no customer is a participant of it. Never a 404 for a booking that
+// exists (the mobile app logs the user out on a "not found").
+const isParticipant = (caller, booking) =>
+  caller.role === 'admin' ||
+  (caller.role === 'customer' && booking.user_id != null && String(booking.user_id) === String(caller.id)) ||
+  (caller.role === 'provider' && booking.provider_id != null && String(booking.provider_id) === String(caller.id));
+
 // GET messages
 export async function GET(request) {
+  const auth = await requireCaller(request, ['customer', 'provider', 'admin']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller;
   try {
     const { searchParams } = new URL(request.url);
     const bookingId = searchParams.get('bookingId');
@@ -21,6 +34,14 @@ export async function GET(request) {
 
     // use a single connection for all queries involved in this request
     return await withConnection(async (connection) => {
+      // The booking decides who may read: a booking that does not exist keeps the route's existing answer (an empty
+      // list and the status 'unknown'); one that exists is read only by a participant or an admin.
+      const [bookings] = await connection.execute(
+        'SELECT status, user_id, provider_id FROM bookings WHERE id = ?',
+        [bookingId]
+      );
+      if (bookings.length > 0 && !isParticipant(caller, bookings[0])) return forbidden();
+
       const [messages] = await connection.execute(
         `SELECT * FROM chat_messages 
            WHERE booking_id = ? 
@@ -48,11 +69,7 @@ export async function GET(request) {
         messagesWithNames.push({ ...msg, sender_name });
       }
 
-      // Get booking status
-      const [bookings] = await connection.execute(
-        'SELECT status FROM bookings WHERE id = ?',
-        [bookingId]
-      );
+      // Get booking status (read above, with the participant check)
       const bookingStatus = bookings[0]?.status || 'unknown';
 
       return NextResponse.json({
@@ -71,8 +88,11 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  const auth = await requireCaller(request, ['customer', 'provider', 'admin']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller;
   try {
-    const { bookingId, message, senderType: requestedRole } = await request.json();
+    const { bookingId, message } = await request.json();
 
     if (!bookingId || !message) {
       return NextResponse.json(
@@ -81,52 +101,19 @@ export async function POST(request) {
       );
     }
 
-    let token = null;
-
-    // Support Bearer token from Mobile App
-    const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.split(' ')[1];
-    }
-    
-    // Support Web Cookies (Preventing dual-login conflicts)
-    if (!token) {
-      if (requestedRole === 'provider') {
-        token = request.cookies.get('provider_token')?.value;
-      } else if (requestedRole === 'customer') {
-        token = request.cookies.get('customer_token')?.value;
-      } else {
-        token = request.cookies.get('adminAuth')?.value || 
-                request.cookies.get('customer_token')?.value || 
-                request.cookies.get('provider_token')?.value;
-      }
-    }
-    
-    if (!token) {
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid token' },
-        { status: 401 }
-      );
-    }
-
-    const senderType = decoded.providerId ? 'provider' : 'customer';
-    const senderId = decoded.providerId || decoded.id;
+    // The sender is the caller, never a field of the body (a body senderType is ignored). chat_messages.sender_type is
+    // 'customer' or 'provider' only, so an admin is stored as 'customer' under their own id (the old line stored any
+    // token without a providerId that way).
+    const senderType = caller.role === 'provider' ? 'provider' : 'customer';
+    const senderId = caller.id;
 
     // perform all database work on a single connection for the whole
     // request.  this prevents the pool from handing out multiple sockets
     // when we could have just reused one.
     return await withConnection(async (connection) => {
-      // Check booking exists
+      // Check booking exists (404), then that the caller is a participant of it (403)
       const [bookings] = await connection.execute(
-        `SELECT id, status FROM bookings WHERE id = ?`,
+        `SELECT id, status, user_id, provider_id FROM bookings WHERE id = ?`,
         [bookingId]
       );
 
@@ -136,6 +123,8 @@ export async function POST(request) {
           { status: 404 }
         );
       }
+
+      if (!isParticipant(caller, bookings[0])) return forbidden();
 
       // Insert message
       const [result] = await connection.execute(

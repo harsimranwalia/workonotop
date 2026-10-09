@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
 import { execute as query } from '@/lib/db'
+import { jwtSecret } from '@/lib/jwt'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
-
 export async function POST(request) {
     try {
+        // Sessions are signed with the configured JWT_SECRET (src/lib/jwt.js);
+        // without it this route answers before it reads the request.
+        const secret = jwtSecret();
         const body = await request.json().catch(() => ({}));
         const { refreshToken } = body;
 
@@ -35,16 +37,16 @@ export async function POST(request) {
 
         const session = sessions[0];
 
-        // Fetch user data based on user_type
+        // The role comes from the account row the session points to.
         let user = null;
-        let dbRole = session.user_type;
+        let dbRole = null;
 
-        if (dbRole === 'provider') {
+        if (session.provider_id != null) {
             const providers = await query('SELECT * FROM service_providers WHERE id = ?', [session.provider_id]);
-            if (providers.length > 0) user = providers[0];
-        } else {
-            const users = await query('SELECT * FROM users WHERE id = ?', [session.user_id]);
-            if (users.length > 0) user = users[0];
+            if (providers.length > 0) { user = providers[0]; dbRole = 'provider'; }
+        } else if (session.user_id != null) {
+            const rows = await query('SELECT * FROM users WHERE id = ?', [session.user_id]);
+            if (rows.length > 0) { user = rows[0]; dbRole = rows[0].role === 'admin' ? 'admin' : 'customer'; }
         }
 
         if (!user) {
@@ -74,7 +76,7 @@ export async function POST(request) {
                 status: user.status || 'active',
                 type: dbRole
             },
-            JWT_SECRET,
+            secret,
             { expiresIn: '7d' } // Access token valid for 7 days
         );
 

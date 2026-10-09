@@ -4,12 +4,12 @@
 // app/api/provider/route.js - OPTIONAL IMPROVEMENT
 import { NextResponse } from 'next/server'
 import { execute } from '@/lib/db'  // ✅ CHANGE: query → execute
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this'
+import { requireCaller } from '@/lib/api-auth'
 
 // GET
 export async function GET(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -51,9 +51,16 @@ export async function GET(request) {
 
 // PUT
 export async function PUT(request) {
+  const auth = await requireCaller(request, ['admin', 'provider']);
+  if (!auth.ok) return auth.response;
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
+    // The ?id= branches edit any provider: admin only. The branch without ?id= is the signed-in provider's own
+    // profile: provider only (an admin has no profile to update). Decided before the body is read.
+    if (id ? auth.caller.role !== 'admin' : auth.caller.role !== 'provider') {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
+    }
     const body = await request.json()
 
     // Admin: status update or full provider edit
@@ -117,15 +124,7 @@ export async function PUT(request) {
       return NextResponse.json({ success: true, message: 'Provider updated' })
     }
 
-    // Provider: own profile update
-    const token = request.headers.get('Authorization')?.split(' ')[1]
-    if (!token) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
-
-    let decoded
-    try { decoded = jwt.verify(token, JWT_SECRET) } catch {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 })
-    }
-
+    // Provider: own profile update (the id is the signed-in provider's, never a query or body value)
     const { name, email, phone, specialty, experience_years, bio, location, city, service_cities, avatar_url } = body
 
     if (!name || !email || !phone) {
@@ -135,7 +134,7 @@ export async function PUT(request) {
     // ✅ Using execute()
     const existing = await execute(
       'SELECT id FROM service_providers WHERE email = ? AND id != ?',
-      [email, decoded.id]
+      [email, auth.caller.id]
     )
     if (existing.length > 0) {
       return NextResponse.json({ success: false, message: 'Email already in use' }, { status: 400 })
@@ -152,7 +151,7 @@ export async function PUT(request) {
         experience_years ? parseInt(experience_years) : null,
         bio || null, location || null, city || null, 
         Array.isArray(service_cities) ? JSON.stringify(service_cities) : null,
-        avatar_url || null, decoded.id]
+        avatar_url || null, auth.caller.id]
     )
 
     // ✅ Using execute()
@@ -160,7 +159,7 @@ export async function PUT(request) {
       `SELECT id, name, email, phone, specialty, experience_years,
               rating, total_jobs, bio, avatar_url, location, city, status, service_cities
        FROM service_providers WHERE id = ?`,
-      [decoded.id]
+      [auth.caller.id]
     )
 
     return NextResponse.json({ success: true, message: 'Profile updated successfully', data: updated[0] })
@@ -173,6 +172,8 @@ export async function PUT(request) {
 
 // DELETE
 export async function DELETE(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   const { getConnection } = await import('@/lib/db')
   let connection
   try {

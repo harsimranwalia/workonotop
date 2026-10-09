@@ -1,54 +1,11 @@
 import { NextResponse } from 'next/server'
 import { execute } from '@/lib/db'
-import jwt from 'jsonwebtoken'
 import { logActivity } from '@/lib/logger'
-
-const JWT_SECRET = process.env.JWT_SECRET
-
-async function getAdmin(request) {
-    let token = request.cookies.get('adminAuth')?.value
-    
-    if (!token) {
-        const authHeader = request.headers.get('Authorization');
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            token = authHeader.split(' ')[1];
-        }
-    }
-
-    if (!token) {
-        console.log('Admin Auth: No token found')
-        return null
-    }
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET)
-        if (!decoded) {
-            console.log('Admin Auth: Token verification failed')
-            return null
-        }
-        
-        console.log('Admin Auth: Decoded token:', decoded)
-        
-        // Database se verify karo (like admin/me does)
-        const users = await execute(
-            "SELECT id FROM users WHERE id = ? AND role = 'admin'",
-            [decoded.id]
-        )
-        
-        if (!users || users.length === 0) {
-            console.log('Admin Auth: User not found or not admin. ID:', decoded.id)
-            return null
-        }
-        
-        return decoded
-    } catch (err) {
-        console.error('Admin Auth: Error during verification:', err.message)
-        return null
-    }
-}
+import { requireCaller } from '@/lib/api-auth';
 
 export async function GET(request) {
-    const admin = await getAdmin(request)
-    if (!admin) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    const auth = await requireCaller(request, ['admin']);
+    if (!auth.ok) return auth.response;
 
     try {
         const results = await execute('SELECT `key`, `value` FROM system_settings')
@@ -64,8 +21,8 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-    const admin = await getAdmin(request)
-    if (!admin) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    const auth = await requireCaller(request, ['admin']);
+    if (!auth.ok) return auth.response;
 
     try {
         const body = await request.json()
@@ -81,7 +38,7 @@ export async function POST(request) {
 
         // Log Activity
         logActivity({
-            actor_id: admin.id,
+            actor_id: auth.caller.id,
             actor_type: 'admin',
             actor_name: 'Admin', // Would need an extra query to get first/last name, fallback to Admin
             action: 'SYSTEM_SETTINGS_UPDATED',

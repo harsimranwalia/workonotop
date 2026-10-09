@@ -1,30 +1,12 @@
 import { NextResponse } from 'next/server';
 import { execute } from '@/lib/db';
-import { verifyToken } from '@/lib/jwt';
+import { requireCaller } from '@/lib/api-auth';
 
 export async function GET(request) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
   try {
-    let token = request.cookies.get('provider_token')?.value;
-    
-    if (!token) {
-        const authHeader = request.headers.get('Authorization');
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            token = authHeader.split(' ')[1];
-        }
-    }
-
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = verifyToken(token);
-    const userType = decoded?.type || decoded?.role;
-
-    if (!decoded || userType !== 'provider') {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 });
-    }
-
-    const providerId = decoded.providerId || decoded.id;
+    const providerId = auth.caller.id;
     const { searchParams } = new URL(request.url);
     const statusFilter = searchParams.get('status');
 

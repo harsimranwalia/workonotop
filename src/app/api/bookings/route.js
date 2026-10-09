@@ -1,11 +1,12 @@
 import Stripe from 'stripe'
-import jwt from 'jsonwebtoken'
 import { NextResponse } from 'next/server'
+import { requireCaller, callerFrom } from '@/lib/api-auth'
 import { withConnection, execute, getConnection } from '@/lib/db'
 import { notifyUser } from '@/lib/push'
 import { sendEmail } from '@/lib/email'
 import { getClusterFromCity } from '@/lib/location'
 import { logActivity } from '@/lib/logger'
+import { catalogPrice } from '@/lib/booking-price'
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-05-27.dahlia' }) : null
 
@@ -20,6 +21,8 @@ function calcProviderAmount(servicePrice, commissionPct) {
 }
 
 export async function GET(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { searchParams } = new URL(request.url)
     const email = searchParams.get('email')
@@ -83,7 +86,7 @@ export async function POST(request) {
   try {
     const body = await request.json()
     let {
-      service_id, service_name, service_price, additional_price,
+      service_id, service_name,
       first_name, last_name, name, email, phone,
       job_date, job_time_slot, timing_constraints, job_description, instructions,
       parking_access, elevator_access, has_pets,
@@ -92,20 +95,15 @@ export async function POST(request) {
       payment_intent_id,
     } = body
 
-    // --- NEW: Token-based User ID Override (Security & Stale State Protection) ---
+    // --- Token-based User ID Override (Security & Stale State Protection) ---
+    // This route stays public (guest checkout). A verified customer (cookie or Bearer, read by the shared
+    // guard's normaliser) owns the booking they make: their id replaces any body user_id. With no customer
+    // credential the body user_id is honoured as before, because the app's booking screen sends none (ENG-004 residual R1).
     let authenticatedUserId = user_id;
-    const authHeader = request.headers.get('Authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        if (decoded && decoded.id) {
-          authenticatedUserId = Number(decoded.id);
-          console.log(`🛡️ [API Bookings] Overriding user_id ${user_id} with authenticated ID ${authenticatedUserId}`);
-        }
-      } catch (err) {
-        console.error('❌ [API Bookings] Invalid token in create booking:', err.message);
-      }
+    const customer = await callerFrom(request, ['customer']);
+    if (customer) {
+      authenticatedUserId = Number(customer.id);
+      console.log(`🛡️ [API Bookings] Overriding user_id ${user_id} with authenticated ID ${authenticatedUserId}`);
     }
     // ----------------------------------------------------------------------------
 
@@ -154,11 +152,16 @@ export async function POST(request) {
         : `Selected Dates: ${allDatesString}`;
     }
 
-    const [serviceInfo] = await execute('SELECT duration_minutes FROM services WHERE id = ?', [service_id])
-    const standardDuration = serviceInfo?.duration_minutes || 60
+    // The booking records the catalog's price and hourly rate of its service, read here.
+    const [serviceInfo] = await execute('SELECT duration_minutes, base_price, additional_price, is_active FROM services WHERE id = ?', [service_id])
+    const catalog = catalogPrice(serviceInfo)
+    if (!catalog) {
+      return NextResponse.json({ success: false, message: 'This service is not available for booking' }, { status: 400 })
+    }
+    const standardDuration = serviceInfo.duration_minutes || 60
 
-    const basePrice = parseFloat(service_price || 0)
-    const overtimeRate = parseFloat(additional_price || 0)
+    const basePrice = catalog.price
+    const overtimeRate = catalog.rate
     const maxOvertimeCost = overtimeRate * 2
     const totalAuthorizedAmount = basePrice + maxOvertimeCost
 
@@ -203,7 +206,7 @@ export async function POST(request) {
          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,'pending','not_started','authorized',?,?,?)`,
         [
           bookingNumber, authenticatedUserId || null, service_id || null, service_name || null,
-          service_price || 0, additional_price || 0,
+          basePrice, overtimeRate,
           first_name || '', last_name || '', email || '', phone || '',
           primaryJobDate || null, timeSlotString || null, finalTimingConstraints || null,
           job_description || '', instructions || null,
@@ -322,7 +325,7 @@ export async function POST(request) {
         success: true,
         booking_id: bookingId,
         booking_number: bookingNumber,
-        overtime_rate: additional_price,
+        overtime_rate: overtimeRate,
         standard_duration: standardDuration,
         authorized_amount: totalAuthorizedAmount,
         message: `✅ Booking confirmed. Card authorized for $${totalAuthorizedAmount}`
@@ -340,6 +343,8 @@ export async function POST(request) {
 }
 
 export async function PUT(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   let connection;
   try {
     const { searchParams } = new URL(request.url);
@@ -349,19 +354,9 @@ export async function PUT(request) {
 
     const { status, provider_id, notes, job_time_slot, commission_percent, payment_status } = body;
 
-    let authenticatedUserId = null;
-    let actorType = 'system';
-    const authHeader = request.headers.get('Authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        if (decoded && decoded.id) {
-          authenticatedUserId = Number(decoded.id);
-          actorType = decoded.role === 'admin' ? 'admin' : (decoded.providerId ? 'provider' : 'customer');
-        }
-      } catch (err) {}
-    }
+    // The guard above admits only an admin: the activity log names that admin, from the verified caller.
+    const authenticatedUserId = Number(auth.caller.id);
+    const actorType = 'admin';
 
     if (!id) return NextResponse.json({ success: false, message: 'Booking ID required' }, { status: 400 });
 
@@ -532,6 +527,8 @@ export async function PUT(request) {
 }
 
 export async function DELETE(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   let connection
   try {
     const { searchParams } = new URL(request.url)

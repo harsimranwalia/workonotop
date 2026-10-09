@@ -13,6 +13,15 @@ export async function POST(request) {
             }, { status: 400 })
         }
 
+        // ENG-022 S1: a non-string email throws at .trim() below (a 500) and otp is stringified into cleanOtp; refuse
+        // a non-string for either with 400 first (a 500 becomes a 400, a JSON-number otp is not coerced).
+        if (typeof email !== 'string' || typeof otp !== 'string') {
+            return NextResponse.json({
+                success: false,
+                message: 'Email and verification code required'
+            }, { status: 400 })
+        }
+
         const cleanEmail = (email || '').trim().toLowerCase();
         const cleanOtp = (otp || '').toString().trim();
 

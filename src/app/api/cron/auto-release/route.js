@@ -2,22 +2,14 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { execute, getConnection } from '@/lib/db'
+import { requireCronSecret } from '@/lib/api-auth'
+import { providerPayout } from '@/lib/booking-price'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock', { apiVersion: '2026-05-27.dahlia' })
 
 export async function GET(request) {
-  const authHeader = request.headers.get('authorization')
-  const secretQuery = request.nextUrl.searchParams.get('secret')
-  
-  // Allow if in dev, if header matches, or if query parameter matches
-  const isAuthorized = 
-    process.env.NODE_ENV === 'development' || 
-    authHeader === `Bearer ${process.env.CRON_SECRET}` ||
-    (secretQuery && secretQuery === process.env.CRON_SECRET)
-
-  if (!isAuthorized) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const secret = requireCronSecret(request)
+  if (!secret.ok) return secret.response
 
   // Find all bookings awaiting_approval for more than 24 hours with no customer response
   const expiredBookings = await execute(`
@@ -41,15 +33,16 @@ export async function GET(request) {
     try {
       await connection.query('START TRANSACTION')
 
+      // The release captures the booking's recorded price and pays the provider by the payout rule.
       // Capture payment
       try {
-        await stripe.paymentIntents.capture(booking.payment_intent_id)
+        await stripe.paymentIntents.capture(booking.payment_intent_id, { amount_to_capture: Math.round(parseFloat(booking.service_price || 0) * 100) })
       } catch (err) {
         if (!err.message.includes('already been captured')) throw err
       }
 
       // Transfer to provider
-      const providerAmount = parseFloat(booking.final_provider_amount || booking.provider_amount || 0)
+      const providerAmount = providerPayout(booking)
       const providerAmountCents = Math.round(providerAmount * 100)
 
       if (providerAmountCents > 0 && booking.stripe_account_id) {
@@ -67,8 +60,8 @@ export async function GET(request) {
       }
 
       await connection.execute(
-        `UPDATE bookings SET status = 'completed', payment_status = 'paid', updated_at = NOW() WHERE id = ?`,
-        [booking.id]
+        `UPDATE bookings SET status = 'completed', payment_status = 'paid', final_provider_amount = ?, updated_at = NOW() WHERE id = ?`,
+        [providerAmount, booking.id]
       )
       await connection.execute(
         `INSERT INTO booking_status_history (booking_id, status, notes) VALUES (?, 'completed', 'Auto-released after 24 hours - no customer response')`,

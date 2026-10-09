@@ -39,7 +39,7 @@ test.describe('Provider Portal - Auth Protection', () => {
         await page.goto('/provider/login');
 
         // The provider layout renders only a spinner until its /api/provider/me check returns
-        // (src/app/provider/layout.js:75,:107,:122,:220), after page.goto has resolved on `load`: so wait
+        // (src/app/provider/layout.js:75,:107,:122,:224), after page.goto has resolved on `load`: so wait
         // for the fields (an email and a password input) instead of counting inputs at once.
         await expect(page.locator('input[type="email"], input[name="email"]').first()).toBeVisible();
         await expect(page.locator('input[type="password"]').first()).toBeVisible();

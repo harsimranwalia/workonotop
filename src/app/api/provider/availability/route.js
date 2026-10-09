@@ -1,24 +1,13 @@
 import { NextResponse } from 'next/server';
 import { execute } from '@/lib/db';
-import { verifyToken } from '@/lib/jwt';
+import { requireCaller } from '@/lib/api-auth';
 
 // GET — return is_available status
 export async function GET(request) {
+    const auth = await requireCaller(request, ['provider']);
+    if (!auth.ok) return auth.response;
     try {
-        let token = request.cookies.get('provider_token')?.value;
-        if (!token) {
-            const auth = request.headers.get('Authorization');
-            if (auth?.startsWith('Bearer ')) token = auth.split(' ')[1];
-        }
-        if (!token) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-
-        const decoded = verifyToken(token);
-        const userType = decoded?.type || decoded?.role;
-        if (!decoded || userType !== 'provider') {
-            return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 });
-        }
-
-        const providerId = decoded.providerId || decoded.id;
+        const providerId = auth.caller.id;
         const rows = await execute(
             'SELECT is_available FROM service_providers WHERE id = ?',
             [providerId]
@@ -36,29 +25,21 @@ export async function GET(request) {
 
 // POST/PUT — toggle is_available
 export async function POST(request) {
-    return await handleToggle(request);
+    const auth = await requireCaller(request, ['provider']);
+    if (!auth.ok) return auth.response;
+    return await handleToggle(request, auth.caller);
 }
 
 export async function PUT(request) {
-    return await handleToggle(request);
+    const auth = await requireCaller(request, ['provider']);
+    if (!auth.ok) return auth.response;
+    return await handleToggle(request, auth.caller);
 }
 
-async function handleToggle(request) {
+// The guard has run in POST and PUT; the flag it writes is the caller's own row, never an id from the request.
+async function handleToggle(request, caller) {
     try {
-        let token = request.cookies.get('provider_token')?.value;
-        if (!token) {
-            const auth = request.headers.get('Authorization');
-            if (auth?.startsWith('Bearer ')) token = auth.split(' ')[1];
-        }
-        if (!token) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-
-        const decoded = verifyToken(token);
-        const userType = decoded?.type || decoded?.role;
-        if (!decoded || userType !== 'provider') {
-            return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 });
-        }
-
-        const providerId = decoded.providerId || decoded.id;
+        const providerId = caller.id;
         const { is_available } = await request.json();
 
         // Try to update; if column doesn't exist, add it first

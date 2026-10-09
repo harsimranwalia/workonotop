@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
 import { withConnection } from '@/lib/db'
+import { requireCaller } from '@/lib/api-auth'
 
 export async function POST(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await params
     const { new_provider_id, old_provider_id } = await request.json()

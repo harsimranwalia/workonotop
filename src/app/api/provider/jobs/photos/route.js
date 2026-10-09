@@ -1,33 +1,18 @@
 // app/api/provider/jobs/photos/route.js - FIXED with cookie auth
 import { NextResponse } from 'next/server'
 import { execute, getConnection } from '@/lib/db'
-import { verifyToken } from '@/lib/jwt'
+import { requireCaller } from '@/lib/api-auth'
 import exifr from 'exifr'
 import path from 'path'
 import { readFile } from 'fs/promises'
 
 // POST: Upload photo record
 export async function POST(request) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   let connection
   try {
-    // ✅ Handle both Cookie and Bearer token auth
-    let token = request.cookies.get('provider_token')?.value
-    if (!token) {
-      const authHeader = request.headers.get('Authorization')
-      if (authHeader?.startsWith('Bearer ')) {
-        token = authHeader.split(' ')[1]
-      }
-    }
-
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
-    }
-    
-    const decoded = verifyToken(token)
-    if (!decoded || (decoded.type !== 'provider' && decoded.role !== 'provider')) {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 })
-    }
-
     const { booking_id, photo_url, photo_type } = await request.json()
 
     if (!booking_id || !photo_url || !photo_type) {
@@ -48,10 +33,11 @@ export async function POST(request) {
     await connection.query('START TRANSACTION')
 
     try {
-      // Verify booking belongs to provider - using decoded.providerId
+      // Ownership: the booking must be the caller's own (provider_id = caller.id). The query filters by owner, so a
+      // booking that is another provider's and one that does not exist both answer the route's existing 404 below.
       const [[booking]] = await connection.execute(
         `SELECT id FROM bookings WHERE id = ? AND provider_id = ?`,
-        [booking_id, decoded.providerId]  // Note: using providerId
+        [booking_id, caller.id]
       )
 
       if (!booking) {
@@ -82,7 +68,7 @@ export async function POST(request) {
       await connection.execute(
         `INSERT INTO job_photos (booking_id, photo_url, photo_type, uploaded_by, captured_at)
          VALUES (?, ?, ?, ?, ?)`,
-        [booking_id, photo_url, photo_type, decoded.providerId, capturedAt]
+        [booking_id, photo_url, photo_type, caller.id, capturedAt]
       )
 
       // Update booking photo status
@@ -123,25 +109,10 @@ export async function POST(request) {
 
 // GET: Get photos for a booking
 export async function GET(request) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   try {
-    // ✅ Handle both Cookie and Bearer token auth
-    let token = request.cookies.get('provider_token')?.value
-    if (!token) {
-      const authHeader = request.headers.get('Authorization')
-      if (authHeader?.startsWith('Bearer ')) {
-        token = authHeader.split(' ')[1]
-      }
-    }
-
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
-    }
-    
-    const decoded = verifyToken(token)
-    if (!decoded || (decoded.type !== 'provider' && decoded.role !== 'provider')) {
-      return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 })
-    }
-
     const { searchParams } = new URL(request.url)
     const booking_id = searchParams.get('booking_id')
 
@@ -152,10 +123,11 @@ export async function GET(request) {
       }, { status: 400 })
     }
 
-    // First verify the booking belongs to this provider
+    // Ownership: the booking must be the caller's own (provider_id = caller.id). The query filters by owner, so a
+    // booking that is another provider's and one that does not exist both answer the route's existing 404 below.
     const booking = await execute(
       `SELECT id FROM bookings WHERE id = ? AND provider_id = ?`,
-      [booking_id, decoded.providerId]
+      [booking_id, caller.id]
     )
 
     if (booking.length === 0) {

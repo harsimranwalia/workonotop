@@ -1,8 +1,11 @@
 // app/api/customers/route.js - FIXED
 import { NextResponse } from 'next/server'
 import { execute } from '@/lib/db'
+import { requireCaller } from '@/lib/api-auth'
 
 export async function GET(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { searchParams } = new URL(request.url)
     const email = searchParams.get('email')
@@ -48,6 +51,8 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { first_name, last_name, email, phone, password, role } = await request.json()
 
@@ -95,6 +100,8 @@ export async function POST(request) {
 }
 
 export async function PUT(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -145,6 +152,8 @@ export async function PUT(request) {
 }
 
 export async function DELETE(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   const { getConnection } = await import('@/lib/db')
   let connection
   try {

@@ -2,9 +2,12 @@
 import { NextResponse } from 'next/server';
 import { execute } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
+import { requireCaller } from '@/lib/api-auth';
 
 // ─── GET: provider info + all documents ──────────────────────────────────────
 export async function GET(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { providerId } = await params;
 
@@ -39,6 +42,8 @@ export async function GET(request, { params }) {
 
 // ─── POST: approve_all | reject_all ──────────────────────────────────────────
 export async function POST(request, { params }) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { providerId } = await params;
     const { action, rejectionReason } = await request.json();

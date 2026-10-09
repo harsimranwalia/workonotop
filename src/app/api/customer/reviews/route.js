@@ -2,9 +2,15 @@
 import { NextResponse } from 'next/server'
 import { getConnection } from '@/lib/db'
 import { logActivity } from '@/lib/logger'
+import { requireCaller } from '@/lib/api-auth'
+
+const forbidden = () => NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
 
 // POST - Submit a review
 export async function POST(request) {
+  const auth = await requireCaller(request, ['customer']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   let connection
   try {
     const { booking_id, provider_id, customer_id, rating, review, is_anonymous } = await request.json()
@@ -24,7 +30,20 @@ export async function POST(request) {
       }, { status: 400 })
     }
 
+    // A customer reviews as themselves: a customer_id naming anyone else is a 403 and is never stored (the caller's id is).
+    if (String(customer_id) !== String(caller.id)) return forbidden()
+
     connection = await getConnection()
+
+    // The booking must be the caller's own (bookings.user_id), and the provider reviewed is the booking's own: another
+    // account's booking, or a provider_id naming anyone else, is a 403. A booking that does not exist is left to the
+    // payment check below, which answers it as it always has.
+    const [[owned]] = await connection.execute('SELECT user_id, provider_id FROM bookings WHERE id = ?', [booking_id])
+    if (owned) {
+      if (String(owned.user_id) !== String(caller.id)) return forbidden()
+      if (String(provider_id) !== String(owned.provider_id)) return forbidden()
+    }
+
     await connection.query('START TRANSACTION')
 
     try {
@@ -45,6 +64,9 @@ export async function POST(request) {
         }, { status: 400 })
       }
 
+      // The review is written for the caller and for the booking's own provider, never for ids from the body.
+      const bookingProviderId = invoices[0].provider_id
+
       // Check if already reviewed
       const [existing] = await connection.execute(
         'SELECT id FROM provider_reviews WHERE booking_id = ?',
@@ -64,7 +86,7 @@ export async function POST(request) {
         `INSERT INTO provider_reviews 
          (booking_id, provider_id, customer_id, rating, review, is_anonymous)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [booking_id, provider_id, customer_id, rating, review || null, is_anonymous || false]
+        [booking_id, bookingProviderId, caller.id, rating, review || null, is_anonymous || false]
       )
 
       // Update provider's average rating
@@ -80,19 +102,19 @@ export async function POST(request) {
              WHERE provider_id = ?
            )
          WHERE sp.id = ?`,
-        [provider_id, provider_id, provider_id]
+        [bookingProviderId, bookingProviderId, bookingProviderId]
       )
 
       await connection.query('COMMIT')
 
       // Log Activity
       logActivity({
-        actor_id: customer_id,
+        actor_id: caller.id,
         actor_type: 'customer',
-        actor_name: `Customer #${customer_id}`, // customer name is not explicitly passed, fallback to ID
+        actor_name: `Customer #${caller.id}`, // customer name is not explicitly passed, fallback to ID
         action: 'REVIEW_SUBMITTED',
         entity_type: 'provider',
-        entity_id: provider_id,
+        entity_id: bookingProviderId,
         details: { booking_id, rating }
       })
 
@@ -120,6 +142,9 @@ export async function POST(request) {
 
 // GET - Check if customer can review
 export async function GET(request) {
+  const auth = await requireCaller(request, ['customer']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   try {
     const { searchParams } = new URL(request.url)
     const booking_id = searchParams.get('booking_id')
@@ -132,8 +157,15 @@ export async function GET(request) {
       }, { status: 400 })
     }
 
+    // A customer_id naming anyone else is a 403; the query below uses the caller's id.
+    if (String(customer_id) !== String(caller.id)) return forbidden()
+
     const { query } = await import('@/lib/db')
-    
+
+    // A booking that exists but is not the caller's own is a 403, never the 404 below; one that does not exist keeps the 404.
+    const [booking] = await query('SELECT user_id FROM bookings WHERE id = ?', [booking_id])
+    if (booking && String(booking.user_id) !== String(caller.id)) return forbidden()
+
     const results = await query(
       `SELECT 
         b.id,
@@ -146,7 +178,7 @@ export async function GET(request) {
        FROM bookings b
        JOIN invoices i ON b.id = i.booking_id
        WHERE b.id = ? AND b.user_id = ?`,
-      [booking_id, customer_id]
+      [booking_id, caller.id]
     )
 
     if (results.length === 0) {

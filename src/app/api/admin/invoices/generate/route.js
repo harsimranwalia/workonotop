@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
 import { execute } from '@/lib/db'
+import { requireCaller } from '@/lib/api-auth';
+import { providerPayout, commissionPercentOf } from '@/lib/booking-price'
 
 export async function POST(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { booking_id } = await request.json()
 
@@ -34,28 +38,22 @@ export async function POST(request) {
       }, { status: 400 })
     }
 
-    // FIXED CALCULATION LOGIC
+    // The invoice total is the booking's recorded price; time past the standard duration is shown, not billed.
     const standardDuration = parseInt(booking.service_duration || 60)
     const baseRate = parseFloat(booking.service_price || 0) // This is the fixed base price
     const overtimeRatePerHour = parseFloat(booking.additional_price || 0) // Overtime rate per hour
-    const actualDuration = parseInt(booking.submitted_duration_minutes || booking.actual_duration_minutes || 0)
+    const actualDuration = parseInt(booking.actual_duration_minutes || 0)
 
     // Base amount is ALWAYS the full service price (no prorating for working less)
     let baseAmount = baseRate
     let overtimeMinutes = 0
-    let overtimeAmount = 0
+    const overtimeAmount = 0
 
     // Only calculate overtime if actual duration exceeds standard duration
     if (actualDuration > standardDuration) {
       overtimeMinutes = actualDuration - standardDuration
-      
-      // Calculate overtime amount (overtime rate is per hour)
-      // Convert to per minute: overtimeRatePerHour / 60
-      const overtimeRatePerMinute = overtimeRatePerHour / 60
-      overtimeAmount = Math.round((overtimeRatePerMinute * overtimeMinutes) * 100) / 100
     }
-    const wCount = parseInt(booking.submitted_headcount || booking.worker_count || 1)
-    const totalAmount = (baseAmount + overtimeAmount) * wCount
+    const totalAmount = baseAmount
     const invoiceNumber = `INV-${new Date().getFullYear()}-${String(booking_id).padStart(5, '0')}`
 
     // Check if invoice already exists (upsert: update instead of blocking)
@@ -66,14 +64,13 @@ export async function POST(request) {
     const invoiceAlreadyExists = existing.length > 0
 
     // Calculate commission and provider earnings
-    const commissionPercent = parseFloat(booking.commission_percent || 0)
-    const commissionAmount = Math.round((totalAmount * commissionPercent / 100) * 100) / 100
-    const providerEarnings = Math.round((totalAmount - commissionAmount) * 100) / 100
+    const commissionPercent = commissionPercentOf(booking)
+    const providerEarnings = providerPayout(booking)
+    const commissionAmount = Math.round((totalAmount - providerEarnings) * 100) / 100
     
     // Detailed tracking requested by user
     const finalProviderAmount = providerEarnings
-    const totalOvertimeCharged = overtimeAmount * wCount
-    const overtimeEarnings = Math.round((totalOvertimeCharged - (totalOvertimeCharged * commissionPercent / 100)) * 100) / 100
+    const overtimeEarnings = 0
     
     // Timer details
     const jobTimerStatus = booking.timer_status || booking.status || 'completed'

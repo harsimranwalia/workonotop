@@ -27,19 +27,34 @@
     "admin.spec.js › Admin Panel - Auth Protection › should redirect /admin/users to login when not authenticated": {
       "outcome": "PASS"
     },
-    "api.spec.js › API Routes › DELETE /api/bookings without id should return 400": {
+    "api.spec.js › API Routes › DELETE /api/bookings without id and without a credential should return 401": {
       "outcome": "PASS"
     },
-    "api.spec.js › API Routes › GET /api/bookings should return success response": {
+    "api.spec.js › API Routes › DELETE /api/bookings without id as admin should return 400": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › GET /api/bookings as admin should return success response": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › GET /api/bookings with email filter as admin should return response": {
       "outcome": "PASS"
     },
     "api.spec.js › API Routes › GET /api/bookings with email filter should return response": {
       "outcome": "PASS"
     },
+    "api.spec.js › API Routes › GET /api/bookings without a credential should return 401": {
+      "outcome": "PASS"
+    },
     "api.spec.js › API Routes › GET /api/categories should return success response": {
       "outcome": "PASS"
     },
+    "api.spec.js › API Routes › GET /api/customers as admin should return response": {
+      "outcome": "PASS"
+    },
     "api.spec.js › API Routes › GET /api/customers should return response": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › GET /api/reviews as admin should return response": {
       "outcome": "PASS"
     },
     "api.spec.js › API Routes › GET /api/reviews should return response": {
@@ -51,6 +66,9 @@
     "api.spec.js › API Routes › GET /api/services?homepage=true should return only homepage services": {
       "outcome": "PASS"
     },
+    "api.spec.js › API Routes › GET /api/stats as admin should return response": {
+      "outcome": "PASS"
+    },
     "api.spec.js › API Routes › GET /api/stats should return response": {
       "outcome": "PASS"
     },
@@ -60,7 +78,1936 @@
     "api.spec.js › API Routes › POST /api/bookings with partial data should return 400": {
       "outcome": "PASS"
     },
-    "api.spec.js › API Routes › PUT /api/bookings without id should return 400": {
+    "api.spec.js › API Routes › PUT /api/bookings without id and without a credential should return 401": {
+      "outcome": "PASS"
+    },
+    "api.spec.js › API Routes › PUT /api/bookings without id as admin should return 400": {
+      "outcome": "PASS"
+    },
+    "auth-admin-page.spec.js › Admin page guard › GET /admin with a garbage adminAuth value is a 307 to /admin/login and clears the cookie": {
+      "outcome": "PASS"
+    },
+    "auth-admin-page.spec.js › Admin page guard › GET /admin with no cookie is a 307 to /admin/login": {
+      "outcome": "PASS"
+    },
+    "auth-admin-page.spec.js › Admin page guard › GET /admin with the admin's own cookie is a 200": {
+      "outcome": "PASS"
+    },
+    "auth-admin-page.spec.js › Admin page guard › GET /admin with the customer's token in adminAuth is a 307 to /admin/login and clears the cookie": {
+      "outcome": "PASS"
+    },
+    "auth-admin-page.spec.js › Admin page guard › GET /admin with the provider's token in adminAuth is a 307 to /admin/login and clears the cookie": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/blogs/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/cities/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/districts/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/providers/[providerId] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/seo/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/service-areas/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/service-locations/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/skills/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/states/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/admin/testimonials/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/ai-gateway/v1/seo is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/ai-gateway/v1/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/bookings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/categories is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/customers is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/provider is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/reviews is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/services is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/upload is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/user/addresses/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/blogs is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/blogs/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/cities is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/cities/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/deletion-requests is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/disputes is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/disputes/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/districts is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/districts/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/earnings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/invoices is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/invoices/[id]/preview is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/invoices/[id]/preview/download is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/logs is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/me is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/notifications is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/payouts is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/provider-jobs is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/providers is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/providers/[providerId]/documents is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/seo is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/seo/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/service-areas is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/service-areas/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/service-locations/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/settings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/skills is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/skills/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/states is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/states/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/testimonials is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/ai-gateway/openapi.json is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/ai-gateway/v1/seo is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/ai-gateway/v1/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/ai-gateway/v1/services is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/auth/me is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/bookings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/bookings/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/bookings/[id]/invoice/download is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/categories is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/chat is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/chat/unread is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/cron/auto-release is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/cron/notifications is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/customer/booking-details is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/customer/bookings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/customer/invoices is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/customer/reviews is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/customers is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/customers/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/directory is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/availability is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/available-jobs is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/available-jobs/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/bookings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/check-verification is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/dashboard-stats is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/jobs is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/jobs/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/jobs/photos is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/jobs/time-tracking is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/me is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/onboarding/documents is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/onboarding/stripe-return is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/payouts is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/profile is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/ratings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/status is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/validate-reset-token is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/verify-email is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/reviews is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/seo is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/service-areas is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/services is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/skills is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/stats is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/stripe/webhook is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/user/addresses is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/user/settings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PATCH /api/admin/deletion-requests is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PATCH /api/admin/disputes is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PATCH /api/admin/invoices is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PATCH /api/admin/service-locations/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PATCH /api/ai-gateway/v1/seo is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PATCH /api/ai-gateway/v1/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PATCH /api/ai-gateway/v1/services is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/blogs is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/cities is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/districts is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/invoices/generate is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/login is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/logout is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/providers/[providerId]/documents is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/seo is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/service-areas is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/settings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/skills is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/states is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/testimonials is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/ai-gateway/v1/seo is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/ai-gateway/v1/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/ai-gateway/v1/service-locations/sync-canonicals is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/ai-gateway/v1/services is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/apple is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/change-password is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/data-deletion is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/forgot-password is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/google is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/login is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/logout is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/mobile/forgot-password is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/mobile/google is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/mobile/login is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/mobile/logout is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/mobile/refresh is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/reset-password is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/signup is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/auth/verify-otp is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/bookings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/bookings/[id]/reassign is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/bookings/[id]/restart is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/categories is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/chat is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/chat/mark-read is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/customer/bookings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/customer/bookings/[id]/approve is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/customer/bookings/[id]/cancel is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/customer/reviews is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/customers is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/mobile/push-token is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/payment/create-intent is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/availability is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/available-jobs is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/available-jobs/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/forgot-password is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/jobs/photos is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/jobs/time-tracking is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/login is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/logout is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/onboarding/complete is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/onboarding/create-stripe-account is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/onboarding/profile is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/onboarding/stripe-complete is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/onboarding/update-step is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/onboarding/upload-document is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/reset-password is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/signup is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/upload is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/verify-otp is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/reviews is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/service-locations is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/services is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/stripe/webhook is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/test/push is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/upload is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/user/addresses is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/blogs/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/bookings/[id]/override is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/cities/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/districts/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/notifications is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/providers is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/providers/[providerId] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/providers/approve is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/seo/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/service-areas is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/service-areas/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/service-locations/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/skills/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/states/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/admin/testimonials/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/bookings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/categories is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/customers is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/customers/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/provider is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/provider/availability is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/provider/profile is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/services is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/user/addresses/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/user/settings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › no route file exports a method in a form the coverage count cannot see": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › the route files are found and every row of the matrix is well formed": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/blogs/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/cities/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/districts/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/providers/[providerId] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/seo/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/service-areas/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/service-locations/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/skills/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/states/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/admin/testimonials/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/ai-gateway/v1/seo uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/ai-gateway/v1/service-locations uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/bookings uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/categories uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/customers uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/provider uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/reviews uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/service-locations uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/services uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/upload uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/user/addresses/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/blogs uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/blogs/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/cities uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/cities/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/deletion-requests uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/disputes uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/disputes/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/districts uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/districts/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/earnings uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/invoices uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/invoices/[id]/preview uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/invoices/[id]/preview/download uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/logs uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/me uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/notifications uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/payouts uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/provider-jobs uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/providers uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/providers/[providerId]/documents uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/seo uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/seo/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/service-areas uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/service-areas/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/service-locations uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/service-locations/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/settings uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/skills uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/skills/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/states uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/states/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/testimonials uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/ai-gateway/v1/seo uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/ai-gateway/v1/service-locations uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/ai-gateway/v1/services uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/auth/me uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/bookings uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/bookings/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/bookings/[id]/invoice/download uses the guard": {
+      "outcome": "SKIPPED"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/chat uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/chat/unread uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/cron/auto-release uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/cron/notifications uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/customer/booking-details uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/customer/bookings uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/customer/invoices uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/customer/reviews uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/customers uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/customers/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/availability uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/available-jobs uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/available-jobs/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/bookings uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/dashboard-stats uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs/photos uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs/time-tracking uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/me uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/onboarding/documents uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/onboarding/stripe-return uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/payouts uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/profile uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/ratings uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/status uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/reviews uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/stats uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/user/addresses uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/user/settings uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PATCH /api/admin/deletion-requests uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PATCH /api/admin/disputes uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PATCH /api/admin/invoices uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PATCH /api/admin/service-locations/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PATCH /api/ai-gateway/v1/seo uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PATCH /api/ai-gateway/v1/service-locations uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PATCH /api/ai-gateway/v1/services uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/blogs uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/cities uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/districts uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/invoices/generate uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/providers/[providerId]/documents uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/seo uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/service-areas uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/service-locations uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/settings uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/skills uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/states uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/testimonials uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/ai-gateway/v1/seo uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/ai-gateway/v1/service-locations uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/ai-gateway/v1/service-locations/sync-canonicals uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/ai-gateway/v1/services uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/auth/change-password uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/bookings/[id]/reassign uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/bookings/[id]/restart uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/categories uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/chat uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/chat/mark-read uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/customer/bookings uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/customer/bookings/[id]/approve uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/customer/bookings/[id]/cancel uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/customer/reviews uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/customers uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/mobile/push-token uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/payment/create-intent uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/availability uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/available-jobs uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/available-jobs/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/jobs/photos uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/jobs/time-tracking uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/complete uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/create-stripe-account uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/profile uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/stripe-complete uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/update-step uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/onboarding/upload-document uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/upload uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/reviews uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/service-locations uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/services uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/stripe/webhook uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/test/push uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/upload uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/user/addresses uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/blogs/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/bookings/[id]/override uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/cities/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/districts/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/notifications uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/providers uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/providers/[providerId] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/providers/approve uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/seo/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/service-areas uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/service-areas/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/service-locations/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/skills/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/states/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/admin/testimonials/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/bookings uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/categories uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/customers uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/customers/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/provider uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/provider/availability uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/provider/profile uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/services uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/user/addresses/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/user/settings uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › the wiring check gives every shape of the table its verdict": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - a Bearer session lookup that rejects › the guard logs one line and answers 401; it does not fall through to the token signature in silence": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - allowed callers › a credential that already settles the request wins over a Bearer that would not verify": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - allowed callers › a customer by cookie and a provider by cookie are normalised; a provider has only providerId": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - allowed callers › an admin by cookie passes an admin route and is { role, id, email, via: cookie }": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - allowed callers › the Bearer path falls through to verifyToken when the database lookup fails: mobile tokens of all three roles pass": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - allowed callers › the first verified credential whose role is allowed wins, in the order admin, customer, provider, Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - cron secret › a request whose url cannot be parsed is decided by the Bearer secret alone, and the guard logs one line about it": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - cron secret › with CRON_SECRET set, the secret passes as a Bearer or as ?secret=, and nothing else does": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - cron secret › with CRON_SECRET unset every request is 401 and the route logs that it is not set": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - how it is called › callerFrom returns the caller or null and never refuses; roles narrows it": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - how it is called › requireCaller throws a programming error for an empty or unknown roles list": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - how it is called › the guard never reads the body, on a refusal or on success": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - ids and role claims (ENG-021) › a role claim that is none of admin, provider, user or customer is refused outright, even when type is recognised": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - ids and role claims (ENG-021) › an id signed as its digits is returned as a number: \"21\" is 21, 21 stays 21, a provider's providerId \"21\" is 21": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - ids and role claims (ENG-021) › the real web payloads still pass, and a role of null is no role claim at all": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - refusals › a customer on an admin route is 403 Forbidden, never 401, by cookie and by Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - refusals › a malformed Cookie or Authorization header is 401, never an exception": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - refusals › a provider on an admin route and on a customer route is 403, by cookie and by Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - refusals › a token with a bad signature is 401, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - refusals › an admin on a customer-only route is 403 (there is no \"admin may do anything\" in roles)": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - refusals › an expired token is 401, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - refusals › no credential is 401 Unauthorized": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - the Bearer path with a session lookup (ENG-021) › F1(a): a verified token whose type is special-purpose is 401 as a Bearer even when it carries a role": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - the Bearer path with a session lookup (ENG-021) › F1(b): a verified token whose role and type name different roles is 401 as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - the Bearer path with a session lookup (ENG-021) › F1(c): \"Bearer <valid> x\", \"<valid> x y\" and the same with a tab are 401, with norows and with down; the bare token passes": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - the Bearer path with a session lookup (ENG-021) › an admin by Bearer on a customer-only or a provider-only route is 403, never 401, with norows and with down": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - the Bearer path with a session lookup (ENG-021) › the cookie path never touches the database: a request a cookie settles makes zero lookups": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - the Bearer path with a session lookup (ENG-021) › the issued-string path survives: a stored string that does not verify is a session of the row's user_type; with no row it is 401": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - the Bearer path with a session lookup (ENG-021) › the normal mobile tokens of all three roles still pass as a Bearer, with norows and with down": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a cookie sent twice is decided by the later one, as request.cookies.get does: garbage last is 401, valid last is a session": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a customer token copied into the adminAuth cookie is not an admin session": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \" \" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \" 5 \" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \"\" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \"0\" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \"007\" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \"1.5\" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \"1e3\" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \"5abc\" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is \"9007199254740993\" is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is -3 is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is 0 is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is 1.5 is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is 9007199254740992 is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is true is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a signed token whose id is {} is 401 for every role, as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › a token without its id is 401 (providerId counts as the id of a provider only)": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › an unknown role, an admin named only by type, or two claims that name different roles, is no session (401)": {
+      "outcome": "PASS"
+    },
+    "auth-guard.spec.js › Auth guard - what counts as a session › the email_verification and password_reset tokens are never a session (401), as a cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/blogs/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/cities/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/districts/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/providers/[providerId]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/seo/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/service-areas/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/service-locations/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/skills/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/states/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/admin/testimonials/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/ai-gateway/v1/seo": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/ai-gateway/v1/service-locations": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/bookings": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/categories": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/customers": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/provider": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/reviews": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/service-locations": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/services": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/upload": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › DELETE /api/user/addresses/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/blogs": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/blogs/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/cities": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/cities/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/deletion-requests": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/disputes": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/disputes/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/districts": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/districts/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/earnings": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/invoices": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/invoices/[id]/preview": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/invoices/[id]/preview/download": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/logs": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/me": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/notifications": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/payouts": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/provider-jobs": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/providers": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/providers/[providerId]/documents": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/seo": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/seo/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/service-areas": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/service-areas/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/service-locations": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/service-locations/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/settings": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/skills": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/skills/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/states": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/states/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/testimonials": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/ai-gateway/openapi.json": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/ai-gateway/v1/seo": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/ai-gateway/v1/service-locations": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/ai-gateway/v1/services": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/auth/me": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/bookings": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/bookings/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/bookings/[id]/invoice/download": {
+      "outcome": "SKIPPED"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/categories": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/chat": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/chat/unread": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/cron/auto-release": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/cron/notifications": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/customer/booking-details": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/customer/bookings": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/customer/invoices": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/customer/reviews": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/customers": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/customers/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/directory": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/locations": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/availability": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/available-jobs": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/available-jobs/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/bookings": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/check-verification": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/dashboard-stats": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/jobs": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/photos": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/time-tracking": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/me": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/onboarding/documents": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/onboarding/stripe-return": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/payouts": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/profile": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/ratings": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/status": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/validate-reset-token": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/verify-email": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/reviews": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/seo": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/service-areas": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/service-locations": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/services": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/skills": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/stats": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/stripe/webhook": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/user/addresses": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/user/settings": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PATCH /api/admin/deletion-requests": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PATCH /api/admin/disputes": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PATCH /api/admin/invoices": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PATCH /api/admin/service-locations/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PATCH /api/ai-gateway/v1/seo": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PATCH /api/ai-gateway/v1/service-locations": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PATCH /api/ai-gateway/v1/services": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/blogs": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/cities": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/districts": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/invoices/generate": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/login": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/logout": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/providers/[providerId]/documents": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/seo": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/service-areas": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/service-locations": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/settings": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/skills": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/states": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/testimonials": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/ai-gateway/v1/seo": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/ai-gateway/v1/service-locations": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/ai-gateway/v1/service-locations/sync-canonicals": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/ai-gateway/v1/services": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/apple": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/change-password": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/data-deletion": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/forgot-password": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/google": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/login": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/logout": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/mobile/forgot-password": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/mobile/google": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/mobile/login": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/mobile/logout": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/mobile/refresh": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/reset-password": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/signup": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/auth/verify-otp": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/bookings": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/bookings/[id]/reassign": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/bookings/[id]/restart": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/categories": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/chat": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/chat/mark-read": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/customer/bookings": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/customer/bookings/[id]/approve": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/customer/bookings/[id]/cancel": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/customer/reviews": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/customers": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/mobile/push-token": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/payment/create-intent": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/availability": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/available-jobs": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/available-jobs/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/forgot-password": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/jobs/photos": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/jobs/time-tracking": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/login": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/logout": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/complete": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/create-stripe-account": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/profile": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/stripe-complete": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/update-step": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/onboarding/upload-document": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/reset-password": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/signup": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/upload": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/verify-otp": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/reviews": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/service-locations": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/services": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/stripe/webhook": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/test/push": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/upload": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/user/addresses": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/blogs/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/bookings/[id]/override": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/cities/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/districts/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/notifications": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/providers": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/providers/[providerId]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/providers/approve": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/seo/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/service-areas": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/service-areas/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/service-locations/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/skills/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/states/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/admin/testimonials/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/bookings": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/categories": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/customers": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/customers/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/provider": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/provider/availability": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/provider/profile": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/services": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/user/addresses/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/user/settings": {
       "outcome": "PASS"
     },
     "booking-flow.spec.js › Booking Flow › booking details should have input fields for customer info": {
@@ -82,6 +2029,171 @@
       "outcome": "PASS"
     },
     "booking-flow.spec.js › Booking Flow › should load booking success page": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/auto-release › Cron /api/cron/auto-release: GET calls requireCronSecret first, imported from @/lib/api-auth": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/auto-release › Cron /api/cron/auto-release: the old checks are gone (development skip, Bearer undefined, skip when CRON_SECRET is unset)": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/auto-release › Cron /api/cron/auto-release: with CRON_SECRET set, no secret and a wrong secret are 401": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/auto-release › Cron /api/cron/auto-release: with CRON_SECRET set, the right secret passes as a Bearer and as ?secret=": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/auto-release › Cron /api/cron/auto-release: with CRON_SECRET unset every request is 401, Bearer undefined and ?secret=undefined included": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/notifications › Cron /api/cron/notifications: GET calls requireCronSecret first, imported from @/lib/api-auth": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/notifications › Cron /api/cron/notifications: the old checks are gone (development skip, Bearer undefined, skip when CRON_SECRET is unset)": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/notifications › Cron /api/cron/notifications: with CRON_SECRET set, no secret and a wrong secret are 401": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/notifications › Cron /api/cron/notifications: with CRON_SECRET set, the right secret passes as a Bearer and as ?secret=": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron /api/cron/notifications › Cron /api/cron/notifications: with CRON_SECRET unset every request is 401, Bearer undefined and ?secret=undefined included": {
+      "outcome": "PASS"
+    },
+    "cron-secret.spec.js › Cron source reader: stripComments takes out every comment, whatever comes before it, and keeps every string whole": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › AC6 cross-account bookings › AC6 customer1 asking for customer2's booking on /api/bookings/[id] is 403 and shows none of its fields": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › AC6 cross-account bookings › AC6 customer1 asking for customer2's bookings on /api/customer/bookings is 403 and shows none of their fields": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › AC6 cross-account bookings › AC6 customer1 posting customer2's booking_id to /api/customer/bookings is 403 and shows none of its fields": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 bookings › D1 admin GET /api/bookings is 200 and lists both fixture bookings": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 bookings › D1 anonymous DELETE /api/bookings?id= is 401 and the booking is still there": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 bookings › D1 anonymous GET /api/bookings is 401 and returns no booking": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 bookings › D1 anonymous PUT /api/bookings?id= is 401 and the booking is unchanged": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 bookings › D1 customer1 and provider1 get 403 on GET, PUT and DELETE /api/bookings and the booking is unchanged": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 owner of a booking made with a credential › D1 customer1's Bearer owns the booking it makes through POST /api/bookings, whatever user_id the body names": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 owner of a booking made with a credential › D1 customer1's cookie owns the booking it makes through POST /api/bookings, whatever user_id the body names": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 owner of a booking made with a credential › D1 provider1's Bearer does not become the owner of the booking it makes through POST /api/bookings": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 owner of a booking made with a credential › D1 the admin's Bearer does not become the owner of the booking it makes through POST /api/bookings": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 receipt page › AC6 receipt: customer1 opening customer2's booking sees Booking Not Found and none of its fields": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 receipt page › D1 receipt: a guest right after checkout sees the receipt from the tab's saved booking and never asks /api/bookings/[id]": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 receipt page › D1 receipt: a guest whose tab holds no matching saved booking sees Booking Not Found and none of the booking's fields": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D1 receipt page › D1 receipt: customer1 with no saved booking sees their own booking from /api/customer/booking-details": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 DELETE /api/admin/providers/[providerId] is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/earnings is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/invoices is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/invoices/[id]/preview is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/invoices/[id]/preview/download is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/logs is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/payouts is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/provider-jobs is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/providers is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 GET /api/admin/providers/[providerId]/documents is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 PATCH /api/admin/invoices is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 POST /api/admin/invoices/generate is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 POST /api/admin/providers/[providerId]/documents is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 PUT /api/admin/providers is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D2 admin finance data › D2 PUT /api/admin/providers/[providerId] is admin only": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D3 customer lookup › D3 anonymous GET /api/bookings?email= is 401 and returns no booking data": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D3 customer lookup › D3 anonymous GET /api/customer/bookings with ?email= or ?user_id= is 401": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D3 customer lookup › D3 customer1 GET /api/customer/bookings is 200 with customer1's booking and not customer2's": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D3 customer lookup › D3 customer1 GET /api/customer/bookings?user_id= or ?email= naming customer2 is 403": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D3 customer lookup › D3 customer1 POST /api/customer/bookings with customer2's booking_id is 403": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D3 owner reads their own booking › D3 customer1 POST /api/customer/bookings with customer1's own booking_id is 200 with that booking number": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D6 uploads › D6 anonymous DELETE /api/upload?url= is 401 and the file still serves": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D6 uploads › D6 anonymous POST /api/upload is 401, returns no url and writes no file": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › D6 uploads › D6 customer1, provider1 and admin can each upload a PNG: 200 with a url that serves": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › Reviews, GET /api/reviews › AC6 customer1 GET /api/reviews lists customer1's review and none of customer2's, and an admin lists both": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › Reviews, GET /api/reviews › AC6 customer1 GET /api/reviews?booking_id= naming customer2's booking is 200 and lists nothing": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › Reviews, GET /api/reviews › AC6 customer1 GET /api/reviews?customer_id= naming customer1 is 200 with customer1's review and not customer2's": {
+      "outcome": "PASS"
+    },
+    "defects.spec.js › Reviews, GET /api/reviews › AC6 customer1 GET /api/reviews?customer_id= naming customer2 is 403 and shows none of customer2's review": {
       "outcome": "PASS"
     },
     "fixtures-guard.spec.js › Fixture guard - reserved email names › does not treat \"\" as a reserved name": {
@@ -303,6 +2415,228 @@
     "homepage.spec.js › Homepage › should navigate to /services with the search term when the Search button is clicked": {
       "outcome": "PASS"
     },
+    "job-completed-email.spec.js › the job-completed e-mail keeps unicode and long text whole and shows the default line for an empty summary": {
+      "outcome": "PASS"
+    },
+    "job-completed-email.spec.js › the job-completed e-mail shows names, the service, photo addresses and links as plain text": {
+      "outcome": "PASS"
+    },
+    "job-completed-email.spec.js › the job-completed e-mail shows the provider's summary and recommendations as plain text with their line breaks": {
+      "outcome": "PASS"
+    },
+    "job-completed-email.spec.js › the job-finish route composes the customer's e-mail with src/lib/job-completed-email.js": {
+      "outcome": "PASS"
+    },
+    "mobile-refresh-role.spec.js › Mobile refresh role › a customer session refreshes to a customer token": {
+      "outcome": "PASS"
+    },
+    "mobile-refresh-role.spec.js › Mobile refresh role › a device registration, a sign-in and a refresh keep the admin's own role and id": {
+      "outcome": "PASS"
+    },
+    "mobile-refresh-role.spec.js › Mobile refresh role › a device registration, a sign-in and a refresh keep the customer's own role and id": {
+      "outcome": "PASS"
+    },
+    "mobile-refresh-role.spec.js › Mobile refresh role › a device registration, a sign-in and a refresh keep the provider's own role and id": {
+      "outcome": "PASS"
+    },
+    "mobile-refresh-role.spec.js › Mobile refresh role › a provider session refreshes to a provider token": {
+      "outcome": "PASS"
+    },
+    "mobile-refresh-role.spec.js › Mobile refresh role › a repeat sign-in keeps the stored type in step with the account": {
+      "outcome": "PASS"
+    },
+    "mobile-refresh-role.spec.js › Mobile refresh role › refresh returns the role the account holds": {
+      "outcome": "PASS"
+    },
+    "mobile-refresh-role.spec.js › Mobile refresh role › the sign-in routes that derive the type from the account re-store it on a repeat sign-in": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: POST /api/reviews › Ownership POST /api/reviews: a body naming customer 2 as customer_id, or provider 2 as provider_id, on customer 1's own booking is 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: POST /api/reviews › Ownership POST /api/reviews: a review for the caller's own completed booking is stored with the caller and the booking's provider, and a missing booking keeps its 404": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: POST /api/reviews › Ownership POST /api/reviews: customer1 reviewing customer 2's booking is 403 and no review is added to it": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: auth/change-password › Ownership POST /api/auth/change-password: the lookup is in the caller's own table, so a provider naming customer 1's password and a customer naming provider 1's are both refused 401 and nobody's password changes": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: chat › Ownership GET /api/chat/unread: booking 1's two participants get a count, booking 2, the other side's type and another account's id are 403, the admin may name any": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: chat › Ownership GET /api/chat: a non-participant asking for booking 2 is 403 and sees none of its messages, and the admin reads it": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: chat › Ownership GET /api/chat: the customer and the provider of booking 1 read its messages and none of booking 2's; a missing booking keeps its empty answer": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: chat › Ownership GET /api/chat: the role decides the column, so provider1 (id 1) is refused on a booking whose customer is user 1 and whose provider is provider 2": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: chat › Ownership POST /api/chat/mark-read: booking 2, the other side's userType and a non-participant are 403 and change nothing; the customer of a booking marks the provider's message read and not their own": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: chat › Ownership POST /api/chat: a non-participant posting to booking 2 is 403 and no message is added; a missing booking keeps its 404": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: chat › Ownership POST /api/chat: the stored sender is the caller whatever the body names (customer1 and provider1 on their booking)": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer account › Ownership DELETE /api/user/addresses/[id] and PUT /api/user/addresses/[id]: another customer's address is 403 (not observable: no user_addresses table, no address row to ask for)": {
+      "outcome": "SKIPPED"
+    },
+    "ownership.spec.js › Ownership: customer account › Ownership GET /api/auth/me: each caller gets their own profile from the table of their role (customer 1 and provider 1 share the id 1), the admin the admin": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer account › Ownership GET /api/user/addresses and POST /api/user/addresses: a user_id naming another customer is 403 before any query": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer account › Ownership GET /api/user/addresses: the owner reads their addresses (not observable: the dev database has no user_addresses table, the query answers 500)": {
+      "outcome": "SKIPPED"
+    },
+    "ownership.spec.js › Ownership: customer account › Ownership GET /api/user/settings: a caller reads their own row; a user_id or provider_id naming another account is 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer account › Ownership PUT /api/user/settings: a caller changes only their own row, in the table of their role, and a body user_id or provider_id naming anyone else is 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer booking routes › Ownership GET /api/customer/booking-details: customer1 reads booking 1, booking 2 is 403 and shows none of its fields, a missing booking is 404": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer booking routes › Ownership GET /api/customer/invoices: customer1 lists their own invoice and not customer 2's; ?user_id=, ?email= and both naming customer 2 are 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer booking routes › Ownership GET /api/customer/reviews: customer1 reads the state of their own booking's review, and a customer_id or a booking that is not theirs is 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer booking routes › Ownership POST /api/customer/bookings/[id]/approve: customer1 on booking 1 reaches the status check, on booking 2 is 403 and booking 2 is unchanged, a missing booking is 404": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer booking routes › Ownership POST /api/customer/bookings/[id]/cancel: customer1 cancels their own pending booking, customer 2 cannot cancel it, and customer1 cannot cancel booking 2": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer booking routes › Ownership POST /api/customer/reviews: customer1 on booking 1 reaches the review check; booking 2, a customer_id naming customer 2 and a provider_id naming provider 2 are 403 and add no review": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customer booking routes › Ownership POST /api/payment/create-intent: a body naming customer 2 as user_id or customer 2's booking as booking_id is 403, the owner reaches the route's own validation": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customers/[id] › Ownership GET /api/customers/[id]: customer1 asking for customer 2 is 403 and shows none of customer 2's fields": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customers/[id] › Ownership GET /api/customers/[id]: customer1 reads their own profile, by cookie and by Bearer, and none of customer 2's": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customers/[id] › Ownership GET /api/customers/[id]: the admin reads any customer, and a missing id is 404 for the admin and 403 for customer1": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customers/[id] › Ownership PUT /api/customers/[id]: customer1 writes their own profile (a marker in hear_about, read back, then restored)": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: customers/[id] › Ownership PUT /api/customers/[id]: customer1 writing customer 2's profile is 403 and customer 2's row is unchanged": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: mobile/push-token › Ownership POST /api/mobile/push-token: a caller registers a token for their own id and role": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: mobile/push-token › Ownership POST /api/mobile/push-token: a userId naming another account, or the other id space's type, is 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider onboarding writes and provider/upload › Ownership POST /api/provider/onboarding/profile: provider2 writes only provider 2's row (a body naming provider 1 is ignored) and provider1 only provider 1's": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider onboarding writes and provider/upload › Ownership POST /api/provider/onboarding/stripe-complete: provider2's account id lands on provider 2's row only and the fallback lookup is each caller's own (no request reaches Stripe)": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider onboarding writes and provider/upload › Ownership POST /api/provider/onboarding/update-step: provider2 moves only provider 2's onboarding_step (a body naming provider 1 is ignored) and provider1 only provider 1's": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider onboarding writes and provider/upload › Ownership POST /api/provider/upload: provider2's file name, document rows, count and avatar are provider 2's, provider 1's row is unchanged, and provider1's upload is provider 1's": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider routes › Ownership GET /api/provider/dashboard-stats: provider1's recent jobs hold booking 1 and not booking 2": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider routes › Ownership GET /api/provider/jobs, GET /api/provider/bookings and GET /api/provider/available-jobs: provider1's lists hold booking 1 and none of booking 2": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider routes › Ownership GET /api/provider/jobs/[id]: provider1 gets their own job and an open one; another provider's booking, a cancelled unassigned one and a missing one keep the 404": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider routes › Ownership GET /api/provider/me, /profile, /onboarding/documents: provider1 gets provider 1's row, not provider 2's and not customer 1's (same id)": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider routes › Ownership GET /api/provider/payouts: provider1 gets their own earnings and payouts and not provider 2's 23.45, and a provider_id naming provider 2 is 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider routes › Ownership GET /api/provider/ratings: provider1 gets their own review and not provider 2's, and a provider_id naming provider 2 is 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider routes › Ownership GET and POST /api/provider/jobs/photos and /jobs/time-tracking: provider1 reaches booking 1, booking 2 and a missing booking keep the 404 and booking 2 is unchanged": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider routes › Ownership POST /api/provider/available-jobs: provider1 claims an open booking and it becomes theirs; booking 2 stays provider 2's; a missing booking keeps its 404": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider/availability and provider/profile writes › Ownership POST /api/provider/availability: provider2's toggle moves provider 2's flag and not provider 1's, and provider1's toggle by cookie and Bearer leaves provider 2's flag alone, whatever ids the body names": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider/availability and provider/profile writes › Ownership PUT /api/provider/availability: provider2's toggle moves provider 2's flag and not provider 1's, and provider1's toggle by cookie and Bearer leaves provider 2's flag alone, whatever ids the body names": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider/availability and provider/profile writes › Ownership PUT /api/provider/profile: provider2 writes provider 2's profile and not provider 1's, and provider1's write by cookie and Bearer leaves provider 2's profile alone, whatever ids the body names": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider/available-jobs/[id] › Ownership GET /api/provider/available-jobs/[id]: an unassigned pending booking answers 200, a cancelled unassigned one and one assigned to provider 2 answer 403": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider/available-jobs/[id] › Ownership GET /api/provider/available-jobs/[id]: provider1 asking for provider 2's booking is 403 and shows none of its address, description or customer": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider/available-jobs/[id] › Ownership GET /api/provider/available-jobs/[id]: provider1 gets their own booking (200, is_my_job) and a missing booking keeps its 404": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider/available-jobs/[id] › Ownership POST /api/provider/available-jobs/[id]: provider1 accepting provider 2's booking is 403 and booking 2 stays provider 2's": {
+      "outcome": "PASS"
+    },
+    "ownership.spec.js › Ownership: provider/available-jobs/[id] › Ownership POST /api/provider/available-jobs/[id]: provider1 accepts an open booking and it becomes provider 1's; a missing booking keeps its 404": {
+      "outcome": "PASS"
+    },
+    "price-of-record.spec.js › Price of record › a booking records the catalog hourly rate of the service it books and authorizes by it": {
+      "outcome": "PASS"
+    },
+    "price-of-record.spec.js › Price of record › a booking records the catalog price of the service it books": {
+      "outcome": "PASS"
+    },
+    "price-of-record.spec.js › Price of record › create-intent answers 400 for a service the catalog does not offer": {
+      "outcome": "PASS"
+    },
+    "price-of-record.spec.js › Price of record › the finish stores the measured minutes past the standard duration and no overtime earnings": {
+      "outcome": "PASS"
+    },
+    "price-of-record.spec.js › Price of record › the finish stores the payout as the booking's price less its commission, whatever hours and crew are entered": {
+      "outcome": "PASS"
+    },
+    "price-of-record.spec.js › Price of record › the invoice total is the booking's recorded price and its payout follows the commission rule": {
+      "outcome": "PASS"
+    },
+    "price-of-record.spec.js › Price of record › the price of record and the payout follow the catalog row and the commission rule": {
+      "outcome": "PASS"
+    },
+    "price-of-record.spec.js › Price of record › the routes that charge or pay take the amount from the price of record": {
+      "outcome": "PASS"
+    },
+    "provider-signup-page.spec.js › Provider sign-up page › the provider sign-up page sends its form in the first response": {
+      "outcome": "PASS"
+    },
+    "provider-signup-page.spec.js › Provider sign-up page › the provider sign-up page shows its form while the session check has not answered": {
+      "outcome": "PASS"
+    },
+    "provider-signup-page.spec.js › Provider sign-up page › valid details on the provider sign-up page create a provider account waiting for e-mail verification": {
+      "outcome": "PASS"
+    },
     "provider.spec.js › Provider Portal - Auth Protection › provider login page should have form fields": {
       "outcome": "PASS"
     },
@@ -324,6 +2658,291 @@
     "provider.spec.js › Provider Portal - Auth Protection › should redirect protected provider routes to /provider/login": {
       "outcome": "PASS"
     },
+    "role-checks.spec.js › Role check /api/admin/notifications › Role check GET /api/admin/notifications: only the signed-in admin's own rows, by cookie and by Bearer, and no query names another owner": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check /api/admin/notifications › Role check PUT /api/admin/notifications: an admin marking an id no notification has gets { success: true }, any other caller is refused and a body naming another owner is ignored": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check PUT /api/provider › Role check PUT /api/provider (?id=): an admin naming a provider that does not exist reaches the handler's validation (400), not a refusal": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check PUT /api/provider › Role check PUT /api/provider (?id=): provider1 naming their own row or another provider's is 403, by cookie and by Bearer": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check PUT /api/provider › Role check PUT /api/provider (no id): an admin is 403, there is no provider profile to update": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check PUT /api/provider › Role check PUT /api/provider (no id): provider1 updates provider1's row and no other, by cookie and by Bearer, whatever id the body names": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check PUT /api/provider › Role check PUT /api/provider: 401 with no credential, 403 for customer1 by cookie and by Bearer and for a customer token in adminAuth, and nothing is written": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/blogs/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/cities/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/districts/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/seo/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/service-areas/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/service-locations/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/skills/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/states/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/admin/testimonials/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/categories: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/customers: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/provider: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/reviews: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/service-locations: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check DELETE /api/services: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/blogs/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/blogs: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/cities/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/cities: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/deletion-requests: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/disputes/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/disputes: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/districts/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/districts: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/me: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/notifications: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/seo/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/seo: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/service-areas/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/service-areas: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/service-locations/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/service-locations: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/settings: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/skills/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/skills: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/states/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/states: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/admin/testimonials: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/customers: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/provider: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check GET /api/stats: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PATCH /api/admin/deletion-requests: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PATCH /api/admin/disputes: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PATCH /api/admin/service-locations/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/blogs: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/cities: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/districts: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/seo: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/service-areas: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/service-locations: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/settings: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/skills: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/states: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/admin/testimonials: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/categories: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/customers: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/service-locations: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/services: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check POST /api/test/push: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/blogs/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/bookings/[id]/override: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/cities/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/districts/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/notifications: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/providers/approve: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/seo/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/service-areas/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/service-areas: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/service-locations/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/skills/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/states/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/admin/testimonials/[id]: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/categories: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/customers: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check by row › Role check PUT /api/services: 401 with no credential, 403 for customer1, provider1 and a customer token in adminAuth, admin as before": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check catalogue reads › Role check GET /api/service-locations?admin=true: no credential, customer1 and provider1 get the answer they get without the flag, the admin also gets the inactive location": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check catalogue reads › Role check GET /api/service-locations?includeInactive=true: no credential, customer1 and provider1 get the answer they get without the flag, the admin also gets the inactive location": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check catalogue reads › Role check GET /api/services?admin=true: no credential, customer1 and provider1 get the answer they get without the flag, the admin also gets the inactive service": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check forged tokens › Role check forged tokens GET /api/admin/blogs: a wrong-secret token and a tampered payload are 401 in the adminAuth cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check forged tokens › Role check forged tokens GET /api/admin/me: a wrong-secret token and a tampered payload are 401 in the adminAuth cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check forged tokens › Role check forged tokens GET /api/stats: a wrong-secret token and a tampered payload are 401 in the adminAuth cookie and as a Bearer": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check ownership › Role check GET /api/admin/me: returns the signed-in admin and no other, by cookie and by Bearer; every other caller is 403 with no user": {
+      "outcome": "PASS"
+    },
+    "role-checks.spec.js › Role check ownership › Role check PUT /api/provider (?id=): an admin may name any provider and the change lands on the row named and on no other": {
+      "outcome": "PASS"
+    },
+    "s1-reset-otp.spec.js › S1 reset/OTP routes refuse a non-string token, otp or email › POST /api/auth/reset-password: a non-string email or otp is refused with 400 before the query": {
+      "outcome": "PASS"
+    },
+    "s1-reset-otp.spec.js › S1 reset/OTP routes refuse a non-string token, otp or email › POST /api/auth/reset-password: a non-string token is refused with 400 before the query": {
+      "outcome": "PASS"
+    },
+    "s1-reset-otp.spec.js › S1 reset/OTP routes refuse a non-string token, otp or email › POST /api/auth/verify-otp: a non-string email or otp is refused with 400": {
+      "outcome": "PASS"
+    },
+    "s1-reset-otp.spec.js › S1 reset/OTP routes refuse a non-string token, otp or email › POST /api/provider/reset-password: a non-string token, email or otp is refused with 400 before the query": {
+      "outcome": "PASS"
+    },
+    "s1-reset-otp.spec.js › S1 reset/OTP routes refuse a non-string token, otp or email › POST /api/provider/verify-otp: a non-string email or otp is refused with 400": {
+      "outcome": "PASS"
+    },
     "services.spec.js › Services Page › should display at least one service": {
       "outcome": "PASS"
     },
@@ -331,6 +2950,18 @@
       "outcome": "PASS"
     },
     "services.spec.js › Services Page › should navigate to a service detail page when clicked": {
+      "outcome": "PASS"
+    },
+    "session-secret.spec.js › a session signed with a key other than the configured JWT_SECRET is refused and one signed with it is accepted": {
+      "outcome": "PASS"
+    },
+    "session-secret.spec.js › every route that signs or checks a session takes the key from src/lib/jwt.js": {
+      "outcome": "PASS"
+    },
+    "session-secret.spec.js › the API guard answers 401 to a session cookie while JWT_SECRET is unset": {
+      "outcome": "PASS"
+    },
+    "session-secret.spec.js › with JWT_SECRET unset or blank, no session, verification or reset token is signed and none is accepted": {
       "outcome": "PASS"
     },
     "static-pages.spec.js › Static Pages › should have proper page title on homepage": {

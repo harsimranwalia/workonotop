@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
 import { getConnection } from '@/lib/db'
+import { requireCaller } from '@/lib/api-auth';
 
 export async function GET(request, context) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   const params = await context.params
   const id = params.id
   let connection

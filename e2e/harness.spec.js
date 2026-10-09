@@ -134,10 +134,14 @@ test.describe('Payment path - Stripe', () => {
             expect(body.success).toBe(true);
             expect(body.client_secret).toBeTruthy();
         } else {
-            // Without a key the route module throws while it loads (stripe refuses to be constructed with no
-            // key), so the app answers 500 and logs the Stripe error, which the test command keeps in
-            // test-results/app.log. The customer is signed in and the database is up, as the sign-in above
-            // needed both, so a 500 here is what the code does when it reaches for Stripe.
+            // Without a key the route builds no Stripe client (create-intent/route.js:13 is null), passes the guard,
+            // the ownership check, the catalog read of the service named by service_id and the users read, and throws
+            // 'STRIPE_SECRET_KEY is not set' (:51) into its own catch, which answers the JSON 500 'Failed to initialize
+            // payment' (:105, measured 2026-10-04) and logs the
+            // error, which the test command keeps in test-results/app.log. Before ENG-023 the route module itself threw
+            // while it loaded (stripe refuses to be constructed with no key) and the answer was a 500 page; the status
+            // is the same. The customer is signed in and the database is up, as the sign-in above needed both, so a 500
+            // here is what the code does when it reaches for Stripe.
             expect(response.status()).toBe(500);
         }
     });

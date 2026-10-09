@@ -127,29 +127,19 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { execute } from '@/lib/db';
-import { verifyToken } from '@/lib/jwt';
+import { requireCaller } from '@/lib/api-auth';
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-05-27.dahlia' }) : null;
 
 export async function GET(request) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
+  const providerId = auth.caller.id;
   console.log('\n' + '='.repeat(80));
   console.log('🚀 STRIPE RETURN CALLED');
   console.log('='.repeat(80));
 
   try {
-    const token = request.cookies.get('provider_token')?.value;
-
-    if (!token) {
-      return NextResponse.redirect(new URL('/provider/login', process.env.NEXT_PUBLIC_APP_URL));
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded || decoded.type !== 'provider') {
-      return NextResponse.redirect(new URL('/provider/login', process.env.NEXT_PUBLIC_APP_URL));
-    }
-
-    const providerId = decoded.providerId;
-
     // Get account ID from DB (more reliable than query param)
     const rows = await execute(
       'SELECT stripe_account_id FROM provider_bank_accounts WHERE provider_id = ?',

@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server'
 import { execute as query } from '@/lib/db'
+import { jwtSecret } from '@/lib/jwt'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
-
 export async function POST(request) {
     try {
+        // Sessions are signed with the configured JWT_SECRET (src/lib/jwt.js);
+        // without it this route answers before it reads the request.
+        const secret = jwtSecret();
         const body = await request.json().catch(() => ({}));
         const { email, password, role: requestedRole, device_id = 'mobile_default' } = body;
         console.log('Mobile login attempt:', { email, requestedRole, device_id });
@@ -101,7 +103,7 @@ export async function POST(request) {
                 status: user.status || 'active',
                 type: dbRole // Added for compatibility with provider middleware/routes
             },
-            JWT_SECRET,
+            secret,
             { expiresIn: '7d' }
         )
 
@@ -140,6 +142,7 @@ export async function POST(request) {
                  ON DUPLICATE KEY UPDATE 
                  refresh_token = VALUES(refresh_token),
                  refresh_token_expires = VALUES(refresh_token_expires),
+                 user_type = VALUES(user_type),
                  is_active = 1,
                  last_login = NOW()`,
                 [user.id, dbType, refreshToken, finalDeviceId]

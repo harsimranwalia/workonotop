@@ -1,15 +1,34 @@
 // app/api/customer/bookings/route.js - FINAL
 import { NextResponse } from 'next/server'
 import { execute } from '@/lib/db'
+import { requireCaller } from '@/lib/api-auth'
+
+// A customer may name only themselves. A user_id (compared as strings) or an email (compared without case) that
+// names anyone else is a 403, never a 404 (the mobile app logs the user out on a "not found"). An admin may name anyone.
+function namesAnotherAccount(caller, userId, email) {
+  if (userId !== null && userId !== undefined && userId !== '' && String(userId) !== String(caller.id)) return true
+  if (email && String(email).toLowerCase() !== String(caller.email ?? '').toLowerCase()) return true
+  return false
+}
+
+const forbidden = () => NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
 
 // GET customer's bookings
 export async function GET(request) {
+  const auth = await requireCaller(request, ['customer', 'admin']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   try {
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('user_id')
-    const email = searchParams.get('email')
+    let userId = searchParams.get('user_id')
+    let email = searchParams.get('email')
 
-    if (!userId && !email) {
+    if (caller.role === 'customer') {
+      // The customer is the caller: a parameter naming anyone else is refused, and none at all means their own bookings.
+      if (namesAnotherAccount(caller, userId, email)) return forbidden()
+      userId = String(caller.id)
+      email = null
+    } else if (!userId && !email) {
       return NextResponse.json(
         { success: false, message: 'User ID or email is required' },
         { status: 400 }
@@ -76,7 +95,7 @@ export async function GET(request) {
         base_price: basePrice,
         additional_price: additionalPrice,
         overtime_earnings: overtimeEarnings,
-        customer_total: (basePrice + ((additionalPrice / 60) * (booking.overtime_minutes || 0))) * (booking.worker_count || 1),
+        customer_total: basePrice,
         provider_gets: finalAmount,
         has_overtime: overtimeEarnings > 0,
         overtime_minutes: booking.overtime_minutes || 0,
@@ -98,6 +117,9 @@ export async function GET(request) {
 
 // GET single booking details
 export async function POST(request) {
+  const auth = await requireCaller(request, ['customer', 'admin']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   try {
     const body = await request.json()
     const { booking_id, user_id, email } = body
@@ -108,6 +130,9 @@ export async function POST(request) {
         { status: 400 }
       )
     }
+
+    // A customer may not name another account in the body.
+    if (caller.role === 'customer' && namesAnotherAccount(caller, user_id, email)) return forbidden()
 
     let sql = `
       SELECT 
@@ -131,7 +156,11 @@ export async function POST(request) {
     `
     const params = [booking_id]
 
-    if (user_id) {
+    if (caller.role === 'customer') {
+      // Ownership comes from the caller, never from the body.
+      sql += ' AND b.user_id = ?'
+      params.push(caller.id)
+    } else if (user_id) {
       sql += ' AND b.user_id = ?'
       params.push(user_id)
     } else if (email) {
@@ -147,6 +176,11 @@ export async function POST(request) {
     const bookings = await execute(sql, params)
 
     if (bookings.length === 0) {
+      // A booking that exists but is not the customer's own is a 403, never the 404 below; one that does not exist keeps the 404.
+      if (caller.role === 'customer') {
+        const [existing] = await execute('SELECT id FROM bookings WHERE id = ?', [booking_id])
+        if (existing) return forbidden()
+      }
       return NextResponse.json(
         { success: false, message: 'Booking not found or unauthorized' },
         { status: 404 }
@@ -186,7 +220,7 @@ export async function POST(request) {
       base_price: basePrice,
       additional_price: additionalPrice,
       overtime_earnings: overtimeEarnings,
-      customer_total: (basePrice + ((additionalPrice / 60) * (booking.overtime_minutes || 0))) * (booking.worker_count || 1),
+      customer_total: basePrice,
       provider_gets: finalAmount,
       has_overtime: overtimeEarnings > 0,
       overtime_minutes: booking.overtime_minutes || 0,

@@ -136,16 +136,6 @@ function ReviewModal({ isOpen, onClose, booking, customerId, onSubmit }) {
   )
 }
 
-// ── Calc final amount ─────────────────────────────────────────────────────────
-function calcFinalAmount(basePrice, standardMins, actualMins, overtimeRate = 0) {
-  if (actualMins <= 0) return basePrice
-  if (actualMins > standardMins && overtimeRate > 0) {
-    const overtimeMins = actualMins - standardMins
-    return Math.round((basePrice + (overtimeRate * overtimeMins / 60)) * 100) / 100
-  }
-  return basePrice
-}
-
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function CustomerBookingDetails() {
   const { user, loading: authLoading } = useAuth()
@@ -287,14 +277,10 @@ export default function CustomerBookingDetails() {
 
   // ── Calculations ─────────────────────────────────────────────────────────────
   const wCount = parseInt(booking.submitted_headcount || booking.worker_count || 1)
-  const basePrice = parseFloat(booking.service_price || 0) * wCount
-  const overtimeRate = parseFloat(booking.additional_price || 0) * wCount
+  const basePrice = parseFloat(booking.service_price || 0)
   const actualMinutes = parseInt(booking.submitted_duration_minutes || booking.actual_duration_minutes || 0)
   const standardMinutes = parseInt(booking.standard_duration_minutes || booking.duration_minutes || 60)
-  const customerTotal = calcFinalAmount(basePrice, standardMinutes, actualMinutes, overtimeRate)
-  const isOvertime = actualMinutes > standardMinutes && overtimeRate > 0
-  const overtimeMins = isOvertime ? actualMinutes - standardMinutes : 0
-  const overtimeCost = isOvertime ? Math.round((overtimeRate * overtimeMins / 60) * 100) / 100 : 0
+  const customerTotal = basePrice
   const originalBasePrice = parseFloat(booking.service_price || 0) // What they actually paid upfront
   const totalAuthorized = parseFloat(booking.authorized_amount || originalBasePrice)
   const allPhotos = [...(booking.before_photos || []), ...(booking.after_photos || []), ...(booking.photos || []).map(url => ({ url }))]
@@ -394,7 +380,7 @@ export default function CustomerBookingDetails() {
               )}
               <div className="rounded-xl p-4 mb-5 bg-gray-50 border border-gray-200">
                 <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm font-medium text-gray-700">Job Total (Base + Overtime):</span>
+                  <span className="text-sm font-medium text-gray-700">Job Total:</span>
                   <span className="text-xl font-bold text-gray-900">{fmt(customerTotal)}</span>
                 </div>
                 <div className="text-xs border-t pt-3 space-y-2">
@@ -404,14 +390,6 @@ export default function CustomerBookingDetails() {
                       <p className="text-[10px] text-gray-400 mt-0.5">Base Service (x{wCount} worker{wCount > 1 ? 's' : ''})</p>
                     </div>
                     <span>{fmt(basePrice)}</span>
-                  </div>
-                  
-                  <div className="flex justify-between text-gray-600">
-                    <div>
-                      <span>Overtime ({overtimeMins}min at {fmt(overtimeRate)}/hr):</span>
-                      <p className="text-[10px] text-gray-400 mt-0.5">Actual Overtime (x{wCount} worker{wCount > 1 ? 's' : ''})</p>
-                    </div>
-                    <span>+{fmt(overtimeCost)}</span>
                   </div>
                   
                   <div className="flex justify-between font-bold pt-2 mt-2 border-t text-red-600">
@@ -438,7 +416,7 @@ export default function CustomerBookingDetails() {
                   ) : (
                     <>
                       <Check className="w-5 h-5 flex-shrink-0" />
-                      <span className="truncate">{isOvertime ? 'Pay Remaining Overtime' : 'Approve & Release Payment'}</span>
+                      <span className="truncate">Approve & Release Payment</span>
                     </>
                   )}
                 </button>
@@ -640,19 +618,6 @@ export default function CustomerBookingDetails() {
                     <span className="text-base font-bold text-gray-900">{fmt(basePrice)}</span>
                   </div>
 
-                  {isOvertime && (
-                    <div className="flex justify-between items-start bg-gray-50 -mx-5 px-5 py-4 border-y border-gray-100">
-                      <div className="flex-1 pr-4">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          <Clock className="w-4 h-4 text-gray-600" />
-                          <p className="text-sm font-bold text-gray-800">Actual Overtime {wCount > 1 ? `(x${wCount} workers)` : ''}</p>
-                        </div>
-                        <p className="text-xs text-gray-600 mt-0.5">{overtimeMins} mins extra at {fmt(overtimeRate)}/hr</p>
-                      </div>
-                      <span className="text-base font-bold text-gray-900">+{fmt(overtimeCost)}</span>
-                    </div>
-                  )}
-
                   <div className="pt-2">
                     <div className="flex justify-between items-center gap-3 bg-teal-600 p-5 rounded-2xl shadow-lg shadow-teal-100">
                       <div className="min-w-0">
@@ -711,16 +676,12 @@ export default function CustomerBookingDetails() {
             <h3 className="text-lg font-bold mb-4">Confirm Payment</h3>
             <div className="rounded-xl p-4 mb-4 bg-gray-50 border border-gray-200">
               <div className="flex justify-between text-sm mb-2">
-                <span>Job Total (Base + Overtime):</span>
+                <span>Job Total:</span>
                 <span className="font-bold text-gray-900">{fmt(customerTotal)}</span>
               </div>
-              <div className="flex justify-between text-xs text-gray-500 mb-1">
+              <div className="flex justify-between text-xs text-gray-500 mb-3">
                 <span>Base price ({standardMinutes}min):</span>
                 <span>{fmt(basePrice)}</span>
-              </div>
-              <div className="flex justify-between text-xs text-gray-500 mb-3">
-                <span>Overtime ({overtimeMins}min at {fmt(overtimeRate)}/hr):</span>
-                <span>+{fmt(overtimeCost)}</span>
               </div>
               <div className="flex justify-between text-sm mb-2 text-red-600 font-bold border-t pt-3">
                 <span>Already Paid (Base Price):</span>

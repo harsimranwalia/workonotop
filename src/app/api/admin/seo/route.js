@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { requireCaller } from '@/lib/api-auth';
 
 export async function GET(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const { searchParams } = new URL(request.url);
     const pageName = searchParams.get('page_name');
@@ -20,6 +23,8 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
     const { page_name, meta_title, meta_description, keywords, canonical_url, og_title, og_description, og_image, header_scripts, footer_scripts } = body;

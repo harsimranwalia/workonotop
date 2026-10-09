@@ -1,20 +1,12 @@
 // app/api/provider/available-jobs/[id]/route.js
 import { NextResponse } from 'next/server'
 import { execute, getConnection } from '@/lib/db'
-import { verifyToken } from '@/lib/jwt'
+import { requireCaller } from '@/lib/api-auth'
 import { notifyUser } from '@/lib/push'
 import { sendEmail } from '@/lib/email'
 import { logActivity } from '@/lib/logger'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
-
-function getAuth(request) {
-  const token = request.cookies.get('provider_token')?.value
-  if (!token) return null
-  const decoded = verifyToken(token)
-  if (!decoded || decoded.type !== 'provider') return null
-  return decoded
-}
+const forbidden = () => NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
 
 // Helper to get system settings
 async function getSystemSetting(key, defaultValue = null) {
@@ -29,10 +21,10 @@ async function getSystemSetting(key, defaultValue = null) {
 
 // ── GET: Job detail ───────────────────────────────────────────────────────────
 export async function GET(request, { params }) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   try {
-    const decoded = getAuth(request)
-    if (!decoded) return NextResponse.json({ success: false, message: 'Not authenticated' }, { status: 401 })
-
     const { id } = await params
 
     const defaultCommRaw = await getSystemSetting('default_commission', '20')
@@ -53,11 +45,16 @@ export async function GET(request, { params }) {
       FROM bookings b
       LEFT JOIN services s ON b.service_id = s.id
       LEFT JOIN service_categories c ON s.category_id = c.id
-      WHERE b.id = ?`,
-      [id]
+      WHERE b.id = ? AND (b.provider_id = ? OR (b.provider_id IS NULL AND b.status IN ('pending', 'matching')))`,
+      [id, caller.id]
     )
 
-    if (!results.length) return NextResponse.json({ success: false, message: 'Job not found' }, { status: 404 })
+    if (!results.length) {
+      // A booking that exists but is another provider's, or is neither the caller's nor open to providers, is a 403, never the 404 below; one that does not exist keeps the 404.
+      const [existing] = await execute('SELECT id FROM bookings WHERE id = ?', [id])
+      if (existing) return forbidden()
+      return NextResponse.json({ success: false, message: 'Job not found' }, { status: 404 })
+    }
 
     const booking = { ...results[0] }
 
@@ -100,7 +97,7 @@ export async function GET(request, { params }) {
       else availability_reason = 'not_available'
     }
 
-    const isMyJob = booking.provider_id === decoded.providerId
+    const isMyJob = booking.provider_id === caller.id
 
     return NextResponse.json({
       success: true,
@@ -118,11 +115,11 @@ export async function GET(request, { params }) {
 
 // ── POST: Accept job ──────────────────────────────────────────────────────────
 export async function POST(request, { params }) {
+  const auth = await requireCaller(request, ['provider']);
+  if (!auth.ok) return auth.response;
+  const caller = auth.caller
   let connection
   try {
-    const decoded = getAuth(request)
-    if (!decoded) return NextResponse.json({ success: false, message: 'Not authenticated' }, { status: 401 })
-
     const { id } = await params
 
     const defaultCommRaw = await getSystemSetting('default_commission', '20')
@@ -144,10 +141,16 @@ export async function POST(request, { params }) {
 
       if (!job) { await connection.query('ROLLBACK'); return NextResponse.json({ success: false, message: 'Job not found' }, { status: 404 }) }
 
+      // Ownership, on the locked row: the caller's own job, or an unassigned one open to providers (the clause jobs/[id] has). Another provider's job,
+      // or one that is neither, is a 403, never the 409 below (it stays for the caller's own job, which has a provider already).
+      if (!(job.provider_id === caller.id || (job.provider_id === null && ['pending', 'matching'].includes(job.status)))) {
+        await connection.query('ROLLBACK')
+        return forbidden()
+      }
+
       const commPct = job.commission_percent !== null ? parseFloat(job.commission_percent) : defaultComm
 
       if (job.provider_id !== null) { await connection.query('ROLLBACK'); return NextResponse.json({ success: false, message: 'Already accepted by another provider' }, { status: 409 }) }
-      if (!['pending', 'matching'].includes(job.status)) { await connection.query('ROLLBACK'); return NextResponse.json({ success: false, message: `Not available (status: ${job.status})` }, { status: 409 }) }
 
       // Update commission if null
       if (job.commission_percent === null) {
@@ -156,21 +159,29 @@ export async function POST(request, { params }) {
 
       await connection.execute(
         `UPDATE bookings SET provider_id=?, status='confirmed', accepted_at=NOW(), updated_at=NOW() WHERE id=?`,
-        [decoded.providerId, id]
+        [caller.id, id]
       )
       await connection.execute(
         `INSERT INTO booking_status_history (booking_id, status, notes) VALUES (?, 'confirmed', ?)`,
-        [id, `Accepted by provider #${decoded.providerId}`]
+        [id, `Accepted by provider #${caller.id}`]
       )
 
       await connection.query('COMMIT')
 
-      
+      // The old token carried the provider's name; auth.caller does not, so read it (a failure here must not undo a committed accept).
+      let providerName = null
+      try {
+        const [providerRow] = await execute('SELECT name FROM service_providers WHERE id = ?', [caller.id])
+        providerName = providerRow?.name ?? null
+      } catch (nameErr) {
+        console.error('Failed to read the provider name:', nameErr)
+      }
+
       // Log Activity
       logActivity({
-        actor_id: decoded.providerId,
+        actor_id: caller.id,
         actor_type: 'provider',
-        actor_name: decoded.name || 'Provider',
+        actor_name: providerName || 'Provider',
         action: 'JOB_ACCEPTED',
         entity_type: 'booking',
         entity_id: id,
@@ -180,7 +191,7 @@ export async function POST(request, { params }) {
       // ---- NOTIFICATIONS ----
       try {
         const titleClient = 'Pro Accepted Your Job!';
-        const bodyClient = `${decoded.name || 'A professional'} has accepted your ${job.service_name} job.`;
+        const bodyClient = `${providerName || 'A professional'} has accepted your ${job.service_name} job.`;
         
         if (job.user_id) {
           await notifyUser(job.user_id, 'customer', titleClient, bodyClient, { booking_id: id }).catch(console.error);
@@ -191,10 +202,10 @@ export async function POST(request, { params }) {
 
         const titlePro = 'Job Accepted';
         const bodyPro = `You have successfully accepted the ${job.service_name} job.`;
-        await notifyUser(decoded.providerId, 'provider', titlePro, bodyPro, { booking_id: id }).catch(console.error);
+        await notifyUser(caller.id, 'provider', titlePro, bodyPro, { booking_id: id }).catch(console.error);
         
         // Let's get pro email to send it there too
-        const [proData] = await connection.execute('SELECT email FROM service_providers WHERE id = ?', [decoded.providerId]);
+        const [proData] = await connection.execute('SELECT email FROM service_providers WHERE id = ?', [caller.id]);
         if (proData && proData[0] && proData[0].email) {
           await sendEmail({ to: proData[0].email, subject: titlePro, text: bodyPro }).catch(console.error);
         }
