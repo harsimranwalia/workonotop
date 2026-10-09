@@ -140,6 +140,7 @@ export async function POST(request) {
                  ON DUPLICATE KEY UPDATE 
                  refresh_token = VALUES(refresh_token),
                  refresh_token_expires = VALUES(refresh_token_expires),
+                 user_type = VALUES(user_type),
                  is_active = 1,
                  last_login = NOW()`,
                 [user.id, dbType, refreshToken, finalDeviceId]

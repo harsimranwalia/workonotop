@@ -2415,6 +2415,30 @@
     "homepage.spec.js › Homepage › should navigate to /services with the search term when the Search button is clicked": {
       "outcome": "PASS"
     },
+    "mobile-refresh-role.spec.js › Mobile refresh role › a customer session refreshes to a customer token": {
+      "outcome": "PASS"
+    },
+    "mobile-refresh-role.spec.js › Mobile refresh role › a device registration, a sign-in and a refresh keep the admin's own role and id": {
+      "outcome": "PASS"
+    },
+    "mobile-refresh-role.spec.js › Mobile refresh role › a device registration, a sign-in and a refresh keep the customer's own role and id": {
+      "outcome": "PASS"
+    },
+    "mobile-refresh-role.spec.js › Mobile refresh role › a device registration, a sign-in and a refresh keep the provider's own role and id": {
+      "outcome": "PASS"
+    },
+    "mobile-refresh-role.spec.js › Mobile refresh role › a provider session refreshes to a provider token": {
+      "outcome": "PASS"
+    },
+    "mobile-refresh-role.spec.js › Mobile refresh role › a repeat sign-in keeps the stored type in step with the account": {
+      "outcome": "PASS"
+    },
+    "mobile-refresh-role.spec.js › Mobile refresh role › refresh returns the role the account holds": {
+      "outcome": "PASS"
+    },
+    "mobile-refresh-role.spec.js › Mobile refresh role › the sign-in routes that derive the type from the account re-store it on a repeat sign-in": {
+      "outcome": "PASS"
+    },
     "ownership.spec.js › Ownership: POST /api/reviews › Ownership POST /api/reviews: a body naming customer 2 as customer_id, or provider 2 as provider_id, on customer 1's own booking is 403": {
       "outcome": "PASS"
     },
