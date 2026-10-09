@@ -44,33 +44,6 @@ export async function getMobileSession(request) {
                 }
             } catch (jwtErr) {
                 console.log('JWT verify error:', jwtErr.message);
-                // Last resort: try decoding without verification to extract provider ID
-                // This handles cases where the JWT secret changed but the session is still valid in DB
-                try {
-                    const looseDecode = decodeToken(token);
-                    if (looseDecode?.id) {
-                        // Try DB lookup by provider_id instead of token string
-                        const byIdRows = await execute(
-                            `SELECT * FROM mobile_auth_users 
-                             WHERE provider_id = ? AND is_active = 1 
-                             AND (refresh_token_expires IS NULL OR refresh_token_expires > NOW())
-                             ORDER BY last_login DESC LIMIT 1`,
-                            [looseDecode.id]
-                        );
-                        if (byIdRows.length > 0) {
-                            console.log('✅ Found session by provider_id fallback');
-                            const session = byIdRows[0];
-                            return {
-                                ...looseDecode,
-                                providerId: session.provider_id || looseDecode.id,
-                                userId: session.user_id || looseDecode.id,
-                                type: session.user_type || looseDecode.role || looseDecode.type,
-                                mobileSession: true,
-                                status: 'active'
-                            };
-                        }
-                    }
-                } catch (_) { }
             }
             return null;
         }
