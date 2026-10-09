@@ -1,7 +1,7 @@
 // The credentials the role-by-route test sends, obtained through the same routes a person's browser or the mobile app
 // uses, and handed out as request headers. They are signed in once per run, by the global setup (e2e/auth/global-setup.js),
 // which leaves them in process.env (CREDENTIAL_ENV) for the worker processes Playwright spawns after it: a worker is
-// replaced after every failed case, so signing in per worker cost five logins per failure. Only when that variable is absent
+// replaced after every failed case, so signing in per worker cost six logins per failure. Only when that variable is absent
 // (a spec run outside this config) does getCredentialHeaders sign in itself, once per worker process, as it always did.
 // No token is written to disk or logged; a failure names the account, the route and the status, never a body that could
 // hold a token.
@@ -11,13 +11,19 @@
 //                  `cookie` header: customer_token, provider_token or adminAuth.
 //   bearer styles  POST /api/auth/mobile/login, then the `token` of its answer is sent as `Authorization: Bearer`.
 //                  That route also sets a cookie; it is discarded, so a Bearer style carries only the Bearer.
-//                  The admin by Bearer is not one of the design's styles and is not obtained.
+//                  The admin by Bearer (ENG-021) is the same route with the admin fixture's login: the route finds an
+//                  admin in `users` whatever role is asked for and signs { role: 'admin', type: 'admin' }. The app's admin
+//                  screens send a Bearer only, so a route that is converted to the guard needs a style that shows a real
+//                  mobile admin token getting through it. It is not one of the five styles the design lists (the customer,
+//                  provider and admin cookies and the customer and provider Bearers), which is why it comes last: answer
+//                  annotations list the styles in this order.
 import { request } from '@playwright/test';
 import { FIXTURE_LOGINS } from '../../database/fixtures/accounts.js';
 import { RESET_RETRIES } from '../support/auth.js';
 
-// The six styles, in the order the role-by-route test sends them. `none` is the request with no credential.
-export const CREDENTIAL_STYLES = ['none', 'customer-cookie', 'provider-cookie', 'admin-cookie', 'customer-bearer', 'provider-bearer'];
+// The seven styles, in the order the role-by-route test sends them (a new style goes last, so the answer annotations that
+// list them keep their order). `none` is the request with no credential.
+export const CREDENTIAL_STYLES = ['none', 'customer-cookie', 'provider-cookie', 'admin-cookie', 'customer-bearer', 'provider-bearer', 'admin-bearer'];
 
 // The role each signed-in style is, as the app decides it from the signed payload.
 export const STYLE_ROLE = {
@@ -26,6 +32,7 @@ export const STYLE_ROLE = {
     'admin-cookie': 'admin',
     'customer-bearer': 'customer',
     'provider-bearer': 'provider',
+    'admin-bearer': 'admin',
 };
 
 const COOKIE_STYLES = [
@@ -36,6 +43,7 @@ const COOKIE_STYLES = [
 const BEARER_STYLES = [
     { style: 'customer-bearer', who: 'customer1', role: 'customer' },
     { style: 'provider-bearer', who: 'provider1', role: 'provider' },
+    { style: 'admin-bearer', who: 'admin', role: 'admin' },
 ];
 // One mobile session row per account, upserted on this device id, so no other session is replaced.
 const DEVICE_ID = 'e2e-auth-matrix';
@@ -98,13 +106,13 @@ async function bearerHeader(playwright, baseURL, { style, who, role }) {
     }
 }
 
-// The one variable that carries the headers from the global setup to the workers: a JSON object of the six styles, for the
+// The one variable that carries the headers from the global setup to the workers: a JSON object of the seven styles, for the
 // run's baseURL (config.projects[0], the only project). It holds session tokens for the synthetic fixture accounts, so it
 // lives in process.env only: nothing prints, logs, annotates or writes it.
 export const CREDENTIAL_ENV = 'E2E_AUTH_HEADERS';
 
-// The headers the global setup left in process.env, or null when the variable is absent or is not the six styles (a value
-// that does not parse is ignored, never put in a message, and the caller signs in itself).
+// The headers the global setup left in process.env, or null when the variable is absent or is not the seven styles (a value
+// that does not parse, or that lacks a style, is ignored, never put in a message, and the caller signs in itself).
 function sharedHeaders() {
     const raw = process.env[CREDENTIAL_ENV];
     if (!raw) return null;
@@ -120,8 +128,8 @@ function sharedHeaders() {
 let loaded = null; // baseURL -> Promise, so a worker that finds no shared headers signs in once per worker process
 
 /**
- * Returns the six credential styles as request headers: { none: {}, 'customer-cookie': { cookie }, ...,
- * 'provider-bearer': { authorization } }. When the global setup left them in process.env (CREDENTIAL_ENV) they are
+ * Returns the seven credential styles as request headers: { none: {}, 'customer-cookie': { cookie }, ...,
+ * 'admin-bearer': { authorization } }. When the global setup left them in process.env (CREDENTIAL_ENV) they are
  * returned as they are and nothing signs in. Otherwise the logins run once per worker process and every later call gets
  * the same headers. A failed sign-in rejects with a message naming the account and route (and is not cached).
  * @param {string} baseURL

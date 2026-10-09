@@ -41,7 +41,7 @@ import { RESET_RETRIES } from './support/auth.js';
 // it traces, and the config keeps a trace for each failed case, so this file turns tracing off: no TRACE holds a token. That
 // is the whole claim. The department's recipe also copies the app's own log to test-results/app.log, and the Stripe webhook
 // row (kind `self`, so every credential style is sent) makes that route log `request.headers` itself
-// (src/app/api/stripe/webhook/route.js:16): once that row is probed, app.log holds the five fixture session headers. Dev
+// (src/app/api/stripe/webhook/route.js:16): once that row is probed, app.log holds the six fixture session headers. Dev
 // accounts only, in a gitignored directory; ENG-022 owns that route and should delete the log line.
 // A failure still names the credential style, the row and the statuses in its message.
 test.use({ trace: 'off' });

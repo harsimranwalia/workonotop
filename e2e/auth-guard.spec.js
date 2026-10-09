@@ -1,13 +1,22 @@
 // @ts-check
-// Guard-level cases for src/lib/api-auth.js (ENG-020). They run in plain Node: no browser, no route, no database
-// and no app request, so they hold the guard to the design's rules (ENG-004 design, Interfaces) before any
-// handler calls it. One case per rule; the route-by-route checks are auth-coverage and auth-matrix.
+// Guard-level cases for src/lib/api-auth.js (ENG-020, ENG-021). They run in plain Node: no browser, no route, no
+// real database and no app request, so they hold the guard to the design's rules (ENG-004 design, Interfaces)
+// before any handler calls it. One case per rule; the route-by-route checks are auth-coverage and auth-matrix.
 //
 // jwt.js reads JWT_SECRET once, when it is first imported, so the spec sets the secret in beforeAll and loads
 // the guard with a dynamic import() after it (a top-level import would run before the secret is set, and a
 // top-level import() would also run while Playwright collects the files). The old value is put back afterwards.
-// The Bearer cases reach getMobileSession, which asks the database: the test container has none, so the lookup
-// fails, getMobileSession returns null and the guard falls through to the token's own signature.
+//
+// The Bearer cases reach getMobileSession, which asks the database. db.js uses global.mysqlPool when there is one
+// and captures it when it is first imported, so beforeAll puts a STUB pool there before the guard is imported (and
+// afterAll takes it away again). The stub, `db` below, has modes, and every test starts in `down`:
+//   down    getConnection rejects, as a refused connection does: the lookup fails, getMobileSession returns null and
+//           the guard falls through to the token's own signature. This is what the test container does with no
+//           database, so the cases written before the stub existed still mean what they said.
+//   norows  the database is up and the session lookup (mobile_auth_users) finds no row, whatever the string. This is
+//           the mode in which getMobileSession rebuilds a verified token's payload (`type` becomes `role || type`).
+//   row     the lookup finds one active row, for exactly the string in db.row, and the status query says 'active'.
+// The stub also counts the connections asked for (db.connections), so a case can say the cookie path makes none.
 import { test, expect } from '@playwright/test';
 import jwt from 'jsonwebtoken';
 
@@ -37,15 +46,52 @@ async function expectRefusal(result, status, message) {
 const expectUnauthorized = (result) => expectRefusal(result, 401, 'Unauthorized');
 const expectForbidden = (result) => expectRefusal(result, 403, 'Forbidden');
 
+// The database stand-in (see the header). `mode` and `row` are set by the case; db.reset() puts everything back to
+// `down` before each test. mobile_auth_users is the first query getMobileSession makes, the status query the second.
+const db = {
+    mode: 'down',
+    /** @type {null | { token: string, provider_id: number | null, user_id: number | null, user_type: string }} */
+    row: null,
+    connections: 0,
+    reset() {
+        this.mode = 'down';
+        this.row = null;
+        this.connections = 0;
+    },
+};
+
+const stubPool = {
+    async getConnection() {
+        db.connections += 1;
+        if (db.mode === 'down') throw Object.assign(new Error('connect ECONNREFUSED (spec stub)'), { code: 'ECONNREFUSED' });
+        return {
+            async execute(sql, params) {
+                if (String(sql).includes('mobile_auth_users')) {
+                    const { token, ...columns } = db.row ?? {};
+                    return [db.mode === 'row' && db.row && params[0] === token ? [columns] : [], []];
+                }
+                if (/SELECT status FROM/.test(String(sql))) return [[{ status: 'active' }], []];
+                throw new Error(`spec stub: unexpected query ${String(sql).slice(0, 60)}`);
+            },
+            release() {},
+        };
+    },
+};
+
+const globals = /** @type {any} */ (globalThis);
+
 /** @type {typeof import('../src/lib/api-auth.js')} */
 let guard;
 /** @type {typeof import('../src/lib/jwt.js')} */
 let jwtLib;
 let savedSecret;
+let savedPool;
 
 test.beforeAll(async () => {
     savedSecret = process.env.JWT_SECRET;
+    savedPool = globals.mysqlPool;
     process.env.JWT_SECRET = SECRET;
+    globals.mysqlPool = stubPool;
     guard = await import('../src/lib/api-auth.js');
     jwtLib = await import('../src/lib/jwt.js');
 });
@@ -53,7 +99,11 @@ test.beforeAll(async () => {
 test.afterAll(() => {
     if (savedSecret === undefined) delete process.env.JWT_SECRET;
     else process.env.JWT_SECRET = savedSecret;
+    if (savedPool === undefined) delete globals.mysqlPool;
+    else globals.mysqlPool = savedPool;
 });
+
+test.beforeEach(() => db.reset());
 
 test.describe('Auth guard - refusals', () => {
     test('no credential is 401 Unauthorized', async () => {
@@ -147,9 +197,12 @@ test.describe('Auth guard - what counts as a session', () => {
         await expectUnauthorized(await guard.requireCaller(request(asCookie('adminAuth', sign({ providerId: 1, email: ADMIN.email, role: 'admin' }))), ['admin']));
     });
 
-    // A signed token whose id claim is there but is not a usable id (api-auth.js validId: a positive finite number or a
-    // non-blank string). One case per value, so a guard that starts to accept one of them fails on that value's case alone.
-    for (const bad of [0, '', ' ', true, {}]) {
+    // A signed token whose id claim is there but is not a usable id (api-auth.js idNumber: a positive safe integer, or the
+    // digits of one: no sign, no leading zero, no fraction, no exponent, no blank, nothing after the digits). One case per
+    // value, so a guard that starts to accept one of them fails on that value's case alone. ENG-021 added the values from
+    // '5abc' on (MySQL reads '5abc' as 5 in an integer comparison): the first five are the ones the case began with.
+    const BAD_IDS = [0, '', ' ', true, {}, '5abc', 1.5, '1.5', '0', -3, '007', ' 5 ', '1e3', Number.MAX_SAFE_INTEGER + 1, '9007199254740993'];
+    for (const bad of BAD_IDS) {
         test(`a signed token whose id is ${JSON.stringify(bad)} is 401 for every role, as a cookie and as a Bearer`, async () => {
             const all = ['admin', 'customer', 'provider'];
             // [cookie name or null for a Bearer, payload, the role the token claims]. A web provider token carries only
@@ -205,9 +258,10 @@ test.describe('Auth guard - what counts as a session', () => {
                 await expectUnauthorized(await guard.requireCaller(request(headers), all));
             }
         }
-        // Cookies only: on a Bearer, getMobileSession's own JWT path rewrites `type` to `role || type` before the
-        // guard sees it, so the disagreement is only visible to the guard when it reads the payload itself. No
-        // login signs such a token (the mobile login sets role and type from one variable).
+        // Cookies only here. The same payloads as a Bearer, with a session lookup that finds no row, are in 'the Bearer
+        // path with a session lookup' (ENG-021 F1(b)): there getMobileSession's own JWT path rewrites `type` to
+        // `role || type`, and the guard has to read the token's own claims. No login signs such a token (the mobile
+        // login sets role and type from one variable).
         const disagree = [
             { id: 5, email: 'x@workontap.test', role: 'user', type: 'provider' },
             { id: 5, email: 'x@workontap.test', role: 'admin', type: 'provider' },
@@ -417,5 +471,217 @@ test.describe('Auth guard - a Bearer session lookup that rejects', () => {
         expect(guardLines, "exactly one line from the guard, not none (silent) and not two").toHaveLength(1);
         expect(guardLines[0]).toContain('api-auth: could not read the request credentials');
         expect(guardLines[0]).toContain('session lookup rejected');
+    });
+});
+
+test.describe('Auth guard - ids and role claims (ENG-021)', () => {
+    test('an id signed as its digits is returned as a number: "21" is 21, 21 stays 21, a provider\'s providerId "21" is 21', async () => {
+        const asCustomer = (id) => guard.requireCaller(request(asCookie('customer_token', sign({ ...CUSTOMER, id }))), ['customer']);
+        const fromDigits = await asCustomer('21');
+        expect(fromDigits.ok).toBe(true);
+        expect(fromDigits.caller.id, 'the id "21" signed as a string').toBe(21);
+        expect(typeof fromDigits.caller.id).toBe('number');
+        const fromNumber = await asCustomer(21);
+        expect(fromNumber.ok).toBe(true);
+        expect(fromNumber.caller.id).toBe(21);
+        const provider = await guard.requireCaller(request(asCookie('provider_token', sign({ ...PROVIDER, providerId: '21' }))), ['provider']);
+        expect(provider.ok).toBe(true);
+        expect(provider.caller).toEqual({ role: 'provider', id: 21, email: PROVIDER.email, via: 'cookie' });
+        // The Bearer path normalises the same way.
+        const bearer = await guard.requireCaller(request(asBearer(sign({ ...MOBILE_CUSTOMER, id: '11' }))), ['customer']);
+        expect(bearer.ok).toBe(true);
+        expect(bearer.caller.id).toBe(11);
+    });
+
+    test('a role claim that is none of admin, provider, user or customer is refused outright, even when type is recognised', async () => {
+        const all = ['admin', 'customer', 'provider'];
+        for (const role of ['superuser', 'ADMIN', 'moderator', '', 0, false]) {
+            const payload = { id: 11, email: CUSTOMER.email, role, type: 'user' };
+            const token = sign(payload);
+            const label = `role ${JSON.stringify(role)} with type 'user'`;
+            // As a cookie, in the cookie of the role the recognised `type` names.
+            for (const roles of [['customer'], all]) {
+                const result = await guard.requireCaller(request(asCookie('customer_token', token)), roles);
+                expect(result.ok, `${label}, customer_token cookie, roles ${roles}`).toBe(false);
+                expect(result.response.status, `${label}, customer_token cookie, roles ${roles}`).toBe(401);
+            }
+            // As a Bearer, with the lookup finding no row and with the database down.
+            for (const mode of ['norows', 'down']) {
+                db.mode = mode;
+                for (const roles of [['customer'], all]) {
+                    const result = await guard.requireCaller(request(asBearer(token)), roles);
+                    expect(result.ok, `${label}, Bearer, ${mode}, roles ${roles}`).toBe(false);
+                    expect(result.response.status, `${label}, Bearer, ${mode}, roles ${roles}`).toBe(401);
+                }
+            }
+        }
+    });
+
+    test('the real web payloads still pass, and a role of null is no role claim at all', async () => {
+        // The customer login signs { id, role: 'user' } (no type); the provider login signs { providerId, type: 'provider' } (no role).
+        const customer = await guard.requireCaller(request(asCookie('customer_token', sign({ id: 11, email: CUSTOMER.email, role: 'user' }))), ['customer']);
+        expect(customer.ok).toBe(true);
+        expect(customer.caller).toEqual({ role: 'customer', id: 11, email: CUSTOMER.email, via: 'cookie' });
+        const provider = await guard.requireCaller(request(asCookie('provider_token', sign({ providerId: 21, email: PROVIDER.email, type: 'provider' }))), ['provider']);
+        expect(provider.ok).toBe(true);
+        expect(provider.caller).toEqual({ role: 'provider', id: 21, email: PROVIDER.email, via: 'cookie' });
+        // A login that signs `role: undefined` leaves no key at all; null is the same absence, so `type` decides.
+        const nulled = { id: 11, email: CUSTOMER.email, role: null, type: 'user' };
+        const asCookieResult = await guard.requireCaller(request(asCookie('customer_token', sign(nulled))), ['customer']);
+        expect(asCookieResult.ok, 'role null, cookie').toBe(true);
+        expect(asCookieResult.caller).toEqual({ role: 'customer', id: 11, email: CUSTOMER.email, via: 'cookie' });
+        for (const mode of ['norows', 'down']) {
+            db.mode = mode;
+            const asBearerResult = await guard.requireCaller(request(asBearer(sign(nulled))), ['customer']);
+            expect(asBearerResult.ok, `role null, Bearer, ${mode}`).toBe(true);
+            expect(asBearerResult.caller).toEqual({ role: 'customer', id: 11, email: CUSTOMER.email, via: 'bearer' });
+        }
+    });
+});
+
+test.describe('Auth guard - the Bearer path with a session lookup (ENG-021)', () => {
+    const all = ['admin', 'customer', 'provider'];
+    const MODES = ['norows', 'down'];
+
+    // A Bearer request, and what the guard says; `label` names the shape and the mode in a failure message.
+    async function bearerOutcome(token, roles) {
+        return guard.requireCaller(request(asBearer(token)), roles);
+    }
+    async function expectBearerRefused(label, token, roles) {
+        const result = await bearerOutcome(token, roles);
+        expect(result.ok, label).toBe(false);
+        expect(result.response.status, label).toBe(401);
+    }
+
+    test('F1(a): a verified token whose type is special-purpose is 401 as a Bearer even when it carries a role', async () => {
+        const claims = [['admin', 'admin'], ['user', 'customer'], ['provider', 'provider']];
+        for (const mode of MODES) {
+            db.mode = mode;
+            for (const type of ['email_verification', 'password_reset']) {
+                for (const [claim, allowed] of claims) {
+                    const token = sign({ id: 1, email: ADMIN.email, role: claim, type });
+                    for (const roles of [[allowed], all]) {
+                        await expectBearerRefused(`${mode}: role ${claim}, type ${type}, roles ${roles}`, token, roles);
+                    }
+                }
+            }
+        }
+        expect(db.connections, 'premise: the lookup ran against the stub').toBeGreaterThan(0);
+    });
+
+    test('F1(b): a verified token whose role and type name different roles is 401 as a Bearer', async () => {
+        const disagree = [
+            { id: 1, email: ADMIN.email, role: 'admin', type: 'provider' },
+            { id: 11, email: CUSTOMER.email, role: 'user', type: 'admin' },
+            { id: 21, email: PROVIDER.email, role: 'provider', type: 'user' },
+        ];
+        for (const mode of MODES) {
+            db.mode = mode;
+            for (const payload of disagree) {
+                for (const roles of [['admin'], ['customer'], ['provider'], all]) {
+                    await expectBearerRefused(`${mode}: role ${payload.role}, type ${payload.type}, roles ${roles}`, sign(payload), roles);
+                }
+            }
+        }
+        expect(db.connections, 'premise: the lookup ran against the stub').toBeGreaterThan(0);
+    });
+
+    test('F1(c): "Bearer <valid> x", "<valid> x y" and the same with a tab are 401, with norows and with down; the bare token passes', async () => {
+        const valid = sign(MOBILE_ADMIN);
+        const shapes = {
+            'one more word': `${valid} x`,
+            'two more words': `${valid} x y`,
+            'a tab and a word': `${valid}\tx`,
+            'a space, a tab and a word': `${valid} \tx`,
+            'two spaces and a word': `${valid}  x`,
+        };
+        for (const mode of MODES) {
+            db.mode = mode;
+            for (const [name, token] of Object.entries(shapes)) {
+                for (const roles of [['admin'], all]) {
+                    await expectBearerRefused(`${mode}: Bearer <valid> with ${name}, roles ${roles}`, token, roles);
+                }
+            }
+            const bare = await bearerOutcome(valid, ['admin']);
+            expect(bare.ok, `${mode}: the bare token`).toBe(true);
+            expect(bare.caller).toEqual({ role: 'admin', id: 1, email: ADMIN.email, via: 'bearer' });
+        }
+    });
+
+    test('the normal mobile tokens of all three roles still pass as a Bearer, with norows and with down', async () => {
+        const cases = [
+            [MOBILE_ADMIN, 'admin', 1],
+            [MOBILE_CUSTOMER, 'customer', 11],
+            [MOBILE_PROVIDER, 'provider', 21],
+            [PROVIDER, 'provider', 21],
+        ];
+        for (const mode of MODES) {
+            db.mode = mode;
+            for (const [payload, role, id] of cases) {
+                const result = await bearerOutcome(sign(payload), [role]);
+                expect(result.ok, `${mode}: ${role} Bearer`).toBe(true);
+                expect(result.caller).toEqual({ role, id, email: payload.email, via: 'bearer' });
+            }
+        }
+    });
+
+    // A string that does NOT verify here (signed with another secret) but decodes, as the string the mobile app holds
+    // and mobile_auth_users stores does: getMobileSession reads its payload with decodeToken when a row matches it.
+    test('the issued-string path survives: a stored string that does not verify is a session of the row\'s user_type; with no row it is 401', async () => {
+        const issued = [
+            ['customer', MOBILE_CUSTOMER, { provider_id: null, user_id: 11, user_type: 'customer' }, 11],
+            ['provider', MOBILE_PROVIDER, { provider_id: 21, user_id: null, user_type: 'provider' }, 21],
+            ['admin', MOBILE_ADMIN, { provider_id: null, user_id: 1, user_type: 'admin' }, 1],
+        ];
+        for (const [role, payload, columns, id] of issued) {
+            const token = sign(payload, 'another secret');
+            db.mode = 'row';
+            db.row = { token, ...columns };
+            for (const roles of [[role], all]) {
+                const result = await bearerOutcome(token, roles);
+                expect(result.ok, `row for the string: ${role} Bearer, roles ${roles}`).toBe(true);
+                expect(result.caller).toEqual({ role, id, email: payload.email, via: 'bearer' });
+            }
+            // The row is for exactly that string: another string of the same shape finds none.
+            await expectBearerRefused(`row for another string: ${role} Bearer`, sign(payload, 'yet another secret'), all);
+            // No row, or no database: no session.
+            for (const mode of MODES) {
+                db.mode = mode;
+                await expectBearerRefused(`${mode}: ${role} Bearer that does not verify`, token, all);
+            }
+        }
+    });
+
+    test('the cookie path never touches the database: a request a cookie settles makes zero lookups', async () => {
+        db.mode = 'down';
+        const settled = [
+            [asCookie('adminAuth', sign(ADMIN)), ['admin']],
+            [asCookie('customer_token', sign(CUSTOMER)), ['customer']],
+            [asCookie('provider_token', sign(PROVIDER)), ['provider']],
+            [{ ...asCookie('adminAuth', sign(ADMIN)), ...asBearer('not.a.token') }, ['admin']],
+        ];
+        for (const [headers, roles] of settled) {
+            const result = await guard.requireCaller(request(headers), roles);
+            expect(result.ok, `cookie-settled request for ${roles}`).toBe(true);
+        }
+        expect(await guard.callerFrom(request(asCookie('customer_token', sign(CUSTOMER))))).not.toBeNull();
+        // A refused cookie with no Bearer asks the database nothing either.
+        await expectUnauthorized(await guard.requireCaller(request(asCookie('adminAuth', sign(ADMIN, 'another secret'))), ['admin']));
+        expect(db.connections, 'getConnection calls for the cookie-only requests').toBe(0);
+        // The premise, so that a zero means something: a Bearer does reach the stub.
+        await guard.requireCaller(request(asBearer(sign(MOBILE_ADMIN))), ['admin']);
+        expect(db.connections, 'premise: a Bearer request reaches the stub').toBeGreaterThan(0);
+    });
+
+    // What the matrix's admin-bearer style is judged by on a row that does not allow admin (auth-matrix: 403 exactly).
+    test('an admin by Bearer on a customer-only or a provider-only route is 403, never 401, with norows and with down', async () => {
+        for (const mode of MODES) {
+            db.mode = mode;
+            for (const roles of [['customer'], ['provider'], ['customer', 'provider']]) {
+                const result = await bearerOutcome(sign(MOBILE_ADMIN), roles);
+                expect(result.ok, `${mode}: admin Bearer, roles ${roles}`).toBe(false);
+                await expectForbidden(result);
+            }
+        }
     });
 });

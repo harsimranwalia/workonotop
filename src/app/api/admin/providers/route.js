@@ -160,19 +160,12 @@ import { NextResponse } from 'next/server';
 import { execute } from '@/lib/db';
 import { sendEmail, getApprovalEmailHtml, getRejectionEmailHtml } from '@/lib/email';
 import { logActivity } from '@/lib/logger';
+import { requireCaller } from '@/lib/api-auth';
 
 export async function GET(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
-    let token = request.cookies.get('adminAuth')?.value || request.cookies.get('provider_token')?.value;
-
-    if (!token) {
-        const authHeader = request.headers.get('Authorization');
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            token = authHeader.split(' ')[1];
-        }
-    }
-    
-    // We don't strictly enforce adminAuth here yet, but we allow Bearer tokens
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const search = searchParams.get('search');
@@ -239,16 +232,9 @@ export async function GET(request) {
 }
 
 export async function PUT(request) {
+  const auth = await requireCaller(request, ['admin']);
+  if (!auth.ok) return auth.response;
   try {
-    let token = request.cookies.get('adminAuth')?.value;
-
-    if (!token) {
-        const authHeader = request.headers.get('Authorization');
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            token = authHeader.split(' ')[1];
-        }
-    }
-
     const { providerId, action, rejectionReason } = await request.json();
 
     console.log(`🔄 Processing ${action} for provider:`, providerId);

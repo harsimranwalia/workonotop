@@ -1,5 +1,5 @@
-// globalSetup, listed after e2e/support/preflight.js (so the app is up and the fixtures are loaded): signs the five fixture
-// credentials in once for the whole run (three web logins, two mobile logins, through getCredentialHeaders) and leaves the
+// globalSetup, listed after e2e/support/preflight.js (so the app is up and the fixtures are loaded): signs the six fixture
+// credentials in once for the whole run (three web logins, three mobile logins, through getCredentialHeaders) and leaves the
 // headers in process.env for the worker processes. Playwright spawns the workers after the global setup, with the runner's
 // environment, so every replacement worker inherits them instead of signing in again.
 //

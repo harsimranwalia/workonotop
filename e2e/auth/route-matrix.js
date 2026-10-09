@@ -220,32 +220,32 @@ export const matrix = [
     },
     {
         route: '/api/admin/earnings', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: platform revenue, commission and payout totals plus every invoice row exposed. A cooki…',
+        note: 'Before ENG-021 there was no auth: platform revenue, commission and payout totals plus every invoice row were exposed (now to an admin only). A cooki… ENG-021 guard: src/app/api/admin/earnings/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/earnings', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/invoices', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth; with no filter it returns every invoice row; any invoice readable by id or booking_id.',
+        note: 'Before ENG-021 there was no auth; with no filter it returns every invoice row and any invoice is readable by id or booking_id (now for an admin only). ENG-021 guard: src/app/api/admin/invoices/route.js:7-8 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/invoices', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/invoices', method: 'PATCH', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth; arbitrary status string, no allow-list or existence check: anyone can flip any invoice… Probe (round 3, 2026-10-02): UPDATE invoices at src/app/api/admin/invoices/route.js:53-56, with invoice_id and status read from the body at :50 and no validation. The probe sends {} so both binds are undefined and mysql2 execute (src/lib/db.js:51) refuses them: stopped only by the driver refusing undefined binds, not by a validation (with NULL binds, WHERE id = NULL would still match no row). A body that supplies both fields reaches a real UPDATE: validate them before :53, or hold the row, first.',
+        note: 'Before ENG-021 there was no auth; arbitrary status string, no allow-list or existence check: anyone could flip any invoice (now an admin only)… Probe (round 3, 2026-10-02): UPDATE invoices at src/app/api/admin/invoices/route.js:58-61, with invoice_id and status read from the body at :55 and no validation. The probe sends {} so both binds are undefined and mysql2 execute (src/lib/db.js:51) refuses them: stopped only by the driver refusing undefined binds, not by a validation (with NULL binds, WHERE id = NULL would still match no row). A body that supplies both fields reaches a real UPDATE: validate them before :58, or hold the row, first. ENG-021 guard: invoices/route.js:52-53 (requireCaller(request, [\'admin\']), ahead of the body read at :55); only the admin style gets past it and then behaves as the probe line above describes, the other styles are refused there. The line numbers in that probe line are the ones after this change.',
         probe: { path: '/api/admin/invoices', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/invoices/[id]/preview', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: customer PII by sequential invoice id; booking fields go unescaped into the HTML (stor…',
+        note: 'Before ENG-021 there was no auth: customer PII was served by sequential invoice id (now to an admin only); booking fields go unescaped into the HTML (stor… ENG-021 guard: src/app/api/admin/invoices/[id]/preview/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/invoices/999999999/preview', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/invoices/[id]/preview/download', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: each request launches headless Chrome (DoS) on HTML with unescaped customer-supplied f…',
+        note: 'Before ENG-021 there was no auth, so anyone could do this and now only an admin can: each request launches headless Chrome (DoS) on HTML with unescaped customer-supplied f… ENG-021 guard: src/app/api/admin/invoices/[id]/preview/download/route.js:31-32 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/invoices/999999999/preview/download', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/invoices/generate', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: anyone can create or overwrite customer and provider invoice amounts for any booking; …',
+        note: 'Before ENG-021 there was no auth: anyone could create or overwrite customer and provider invoice amounts for any booking (now an admin only); … ENG-021 guard: src/app/api/admin/invoices/generate/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/invoices/generate', body: {}, anon: 401 },
     },
     {
@@ -260,7 +260,7 @@ export const matrix = [
     },
     {
         route: '/api/admin/logs', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: the whole audit trail is readable; limit is uncapped; limit/offset are parseInt-ed bef…',
+        note: 'Before ENG-021 there was no auth: the whole audit trail was readable by anyone (now by an admin only); limit is uncapped; limit/offset are parseInt-ed bef… ENG-021 guard: src/app/api/admin/logs/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/logs', body: undefined, anon: 401 },
     },
     {
@@ -280,42 +280,42 @@ export const matrix = [
     },
     {
         route: '/api/admin/payouts', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: provider balances, emails and Stripe payout/transfer ids exposed. A cookie-only fix wo…',
+        note: 'Before ENG-021 there was no auth: provider balances, emails and Stripe payout/transfer ids were exposed (now to an admin only). A cookie-only fix wo… ENG-021 guard: src/app/api/admin/payouts/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. GET() took no parameter before ENG-021; it is GET(request) at :5 now.',
         probe: { path: '/api/admin/payouts', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/provider-jobs', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: response includes the whole provider row (password hash, reset_token, email_verificati…',
+        note: 'Before ENG-021 there was no auth, so anyone got this and now only an admin does: the response includes the whole provider row (password hash, reset_token, email_verificati… ENG-021 guard: src/app/api/admin/provider-jobs/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/provider-jobs', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/providers', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Token read then ignored. sp.* leaks every provider\'s password hash, live reset_token and email_…',
+        note: 'Until ENG-021 the handler read a token (the adminAuth or provider_token cookie, or a Bearer) and ignored it; that dead read is deleted. sp.* returns, to an admin only now, every provider\'s password hash, live reset_token and email_… ENG-021 guard: src/app/api/admin/providers/route.js:166-167 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/providers', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/providers', method: 'PUT', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Anyone can approve or reject any provider; rejectionReason goes unescaped into an email sent fr… Probe (round 3, 2026-10-02): UPDATE service_providers in src/app/api/admin/providers/route.js:260 and :274 and sendEmail at :302 and :309 need action approve or reject; the probe sends none. The SELECT at :284 binds an undefined providerId and the driver refuses it, so logActivity (:290) is not reached: stopped by the missing action and the driver refusing undefined binds, not by a validation. Validate both before :257, or hold the row, first.',
+        note: 'Before ENG-021 anyone could approve or reject any provider (now an admin only); rejectionReason goes unescaped into an email sent fr… Probe (round 3, 2026-10-02): UPDATE service_providers in src/app/api/admin/providers/route.js:246 and :260 and sendEmail at :288 and :295 need action approve or reject; the probe sends none. The SELECT at :270 binds an undefined providerId and the driver refuses it, so logActivity (:276) is not reached: stopped by the missing action and the driver refusing undefined binds, not by a validation. Validate both before :243, or hold the row, first. ENG-021 guard: providers/route.js:235-236 (requireCaller(request, [\'admin\']), ahead of the body read at :238); only the admin style gets past it and then behaves as the probe line above describes. The cookie/Bearer token read the handler had was never used and is deleted; the line numbers in the probe line are the ones after this change.',
         probe: { path: '/api/admin/providers', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/providers/[providerId]', method: 'PUT', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: anyone can rewrite any provider\'s email then use forgot-password: account takeover. \'E…',
+        note: 'Before ENG-021 there was no auth: anyone could rewrite any provider\'s email then use forgot-password: account takeover (the PUT is admin only now). \'E… ENG-021 guard: src/app/api/admin/providers/[providerId]/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/providers/999999999', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/providers/[providerId]', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: irreversible cascade hard-delete of a provider and all their bookings, invoices, chat …',
+        note: 'Before ENG-021 there was no auth, so anyone could trigger (now only an admin can) the irreversible cascade hard-delete of a provider and all their bookings, invoices, chat … ENG-021 guard: src/app/api/admin/providers/[providerId]/route.js:35-36 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/providers/999999999', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/providers/[providerId]/documents', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: provider contact data and all KYC document records for any provider id; error.message …',
+        note: 'Before ENG-021 there was no auth: provider contact data and all KYC document records were readable for any provider id (now by an admin only); error.message … ENG-021 guard: src/app/api/admin/providers/[providerId]/documents/route.js:9-10 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/providers/999999999/documents', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/providers/[providerId]/documents', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'No auth: approve_all marks every KYC document verified (verification bypass); reject_all resets…',
+        note: 'Before ENG-021 there was no auth, so anyone could use this and now only an admin can: approve_all marks every KYC document verified (verification bypass); reject_all resets… ENG-021 guard: src/app/api/admin/providers/[providerId]/documents/route.js:45-46 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/admin/providers/999999999/documents', body: {}, anon: 401 },
     },
     {
@@ -635,27 +635,27 @@ export const matrix = [
     },
     {
         route: '/api/bookings', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'CRITICAL: anonymous delete of any booking plus its invoices, provider_payouts, reviews and chat…',
+        note: 'CRITICAL before ENG-021 (an admin only now): anonymous delete of any booking plus its invoices, provider_payouts, reviews and chat… ENG-021 guard: src/app/api/bookings/route.js:524-525 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/bookings', body: undefined, anon: 401 },
     },
     {
         route: '/api/bookings', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'HIGH: anonymous dump of every booking (name, email, phone, address, lat/long, payment_intent_id…',
+        note: 'HIGH before ENG-021 (an admin only now, ?email= included): anonymous dump of every booking (name, email, phone, address, lat/long, payment_intent_id… ENG-021 guard: src/app/api/bookings/route.js:23-24 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/bookings', body: undefined, anon: 401 },
     },
     {
         route: '/api/bookings', method: 'POST', today: 'partial', kind: 'public', public: 'guest checkout; a credential, if sent, sets the owner (R1)', owner: '-',
-        note: 'HIGH: payment_intent_id only checked truthy (123), never verified with Stripe (client declared … Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Missing required fields (Service, Date, Time, Address, or Email)\'.',
+        note: 'HIGH: payment_intent_id only checked truthy (120), never verified with Stripe (client declared … Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Missing required fields (Service, Date, Time, Address, or Email)\'.',
         probe: { path: '/api/bookings', body: {}, anon: [400] },
     },
     {
         route: '/api/bookings', method: 'PUT', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'CRITICAL: anonymous caller can set any booking\'s status, provider, payment_status and commissio…',
+        note: 'CRITICAL before ENG-021 (an admin only now): an anonymous caller could set any booking\'s status, provider, payment_status and commissio… ENG-021 guard: src/app/api/bookings/route.js:340-341 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. The activity log\'s actor is the verified admin (auth.caller.id, :352-353), not a decoded Bearer.',
         probe: { path: '/api/bookings', body: {}, anon: 401 },
     },
     {
         route: '/api/bookings/[id]', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'HIGH: anonymous read of any booking by sequential id or guessable booking_number (BK + timestam…',
+        note: 'HIGH before ENG-021 (an admin only now): anonymous read of any booking by sequential id or guessable booking_number (BK + timestam… ENG-021 guard: src/app/api/bookings/[id]/route.js:7-8 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. Callers: the app\'s admin job screen (mobile/src/screens/admin/AdminJobDetailsScreen.js:35, Bearer) and the web admin page (src/app/admin/bookings/[id]/page.js:34, cookie); the website\'s receipt page (src/app/booking/success/[id]/page.js) no longer calls it (design ENG-004 Amendment 6).',
         probe: { path: '/api/bookings/999999999', body: undefined, anon: 401 },
     },
     {
@@ -665,12 +665,12 @@ export const matrix = [
     },
     {
         route: '/api/bookings/[id]/reassign', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'HIGH: anonymous reassign and reset of any booking, completed or disputed included; old_provider…',
+        note: 'HIGH before ENG-021 (an admin only now): anonymous reassign and reset of any booking, completed or disputed included; old_provider… ENG-021 guard: src/app/api/bookings/[id]/reassign/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/bookings/999999999/reassign', body: {}, anon: 401 },
     },
     {
         route: '/api/bookings/[id]/restart', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'HIGH: anonymous removal of the provider and reset to pending on any booking; no status guard, s… Probe (B2, 2026-10-02): not held, probe unchanged. The handler never reads the body. The UPDATE at restart/route.js:19-31 matches no row for 999999999, and the INSERT into booking_status_history at :34-38 is stopped only by the database: SHOW CREATE TABLE on the dev DB (structure only, 07:01 on 2026-10-02) shows booking_status_history_ibfk_1, booking_id REFERENCES bookings (id) ON DELETE CASCADE, so the INSERT fails, the transaction rolls back (:42-45) and the catch answers 500. A schema without that foreign key would store a history row for a booking that does not exist.',
+        note: 'HIGH before ENG-021 (an admin only now): anonymous removal of the provider and reset to pending on any booking; no status guard, s… Probe (B2, 2026-10-02): not held, probe unchanged. The handler never reads the body. The UPDATE at restart/route.js:22-34 matches no row for 999999999, and the INSERT into booking_status_history at :37-41 is stopped only by the database: SHOW CREATE TABLE on the dev DB (structure only, 07:01 on 2026-10-02) shows booking_status_history_ibfk_1, booking_id REFERENCES bookings (id) ON DELETE CASCADE, so the INSERT fails, the transaction rolls back (:45-48) and the catch answers 500. A schema without that foreign key would store a history row for a booking that does not exist. ENG-021 guard: restart/route.js:6-7 (requireCaller(request, [\'admin\'])), ahead of the UPDATE; it does not read the body either, so the probe (admin style only now) still stops where it did. The line numbers in the probe line above are the ones after this change.',
         probe: { path: '/api/bookings/999999999/restart', body: {}, anon: 401 },
     },
     {
@@ -720,22 +720,22 @@ export const matrix = [
     },
     {
         route: '/api/cron/notifications', method: 'GET', today: 'partial', kind: 'self', self: 'CRON_SECRET, made fail-closed', owner: '-',
-        note: 'MEDIUM: fail-open, no check at all when CRON_SECRET is unset or empty (14); anonymous caller ca… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 500 \'Internal Server Error\'. The route did not refuse the anonymous caller (the answer is not 401). Known failure: ENG-022 makes it 401 through requireCronSecret, which also refuses with 401 when CRON_SECRET is unset, as it is on the dev app. Probe (B2, 2026-10-02): hold. With CRON_SECRET unset the check at notifications/route.js:14 is skipped, so one request, from any credential or none, runs the job: it selects the providers with stripe_onboarding_complete = 0 (:26-31) and for each sends an email (:46) and a push (:52) and updates onboarding_reminder_stage (:54-57). Today it stops only because that column is not in the dev schema (absent at 07:04 on 2026-10-02), so the SELECT throws and the answer is 500: an accident, not a guard. Probe (round 3, 2026-10-02): the handler holds a second job in the same try (:62-111) that runs when the server hour is 19 or later (:66-69): it selects the confirmed bookings of tomorrow not yet reminded (:72-80) and for each emails and pushes the customer (:87-94) and, when a provider is assigned, the provider (:97-105), then updates bookings (:108). It is not reached today: the first SELECT throws first (:26-31, to the catch at :115-118) and the fixtures add no bookings row (database/fixtures insert into users, service_providers, service_categories, services and system_settings). Remove the hold when ENG-022 makes the route answer 401 through requireCronSecret.',
+        note: 'MEDIUM: fail-open, no check at all when CRON_SECRET is unset or empty (14); anonymous caller ca… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 500 \'Internal Server Error\'. The route did not refuse the anonymous caller (the answer is not 401). Known failure: ENG-022 makes it 401 through requireCronSecret, which also refuses with 401 when CRON_SECRET is unset, as it is on the dev app. Probe (B2, 2026-10-02): hold. With CRON_SECRET unset the check at notifications/route.js:14 is skipped, so one request, from any credential or none, runs the job: it selects the providers with stripe_onboarding_complete = 0 (:26-31) and for each sends an email (:46) and a push (:52) and updates onboarding_reminder_stage (:54-57). Today it stops only because that column is not in the dev schema (absent at 07:04 on 2026-10-02), so the SELECT throws and the answer is 500: an accident, not a guard. Probe (round 3, 2026-10-02): the handler holds a second job in the same try (:62-111) that runs when the server hour is 19 or later (:66-69): it selects the confirmed bookings of tomorrow not yet reminded (:72-80) and for each emails and pushes the customer (:87-94) and, when a provider is assigned, the provider (:97-105), then updates bookings (:108). It is not reached today: the first SELECT throws first (:26-31, to the catch at :115-118), and if it were reached it would select nothing: it takes only confirmed bookings of tomorrow (:72-80) and both fixture bookings are completed, with job date 2026-01-15 (database/fixtures hold six files, whose sets insert into users, service_providers, service_categories, services, system_settings, bookings, invoices, provider_payouts and provider_reviews). Remove the hold when ENG-022 makes the route answer 401 through requireCronSecret.',
         probe: { path: '/api/cron/notifications', body: undefined, anon: [401], hold: 'the job runs for ANY caller while CRON_SECRET is unset (route.js:14): held until ENG-022 adds requireCronSecret' },
     },
     {
         route: '/api/customer/booking-details', method: 'GET', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'bookings.user_id = caller (today enforced, role not)',
-        note: 'LOW: ownership enforced, role is not; a provider or admin JWT whose id equals a customer\'s user…',
+        note: 'LOW: ownership enforced, role is not; a provider or admin JWT whose id equals a customer\'s user… The website\'s receipt page (src/app/booking/success/[id]/page.js) reads it too since ENG-021, for a signed-in customer whose tab holds no saved booking (design ENG-004 Amendment 6).',
         probe: { path: '/api/customer/booking-details', body: undefined, anon: 401 },
     },
     {
         route: '/api/customer/bookings', method: 'GET', today: 'none', kind: 'roles', roles: ['customer', 'admin'], owner: 'bookings.user_id = caller; a `?user_id=`/`?email=` naming anyone else: 403',
-        note: 'HIGH: anyone reads any customer\'s bookings by sequential ?user_id= or by ?email=: b.* incl. add…',
+        note: 'HIGH before ENG-021: anyone could read any customer\'s bookings by sequential ?user_id= or by ?email=: b.* incl. add… ENG-021 guard: src/app/api/customer/bookings/route.js:18-19 calls requireCaller(request, [\'customer\', \'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. A customer is the caller (no parameter lists their own bookings) and a ?user_id= or ?email= naming anyone else is 403 (namesAnotherAccount at :8-12, checked at :28); an admin may name anyone, as before.',
         probe: { path: '/api/customer/bookings', body: undefined, anon: 401 },
     },
     {
         route: '/api/customer/bookings', method: 'POST', today: 'none', kind: 'roles', roles: ['customer', 'admin'], owner: 'booking_id must belong to caller (`AND b.user_id = caller`)',
-        note: 'HIGH: the verification is a user_id or email the caller supplies; sequential booking_id plus gu…',
+        note: 'HIGH before ENG-021: the verification was a user_id or email the caller supplied; sequential booking_id plus gu… ENG-021 guard: src/app/api/customer/bookings/route.js:120-121 calls requireCaller(request, [\'customer\', \'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. A customer naming another account in the body is 403 (:135); for a customer the SQL adds AND b.user_id = caller.id (:159-162); a booking that exists but is not theirs is 403 (:180-183) and one that does not exist keeps the 404; an admin still selects by the body user_id or email.',
         probe: { path: '/api/customer/bookings', body: {}, anon: 401 },
     },
     {
@@ -955,7 +955,7 @@ export const matrix = [
     },
     {
         route: '/api/provider/onboarding/stripe-return', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own Stripe onboarding return',
-        note: 'State-changing GET: cross-site navigation carries the SameSite=Lax cookie and forces onboarding… Probe (round 3, 2026-10-02): a GET has no body and no id, so nothing in the request can gate this handler. It reads only the provider_token cookie (stripe-return/route.js:140), which only the provider-cookie style carries (a Bearer style carries no cookie, e2e/auth/credentials.js:12-13), so no credential, the customer and admin cookies and both Bearers take the no-token branch at :142-144 (a redirect to /provider/login). With the provider cookie the handler selects provider_bank_accounts for provider 1 (:154-157) and an empty result redirects (:161-166). A row would reach stripe.accounts.retrieve (:172), UPDATE service_providers (:187-195) and the provider_bank_accounts upsert (:198-213); a Stripe error naming a missing account runs the UPDATE at :242 and the DELETE at :248. Two accidents stop it today. The table is empty: database/fixtures insert into users, service_providers, service_categories, services and system_settings, load.js:134-136 empties every table first, and grep -c provider_bank_accounts prints 0 for each of the five files there; no probe adds a row (the other INSERT sites, create-stripe-account/route.js:124, stripe-complete/route.js:119 and stripe/webhook/route.js:256 and :270, sit behind the body reads at create-stripe-account/route.js:36 and stripe-complete/route.js:38 and the missing-signature 400 at webhook/route.js:19-24). And STRIPE_SECRET_KEY is unset on the dev app (loadEnvConfig in the app container at 08:52 on 2026-10-02, printing only set or unset), so stripe is null (:132) and :169-171 throws before :172. Harmless by data and configuration, not by construction: on the paths the probe takes (the no-token branch and the empty table) the handler ends before any side effect whether the redirect URL is built or not, and on this dev app NEXT_PUBLIC_APP_URL is unset too, so new URL(path, undefined) throws ERR_INVALID_URL at :143, :148, :163-165 and in the outer catch own redirect (:262-264) and the answer is 500 (the baseline records none (no credential): got 500). A fixture that adds a bank-account row for provider 1 must make this row holdAllowed first, in the same change, so the allowed provider is not sent; a Stripe key on the dev stack lifts the second stop. No holdAllowed is added now: it would change the recorded error text of this case in e2e/baseline.json.',
+        note: 'State-changing GET: cross-site navigation carries the SameSite=Lax cookie and forces onboarding… Probe (round 3, 2026-10-02): a GET has no body and no id, so nothing in the request can gate this handler. It reads only the provider_token cookie (stripe-return/route.js:140), which only the provider-cookie style carries (a Bearer style carries no cookie, e2e/auth/credentials.js:12-13), so no credential, the customer and admin cookies and both Bearers take the no-token branch at :142-144 (a redirect to /provider/login). With the provider cookie the handler selects provider_bank_accounts for provider 1 (:154-157) and an empty result redirects (:161-166). A row would reach stripe.accounts.retrieve (:172), UPDATE service_providers (:187-195) and the provider_bank_accounts upsert (:198-213); a Stripe error naming a missing account runs the UPDATE at :242 and the DELETE at :248. Two accidents stop it today. The table is empty: database/fixtures hold six files, whose sets insert into users, service_providers, service_categories, services, system_settings, bookings, invoices, provider_payouts and provider_reviews, load.js:134-136 empties every table first, and grep -c provider_bank_accounts prints 0 for each of the six files there; no probe adds a row (the other INSERT sites, create-stripe-account/route.js:124, stripe-complete/route.js:119 and stripe/webhook/route.js:256 and :270, sit behind the body reads at create-stripe-account/route.js:36 and stripe-complete/route.js:38 and the missing-signature 400 at webhook/route.js:19-24). And STRIPE_SECRET_KEY is unset on the dev app (loadEnvConfig in the app container at 08:52 on 2026-10-02, printing only set or unset), so stripe is null (:132) and :169-171 throws before :172. Harmless by data and configuration, not by construction: on the paths the probe takes (the no-token branch and the empty table) the handler ends before any side effect whether the redirect URL is built or not, and on this dev app NEXT_PUBLIC_APP_URL is unset too, so new URL(path, undefined) throws ERR_INVALID_URL at :143, :148, :163-165 and in the outer catch own redirect (:262-264) and the answer is 500 (the baseline records none (no credential): got 500). A fixture that adds a bank-account row for provider 1 must make this row holdAllowed first, in the same change, so the allowed provider is not sent; a Stripe key on the dev stack lifts the second stop. No holdAllowed is added now: it would change the recorded error text of this case in e2e/baseline.json.',
         probe: { path: '/api/provider/onboarding/stripe-return', body: undefined, anon: 401 },
     },
     {
@@ -1030,7 +1030,7 @@ export const matrix = [
     },
     {
         route: '/api/reviews', method: 'GET', today: 'none', kind: 'roles', roles: ['customer', 'admin'], owner: 'customer: reviews of own bookings',
-        note: 'No filter returns every review with customer name and customer_email (L112-113) even when is_an…',
+        note: 'Before ENG-021 anyone got this and now an admin does (a customer gets only the reviews of their own bookings): with no filter it returns every review with customer name and customer_email (L121-122) even when is_an… ENG-021 guard: src/app/api/reviews/route.js:103-104 calls requireCaller(request, [\'customer\', \'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. A customer_id naming anyone else is 403 for a customer (:114-116), and a customer\'s list is limited to reviews of their own bookings by AND b.user_id = caller.id (:137-140).',
         probe: { path: '/api/reviews', body: undefined, anon: 401 },
     },
     {
@@ -1110,12 +1110,12 @@ export const matrix = [
     },
     {
         route: '/api/upload', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'Unauthenticated delete of any file in public/uploads by name, including provider documents and …',
+        note: 'Until ENG-021 anyone could delete (now only an admin can) any file in public/uploads by name, including provider documents and … ENG-021 guard: src/app/api/upload/route.js:72-73 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/upload', body: undefined, anon: 401 },
     },
     {
         route: '/api/upload', method: 'POST', today: 'none', kind: 'roles', roles: ['customer', 'provider', 'admin'], owner: '-',
-        note: 'Path built L42-45: path.join(public/uploads, `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/…',
+        note: 'Path built L45-48: path.join(public/uploads, `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/… ENG-021 guard: src/app/api/upload/route.js:8-9 calls requireCaller(request, [\'customer\', \'provider\', \'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. The guard is ahead of request.formData() at :11, so a refused request is not buffered and nothing is written.',
         probe: { path: '/api/upload', body: {}, anon: 401 },
     },
     {

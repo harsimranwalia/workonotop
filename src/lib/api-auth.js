@@ -5,17 +5,23 @@
 //
 //   const auth = await requireCaller(request, ['admin']);
 //   if (!auth.ok) return auth.response;
-//   // auth.caller is { role: 'admin' | 'customer' | 'provider', id, email, via: 'cookie' | 'bearer' }
+//   // auth.caller is { role: 'admin' | 'customer' | 'provider', id (a number), email, via: 'cookie' | 'bearer' }
 //
 // Credentials, tried in this order, each verified on its own: the adminAuth, customer_token and provider_token
-// cookies, then the Authorization: Bearer header (getMobileSession first, then verifyToken). The first one whose
-// role is in `roles` wins. The role comes from the signed payload, never from which cookie carried it, and a
-// cookie whose payload names another role than the cookie's own name never grants anything: a customer's token
-// copied into adminAuth is not an admin session. It does count as a verified session, though (the signature is
-// good), so a request that carries only that answers 403 Forbidden, never 401 and never access.
+// cookies, then the Authorization: Bearer header. A Bearer that verifies is judged on the claims it was signed
+// with, never on the session object getMobileSession builds from it (that one rewrites `type`), and a Bearer with
+// whitespace inside is no session at all (getMobileSession would read a different string than this guard judged).
+// Only a string that does not verify can still be a session, by being the issued string in mobile_auth_users. The
+// first one whose role is in `roles` wins. The role comes from the signed payload, never from which cookie carried
+// it, and a cookie whose payload names another role than the cookie's own name never grants anything: a customer's
+// token copied into adminAuth is not an admin session. It does count as a verified session, though (the signature
+// is good), so a request that carries only that answers 403 Forbidden, never 401 and never access.
 //
 // 401 { success: false, message: 'Unauthorized' }: no session verified (nothing sent, malformed, bad signature,
-//     expired, or a signed token that is not a session: unknown role, a special-purpose token, no id).
+//     expired, or a signed token that is not a session: a `role` claim that is not admin, provider, user or customer
+//     (whatever `type` says), a special-purpose token, no usable id). A usable id is a positive safe integer or the
+//     digits of one ('21' is returned as 21); '5abc', 1.5, '007', '1e3' and 0 are not ids, because the handlers put
+//     the id into SQL, where MySQL reads '5abc' as 5.
 // 403 { success: false, message: 'Forbidden' }: a session verified but none has an allowed role. A wrong role is
 //     never a 401: the mobile app parks a call that gets a second 401 (design, "Mobile app").
 //
@@ -68,6 +74,10 @@ function roleOf(payload) {
   if (!payload || typeof payload !== 'object') return null;
   if (SPECIAL_PURPOSE_TYPES.has(payload.type)) return null;
   const byRole = roleOfClaim(payload.role);
+  // A role claim that is there and is not one of the four is refused outright, even when `type` is recognised:
+  // {role: 'superuser', type: 'user'} is not a customer. No login signs one. `undefined` (a key that JSON leaves
+  // out) and `null` are the same absence.
+  if (payload.role !== undefined && payload.role !== null && !byRole) return null;
   const byType = roleOfClaim(payload.type);
   // Two claims that disagree are not a token any login issues; refuse rather than pick one.
   if (byRole && byType && byRole !== byType) return null;
@@ -77,15 +87,24 @@ function roleOf(payload) {
   return role;
 }
 
-function validId(value) {
-  if (typeof value === 'number') return Number.isFinite(value) && value > 0;
-  return typeof value === 'string' && value.trim() !== '';
+// A usable id as a number, or null: a positive safe integer, or a string of its digits (no sign, no leading zero, no
+// fraction, no exponent, no blank, nothing after the digits). Anything looser reaches SQL, where MySQL reads '5abc'
+// as 5 in an integer comparison.
+function idNumber(value) {
+  if (typeof value === 'number') return Number.isSafeInteger(value) && value > 0 ? value : null;
+  if (typeof value !== 'string' || !/^[1-9]\d*$/.test(value)) return null;
+  const number = Number(value);
+  return Number.isSafeInteger(number) ? number : null;
 }
 
-// A provider's id is `providerId` (the web provider token carries only that); everyone else's is `id`.
+// A provider's id is `providerId` (the web provider token carries only that) when that is usable, else `id`;
+// everyone else's is `id`. A number, or null.
 function idOf(role, payload) {
-  if (role === 'provider') return validId(payload.providerId) ? payload.providerId : payload.id;
-  return payload.id;
+  if (role === 'provider') {
+    const providerId = idNumber(payload.providerId);
+    if (providerId !== null) return providerId;
+  }
+  return idNumber(payload.id);
 }
 
 // A verified payload or mobile session -> the normalised caller, or null when it is not a session.
@@ -93,7 +112,7 @@ function toCaller(payload, via) {
   const role = roleOf(payload);
   if (!role) return null;
   const id = idOf(role, payload);
-  if (!validId(id)) return null;
+  if (id === null) return null;
   return { role, id, email: typeof payload.email === 'string' ? payload.email : null, via };
 }
 
@@ -123,15 +142,24 @@ function bearerToken(request) {
   return header.slice('Bearer '.length).trim() || null;
 }
 
-// The Bearer path: the issued string in mobile_auth_users first; when that finds nothing (including a database
-// that is down, which getMobileSession turns into null), the token's own signature. getMobileSession keeps
-// everything it does inside one try/catch and answers null, so it does not reject; if a later edit lets it, the
-// rejection is not caught here (a catch that only said `session = null` would be a silent fall-through to the
-// signature) but reaches resolveSafely, which logs one line and answers 401: fail-closed and not silent.
+// The Bearer path. A token that verifies is judged on its own signed claims (verifyToken's payload), never on the
+// object getMobileSession returns for it: that object rewrites `type` to `role || type`, which turns a special-purpose
+// or a disagreeing token into a session. Only a string that does not verify can still be a session, as the issued
+// string in mobile_auth_users (a database that is down, or finds no row, reads as null: no session). The fix lives
+// here and not in mobile-auth.js, which nine other route files import (auth/me, provider/status, seven provider/onboarding).
+//
+// getMobileSession re-reads the header and looks up only its second space-separated word, so a header with
+// whitespace inside ('Bearer <valid> x') would be judged on a different string than this guard has; no token the
+// server issues (a JWT, a hex refresh token) has whitespace, so such a header is no session and is not looked up.
+//
+// The lookup still runs first, as the design orders it. getMobileSession keeps everything it does inside one
+// try/catch and answers null, so it does not reject; if a later edit lets it, the rejection is not caught here (a
+// catch that only said `session = null` would be a silent fall-through to the signature) but reaches
+// resolveSafely, which logs one line and answers 401: fail-closed and not silent.
 async function bearerCaller(request, token) {
+  if (/\s/.test(token)) return null;
   const session = await getMobileSession(request);
-  const payload = session ?? verifyToken(token);
-  return toCaller(payload, 'bearer');
+  return toCaller(verifyToken(token) ?? session, 'bearer');
 }
 
 /**
@@ -179,7 +207,7 @@ async function resolveSafely(request, roles) {
  * wildcard: a route that allows all three names all three). Never reads the request body.
  * @param {Request} request
  * @param {Array<'admin'|'customer'|'provider'>} roles
- * @returns {Promise<{ ok: true, caller: { role: string, id: number|string, email: string|null, via: 'cookie'|'bearer' } } | { ok: false, response: Response }>}
+ * @returns {Promise<{ ok: true, caller: { role: string, id: number, email: string|null, via: 'cookie'|'bearer' } } | { ok: false, response: Response }>}
  */
 export async function requireCaller(request, roles) {
   assertRoles(roles, 'requireCaller');
@@ -194,7 +222,7 @@ export async function requireCaller(request, roles) {
  * when `roles` is left out), or null. Never refuses and never reads the body.
  * @param {Request} request
  * @param {Array<'admin'|'customer'|'provider'>} [roles]
- * @returns {Promise<{ role: string, id: number|string, email: string|null, via: 'cookie'|'bearer' } | null>}
+ * @returns {Promise<{ role: string, id: number, email: string|null, via: 'cookie'|'bearer' } | null>}
  */
 export async function callerFrom(request, roles) {
   if (roles !== undefined) assertRoles(roles, 'callerFrom');
