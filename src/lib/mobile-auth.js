@@ -1,5 +1,5 @@
 import { execute } from './db.js';
-import { decodeToken, verifyToken } from './jwt.js';
+import { decodeToken, jwtSecret, verifyToken } from './jwt.js';
 
 /**
  * Verifies a mobile session by checking the token against the mobile_auth_users table.
@@ -10,6 +10,8 @@ import { decodeToken, verifyToken } from './jwt.js';
  */
 export async function getMobileSession(request) {
     try {
+        // No session is accepted while JWT_SECRET is not configured.
+        jwtSecret();
         const authHeader = request.headers.get('Authorization');
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return null;

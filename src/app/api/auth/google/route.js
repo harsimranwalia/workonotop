@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { execute as query } from '@/lib/db';
+import { jwtSecret } from '@/lib/jwt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-
 export async function POST(request) {
   try {
+    // Sessions are signed with the configured JWT_SECRET (src/lib/jwt.js);
+    // without it this route answers before it reads the request.
+    const secret = jwtSecret();
     const body = await request.json().catch(() => ({}));
     const { token, role } = body; // role: 'user' or 'provider'
 
@@ -142,7 +144,7 @@ export async function POST(request) {
       providerId: finalRole === 'provider' ? finalUser.id : undefined // Critical for onboarding routes
     };
 
-    const jwtToken = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '7d' });
+    const jwtToken = jwt.sign(tokenPayload, secret, { expiresIn: '7d' });
     const refreshToken = crypto.randomBytes(64).toString('hex');
     
     // --- MOBILE SESSION PERSISTENCE ---

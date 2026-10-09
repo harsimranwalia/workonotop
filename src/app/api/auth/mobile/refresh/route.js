@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
 import { execute as query } from '@/lib/db'
+import { jwtSecret } from '@/lib/jwt'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
-
 export async function POST(request) {
     try {
+        // Sessions are signed with the configured JWT_SECRET (src/lib/jwt.js);
+        // without it this route answers before it reads the request.
+        const secret = jwtSecret();
         const body = await request.json().catch(() => ({}));
         const { refreshToken } = body;
 
@@ -74,7 +76,7 @@ export async function POST(request) {
                 status: user.status || 'active',
                 type: dbRole
             },
-            JWT_SECRET,
+            secret,
             { expiresIn: '7d' } // Access token valid for 7 days
         );
 

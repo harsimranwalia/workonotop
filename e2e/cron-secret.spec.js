@@ -13,9 +13,9 @@
 // "Cron source reader", belongs to no route: it runs stripComments, which the source half reads the route files
 // through, on constructed text.
 //
-// api-auth.js imports jwt.js (reads JWT_SECRET when first imported) and mobile-auth.js -> db.js (makes a pool when first
-// imported, unless global.mysqlPool is set). requireCronSecret needs neither, so beforeAll gives the pool a stub and the
-// secret a value before the dynamic import, as e2e/auth-guard.spec.js does, and afterAll puts both back.
+// api-auth.js imports jwt.js (reads JWT_SECRET when it signs or checks a token) and mobile-auth.js -> db.js (makes a pool
+// when first imported, unless global.mysqlPool is set). requireCronSecret needs neither, so beforeAll gives the pool a
+// stub and the secret a value before the dynamic import, as e2e/auth-guard.spec.js does, and afterAll puts both back.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server'
 import { execute as query } from '@/lib/db'
+import { jwtSecret } from '@/lib/jwt'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { logActivity } from '@/lib/logger'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
-
 export async function POST(request) {
   try {
+    // Sessions are signed with the configured JWT_SECRET (src/lib/jwt.js);
+    // without it this route answers before it reads the request.
+    const secret = jwtSecret()
     const { email, password } = await request.json()
 
     if (!email || !password) {
@@ -60,7 +62,7 @@ export async function POST(request) {
         role: 'user',
         status: user.status || 'active'
       },
-      JWT_SECRET,
+      secret,
       { expiresIn: '7d' }
     )
 
