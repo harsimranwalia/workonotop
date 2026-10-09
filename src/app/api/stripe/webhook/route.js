@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getConnection } from '@/lib/db';
+import { providerPayout } from '@/lib/booking-price';
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-05-27.dahlia' }) : null;
 
@@ -291,9 +292,7 @@ async function handleAccountUpdated(account) {
 async function handleCheckoutCompleted(session) {
   if (session.metadata?.type === 'overtime_payment' || session.metadata?.type === 'balance_payment') {
     const bookingId = session.metadata.booking_id;
-    const providerAmount = parseFloat(session.metadata.provider_amount);
-    const providerCents = parseInt(session.metadata.provider_cents || (providerAmount * 100));
-    
+
     console.log(`✅ Overtime payment received for booking ${bookingId}`);
 
     const connection = await getConnection();
@@ -306,6 +305,10 @@ async function handleCheckoutCompleted(session) {
         throw new Error('Booking not found');
       }
       const booking = bookings[0];
+
+      // The payout is worked out from the booking row by the payout rule.
+      const providerAmount = providerPayout(booking);
+      const providerCents = Math.round(providerAmount * 100);
 
       // Update booking to completed
       await connection.execute(

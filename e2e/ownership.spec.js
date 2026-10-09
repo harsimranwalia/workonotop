@@ -31,13 +31,13 @@
 // them away when the case deletes it, so no fixture chat grows and no case needs freshly loaded fixtures.
 //
 // NOT covered here, and why (read from the code and the dev database, not guessed):
-//   POST /api/payment/create-intent  the route takes NO booking (service_id, service_price, additional_price, service_name; the booking is made
-//                                    after the payment), so the ticket's "the booking named in the body must be the caller's own" has no
-//                                    booking to name: the route's ownership is the caller's own users row (the Stripe customer), and
-//                                    builder A made a body user_id or booking_id naming another account a 403. Before that commit the
-//                                    module built `new Stripe(process.env.STRIPE_SECRET_KEY)` at import and the dev app sets no key, so every
-//                                    request answered a 500 page and nothing was observable. The case below sends no service_price, so it
-//                                    never reaches the Stripe code whatever the clause does.
+//   POST /api/payment/create-intent  the route takes NO booking (it reads service_id and takes the catalog's price of that service as the
+//                                    amount; the booking is made after the payment), so the ticket's "the booking named in the body must be the
+//                                    caller's own" has no booking to name: the route's ownership is the caller's own users row (the Stripe
+//                                    customer), and builder A made a body user_id or booking_id naming another account a 403. Before that
+//                                    commit the module built `new Stripe(process.env.STRIPE_SECRET_KEY)` at import and the dev app sets no key,
+//                                    so every request answered a 500 page and nothing was observable. The case below names no service, so the
+//                                    catalog read answers 400 before any Stripe call, whatever the clause does.
 //   /api/user/addresses and [id]     the dev database has no `user_addresses` table (SHOW TABLES, 2026-10-04): every address read or
 //                                    write that reaches the query answers 500. Only the refusals decided before the query are cases here.
 //   POST /api/auth/change-password   every fixture password lacks a character the route's new-password rule demands (:17), so a change
@@ -578,8 +578,8 @@ test.describe('Ownership: customer booking routes', () => {
     });
 
     // The route reads no booking of its own; its ownership is the caller's users row. A body naming another account (user_id) or another account's
-    // booking (booking_id) is 403 before any Stripe call; the owner's request reaches the route's own validation (400 'Service price is required').
-    // No request here carries a service_price, so none can reach the Stripe code. Red if either refusal is deleted: the request would answer that 400.
+    // booking (booking_id) is 403 before any Stripe call; the owner's request reaches the route's own validation (400 'This service is not available for booking').
+    // No request here names a service, so none can reach the Stripe code. Red if either refusal is deleted: the request would answer that 400.
     test("Ownership POST /api/payment/create-intent: a body naming customer 2 as user_id or customer 2's booking as booking_id is 403, the owner reaches the route's own validation", async ({ request, baseURL }) => {
         const as = await credentials(baseURL);
         for (const [style, headers] of customerStyles(as)) {
@@ -589,7 +589,7 @@ test.describe('Ownership: customer booking routes', () => {
             }
             for (const data of [{}, { user_id: CUSTOMER1.id }, { booking_id: BOOKING1.id }]) {
                 const who = `customer1 by ${style} naming ${Object.keys(data).join('+') || 'nothing'}`;
-                await expectAnswer(await request.post('/api/payment/create-intent', { headers, data }), 400, 'Service price is required', who);
+                await expectAnswer(await request.post('/api/payment/create-intent', { headers, data }), 400, 'This service is not available for booking', who);
             }
         }
     });

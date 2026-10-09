@@ -6,19 +6,9 @@ import { requireCaller } from '@/lib/api-auth'
 import { sendEmail } from '@/lib/email'
 import { notifyUser } from '@/lib/push'
 import { logActivity } from '@/lib/logger'
-import { sendSMS } from '@/lib/sms'
+import { providerPayout } from '@/lib/booking-price'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock', { apiVersion: '2026-05-27.dahlia' })
-
-// ── Helper: calculate final customer charge ───────────────────────────────────
-function calcFinalAmount(basePrice, standardMins, actualMins, overtimeRate = 0) {
-  if (actualMins <= 0) return basePrice
-  if (actualMins > standardMins && overtimeRate > 0) {
-    const overtimeMins = actualMins - standardMins
-    return basePrice + (overtimeRate * overtimeMins / 60)
-  }
-  return basePrice
-}
 
 // ── Receipt email ─────────────────────────────────────────────────────────────
 function receiptHtml({ bookingNumber, serviceName, customerName, providerName, amount, isCustomer, jobDate }) {
@@ -157,7 +147,7 @@ export async function POST(request, { params }) {
   const caller = auth.caller
 
   const { id } = await params
-  const { action, dispute_reason, source, success_url, cancel_url } = await request.json()
+  const { action, dispute_reason, source } = await request.json()
   
   console.log(`[Approve API] received action: ${action}, source: ${source}`);
 
@@ -302,23 +292,15 @@ export async function POST(request, { params }) {
             return NextResponse.json({ success: false, message: 'No payment intent found' }, { status: 400 })
           }
 
-          const wCount = parseInt(booking.submitted_headcount || booking.worker_count || 1)
-          const basePriceCustomer = parseFloat(booking.service_price || 0) * wCount
-          const overtimeRateCustomer = parseFloat(booking.additional_price || 0) * wCount
-          const actualMins = parseInt(booking.submitted_duration_minutes || booking.actual_duration_minutes || 0)
-          const standardMins = parseInt(booking.standard_duration_minutes || booking.duration_minutes || 60)
-          
-          const finalAmount = calcFinalAmount(basePriceCustomer, standardMins, actualMins, overtimeRateCustomer)
-          const commissionPct = parseFloat(booking.commission_percent || 20)
-          
-          const providerAmount = parseFloat((finalAmount * (1 - commissionPct / 100)).toFixed(2))
+          // The customer is charged the booking's recorded price and the provider is paid by the payout rule (src/lib/booking-price.js).
+          const finalAmount = parseFloat(booking.service_price || 0)
+          const providerAmount = providerPayout(booking)
           const platformAmount = parseFloat((finalAmount - providerAmount).toFixed(2))
 
           // ── Stripe capture ───────────────────────────────────────────────
           try {
             const pi = await stripe.paymentIntents.retrieve(booking.payment_intent_id)
-            const originalBasePrice = parseFloat(booking.service_price || 0)
-            const basePriceCents = Math.round(originalBasePrice * 100)
+            const basePriceCents = Math.round(finalAmount * 100)
             const latestCharge = pi.latest_charge
 
             if (!latestCharge) {
@@ -328,81 +310,10 @@ export async function POST(request, { params }) {
 
             if (pi.status === 'requires_capture') {
               await stripe.paymentIntents.capture(booking.payment_intent_id, { amount_to_capture: basePriceCents })
-              console.log(`✅ Captured base price $${originalBasePrice} for booking #${id}`)
+              console.log(`✅ Captured $${finalAmount} for booking #${id}`)
             } else if (pi.status !== 'succeeded') {
               await connection.query('ROLLBACK')
               return NextResponse.json({ success: false, message: `Cannot capture — status: ${pi.status}` }, { status: 400 })
-            }
-
-            const remainingToPay = parseFloat((finalAmount - originalBasePrice).toFixed(2))
-
-            if (remainingToPay > 0) {
-              try {
-                // Fetch the original intent to get the customer and payment method
-                if (!pi.customer || !pi.payment_method) {
-                  throw new Error('Original payment method not found for off-session charge');
-                }
-
-                const offSessionIntent = await stripe.paymentIntents.create({
-                  amount: Math.round(remainingToPay * 100),
-                  currency: process.env.STRIPE_CURRENCY || 'cad',
-                  customer: pi.customer,
-                  payment_method: pi.payment_method,
-                  off_session: true,
-                  confirm: true,
-                  description: `Overtime payment for Booking #${booking.booking_number}`,
-                  metadata: {
-                    booking_id: String(id),
-                    type: 'balance_payment',
-                    provider_amount: providerAmount.toString(),
-                  }
-                });
-
-                console.log(`✅ Successfully auto-charged remaining $${remainingToPay} for overtime`);
-                // Off-session charge succeeded, we can proceed to complete the booking immediately below.
-              } catch (offSessionErr) {
-                console.error('Off-session charge failed:', offSessionErr.message);
-                
-                // Fallback: If off-session charge fails (e.g., insufficient funds), create a Checkout session
-                const baseUrl = request.headers.get('origin') || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-                const finalSuccessUrl = success_url || (source === 'mobile' ? `workontap://my-bookings/${id}?payment=success` : `${baseUrl}/my-bookings/${id}?payment=success`)
-                const finalCancelUrl = cancel_url || (source === 'mobile' ? `workontap://my-bookings/${id}` : `${baseUrl}/my-bookings/${id}`)
-                
-                const session = await stripe.checkout.sessions.create({
-                  payment_method_types: ['card'],
-                  customer: pi.customer, // Pre-fill the customer details
-                  line_items: [{
-                    price_data: {
-                      currency: process.env.STRIPE_CURRENCY || 'cad',
-                      product_data: { name: `Remaining balance for Booking #${booking.booking_number}` },
-                      unit_amount: Math.round(remainingToPay * 100),
-                    },
-                    quantity: 1,
-                  }],
-                  mode: 'payment',
-                  success_url: finalSuccessUrl,
-                  cancel_url: finalCancelUrl,
-                  metadata: { 
-                    booking_id: String(id), 
-                    type: 'balance_payment', 
-                    provider_amount: providerAmount.toString(),
-                    provider_cents: Math.round(providerAmount * 100).toString(),
-                    original_charge: latestCharge 
-                  }
-                })
-
-                await connection.execute(
-                  `UPDATE bookings SET status = 'awaiting_approval', updated_at = NOW() WHERE id = ?`,
-                  [id]
-                )
-                await connection.execute(
-                  `INSERT INTO booking_status_history (booking_id, status, notes) VALUES (?, 'awaiting_approval', ?)`,
-                  [id, `⏳ Captured base price. Waiting for remaining balance payment of $${remainingToPay.toFixed(2)} (Auto-charge failed)`]
-                )
-                await connection.query('COMMIT')
-                if (booking.customer_phone) { sendSMS(booking.customer_phone, 'Payment failed. Please update your payment method to complete the transaction.').catch(console.error); }
-                return NextResponse.json({ success: true, checkout_url: session.url, message: 'Auto-payment failed. Please pay manually.' })
-              }
             }
           } catch (stripeErr) {
             if (stripeErr.message?.includes('already been captured')) {
@@ -416,14 +327,12 @@ export async function POST(request, { params }) {
             }
           }
 
-          // ── Update booking (if NO overtime) ───────────────────────────────────────────────
+          // ── Update booking ────────────────────────────────────────────────────────────────
           await connection.execute(
             `UPDATE bookings 
              SET status = 'completed',
                  payment_status = 'paid',
                  final_provider_amount = ?,
-                 actual_duration_minutes = COALESCE(submitted_duration_minutes, actual_duration_minutes),
-                 worker_count = COALESCE(submitted_headcount, worker_count),
                  updated_at = NOW()
              WHERE id = ?`,
             [providerAmount, id]

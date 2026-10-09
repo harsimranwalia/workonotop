@@ -156,8 +156,8 @@ export async function GET(request, { params }) {
         u.created_at,
         u.updated_at,
         (SELECT COUNT(*) FROM bookings WHERE user_id = u.id AND status != 'cancelled') as total_bookings,
-        (SELECT COALESCE(SUM((service_price + ROUND((COALESCE(additional_price, 0) / 60) * COALESCE(overtime_minutes, 0), 2)) * COALESCE(worker_count, 1)), 0) FROM bookings WHERE user_id = u.id AND status != 'cancelled') as total_spent,
-        (SELECT COALESCE(AVG((service_price + ROUND((COALESCE(additional_price, 0) / 60) * COALESCE(overtime_minutes, 0), 2)) * COALESCE(worker_count, 1)), 0) FROM bookings WHERE user_id = u.id AND status != 'cancelled') as avg_booking_value,
+        (SELECT COALESCE(SUM(service_price), 0) FROM bookings WHERE user_id = u.id AND status != 'cancelled') as total_spent,
+        (SELECT COALESCE(AVG(service_price), 0) FROM bookings WHERE user_id = u.id AND status != 'cancelled') as avg_booking_value,
         (SELECT MIN(created_at) FROM bookings WHERE user_id = u.id AND status != 'cancelled') as first_booking,
         (SELECT MAX(created_at) FROM bookings WHERE user_id = u.id AND status != 'cancelled') as last_booking,
         (

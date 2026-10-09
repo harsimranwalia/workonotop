@@ -51,10 +51,10 @@ export async function GET(request, { params }) {
 
     const workerCount = parseInt(booking.submitted_headcount || booking.worker_count || 1);
 
-    // In database, base_amount and overtime_rate are stored per worker
-    const baseSubtotal = Number(booking.service_price) * workerCount;
-    const overtimeRateTotal = Number(invoice.overtime_rate) * workerCount;
-    const overtimeSubtotal = Number(invoice.overtime_amount || 0) * workerCount;
+    // The invoice total is the booking's recorded price; time past the standard duration is shown, not billed.
+    const baseSubtotal = Number(booking.service_price);
+    const overtimeRateTotal = Number(invoice.overtime_rate);
+    const overtimeSubtotal = 0;
     const jobTotal = baseSubtotal + overtimeSubtotal;
 
     const alreadyPaid = Number(booking.service_price);
