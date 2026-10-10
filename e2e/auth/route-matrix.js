@@ -5,11 +5,11 @@
 // strings verbatim, and QA reviews the two against each other, so do not reorder or rename a row. When a route is
 // added, removed or reclassified, change the appendix's row and this row together.
 //
-// AC5 DOES NOT HOLD WHILE ONE `pending` ROW REMAINS. GET /api/bookings/[id]/invoice/download is `pending`: the
-// approver answered the G2 on 2026-10-02 04:09 with "Option 3" (build the rest first, decide this later), so the
-// route stays as it is, neither locked nor declared public, and the ENG-004 container does not ship until a fresh
-// G2 is answered and the row becomes `roles` or `public`. The coverage test prints that row on every run and the
-// role-by-route test annotates and skips it; nothing passes it silently.
+// AC5 DOES NOT HOLD WHILE A `pending` ROW REMAINS, and none does: GET /api/bookings/[id]/invoice/download was the one,
+// held for the approver's answer on the invoice-download decision, and ENG-025 made it a `roles` row (customer, admin)
+// once that was answered (2026-10-09, lock it). Every row is now `roles`, `public` or `self`. The kind stays for a row
+// that is classified but not yet decided: the coverage test prints such a row on every run and the role-by-route test
+// annotates and skips it; nothing passes it silently.
 //
 // Three tests read this file: e2e/auth-coverage.spec.js (coverage and wiring) and e2e/auth-matrix.spec.js
 // (role by route). The shape of a row:
@@ -62,7 +62,7 @@
 //     outbound call, a payment, a file); GET /api/admin/deletion-requests carries only a cross-reference to the PATCH row, for
 //     the same fetch.
 //   - The other 195 rows have no such line: 116 are write rows (POST, PUT, PATCH, DELETE) and 79 are GET (script counts).
-//     50 of the 195 (36 public, 13 self, 1 pending) carry a `Probe measured on the dev app` line instead, which records the
+//     49 of the 195 (36 public, 13 self) carry a `Probe measured on the dev app` line instead, which records the
 //     status measured there for the request with no credential and no body. Code-review round 1 read the write handlers the
 //     probes reach (88: 31 admin, 57 other; agents/principal-engineer/notebook/2026-10-02-eng020-review.md; the matrix has
 //     93 routes with a write row, 31 admin and 62 other, and the difference was not traced). It did not read the GET
@@ -661,9 +661,9 @@ export const matrix = [
         probe: { path: '/api/bookings/999999999', body: undefined, anon: 401 },
     },
     {
-        route: '/api/bookings/[id]/invoice/download', method: 'GET', today: 'none', kind: 'pending', pending: 'G2, the invoice-download one-way door: the approver answered option 3 on 2026-10-02 04:09 (\'build the rest first, decide this later\'), so this route stays exactly as it is today (no check) and is neither locked nor declared public until the fresh G2 is answered (the design recommends customer, admin). A browser tab cannot carry the app\'s token, so any check here breaks the app\'s two Download Invoice buttons.', owner: 'booking.user_id = caller',
-        note: 'HIGH: anonymous PDF of any booking by sequential id; a plain Bearer check would break the mobil… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 404 \'Booking not found\'. The route has no check today; this status is informational and is not asserted.',
-        probe: { path: '/api/bookings/999999999/invoice/download', body: undefined, anon: [404] },
+        route: '/api/bookings/[id]/invoice/download', method: 'GET', today: 'none', kind: 'roles', roles: ['customer', 'admin'], owner: 'booking.user_id = caller',
+        note: 'ENG-025, converted: the guard is the first statement of GET (src/app/api/bookings/[id]/invoice/download/route.js:24, requireCaller(request, [customer, admin]), refused at :27: no credential is 401 and a wrong role 403 before the booking is read). Ownership (booking.user_id = caller) comes from auth.caller, never from a request field; the 403 refusal is route.js:45 (an admin may ask for any booking, any other role must own it), and a booking that does not exist keeps the route\'s 404. A browser page visit that carries no login (Accept: text/html) is answered 307 to the website\'s customer login with a return path to the invoice (route.js:12-20 and :25-26; the login page reads ?redirect=, src/app/login/page.js:14); a refusal for someone who is signed in is never redirected. Before the conversion the route had no check and the census graded it none (design ENG-004, Appendix A: G2, recommended customer and admin, owner booking.user_id = caller); the approver answered the second G2 with "option 1 lock it" on 2026-10-09. The mobile app\'s two Download Invoice buttons (mobile/src/screens/customer/BookingSuccessScreen.js:15 and InvoicesScreen.js:50) open this url in the phone\'s own browser, which cannot carry the app\'s login, so they stop producing an invoice until an app release sends one (outside this contract).',
+        probe: { path: '/api/bookings/999999999/invoice/download', body: undefined, anon: 401 },
     },
     {
         route: '/api/bookings/[id]/reassign', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
