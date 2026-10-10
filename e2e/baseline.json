@@ -904,7 +904,7 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/bookings/[id]/invoice/download uses the guard": {
-      "outcome": "SKIPPED"
+      "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/chat uses the guard": {
       "outcome": "PASS"
@@ -1570,7 +1570,7 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/bookings/[id]/invoice/download": {
-      "outcome": "SKIPPED"
+      "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/categories": {
       "outcome": "PASS"
@@ -2413,6 +2413,33 @@
       "outcome": "PASS"
     },
     "homepage.spec.js › Homepage › should navigate to /services with the search term when the Search button is clicked": {
+      "outcome": "PASS"
+    },
+    "invoice-download.spec.js › Invoice download: GET /api/bookings/[id]/invoice/download › Invoice download GET /api/bookings/[id]/invoice/download: a browser page visit is redirected only for a booking number of digits, and only when nobody is signed in": {
+      "outcome": "PASS"
+    },
+    "invoice-download.spec.js › Invoice download: GET /api/bookings/[id]/invoice/download › Invoice download GET /api/bookings/[id]/invoice/download: a browser page visit with no login is sent to the customer login with a return path to the invoice": {
+      "outcome": "PASS"
+    },
+    "invoice-download.spec.js › Invoice download: GET /api/bookings/[id]/invoice/download › Invoice download GET /api/bookings/[id]/invoice/download: a customer gets the invoice of their own booking, by cookie and by Bearer": {
+      "outcome": "PASS"
+    },
+    "invoice-download.spec.js › Invoice download: GET /api/bookings/[id]/invoice/download › Invoice download GET /api/bookings/[id]/invoice/download: a customer who signs in on the login page it names is returned to the invoice and the PDF downloads": {
+      "outcome": "PASS"
+    },
+    "invoice-download.spec.js › Invoice download: GET /api/bookings/[id]/invoice/download › Invoice download GET /api/bookings/[id]/invoice/download: a provider is 403 by cookie and by Bearer, even for the booking they are assigned to": {
+      "outcome": "PASS"
+    },
+    "invoice-download.spec.js › Invoice download: GET /api/bookings/[id]/invoice/download › Invoice download GET /api/bookings/[id]/invoice/download: a request with no login is 401 and shows nothing of the booking, whichever booking it names": {
+      "outcome": "PASS"
+    },
+    "invoice-download.spec.js › Invoice download: GET /api/bookings/[id]/invoice/download › Invoice download GET /api/bookings/[id]/invoice/download: customer1 asking for customer 2's booking is 403 and shows none of its data, and customer 2 asking for customer 1's likewise": {
+      "outcome": "PASS"
+    },
+    "invoice-download.spec.js › Invoice download: GET /api/bookings/[id]/invoice/download › Invoice download GET /api/bookings/[id]/invoice/download: the admin gets any booking's invoice, by cookie and by Bearer, and a booking that does not exist is 404": {
+      "outcome": "PASS"
+    },
+    "invoice-download.spec.js › Invoice download: GET /api/bookings/[id]/invoice/download › Invoice download GET /api/bookings/[id]/invoice/download: the owner is the booking's user_id, not its id or its provider's id": {
       "outcome": "PASS"
     },
     "job-completed-email.spec.js › the job-completed e-mail keeps unicode and long text whole and shows the default line for an empty summary": {
