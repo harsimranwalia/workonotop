@@ -362,7 +362,7 @@ test.describe('Price of record', () => {
             },
             {
                 file: 'src/app/api/payment/create-intent/route.js',
-                present: ['catalogPrice(serviceRow)', 'catalog.price'],
+                present: ['priceJob(', 'job.price'],
                 absent: ['service_price'],
             },
         ];

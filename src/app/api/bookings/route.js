@@ -7,6 +7,7 @@ import { sendEmail } from '@/lib/email'
 import { getClusterFromCity } from '@/lib/location'
 import { logActivity } from '@/lib/logger'
 import { catalogPrice } from '@/lib/booking-price'
+import { loadPricing, priceJob, refusalOf } from '@/lib/pricing-rules'
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-05-27.dahlia' }) : null
 
@@ -152,18 +153,29 @@ export async function POST(request) {
         : `Selected Dates: ${allDatesString}`;
     }
 
-    // The booking records the catalog's price and hourly rate of its service, read here.
-    const [serviceInfo] = await execute('SELECT duration_minutes, base_price, additional_price, is_active FROM services WHERE id = ?', [service_id])
-    const catalog = catalogPrice(serviceInfo)
-    if (!catalog) {
-      return NextResponse.json({ success: false, message: 'This service is not available for booking' }, { status: 400 })
+    // The booking records the price and the quoted minutes the service's pricing rule gives for its answers, worked out here. The job's first date decides the weekend.
+    const { service: serviceInfo, items: pricingItems } = await loadPricing(execute, service_id)
+    // With answers, the rule is given the booking's own first date (the one stored in job_date) in place of any date the answers hold; with none, no date is read.
+    const answers = body.answers
+    const hasAnswers = answers !== undefined && answers !== null
+    const ruleAnswers = hasAnswers && typeof answers === 'object' && !Array.isArray(answers) ? { ...answers, date: primaryJobDate } : answers
+    const job = priceJob(serviceInfo, pricingItems, ruleAnswers)
+    if (!job.ok) {
+      // The date the rule refuses is the booking's first date, which this route calls job_date.
+      const refusal = refusalOf(job)
+      return NextResponse.json(job.field === 'date' ? { ...refusal, field: 'job_date' } : refusal, { status: 400 })
     }
-    const standardDuration = serviceInfo.duration_minutes || 60
+    const catalog = catalogPrice(serviceInfo)
+    const standardDuration = job.minutes
 
-    const basePrice = catalog.price
+    const basePrice = job.price
     const overtimeRate = catalog.rate
     const maxOvertimeCost = overtimeRate * 2
     const totalAuthorizedAmount = basePrice + maxOvertimeCost
+    // The authorized amount is a decimal(10,2) column too: a price inside the limit can still be pushed over it by the two hours held on top.
+    if (Math.round(basePrice * 100) + 2 * Math.round(overtimeRate * 100) > 9999999999) {
+      return NextResponse.json(refusalOf({ ok: false, reason: 'too_large', field: 'answers' }), { status: 400 })
+    }
 
     let jobCluster = 'UNKNOWN_CLUSTER';
     if (city) {
@@ -202,8 +214,8 @@ export async function POST(request) {
           parking_access, elevator_access, has_pets,
           address_line1, address_line2, city, postal_code, latitude, longitude, cluster,
           commission_percent, provider_amount, status, job_timer_status, payment_status,
-          standard_duration_minutes, payment_intent_id, authorized_amount)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,'pending','not_started','authorized',?,?,?)`,
+          standard_duration_minutes, price_breakdown, payment_intent_id, authorized_amount)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,'pending','not_started','authorized',?,?,?,?)`,
         [
           bookingNumber, authenticatedUserId || null, service_id || null, service_name || null,
           basePrice, overtimeRate,
@@ -213,7 +225,7 @@ export async function POST(request) {
           parking_access ? 1 : 0, elevator_access ? 1 : 0, has_pets ? 1 : 0,
           address_line1 || '', address_line2 || null, city || '', postal_code || null,
           latitude || null, longitude || null, jobCluster,
-          standardDuration || 60,
+          standardDuration || 60, JSON.stringify(job.lines),
           payment_intent_id || null, totalAuthorizedAmount || 0,
         ]
       )
@@ -327,6 +339,8 @@ export async function POST(request) {
         booking_number: bookingNumber,
         overtime_rate: overtimeRate,
         standard_duration: standardDuration,
+        service_price: basePrice,
+        quoted_minutes: standardDuration,
         authorized_amount: totalAuthorizedAmount,
         message: `✅ Booking confirmed. Card authorized for $${totalAuthorizedAmount}`
       })
