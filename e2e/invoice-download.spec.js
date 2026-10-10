@@ -136,7 +136,8 @@ test.describe('Invoice download: GET /api/bookings/[id]/invoice/download', () =>
         }
     });
 
-    // Red if the handler's ownership clause is deleted or reads another column (customer 1 would be served customer 2's invoice).
+    // Red if the handler's ownership clause is deleted or reads another column (customer 1 would be served customer 2's invoice), or if the owner is read
+    // from a parameter of the request.
     test("Invoice download GET /api/bookings/[id]/invoice/download: customer1 asking for customer 2's booking is 403 and shows none of its data, and customer 2 asking for customer 1's likewise", async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
         const customer2 = await customer2Headers(playwright, baseURL);
@@ -147,6 +148,10 @@ test.describe('Invoice download: GET /api/bookings/[id]/invoice/download', () =>
             await expectRefusal(await ask(request, BOOKING2.id, { ...headers, ...BROWSER }), 403, FORBIDDEN, `customer1 by ${style} visits booking 2 in a browser`, BOOKING2_STRINGS);
         }
         await expectRefusal(await ask(request, BOOKING1.id, customer2), 403, FORBIDDEN, 'customer2 asks for booking 1', BOOKING1_STRINGS);
+        // Who is asking is the session and nothing in the request: a parameter that names the booking's owner changes no answer.
+        const naming = `?user_id=${BOOKING1.user_id}&customer_id=${BOOKING1.user_id}&email=${encodeURIComponent(BOOKING1.customer_email)}`;
+        await expectRefusal(await request.get(pathOf(BOOKING1.id) + naming, { headers: customer2, maxRedirects: 0 }), 403, FORBIDDEN, 'customer2 asks for booking 1 and names customer 1 as the owner', BOOKING1_STRINGS);
+        await expectRefusal(await request.get(pathOf(BOOKING1.id) + naming, { maxRedirects: 0 }), 401, UNAUTHORIZED, 'no login asks for booking 1 and names customer 1 as the owner', BOOKING1_STRINGS);
     });
 
     // Red if a customer is refused their own booking (the clause compares the wrong column or id) or the PDF is built from another booking's row.
