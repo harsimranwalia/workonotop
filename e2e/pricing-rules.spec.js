@@ -19,8 +19,17 @@
 // Case 10 reads the dev database the way e2e/price-of-record.spec.js does: a small helper checks the target before it connects (assertDevTarget:
 // a local host and the database workontap_db) and the rows once connected (assertNoRealPeople), then prices every active service with the
 // pricing item rows it reads from the database.
+// Cases 8, 9 and 11 book through the public checkout (a made-up payment intent id, as e2e/price-of-record.spec.js does, with an e-mail address
+// that starts 'e2e-eng007-') and read what the booking stored with the same database helper. Each booking is deleted again as admin, with the
+// booking_audit_logs and job_sessions rows that belong to it (the answer of that delete is not checked). Case 9 and case 11 also read source
+// files: the lines that take an amount from the rule. A source read is a guard on the text; the behaviour is the figures the running app
+// answers and stores.
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import mysql from 'mysql2/promise';
 import { test, expect } from '@playwright/test';
+import { getCredentialHeaders } from './auth/credentials.js';
 import { RESET_RETRIES } from './support/auth.js';
 import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.js';
 
@@ -63,6 +72,9 @@ const WEDNESDAY = '2026-10-14';
 const FRIDAY = '2026-10-09';
 const SATURDAY = '2026-10-10';
 const SUNDAY = '2026-10-11';
+
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const EMAIL_PREFIX = 'e2e-eng007-';
 
 // One object feeds both the guard and the connection, so the guard certifies the values that get used (as database/fixtures/load.js).
 const DB = { host: '127.0.0.1', port: 3307, user: 'root', password: 'root123', database: 'workontap_db' };
@@ -137,6 +149,74 @@ function expectRefused(job, what, reason, field) {
     expect(job.ok, `${what}: refused`).toBe(false);
     expect(job.reason, `${what}: the reason`).toBe(reason);
     expect(job.field, `${what}: the answer it names`).toBe(field);
+}
+
+// The credentials of the cases that book: the admin (who deletes the bookings again, and books in case 11) and a customer (create-intent).
+async function headersFor(baseURL) {
+    const styles = await getCredentialHeaders(String(baseURL));
+    return { admin: styles['admin-bearer'], customer: styles['customer-bearer'] };
+}
+
+// The body of a checkout of fixture service 1 on a Wednesday, with the service's catalog price and hourly rate in it as the apps send them;
+// `fields` replaces or adds to the body.
+function checkoutBody(fields = {}) {
+    const tag = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    return {
+        service_id: SERVICE_1.id, service_name: SERVICE_1.name, service_price: Number(SERVICE_1.base_price), additional_price: Number(SERVICE_1.additional_price),
+        first_name: 'E2E', last_name: 'Pricing', email: `${EMAIL_PREFIX}${tag}@workontap.test`, phone: '+14035550199',
+        job_date: WEDNESDAY, job_time_slot: '09:00', job_description: 'E2E pricing-rules booking, deleted by the case.',
+        address_line1: '1 Probe Street', city: 'Calgary', payment_intent_id: `pi_e2e_${EMAIL_PREFIX}${tag}`,
+        ...fields,
+    };
+}
+
+// Posts a checkout body; `headers` signs the checkout in (the checkout is public, and a booking made with no credential belongs to no account).
+function postCheckout(request, data, headers = {}) {
+    return request.post('/api/bookings', { headers, data, maxRetries: RESET_RETRIES, timeout: 60_000 });
+}
+
+// Deletes a booking again as admin, with the rows of the tables that have no foreign key to it (the answer of the admin's delete is not checked).
+async function deleteBooking(request, as, id) {
+    await request.delete(`/api/bookings?id=${id}`, { headers: as.admin, maxRetries: RESET_RETRIES, timeout: 60_000 });
+    await (await db()).query('DELETE FROM job_sessions WHERE booking_id = ?', [id]);
+    await (await db()).query('DELETE FROM booking_audit_logs WHERE booking_id = ?', [id]);
+}
+
+// Runs `run(id, answer)` on a booking made by the checkout with `fields` in its body (200 is expected) and deletes the booking again, even when
+// `run` fails.
+async function withBooking(request, as, fields, run, headers = {}) {
+    const response = await postCheckout(request, checkoutBody(fields), headers);
+    expect(response.status(), 'checkout makes the booking').toBe(200);
+    const answer = await response.json();
+    expect(Number.isInteger(answer.booking_id), 'the booking has an id').toBe(true);
+    try {
+        await run(/** @type {number} */ (answer.booking_id), answer);
+    } finally {
+        await deleteBooking(request, as, answer.booking_id);
+    }
+}
+
+// What a booking stored for its price: the price, the quoted minutes, the amount held on the card and the breakdown.
+async function storedBooking(id) {
+    const [row] = await rows('SELECT service_price, standard_duration_minutes, authorized_amount, price_breakdown FROM bookings WHERE id = ?', [id]);
+    expect(row, `booking ${id} is stored`).toBeDefined();
+    return row;
+}
+
+// The lines of a stored breakdown, without their labels. The column is JSON, which the driver hands over parsed (a server that keeps the text
+// of a JSON column hands it over as that text).
+function linesOf(stored) {
+    const lines = typeof stored.price_breakdown === 'string' ? JSON.parse(stored.price_breakdown) : stored.price_breakdown;
+    return lines.map(({ kind, code, quantity, amount, minutes }) => ({ kind, code, quantity, amount, minutes }));
+}
+
+// The files under `directory` that end .js, as paths from the repository root with forward slashes.
+function sourcesUnder(directory) {
+    return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+        const found = path.join(directory, entry.name);
+        if (entry.isDirectory()) return sourcesUnder(found);
+        return entry.name.endsWith('.js') ? [path.relative(ROOT, found).split(path.sep).join('/')] : [];
+    });
 }
 
 test.describe('Pricing rules', () => {
@@ -622,6 +702,99 @@ test.describe('Pricing rules', () => {
         expect(await notJson.json(), 'a body that is not JSON').toEqual({ success: false, message: 'Invalid request body' });
     });
 
+    // Mutant that turns this case red: the insert writes the catalog duration.
+    test('a booking records the price and the quoted minutes its answers produce', async ({ request, baseURL }) => {
+        const as = await headersFor(baseURL);
+
+        // Two bedrooms and one bathroom on a Wednesday: 135.00 and 200 minutes. The amount held on the card is the price and two hours at the
+        // service's hourly rate of 40.00: 215.00. The answer says what was recorded, the row holds it, and the breakdown holds the three lines.
+        await withBooking(request, as, { job_date: WEDNESDAY, answers: twoAndOne() }, async (id, answer) => {
+            expect(answer.service_price, 'the answer: the price recorded').toBe(135);
+            expect(answer.standard_duration, 'the answer: the standard duration').toBe(200);
+            expect(answer.quoted_minutes, 'the answer: the quoted minutes').toBe(200);
+            expect(answer.authorized_amount, 'the answer: the amount held on the card').toBe(215);
+            const stored = await storedBooking(id);
+            expect(Number(stored.service_price), 'the stored price').toBe(135);
+            expect(Number(stored.standard_duration_minutes), 'the stored quoted minutes').toBe(200);
+            expect(Number(stored.authorized_amount), 'the stored amount held on the card').toBe(215);
+            expect(linesOf(stored), 'the stored breakdown: a base line and two unit lines').toEqual([
+                { kind: 'base', code: 'base', quantity: 1, amount: '80.00', minutes: 120 },
+                { kind: 'unit', code: 'bedrooms', quantity: 2, amount: '40.00', minutes: 60 },
+                { kind: 'unit', code: 'bathrooms', quantity: 1, amount: '15.00', minutes: 20 },
+            ]);
+        });
+
+        // Several dates: the booking's first date prices it. The date inside the answers (the Wednesday) is not read here, so the Saturday adds
+        // its 30.00: 165.00 and the same 200 minutes, 245.00 on the card, and a weekend line.
+        await withBooking(request, as, { job_date: `${SATURDAY},${WEDNESDAY}`, answers: twoAndOne({ date: WEDNESDAY }) }, async (id, answer) => {
+            expect(answer.service_price, 'several dates, the first a Saturday: the price recorded').toBe(165);
+            expect(answer.quoted_minutes, 'several dates, the first a Saturday: the quoted minutes').toBe(200);
+            expect(answer.authorized_amount, 'several dates, the first a Saturday: the amount held on the card').toBe(245);
+            const stored = await storedBooking(id);
+            expect(Number(stored.service_price), 'several dates, the first a Saturday: the stored price').toBe(165);
+            expect(linesOf(stored).map((line) => line.code), 'several dates, the first a Saturday: the stored lines').toEqual(['base', 'bedrooms', 'bathrooms', 'weekend']);
+        });
+
+        // A first date that is not a real day is refused with the booking's own name for it (job_date) when there are answers; with no answers the
+        // date is not read and the booking is the catalog's: 80.00 and 120 minutes.
+        const unreal = await postCheckout(request, checkoutBody({ job_date: '2026-02-30', answers: twoAndOne() }));
+        expect(unreal.status(), 'answers and a first date that is not a day are refused').toBe(400);
+        expect(await unreal.json(), 'answers and a first date that is not a day').toEqual({ success: false, message: 'These answers cannot be priced for this service', field: 'job_date' });
+        await withBooking(request, as, { job_date: '2026-02-30' }, async (id, answer) => {
+            expect(answer.service_price, 'no answers: the date is not read, the price recorded').toBe(80);
+            expect(answer.quoted_minutes, 'no answers: the date is not read, the quoted minutes').toBe(120);
+        });
+
+        // The amount held on the card is a decimal(10,2) too. 2,857,139 ovens at 35.00 with the base are 99,999,945.00, which the rule prices;
+        // with the two hours at 40.00 on top the card would hold 100,000,025.00, so the booking is refused before anything is written.
+        const oversize = checkoutBody({ answers: { extras: [{ code: 'oven', quantity: 2_857_139 }] } });
+        try {
+            const refused = await postCheckout(request, oversize);
+            expect(refused.status(), 'a price whose card amount is larger than a booking can record is refused').toBe(400);
+            expect(await refused.json(), 'a price whose card amount is larger than a booking can record').toEqual({ success: false, message: 'The price for these answers is larger than a booking can record', field: 'answers' });
+            expect(await rows('SELECT id FROM bookings WHERE customer_email = ?', [oversize.email]), 'the refused booking wrote nothing').toEqual([]);
+        } finally {
+            for (const { id } of await rows('SELECT id FROM bookings WHERE customer_email = ?', [oversize.email])) await deleteBooking(request, as, id);
+        }
+    });
+
+    // Mutant that turns this case red: create-intent takes its amount from the body when the body holds one.
+    test("a figure in the request is not read: the price route, create-intent and a booking use the rule's price", async ({ request, baseURL }) => {
+        const as = await headersFor(baseURL);
+        // Figures at the top of the request and inside the answers, which are two bedrooms and one bathroom on a Wednesday (135.00, 200 minutes).
+        const figures = { service_price: 0.01, price: 1, total: 1, amount: 1, quoted_minutes: 1 };
+        const answers = twoAndOne({ price: 1 });
+
+        const priced = await request.post('/api/pricing', { data: { service_id: 1, answers, ...figures }, maxRetries: RESET_RETRIES, timeout: 60_000 });
+        expect(priced.status(), 'the price route answers a request that holds figures').toBe(200);
+        const pricedAnswer = await priced.json();
+        expect(pricedAnswer.price, "the price route answers the rule's price").toBe(135);
+        expect(pricedAnswer.quoted_minutes, "the price route answers the rule's quoted minutes").toBe(200);
+
+        await withBooking(request, as, { answers, ...figures }, async (id, answer) => {
+            expect(answer.service_price, "the booking answers the rule's price").toBe(135);
+            expect(answer.quoted_minutes, "the booking answers the rule's quoted minutes").toBe(200);
+            const stored = await storedBooking(id);
+            expect(Number(stored.service_price), "the booking stores the rule's price").toBe(135);
+            expect(Number(stored.standard_duration_minutes), "the booking stores the rule's quoted minutes").toBe(200);
+        });
+
+        // create-intent prices before it reaches Stripe, for which the dev stack has no key: bedrooms are not a unit of service 3, and a price of 1
+        // in the request does not change that. The refusal names the answer.
+        const intent = await request.post('/api/payment/create-intent', { headers: as.customer, data: { service_id: 3, service_price: 1, answers: { units: { bedrooms: 1 } } }, maxRetries: RESET_RETRIES, timeout: 60_000 });
+        expect(intent.status(), 'create-intent refuses answers the service cannot price').toBe(400);
+        expect(await intent.json(), 'create-intent refuses answers the service cannot price').toEqual({ success: false, message: 'These answers cannot be priced for this service', field: 'units' });
+
+        // Source read: create-intent runs the rest of its amount after a Stripe call, so its line is read. The amount is the price priceJob gives,
+        // and the file holds no figure of the request.
+        const source = fs.readFileSync(path.join(ROOT, 'src/app/api/payment/create-intent/route.js'), 'utf8');
+        expect(source.includes('priceJob('), 'create-intent prices with priceJob').toBe(true);
+        expect(source.includes('const basePrice = job.price'), "create-intent's amount is the rule's price").toBe(true);
+        for (const text of ['service_price', 'body.price', 'body.total', 'body.amount', 'body.quoted_minutes']) {
+            expect(source.includes(text), `create-intent does not hold ${JSON.stringify(text)}`).toBe(false);
+        }
+    });
+
     // Mutant that turns this case red: a unit with no answer is counted as 1.
     test('every active service prices with no answers at its catalog price and minutes', async () => {
         const { priceJob } = await import('../src/lib/pricing-rules.js');
@@ -660,5 +833,36 @@ test.describe('Pricing rules', () => {
         expect(itemsOfService(1).length, 'fixture service 1 has ten pricing item rows').toBe(10);
         expect(itemsOfService(2).length, 'fixture service 2 has two pricing item rows').toBe(2);
         expect(itemsOfService(3).length, 'fixture service 3 has no pricing item rows').toBe(0);
+    });
+
+    // Mutant that turns this case red: the booking route records the price in the body when the caller is a signed-in admin.
+    test('a booking an admin makes is priced by the rule from its answers', async ({ request, baseURL }) => {
+        const as = await headersFor(baseURL);
+        // Twelve bedrooms, six bathrooms, deep, a house and three ovens on a Wednesday, booked with the admin's credential and a price of 1 in the
+        // body: 80 + 12 x 20 + 6 x 15 + 60 + 25 + 3 x 35 = 600.00, and 120 + 12 x 30 + 6 x 20 + 60 + 30 + 3 x 30 = 780 minutes. The amount held
+        // on the card is 600.00 and two hours at 40.00: 680.00.
+        const answers = { units: { bedrooms: 12, bathrooms: 6 }, option: 'deep', property_type: 'house', extras: [{ code: 'oven', quantity: 3 }] };
+        await withBooking(request, as, { job_date: WEDNESDAY, answers, service_price: 1 }, async (id, answer) => {
+            expect(answer.service_price, "the answer: the rule's price").toBe(600);
+            expect(answer.quoted_minutes, "the answer: the rule's quoted minutes").toBe(780);
+            expect(answer.authorized_amount, 'the answer: the amount held on the card').toBe(680);
+            const stored = await storedBooking(id);
+            expect(Number(stored.service_price), "the stored price is the rule's").toBe(600);
+            expect(Number(stored.standard_duration_minutes), "the stored quoted minutes are the rule's").toBe(780);
+        }, as.admin);
+
+        // Source read: the booking route is the only route under src/app/api that inserts a booking, it records the price priceJob gives, and its
+        // list of fields read from the body names no price, amount or minutes.
+        const inserting = sourcesUnder(path.join(ROOT, 'src/app/api')).filter((file) => /INSERT\s+INTO\s+`?bookings`?\b/i.test(fs.readFileSync(path.join(ROOT, file), 'utf8')));
+        expect(inserting, 'the routes that insert a booking').toEqual(['src/app/api/bookings/route.js']);
+        const route = fs.readFileSync(path.join(ROOT, 'src/app/api/bookings/route.js'), 'utf8');
+        expect(route.includes('const basePrice = job.price'), "the booking route records the rule's price").toBe(true);
+        const destructured = /let\s*\{([^}]*)\}\s*=\s*body/.exec(route);
+        expect(destructured, 'the booking route reads its fields from the body in one destructuring').not.toBeNull();
+        const fieldsRead = ((destructured && destructured[1]) || '').match(/[A-Za-z_]\w*/g) || [];
+        expect(fieldsRead, 'the booking route reads the service id from the body').toContain('service_id');
+        for (const figure of ['service_price', 'additional_price', 'price', 'total', 'amount', 'quoted_minutes', 'standard_duration', 'authorized_amount']) {
+            expect(fieldsRead, `the booking route does not read ${figure} from its body`).not.toContain(figure);
+        }
     });
 });

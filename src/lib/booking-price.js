@@ -1,7 +1,7 @@
 // The price of record of a booking, and the provider's payout for it.
-// The price is the catalog's base price of the booked service, read on the server when the job is booked and stored
-// in bookings.service_price. The payout is that recorded price less the booking's commission percent (20 when none is
-// set), to the cent. Every route that charges a customer or pays a provider takes its amount from here.
+// The price is the one the service's pricing rule gives (src/lib/pricing-rules.js), worked out on the server when the job
+// is booked and stored in bookings.service_price. The payout is that recorded price less the booking's commission percent
+// (20 when none is set), to the cent. Every route that charges a customer or pays a provider takes its amount from here.
 
 export const DEFAULT_COMMISSION_PERCENT = 20
 
