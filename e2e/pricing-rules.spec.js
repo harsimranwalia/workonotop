@@ -19,8 +19,10 @@
 // Case 10 reads the dev database the way e2e/price-of-record.spec.js does: a small helper checks the target before it connects (assertDevTarget:
 // a local host and the database workontap_db) and the rows once connected (assertNoRealPeople), then prices every active service with the
 // pricing item rows it reads from the database.
-// Cases 8, 9 and 11 book through the public checkout (a made-up payment intent id, as e2e/price-of-record.spec.js does, with an e-mail address
-// that starts 'e2e-eng007-') and read what the booking stored with the same database helper. Each booking is deleted again as admin, with the
+// Cases 8, 9, 11 and 12 book through the public checkout (a made-up payment intent id, as e2e/price-of-record.spec.js does, with an e-mail
+// address that starts 'e2e-eng007-', or customer 1's in case 12) and read what the booking stored with the same database helper. Case 12 moves
+// its booking with the app's own routes: the admin's booking update and override, the provider's start and stop, the admin's invoice
+// generation. It plants the one closed job session that the finish measures. Each booking is deleted again as admin, with the
 // booking_audit_logs and job_sessions rows that belong to it (the answer of that delete is not checked). Case 9 and case 11 also read source
 // files: the lines that take an amount from the rule. A source read is a guard on the text; the behaviour is the figures the running app
 // answers and stores.
@@ -31,6 +33,7 @@ import mysql from 'mysql2/promise';
 import { test, expect } from '@playwright/test';
 import { getCredentialHeaders } from './auth/credentials.js';
 import { RESET_RETRIES } from './support/auth.js';
+import { providers, users } from '../database/fixtures/accounts.js';
 import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.js';
 
 // Tracing is off, as in e2e/price-of-record.spec.js: the cases that send requests carry a fixture account's session, and a trace records
@@ -74,6 +77,8 @@ const SATURDAY = '2026-10-10';
 const SUNDAY = '2026-10-11';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const [PROVIDER1] = providers;
+const [CUSTOMER1] = users;
 const EMAIL_PREFIX = 'e2e-eng007-';
 
 // One object feeds both the guard and the connection, so the guard certifies the values that get used (as database/fixtures/load.js).
@@ -151,10 +156,11 @@ function expectRefused(job, what, reason, field) {
     expect(job.field, `${what}: the answer it names`).toBe(field);
 }
 
-// The credentials of the cases that book: the admin (who deletes the bookings again, and books in case 11) and a customer (create-intent).
+// The credentials of the cases that book: the admin (who deletes the bookings again, and books in case 11), a customer (create-intent, and the
+// bookings of case 12) and the provider who works the job in case 12.
 async function headersFor(baseURL) {
     const styles = await getCredentialHeaders(String(baseURL));
-    return { admin: styles['admin-bearer'], customer: styles['customer-bearer'] };
+    return { admin: styles['admin-bearer'], customer: styles['customer-bearer'], provider: styles['provider-bearer'] };
 }
 
 // The body of a checkout of fixture service 1 on a Wednesday, with the service's catalog price and hourly rate in it as the apps send them;
@@ -217,6 +223,50 @@ function sourcesUnder(directory) {
         if (entry.isDirectory()) return sourcesUnder(found);
         return entry.name.endsWith('.js') ? [path.relative(ROOT, found).split(path.sep).join('/')] : [];
     });
+}
+
+// The admin confirms the booking for provider 1.
+async function confirm(request, as, id) {
+    const response = await request.put(`/api/bookings?id=${id}`, { headers: as.admin, data: { provider_id: PROVIDER1.id, status: 'confirmed' }, maxRetries: RESET_RETRIES, timeout: 60_000 });
+    expect(response.status(), `the admin confirms booking ${id}`).toBe(200);
+}
+
+// One of the provider's own actions on the booking (start or stop). Answers the HTTP response.
+function act(request, as, data) {
+    return request.post('/api/provider/jobs/time-tracking', { headers: as.provider, data, maxRetries: RESET_RETRIES, timeout: 60_000 });
+}
+
+// The provider's own read of the booking's timer columns (GET time-tracking).
+async function providerRead(request, as, id) {
+    const response = await request.get(`/api/provider/jobs/time-tracking?booking_id=${id}`, { headers: as.provider, maxRetries: RESET_RETRIES, timeout: 60_000 });
+    expect(response.status(), `the provider reads booking ${id}`).toBe(200);
+    return (await response.json()).data;
+}
+
+// Confirms the booking, has the provider start it and finish it, and answers the finish's response data. `measured` plants a closed job session of
+// that many minutes before the finish, so the measured time is more than the seconds the case itself takes.
+async function runJob(request, as, id, measured) {
+    await confirm(request, as, id);
+    const started = await act(request, as, { booking_id: id, action: 'start' });
+    expect(started.status(), `the provider starts booking ${id}`).toBe(200);
+    await (await db()).query(
+        'INSERT INTO job_sessions (booking_id, provider_id, clock_in, clock_out, session_duration_minutes) VALUES (?, ?, DATE_SUB(NOW(), INTERVAL ? MINUTE), NOW(), ?)',
+        [id, PROVIDER1.id, measured + 5, measured],
+    );
+    const finished = await act(request, as, { booking_id: id, action: 'stop' });
+    expect(finished.status(), `the provider finishes booking ${id}`).toBe(200);
+    return (await finished.json()).data;
+}
+
+// Both invoices of a booking, as stored, each holding the `expected` columns (numbers).
+async function expectInvoices(id, expected, when) {
+    const invoices = await rows('SELECT invoice_type, overtime_minutes, service_duration FROM invoices WHERE booking_id = ? ORDER BY invoice_type', [id]);
+    expect(invoices.map((invoice) => invoice.invoice_type), `${when}: the invoices stored for the booking`).toEqual(['customer', 'provider']);
+    for (const invoice of invoices) {
+        for (const [column, value] of Object.entries(expected)) {
+            expect(Number(invoice[column]), `${when}: the ${invoice.invoice_type} invoice: ${column}`).toBe(value);
+        }
+    }
 }
 
 test.describe('Pricing rules', () => {
@@ -864,5 +914,47 @@ test.describe('Pricing rules', () => {
         for (const figure of ['service_price', 'additional_price', 'price', 'total', 'amount', 'quoted_minutes', 'standard_duration', 'authorized_amount']) {
             expect(fieldsRead, `the booking route does not read ${figure} from its body`).not.toContain(figure);
         }
+    });
+
+    // Mutant that turns this case red: the finish reads the service's catalog duration again.
+    test("time past the quote is measured from the booking's quoted minutes", async ({ request, baseURL }) => {
+        const as = await headersFor(baseURL);
+        // Two bedrooms and one bathroom quote 200 minutes against the service's 120. The booking is customer 1's (the invoices name the account the
+        // booking belongs to) and carries that customer's e-mail address, so that the admin's list of bookings shows it.
+        await withBooking(request, as, { answers: twoAndOne(), email: CUSTOMER1.email }, async (id) => {
+            // 230 measured minutes are 30 past the quote of 200 (they would be 110 past the service's 120): the finish answers it and the booking
+            // stores it, with no overtime earnings, and the provider's read, the admin's list and the invoices state the quoted minutes.
+            const data = await runJob(request, as, id, 230);
+            expect(data.system_minutes, 'the measured minutes the finish answers').toBe(230);
+            expect(data.overtime_minutes, 'the minutes past the quote the finish answers').toBe(30);
+            expect(data.overtime_earnings, 'the overtime earnings the finish answers').toBe(0);
+            const [stored] = await rows('SELECT overtime_minutes, overtime_earnings FROM bookings WHERE id = ?', [id]);
+            expect(Number(stored.overtime_minutes), 'the minutes past the quote the booking stores').toBe(30);
+            expect(Number(stored.overtime_earnings), 'the overtime earnings the booking stores').toBe(0);
+            const read = await providerRead(request, as, id);
+            expect(Number(read.standard_duration), 'the quoted minutes the provider reads').toBe(200);
+
+            const listed = await request.get(`/api/bookings?email=${encodeURIComponent(CUSTOMER1.email)}`, { headers: as.admin, maxRetries: RESET_RETRIES, timeout: 60_000 });
+            expect(listed.status(), "the admin lists customer 1's bookings").toBe(200);
+            const listing = (await listed.json()).data.find((booking) => booking.id === id);
+            expect(listing, `the admin's list holds booking ${id}`).toBeDefined();
+            expect(listing.duration_minutes, 'the quoted minutes the admin reads').toBe(200);
+
+            // The admin marks the job completed and generates the invoices: both state the 30 minutes past the quote and the quoted minutes. Then
+            // the admin overrides the hours (600 minutes of 10 workers): the invoices state the 400 minutes past the quote.
+            const completed = await request.put(`/api/bookings?id=${id}`, { headers: as.admin, data: { status: 'completed' }, maxRetries: RESET_RETRIES, timeout: 60_000 });
+            expect(completed.status(), `the admin marks booking ${id} completed`).toBe(200);
+            const generated = await request.post('/api/admin/invoices/generate', { headers: as.admin, data: { booking_id: id }, maxRetries: RESET_RETRIES, timeout: 60_000 });
+            expect(generated.status(), `the admin generates the invoices of booking ${id}`).toBe(200);
+            await expectInvoices(id, { overtime_minutes: 30, service_duration: 200 }, 'after the invoices are generated');
+            const overridden = await request.put(`/api/admin/bookings/${id}/override`, {
+                headers: as.admin,
+                data: { worker_count: 10, actual_duration_minutes: 600, reason: 'E2E pricing rules: the override measures from the quoted minutes.' },
+                maxRetries: RESET_RETRIES,
+                timeout: 60_000,
+            });
+            expect(overridden.status(), `the admin overrides the hours and crew of booking ${id}`).toBe(200);
+            await expectInvoices(id, { overtime_minutes: 400 }, 'after the override');
+        }, as.customer);
     });
 });

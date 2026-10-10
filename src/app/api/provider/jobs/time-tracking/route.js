@@ -24,9 +24,9 @@ export async function POST(request) {
     try {
       // Ownership, before any write: the booking must be the caller's own (b.provider_id = caller.id). The query filters
       // by owner, so a booking that is another provider's and one that does not exist both answer the route's existing
-      // 404 below.
+      // 404 below. The standard duration is the booking's quoted minutes.
       const [[booking]] = await connection.execute(
-        `SELECT b.*, s.duration_minutes as standard_duration, s.name as service_name,
+        `SELECT b.*, COALESCE(b.standard_duration_minutes, s.duration_minutes, 60) as standard_duration, s.name as service_name,
                   u.email as customer_email, u.first_name as customer_first_name, u.phone as customer_phone,
                   TIMESTAMPDIFF(MINUTE, b.start_time, NOW()) as current_duration
          FROM bookings b
@@ -344,13 +344,14 @@ export async function GET(request) {
     const booking_id = searchParams.get('booking_id')
     if (!booking_id) return NextResponse.json({ success: false, message: 'booking_id required' }, { status: 400 })
 
+    // The standard duration is the booking's quoted minutes.
     const bookings = await execute(
       `SELECT 
         b.id, b.status, b.job_timer_status, b.start_time, b.end_time,
         b.worker_count, b.actual_duration_minutes, b.overtime_minutes, b.overtime_earnings,
         b.provider_amount, b.final_provider_amount, b.service_price,
         b.additional_price as overtime_rate,
-        s.duration_minutes as standard_duration,
+        COALESCE(b.standard_duration_minutes, s.duration_minutes, 60) as standard_duration,
         TIMESTAMPDIFF(MINUTE, b.start_time, NOW()) as current_duration,
         (SELECT COUNT(*) FROM job_photos WHERE booking_id = b.id AND photo_type = 'before') > 0 as has_before_photos,
         (SELECT COUNT(*) FROM job_photos WHERE booking_id = b.id AND photo_type = 'after') > 0 as has_after_photos

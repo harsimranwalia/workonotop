@@ -31,9 +31,10 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get('limit') || '50')
 
     return await withConnection(async (connection) => {
+      // The standard duration is the booking's quoted minutes.
       let sql = `
         SELECT b.*, s.name as service_name, s.slug as service_slug,
-          s.image_url as service_image, s.duration_minutes as service_duration,
+          s.image_url as service_image, COALESCE(b.standard_duration_minutes, s.duration_minutes, 60) as service_duration,
           c.name as category_name, sp.name as provider_name
         FROM bookings b
         LEFT JOIN services s ON b.service_id = s.id
