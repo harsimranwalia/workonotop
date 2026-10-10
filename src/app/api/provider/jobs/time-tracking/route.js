@@ -175,7 +175,7 @@ Price: $${price.toFixed(2)}`;
           }
 
           // Hours and crew entered at the finish are stored as the provider's entries. The payout is the booking's recorded
-          // price less its commission; overtime_minutes is the measured time past the service's standard duration.
+          // price less its commission; overtime_minutes is the measured time past the booking's quoted minutes.
           const wholeEntry = (value) => (Number.isInteger(value) && value >= 0 && value <= 100000 ? value : null)
           const enteredMinutes = wholeEntry(submitted_duration_minutes)
           const enteredHeadcount = wholeEntry(submitted_headcount)
