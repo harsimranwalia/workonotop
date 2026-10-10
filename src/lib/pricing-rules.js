@@ -93,7 +93,8 @@ export function priceJob(service, items, answers) {
   }
   const byTheHour = option !== null && Number(option.is_hourly) === 1
 
-  let hundredths = null
+  // Declared without a value: next build's file tracing reads `let x = null` as a constant and then evaluates `x * 60n` below, which it cannot do.
+  let hundredths
   if (isGiven(given.hours)) {
     hundredths = byTheHour ? hundredthsOf(given.hours) : null
     if (hundredths === null) return refuse('hours')
@@ -160,6 +161,14 @@ export function priceJob(service, items, answers) {
   // An hourly amount of 0 prices nothing, as a base price of 0 is not offered.
   if (cents <= 0n) return refuse('option')
   return { ok: true, price: Number(cents) / 100, minutes: Number(minutes), lines }
+}
+
+// The body of the 400 that a route answers when priceJob does not price: { success, message } as the neighbouring routes answer, with the
+// answer that cannot be priced named in `field`.
+export function refusalOf(job) {
+  if (job.reason === 'service') return { success: false, message: 'This service is not available for booking' }
+  if (job.reason === 'too_large') return { success: false, message: 'The price for these answers is larger than a booking can record', field: job.field }
+  return { success: false, message: 'These answers cannot be priced for this service', field: job.field }
 }
 
 // A service id as the routes receive it: a number, or a string of digits only. Anything else names no service.

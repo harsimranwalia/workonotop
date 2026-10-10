@@ -15,11 +15,13 @@
 // The module cases (1 to 6) call priceJob from src/lib/pricing-rules.js with the rule's rows passed as literals, written in this file (fixture
 // services 1 to 3 with their placeholder figures). Every expected figure is a literal worked by hand from those rows and a fixed date, never
 // computed by the code under test. Each case loads the module itself, so a missing module fails each case on its own.
+// Case 7 asks the running app's price route (POST /api/pricing) with no credential, as a screen does before anyone has signed in.
 // Case 10 reads the dev database the way e2e/price-of-record.spec.js does: a small helper checks the target before it connects (assertDevTarget:
 // a local host and the database workontap_db) and the rows once connected (assertNoRealPeople), then prices every active service with the
 // pricing item rows it reads from the database.
 import mysql from 'mysql2/promise';
 import { test, expect } from '@playwright/test';
+import { RESET_RETRIES } from './support/auth.js';
 import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.js';
 
 // Tracing is off, as in e2e/price-of-record.spec.js: the cases that send requests carry a fixture account's session, and a trace records
@@ -555,6 +557,69 @@ test.describe('Pricing rules', () => {
         // An hourly amount of 0 makes a total of 0, which is refused as a base price of 0 is.
         const free = [{ kind: 'option', code: 'hourly', label: 'By the hour (placeholder figure)', amount: '0.00', minutes: 0, is_hourly: 1 }];
         expect(priceJob(SERVICE_1, free, { option: 'hourly', hours: 2 }).ok, 'an hourly amount of 0 gives a total of 0, which is refused').toBe(false);
+    });
+
+    // Mutant that turns this case red: the route answers the service's base price whatever the answers are.
+    test('the price route answers the price, the quoted minutes and the lines for the answers given', async ({ request }) => {
+        const ask = (data) => request.post('/api/pricing', { data, maxRetries: RESET_RETRIES, timeout: 60_000 });
+
+        // Two bedrooms and one bathroom on a Wednesday: 135.00 and 200 minutes, a base line and two unit lines, and the ten choices of service 1
+        // (the rows of its rule, in the order a screen shows them).
+        const small = await ask({ service_id: 1, answers: twoAndOne() });
+        expect(small.status(), 'the price route answers service 1 with two bedrooms and one bathroom').toBe(200);
+        const smallAnswer = await small.json();
+        expect(smallAnswer.success, 'the answer says it succeeded').toBe(true);
+        expect(smallAnswer.service_id, 'the answer names the service').toBe(1);
+        expect(smallAnswer.price, 'the price of two bedrooms and one bathroom').toBe(135);
+        expect(smallAnswer.quoted_minutes, 'the quoted minutes of two bedrooms and one bathroom').toBe(200);
+        expect(smallAnswer.lines.map((line) => line.code), 'the lines: a base line and two unit lines').toEqual(['base', 'bedrooms', 'bathrooms']);
+        expect(smallAnswer.lines[1], 'the bedrooms line').toEqual({ kind: 'unit', code: 'bedrooms', label: 'Bedrooms (placeholder figure)', quantity: 2, amount: '40.00', minutes: 60 });
+        expect(smallAnswer.choices, 'the ten choices of service 1').toEqual(ITEMS_1);
+
+        // Every kind of answer, on a Saturday: 350.00 and 370 minutes.
+        const everything = await ask({ service_id: 1, answers: twoAndOne({ option: 'deep', property_type: 'house', date: SATURDAY, extras: [{ code: 'oven', quantity: 2 }, { code: 'fridge', quantity: 1 }] }) });
+        expect(everything.status(), 'the price route answers every kind of answer').toBe(200);
+        const everythingAnswer = await everything.json();
+        expect(everythingAnswer.price, 'the price with every kind of answer').toBe(350);
+        expect(everythingAnswer.quoted_minutes, 'the quoted minutes with every kind of answer').toBe(370);
+        expect(everythingAnswer.lines.map((line) => line.code), 'the lines with every kind of answer').toEqual(['base', 'bedrooms', 'bathrooms', 'deep', 'house', 'weekend', 'oven', 'fridge']);
+
+        // By the hour: 3 hours at 45.00 are 135.00 and 180 minutes, in one line.
+        const hourly = await ask({ service_id: 1, answers: { option: 'hourly', hours: 3 } });
+        expect(hourly.status(), 'the price route answers an hourly option').toBe(200);
+        const hourlyAnswer = await hourly.json();
+        expect(hourlyAnswer.price, 'the price of 3 hours').toBe(135);
+        expect(hourlyAnswer.quoted_minutes, 'the quoted minutes of 3 hours').toBe(180);
+        expect(hourlyAnswer.lines.map((line) => line.code), 'the one line of 3 hours').toEqual(['hourly']);
+
+        // No answers: the catalog price and duration. Service 3 is 100.00 and 90 minutes with a base line and no choices; service 1 is 80.00 and 120.
+        const assembly = await ask({ service_id: 3 });
+        expect(assembly.status(), 'the price route answers service 3 with no answers').toBe(200);
+        const assemblyAnswer = await assembly.json();
+        expect(assemblyAnswer.price, 'the price of service 3 with no answers').toBe(100);
+        expect(assemblyAnswer.quoted_minutes, 'the quoted minutes of service 3 with no answers').toBe(90);
+        expect(assemblyAnswer.lines.map((line) => line.code), 'the base line of service 3').toEqual(['base']);
+        expect(assemblyAnswer.choices, 'service 3 has no choices').toEqual([]);
+        const standard = await (await ask({ service_id: 1, answers: {} })).json();
+        expect(standard.price, 'the price of service 1 with empty answers').toBe(80);
+        expect(standard.quoted_minutes, 'the quoted minutes of service 1 with empty answers').toBe(120);
+
+        // A service the catalog does not offer, and answers the rule cannot price, are 400 with the answer named.
+        const unknown = await ask({ service_id: 2147483647, answers: twoAndOne() });
+        expect(unknown.status(), 'a service with no row is refused').toBe(400);
+        expect(await unknown.json(), 'a service with no row').toEqual({ success: false, message: 'This service is not available for booking' });
+        const notOffered = await ask({ answers: twoAndOne() });
+        expect(notOffered.status(), 'a request that names no service is refused').toBe(400);
+        const fridge = await ask({ service_id: 2, answers: { extras: [{ code: 'fridge', quantity: 1 }] } });
+        expect(fridge.status(), 'an extra of another service is refused').toBe(400);
+        expect(await fridge.json(), 'an extra of another service').toEqual({ success: false, message: 'These answers cannot be priced for this service', field: 'extras' });
+        const tooMany = await ask({ service_id: 1, answers: { extras: [{ code: 'oven', quantity: 3_000_000 }] } });
+        expect(tooMany.status(), 'a price above what a booking records is refused').toBe(400);
+        expect(await tooMany.json(), 'a price above what a booking records').toEqual({ success: false, message: 'The price for these answers is larger than a booking can record', field: 'answers' });
+        // A body that is not JSON, sent as text so that the request library delivers it as written (it would make a JSON string of it under a JSON content type).
+        const notJson = await request.post('/api/pricing', { headers: { 'Content-Type': 'text/plain' }, data: '{"service_id": ', maxRetries: RESET_RETRIES, timeout: 60_000 });
+        expect(notJson.status(), 'a body that is not JSON is refused').toBe(400);
+        expect(await notJson.json(), 'a body that is not JSON').toEqual({ success: false, message: 'Invalid request body' });
     });
 
     // Mutant that turns this case red: a unit with no answer is counted as 1.
