@@ -158,8 +158,9 @@ export async function POST(request) {
     const { service: serviceInfo, items: pricingItems } = await loadPricing(execute, service_id)
     // With answers, the rule is given the booking's own first date (the one stored in job_date) in place of any date the answers hold; with none, no date is read.
     const answers = body.answers
-    const hasAnswers = answers !== undefined && answers !== null
-    const ruleAnswers = hasAnswers && typeof answers === 'object' && !Array.isArray(answers) ? { ...answers, date: primaryJobDate } : answers
+    const isAnswersObject = typeof answers === 'object' && answers !== null && !Array.isArray(answers)
+    const hasAnswers = answers !== undefined && answers !== null && !(isAnswersObject && Object.keys(answers).length === 0)
+    const ruleAnswers = hasAnswers && isAnswersObject ? { ...answers, date: primaryJobDate } : answers
     const job = priceJob(serviceInfo, pricingItems, ruleAnswers)
     if (!job.ok) {
       // The date the rule refuses is the booking's first date, which this route calls job_date.

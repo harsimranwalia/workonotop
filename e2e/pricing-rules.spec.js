@@ -181,7 +181,8 @@ function postCheckout(request, data, headers = {}) {
     return request.post('/api/bookings', { headers, data, maxRetries: RESET_RETRIES, timeout: 60_000 });
 }
 
-// Deletes a booking again as admin, with the rows of the tables that have no foreign key to it (the answer of the admin's delete is not checked).
+// Deletes a booking again as admin, with the booking_audit_logs rows that the admin's override writes (no foreign key to the booking) and the
+// job_sessions rows (a cascade, but still there when the admin's delete fails); the answer of the admin's delete is not checked.
 async function deleteBooking(request, as, id) {
     await request.delete(`/api/bookings?id=${id}`, { headers: as.admin, maxRetries: RESET_RETRIES, timeout: 60_000 });
     await (await db()).query('DELETE FROM job_sessions WHERE booking_id = ?', [id]);
@@ -339,6 +340,15 @@ test.describe('Pricing rules', () => {
             expectPriced(job, set.what, set.price, set.minutes);
             expect(codesOf(job), `${set.what}: the codes of the lines, in order`).toEqual(set.codes);
         }
+
+        // Amounts that are not exact in floating point are read as whole cents: 19.99 x 100 is 1998.9999999999998 and 0.29 x 100 is 28.999999999999996,
+        // 1.15 x 100 is 114.99999999999999. A base of 19.99, 3 units at 0.29 and 2 extras at 1.15 are 1,999 + 3 x 29 + 2 x 115 = 2,316 cents = 23.16, and
+        // 90 + 3 x 5 + 2 x 0 = 105 minutes.
+        const awkward = priceJob({ ...SERVICE_3, base_price: '19.99' }, [
+            { kind: 'unit', code: 'room', label: 'Room (placeholder figure)', amount: '0.29', minutes: 5, is_hourly: 0 },
+            { kind: 'extra', code: 'dust', label: 'Dust (placeholder figure)', amount: '1.15', minutes: 0, is_hourly: 0 },
+        ], { units: { room: 3 }, extras: [{ code: 'dust', quantity: 2 }] });
+        expectPriced(awkward, 'a base of 19.99, 3 units at 0.29 and 2 extras at 1.15', 23.16, 105);
 
         // Answers that are absent, null or an empty object price the base only; the base line holds the service's name, one, the base price and minutes.
         for (const [what, answers] of [['an empty object', {}], ['null', null], ['no answers argument', undefined]]) {
@@ -557,6 +567,10 @@ test.describe('Pricing rules', () => {
         expect(oneAndAQuarter.lines, '1.25 hours at 33.33 an hour: the one line').toEqual([
             { kind: 'option', code: 'hourly', label: 'By the hour (placeholder figure)', quantity: 1.25, amount: '41.66', minutes: 75 },
         ]);
+        // 2.5 hours: 250 x 3,333 = 833,250 hundredths of a cent = 8,332.5 cents, which rounds half up to 8,333 cents = 83.33 (2.5 x 33.33 as floating-point
+        // numbers is below 83.325, so it reads 83.32 whether it is rounded to the cent or fixed to two places); 2.5 x 60 = 150 minutes.
+        const twoAndAHalf = priceJob(SERVICE_1, thirtyThreeThirtyThree, { option: 'hourly', hours: 2.5 });
+        expectPriced(twoAndAHalf, '2.5 hours at 33.33 an hour', 83.33, 150);
     });
 
     // Mutant that turns this case red: the quantity of an extra is limited (1,000,000 ovens must be priced).
@@ -613,6 +627,15 @@ test.describe('Pricing rules', () => {
         const sweep = [{ kind: 'extra', code: 'sweep', label: 'Sweep (placeholder figure)', amount: '0.00', minutes: 1000, is_hourly: 0 }];
         expectPriced(priceJob(SERVICE_1, sweep, { extras: [{ code: 'sweep', quantity: 2_147_483 }] }), '2,147,483 sweeps', 80, 2_147_483_120);
         expectRefused(priceJob(SERVICE_1, sweep, { extras: [{ code: 'sweep', quantity: 2_147_484 }] }), '2,147,484 sweeps, the first quantity past the minutes limit', 'too_large', 'answers');
+
+        // Both limits are exact. The base of 80.00 and an extra of 99,999,919.99 are 99,999,999.99, the most a booking records; an extra of 99,999,920.00
+        // makes 100,000,000.00. The base's 120 minutes and an extra of 2,147,483,527 minutes are 2,147,483,647, the most an int holds; one minute more is refused.
+        const capRow = (amount, minutes) => [{ kind: 'extra', code: 'cap', label: 'Cap (placeholder figure)', amount, minutes, is_hourly: 0 }];
+        const oneCap = { extras: [{ code: 'cap', quantity: 1 }] };
+        expectPriced(priceJob(SERVICE_1, capRow('99999919.99', 0), oneCap), 'a total of 99,999,999.99', 99_999_999.99, 120);
+        expectRefused(priceJob(SERVICE_1, capRow('99999920.00', 0), oneCap), 'a total of 100,000,000.00', 'too_large', 'answers');
+        expectPriced(priceJob(SERVICE_1, capRow('0.00', 2_147_483_527), oneCap), '2,147,483,647 quoted minutes', 80, 2_147_483_647);
+        expectRefused(priceJob(SERVICE_1, capRow('0.00', 2_147_483_528), oneCap), '2,147,483,648 quoted minutes', 'too_large', 'answers');
     });
 
     // Mutant that turns this case red: the check that a code is one of the service's own rows is dropped (an extra of another service gets priced).
@@ -793,6 +816,18 @@ test.describe('Pricing rules', () => {
         await withBooking(request, as, { job_date: '2026-02-30' }, async (id, answer) => {
             expect(answer.service_price, 'no answers: the date is not read, the price recorded').toBe(80);
             expect(answer.quoted_minutes, 'no answers: the date is not read, the quoted minutes').toBe(120);
+        });
+
+        // An empty answers object is no answers (as the price route and create-intent read it): the first date is not read for it either, so a
+        // Saturday adds no weekend line (80.00 and 120 minutes, the base line alone) and a first date that is not a day books at the same figures.
+        await withBooking(request, as, { job_date: SATURDAY, answers: {} }, async (id, answer) => {
+            expect(answer.service_price, 'an empty answers object, a Saturday: the price recorded').toBe(80);
+            expect(answer.quoted_minutes, 'an empty answers object, a Saturday: the quoted minutes').toBe(120);
+            expect(linesOf(await storedBooking(id)).map((line) => line.code), 'an empty answers object, a Saturday: the stored lines').toEqual(['base']);
+        });
+        await withBooking(request, as, { job_date: '2026-02-30', answers: {} }, async (id, answer) => {
+            expect(answer.service_price, 'an empty answers object, a first date that is not a day: the price recorded').toBe(80);
+            expect(answer.quoted_minutes, 'an empty answers object, a first date that is not a day: the quoted minutes').toBe(120);
         });
 
         // The amount held on the card is a decimal(10,2) too. 2,857,139 ovens at 35.00 with the base are 99,999,945.00, which the rule prices;
