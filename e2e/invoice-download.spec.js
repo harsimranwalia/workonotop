@@ -177,7 +177,7 @@ test.describe('Invoice download: GET /api/bookings/[id]/invoice/download', () =>
         await expectRefusal(await ask(request, MISSING, as.customer), 404, { success: false, message: 'Booking not found' }, 'customer1 asks for a booking that does not exist');
     });
 
-    // Red if the ownership clause compares the booking's id or its provider_id instead of user_id: the booking below is customer 1's, its
+    // Red if the ownership clause compares the booking's id or its provider_id rather than user_id: the booking below is customer 1's, its
     // id is neither 1 nor 2, and its provider is provider 2, whose id is customer 2's. Customer 1 would be refused a booking they made, or
     // customer 2 (id 2 = provider_id 2) would be served it.
     test("Invoice download GET /api/bookings/[id]/invoice/download: the owner is the booking's user_id, not its id or its provider's id", async ({ request, baseURL, playwright }) => {
