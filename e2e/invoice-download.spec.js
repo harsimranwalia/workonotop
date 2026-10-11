@@ -21,15 +21,16 @@
 // owner and provider differ and asks for it as both customers.
 //
 // Fixture rows: database/fixtures/accounts.js and bookings.js (booking 1 is customer 1's with provider 1 and invoice INV-FIXTURE-0001,
-// booking 2 customer 2's with provider 2 and invoice INV-FIXTURE-0002). The one case that needs another booking makes it through the
-// public checkout (POST /api/bookings) and deletes it again as admin in `finally`; nothing else writes.
+// booking 2 customer 2's with provider 2 and invoice INV-FIXTURE-0002). The one case that needs other bookings (case 6: one made by customer 1
+// and one made as a guest) makes them through the public checkout (POST /api/bookings) and deletes each again as admin in `finally`; nothing
+// else makes or changes a booking (each sign-in adds the usual activity-log row).
 import { test, expect } from '@playwright/test';
 import { getCredentialHeaders } from './auth/credentials.js';
 import { RESET_RETRIES } from './support/auth.js';
 import { users, FIXTURE_LOGINS } from '../database/fixtures/accounts.js';
 import { bookings } from '../database/fixtures/bookings.js';
 
-// Every request carries a fixture account's session header and a trace records request headers: tracing is off, as in
+// Most requests carry a fixture account's session header and a trace records request headers: tracing is off, as in
 // e2e/auth-matrix.spec.js. A failure message names the case, the status and the account, never a header.
 test.use({ trace: 'off' });
 
@@ -114,8 +115,8 @@ async function expectServedToAdmin(request, as, booking, invoice, who) {
 }
 
 test.describe('Invoice download: GET /api/bookings/[id]/invoice/download', () => {
-    // Red if the guard call and its refusal are deleted (the PDF would be served), or if the booking is read before the guard (the missing
-    // booking would be 404).
+    // Red if the guard call and its refusal are replaced by an admin caller (the PDF would be served), or if the booking is read before the guard (the
+    // missing booking would be 404).
     test('Invoice download GET /api/bookings/[id]/invoice/download: a request with no login is 401 and shows nothing of the booking, whichever booking it names', async ({ request, baseURL }) => {
         const as = await credentials(baseURL);
         await expectServedToAdmin(request, as, BOOKING1, INVOICE1, 'booking 1');
@@ -136,8 +137,9 @@ test.describe('Invoice download: GET /api/bookings/[id]/invoice/download', () =>
         }
     });
 
-    // Red if the handler's ownership clause is deleted or reads another column (customer 1 would be served customer 2's invoice), or if the owner is read
-    // from a parameter of the request.
+    // Red if the handler's ownership clause is deleted (customer 1 would be served customer 2's invoice), or if the owner is read from a parameter of the
+    // request. A clause that compares the booking's id or its provider_id stays green here, because the two fixture bookings' ids and owners overlap (see
+    // the header): the owner case below is the one that turns red for it.
     test("Invoice download GET /api/bookings/[id]/invoice/download: customer1 asking for customer 2's booking is 403 and shows none of its data, and customer 2 asking for customer 1's likewise", async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
         const customer2 = await customer2Headers(playwright, baseURL);
@@ -154,7 +156,7 @@ test.describe('Invoice download: GET /api/bookings/[id]/invoice/download', () =>
         await expectRefusal(await request.get(pathOf(BOOKING1.id) + naming, { maxRedirects: 0 }), 401, UNAUTHORIZED, 'no login asks for booking 1 and names customer 1 as the owner', BOOKING1_STRINGS);
     });
 
-    // Red if a customer is refused their own booking (the clause compares the wrong column or id) or the PDF is built from another booking's row.
+    // Red if a customer is refused their own booking (the roles list leaves customers out, or the clause compares a column that never holds the caller's id).
     test('Invoice download GET /api/bookings/[id]/invoice/download: a customer gets the invoice of their own booking, by cookie and by Bearer', async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
         for (const [style, headers] of [['cookie', as.customer], ['bearer', as.customerBearer]]) {
@@ -179,7 +181,8 @@ test.describe('Invoice download: GET /api/bookings/[id]/invoice/download', () =>
 
     // Red if the ownership clause compares the booking's id or its provider_id rather than user_id: the booking below is customer 1's, its
     // id is neither 1 nor 2, and its provider is provider 2, whose id is customer 2's. Customer 1 would be refused a booking they made, or
-    // customer 2 (id 2 = provider_id 2) would be served it.
+    // customer 2 (id 2 = provider_id 2) would be served it. Red too if a booking with no owner (user_id NULL: the public checkout with no login) is
+    // served to a customer, as a clause that lets a null owner through would do.
     test("Invoice download GET /api/bookings/[id]/invoice/download: the owner is the booking's user_id, not its id or its provider's id", async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
         const customer2 = await customer2Headers(playwright, baseURL);
@@ -189,6 +192,11 @@ test.describe('Invoice download: GET /api/bookings/[id]/invoice/download', () =>
             first_name: 'E2E', last_name: 'Probe', email: `e2e-invoice-${tag}@workontap.test`, phone: '+14035550198',
             job_date: '2026-02-01', job_time_slot: '09:00', job_description: 'E2E invoice download booking, deleted by the case.',
             address_line1: '1 Probe Street', city: 'Calgary', payment_intent_id: `pi_e2e_invoice_${tag}`,
+        };
+        const pdf = async (response, who) => {
+            expect(response.status(), `${who}: status`).toBe(200);
+            expect(response.headers()['content-type'], `${who}: content type`).toBe('application/pdf');
+            expect((await response.body()).subarray(0, 5).toString('latin1'), `${who}: the body starts like a PDF`).toBe('%PDF-');
         };
         const created = await request.post('/api/bookings', { data: checkout, headers: as.customer });
         expect(created.status(), 'checkout makes the booking as customer 1').toBe(200);
@@ -203,17 +211,33 @@ test.describe('Invoice download: GET /api/bookings/[id]/invoice/download', () =>
             expect([row.user_id, row.provider_id], "the booking is customer 1's with provider 2").toEqual([CUSTOMER1.id, 2]);
             expect([1, 2].includes(row.id), "the booking's id is neither customer's id").toBe(false);
 
-            const pdf = async (response, who) => {
-                expect(response.status(), `${who}: status`).toBe(200);
-                expect(response.headers()['content-type'], `${who}: content type`).toBe('application/pdf');
-                expect((await response.body()).subarray(0, 5).toString('latin1'), `${who}: the body starts like a PDF`).toBe('%PDF-');
-            };
             await pdf(await ask(request, id, as.customer), 'customer1 by cookie asks for their own booking');
             await pdf(await ask(request, id, as.customerBearer), 'customer1 by Bearer asks for their own booking');
             await pdf(await ask(request, id, as.admin), 'admin asks for it');
             await expectRefusal(await ask(request, id, customer2), 403, FORBIDDEN, "customer2, whose id is the booking's provider's, asks for it", [checkout.email, checkout.phone, checkout.address_line1, checkout.job_description]);
         } finally {
             await request.delete(`/api/bookings?id=${id}`, { headers: as.admin });
+        }
+
+        // A booking made as a guest (the public checkout, no login, no user_id) has no owner: no customer is served it, an admin is.
+        const guestCheckout = { ...checkout, email: `e2e-invoice-guest-${tag}@workontap.test`, phone: '+14035550199', address_line1: '2 Probe Street',
+            job_description: 'E2E guest booking, deleted by the case.', payment_intent_id: `pi_e2e_invoice_guest_${tag}` };
+        const guestCreated = await request.post('/api/bookings', { data: guestCheckout });
+        expect(guestCreated.status(), 'checkout makes the booking as a guest').toBe(200);
+        const guestId = (await guestCreated.json()).booking_id;
+        expect(Number.isInteger(guestId), 'the guest booking has an id').toBe(true);
+        try {
+            const guestRead = await request.get(`/api/bookings/${guestId}`, { headers: as.admin });
+            expect(guestRead.status(), 'admin reads the guest booking').toBe(200);
+            expect((await guestRead.json()).data.user_id, 'the guest booking has no owner').toBeNull();
+            const absent = [guestCheckout.email, guestCheckout.phone, guestCheckout.address_line1, guestCheckout.job_description];
+            await pdf(await ask(request, guestId, as.admin), 'admin asks for the guest booking');
+            await expectRefusal(await ask(request, guestId, as.customer), 403, FORBIDDEN, 'customer1 by cookie asks for the guest booking', absent);
+            await expectRefusal(await ask(request, guestId, as.customerBearer), 403, FORBIDDEN, 'customer1 by Bearer asks for the guest booking', absent);
+            await expectRefusal(await ask(request, guestId, customer2), 403, FORBIDDEN, 'customer2 asks for the guest booking', absent);
+            await expectRefusal(await ask(request, guestId), 401, UNAUTHORIZED, 'no login asks for the guest booking', absent);
+        } finally {
+            await request.delete(`/api/bookings?id=${guestId}`, { headers: as.admin });
         }
     });
 
@@ -232,8 +256,8 @@ test.describe('Invoice download: GET /api/bookings/[id]/invoice/download', () =>
         expect(loginFor(BOOKING1.id), 'the return path is the invoice, encoded').toBe('/login?redirect=%2Fapi%2Fbookings%2F1%2Finvoice%2Fdownload');
     });
 
-    // Red if the redirect also answers a signed-in refusal (the 403 cases would be 307), if it ignores the Accept header (every refused request
-    // would be 307), or if the return path is built from a booking number that is not digits (the odd numbers below would be 307).
+    // Red if the redirect also answers a signed-in refusal (the 403 cases would be 307), if it ignores the Accept header (a request with no login that
+    // does not ask for HTML would be 307), or if the return path is built from a booking number that is not digits (the odd numbers below would be 307).
     test('Invoice download GET /api/bookings/[id]/invoice/download: a browser page visit is redirected only for a booking number of digits, and only when nobody is signed in', async ({ request, baseURL }) => {
         const as = await credentials(baseURL);
         for (const id of ['abc', '1x', '1.5', '-1', '1234567890123456789', '00000000000000000001']) {
