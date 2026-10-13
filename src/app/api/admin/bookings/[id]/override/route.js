@@ -19,11 +19,12 @@ export async function PUT(request, { params }) {
 
     try {
       // Get current booking details + service pricing for invoice recalculation
+      // The standard duration is the booking's quoted minutes.
       const [[booking]] = await connection.execute(
         `SELECT b.worker_count, b.actual_duration_minutes, b.submitted_duration_minutes,
                 b.submitted_headcount, b.commission_percent,
                 b.service_price, b.additional_price,
-                s.duration_minutes as service_duration
+                COALESCE(b.standard_duration_minutes, s.duration_minutes, 60) as service_duration
          FROM bookings b
          LEFT JOIN services s ON b.service_id = s.id
          WHERE b.id = ?`,

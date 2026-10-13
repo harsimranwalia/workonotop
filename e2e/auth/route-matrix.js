@@ -1,4 +1,4 @@
-// The route matrix: every route file and exported method under src/app/api, one row each, as data (207 rows).
+// The route matrix: every route file and exported method under src/app/api, one row each, as data (208 rows).
 //
 // SOURCE: Appendix A of agents/architect/designs/ENG-004-lock-down-unauthenticated-access-and-role-checks.md (the
 // design for ENG-004; ADR-003). This file was generated from that table, in the table's order and with its route
@@ -28,7 +28,7 @@
 //              path      the route with each [param] replaced by PROBE_IDS.missing, an id no fixture row has
 //              body      undefined for GET and DELETE (104 rows) and for the four POST and PUT rows whose handler `await`s
 //                        request.json() before its first side effect (a request with no body throws there, nothing is
-//                        written; the notes of the four cite the lines); {} for the other 99 POST, PUT and PATCH rows. {} is
+//                        written; the notes of the four cite the lines); {} for the other 100 POST, PUT and PATCH rows. {} is
 //                        the convention, not a finding that the handler validates it: see "What a probe does" below.
 //              query     optional, e.g. '?id=999999999', for a handler that reads its id from the query (none set yet)
 //              anon      roles rows: 401, always (the contract). public and self rows: an array of the statuses a
@@ -50,7 +50,7 @@
 // roles: ['admin', 'provider'] with the split in its note.
 //
 // What a probe does. Every probe uses a fixture account only (@workontap.test), an id no fixture row has, and an empty body
-// or none: 207 of the 207 rows, by a script (the body is undefined or {}, the path is the route with each [param] replaced
+// or none: 208 of the 208 rows, by a script (the body is undefined or {}, the path is the route with each [param] replaced
 // by PROBE_IDS.missing, no row sets a query). That does not make a probe harmless by itself: a handler that needs no input
 // acts on {} and on nothing (ENG-020 review B1, QA F1). What the notes say about it, as counted by script:
 //   - Twelve rows carry a `Probe (B2, 2026-10-02` line (the rows whose note holds that text): GET and PATCH
@@ -61,14 +61,15 @@
 //     where the handler writes or sends, the first side effect it stops before (a write, a schema change, mail, a push, an
 //     outbound call, a payment, a file); GET /api/admin/deletion-requests carries only a cross-reference to the PATCH row, for
 //     the same fetch.
-//   - The other 195 rows have no such line: 116 are write rows (POST, PUT, PATCH, DELETE) and 79 are GET (script counts).
-//     50 of the 195 (36 public, 13 self, 1 pending) carry a `Probe measured on the dev app` line instead, which records the
+//   - The other 196 rows have no such line: 117 are write rows (POST, PUT, PATCH, DELETE) and 79 are GET (script counts).
+//     50 of the 196 (36 public, 13 self, 1 pending) carry a `Probe measured on the dev app` line instead, which records the
 //     status measured there for the request with no credential and no body. Code-review round 1 read the write handlers the
 //     probes reach (88: 31 admin, 57 other; agents/principal-engineer/notebook/2026-10-02-eng020-review.md; the matrix has
-//     93 routes with a write row, 31 admin and 62 other, and the difference was not traced). It did not read the GET
+//     94 routes with a write row, 31 admin and 63 other, and the difference was not traced). It did not read the GET
 //     handlers, nor the public, self and pending rows as such. The GET handlers were scanned in review round 2 (comments
 //     removed; the scan found two that reach a write) and again by this round's sweep of all 83 GET rows (next bullet). No
-//     field of those 195 rows other than `note` differs from commit 1aed079 (script compare, 195 of 195). A row without a
+//     field of the 195 rows that were there before ENG-007 added its row (POST /api/pricing, a public row with no `Probe measured`
+//     line) other than `note` differs from commit 1aed079 (script compare, 195 of 195). A row without a
 //     `Probe (` line is not a finding that its probe is harmless.
 //   - This round's sweep of the 83 GET rows: comments removed, the method's text and the same-file helpers and `@/` library
 //     functions it calls followed (22 helpers, 14 library functions), searched for INSERT, UPDATE, DELETE, ALTER TABLE,
@@ -637,12 +638,12 @@ export const matrix = [
     },
     {
         route: '/api/bookings', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'CRITICAL before ENG-021 (an admin only now): anonymous delete of any booking plus its invoices, provider_payouts, reviews and chat… ENG-021 guard: src/app/api/bookings/route.js:530-531 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
+        note: 'CRITICAL before ENG-021 (an admin only now): anonymous delete of any booking plus its invoices, provider_payouts, reviews and chat… ENG-021 guard: src/app/api/bookings/route.js:546-547 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/bookings', body: undefined, anon: 401 },
     },
     {
         route: '/api/bookings', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'HIGH before ENG-021 (an admin only now, ?email= included): anonymous dump of every booking (name, email, phone, address, lat/long, payment_intent_id… ENG-021 guard: src/app/api/bookings/route.js:24-25 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
+        note: 'HIGH before ENG-021 (an admin only now, ?email= included): anonymous dump of every booking (name, email, phone, address, lat/long, payment_intent_id… ENG-021 guard: src/app/api/bookings/route.js:25-26 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403.',
         probe: { path: '/api/bookings', body: undefined, anon: 401 },
     },
     {
@@ -652,7 +653,7 @@ export const matrix = [
     },
     {
         route: '/api/bookings', method: 'PUT', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'CRITICAL before ENG-021 (an admin only now): an anonymous caller could set any booking\'s status, provider, payment_status and commissio… ENG-021 guard: src/app/api/bookings/route.js:346-347 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. The activity log\'s actor is the verified admin (auth.caller.id, :358-359), not a decoded Bearer.',
+        note: 'CRITICAL before ENG-021 (an admin only now): an anonymous caller could set any booking\'s status, provider, payment_status and commissio… ENG-021 guard: src/app/api/bookings/route.js:362-363 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. The activity log\'s actor is the verified admin (auth.caller.id, :374-375), not a decoded Bearer.',
         probe: { path: '/api/bookings', body: {}, anon: 401 },
     },
     {
@@ -812,8 +813,13 @@ export const matrix = [
     },
     {
         route: '/api/payment/create-intent', method: 'POST', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'own booking',
-        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/payment/create-intent/route.js:16-17, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). The route takes no booking (the body names the service, whose price the route reads from the catalog; the booking is made after the payment), so the row owner text own booking has no referent: the owner is the users row of caller.id (src/app/api/payment/create-intent/route.js:45, from auth.caller and never from a request field), and a body user_id or booking_id naming another account is a 403, src/app/api/payment/create-intent/route.js:26, :31. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Charge amount comes from client body service_price (L56-60), not re-read from services; error b…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/payment/create-intent/route.js:17-18, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). The route takes no booking (the body names the service, whose price the route works out from its pricing rule; the booking is made after the payment), so the row owner text own booking has no referent: the owner is the users row of caller.id (src/app/api/payment/create-intent/route.js:45, from auth.caller and never from a request field), and a body user_id or booking_id naming another account is a 403, src/app/api/payment/create-intent/route.js:27, :32. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Charge amount comes from client body service_price (L56-60), not re-read from services; error b…',
         probe: { path: '/api/payment/create-intent', body: {}, anon: 401 },
+    },
+    {
+        route: '/api/pricing', method: 'POST', today: 'none', kind: 'public', public: 'the live price for a set of answers; reads the catalog and its pricing items, writes nothing', owner: '-',
+        note: 'ENG-007: a new route (src/app/api/pricing/route.js). It asks for no credential, as the catalog read does, and writes nothing: it reads the services row and the service_pricing_items rows of the service named by service_id and answers the price, the quoted minutes, the lines and the choices for the answers sent. The probe sends an empty JSON body, which names no service: 400 \'This service is not available for booking\'.',
+        probe: { path: '/api/pricing', body: {}, anon: [400] },
     },
     {
         route: '/api/provider', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
@@ -907,7 +913,7 @@ export const matrix = [
     },
     {
         route: '/api/provider/jobs/time-tracking', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own job timer',
-        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/jobs/time-tracking/route.js:339-340, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own job timer) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/time-tracking/route.js:360. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Sound ownership (L571); cookie-only, so Bearer mobile clients cannot call it.',
+        note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/jobs/time-tracking/route.js:339-340, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own job timer) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/time-tracking/route.js:361. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Sound ownership (L571); cookie-only, so Bearer mobile clients cannot call it.',
         probe: { path: '/api/provider/jobs/time-tracking', body: undefined, anon: 401 },
     },
     {

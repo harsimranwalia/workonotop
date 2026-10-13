@@ -7,6 +7,7 @@ import { execute } from '@/lib/db';
 import Stripe from 'stripe';
 import { requireCaller } from '@/lib/api-auth';
 import { catalogPrice } from '@/lib/booking-price';
+import { loadPricing, priceJob, refusalOf } from '@/lib/pricing-rules';
 
 // Null without a key (as bookings/route.js and stripe/webhook/route.js build theirs): a missing key used to make this module throw
 // while it loaded, so the guard below could never answer anyone in an environment without STRIPE_SECRET_KEY.
@@ -32,14 +33,13 @@ export async function POST(request) {
       }
     }
 
-    // The amount is the catalog's price of the service named by service_id, read here.
-    const [serviceRow] = service_id
-      ? await execute('SELECT name, base_price, additional_price, duration_minutes, is_active FROM services WHERE id = ?', [service_id])
-      : [];
-    const catalog = catalogPrice(serviceRow);
-    if (!catalog) {
-      return NextResponse.json({ success: false, message: 'This service is not available for booking' }, { status: 400 });
+    // The amount is the price the service's pricing rule gives for the answers sent, worked out here.
+    const { service: serviceRow, items: pricingItems } = await loadPricing(execute, service_id);
+    const job = priceJob(serviceRow, pricingItems, body.answers);
+    if (!job.ok) {
+      return NextResponse.json(refusalOf(job), { status: 400 });
     }
+    const catalog = catalogPrice(serviceRow);
 
     // ── Check or Create Stripe Customer ──────────────────────────────────────────
     const users = await execute('SELECT id, email, first_name, last_name, stripe_customer_id FROM users WHERE id = ?', [caller.id]);
@@ -62,14 +62,14 @@ export async function POST(request) {
       await execute('UPDATE users SET stripe_customer_id = ? WHERE id = ?', [stripeCustomerId, user.id]);
     }
 
-    const basePrice = catalog.price;
+    const basePrice = job.price;
     const hourlyRate = catalog.rate;
     const maxOvertimeCost = 0; // Removed the 2hr hold as per new split payment logic
     const totalAmount = basePrice;
     const amountInCents = Math.round(totalAmount * 100);
 
-    // Service duration (metadata ke liye)
-    const standardDuration = serviceRow.duration_minutes || 60;
+    // Service duration (metadata ke liye): the quoted minutes of these answers
+    const standardDuration = job.minutes;
 
     // ✅ capture_method: automatic — charge immediately
     // 💳 setup_future_usage: 'off_session' — Save the card on the customer for later payments

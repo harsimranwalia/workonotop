@@ -652,6 +652,30 @@ const tables = [
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
     INDEX idx_booking (booking_id)
+  )`,
+
+  // service_pricing_items: the items of each service's pricing rule (database/migrations/0001-service-pricing-items.up.sql)
+  `CREATE TABLE IF NOT EXISTS service_pricing_items (
+    id INT NOT NULL AUTO_INCREMENT,
+    service_id INT NOT NULL,
+    kind ENUM('unit', 'option', 'property_type', 'weekend', 'extra') NOT NULL,
+    code VARCHAR(40) NOT NULL,
+    label VARCHAR(255) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    minutes INT NOT NULL DEFAULT 0,
+    is_hourly TINYINT(1) NOT NULL DEFAULT 0,
+    is_placeholder TINYINT(1) NOT NULL DEFAULT 1,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_service_pricing_items_code (service_id, kind, code),
+    CONSTRAINT fk_service_pricing_items_service FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE,
+    CONSTRAINT chk_service_pricing_items_code CHECK (code REGEXP '^[a-z0-9_]{1,40}$'),
+    CONSTRAINT chk_service_pricing_items_amount CHECK (amount >= 0),
+    CONSTRAINT chk_service_pricing_items_minutes CHECK (minutes >= 0),
+    CONSTRAINT chk_service_pricing_items_hourly CHECK (is_hourly = 0 OR kind = 'option'),
+    CONSTRAINT chk_service_pricing_items_weekend CHECK (kind <> 'weekend' OR code = 'weekend')
   )`
 ];
 
@@ -737,7 +761,10 @@ const alterations = [
   { table: 'disputes', column: 'provider_amount', sql: 'ALTER TABLE disputes ADD COLUMN provider_amount DECIMAL(10,2) DEFAULT NULL' },
   { table: 'disputes', column: 'stripe_capture_id', sql: 'ALTER TABLE disputes ADD COLUMN stripe_capture_id VARCHAR(255) DEFAULT NULL' },
   { table: 'disputes', column: 'stripe_transfer_id', sql: 'ALTER TABLE disputes ADD COLUMN stripe_transfer_id VARCHAR(255) DEFAULT NULL' },
-  { table: 'job_photos', column: 'captured_at', sql: 'ALTER TABLE job_photos ADD COLUMN captured_at TIMESTAMP NULL AFTER uploaded_by' }
+  { table: 'job_photos', column: 'captured_at', sql: 'ALTER TABLE job_photos ADD COLUMN captured_at TIMESTAMP NULL AFTER uploaded_by' },
+
+  // The lines a booking was priced with, written once when the booking is made (NULL on earlier bookings)
+  { table: 'bookings', column: 'price_breakdown', sql: 'ALTER TABLE bookings ADD COLUMN price_breakdown JSON NULL AFTER standard_duration_minutes' }
 ];
 
 // =====================================================
