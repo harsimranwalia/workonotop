@@ -501,6 +501,58 @@ async function proceedToPayment(page, holds) {
     return page.evaluate(() => JSON.parse(sessionStorage.getItem('pendingBooking') ?? 'null'));
 }
 
+// ---- the payment step: the request that creates the card hold is refused ----
+const SESSION_ENDED_MESSAGE = 'Your session has expired. Please sign in again to finish your booking.';
+const NOT_AVAILABLE_MESSAGE = "This service isn't available for booking right now.";
+// A sentence of the case's own, so the case shows that the step prints the words the server sent.
+const ANSWERS_REFUSED_SENTENCE = 'These answers are outside what one card hold can take.';
+
+/**
+ * Signs in as the fixture customer, takes service 1 along the 345.00 path to the confirm step and presses "Proceed to Payment" with the
+ * request for the card hold answered as given. Answers the bodies of the hold requests, in order.
+ * @param {Page} page
+ * @param {number} status
+ * @param {any} json
+ */
+async function openRefusedPayment(page, status, json) {
+    await openConfirm(page);
+    /** @type {any[]} */
+    const holds = [];
+    // The route registered last answers first, so the payment step gets this answer and not the failure that refuseHold gives.
+    await page.route('**/api/payment/create-intent', async (route) => {
+        if (route.request().method() !== 'POST') {
+            await route.continue();
+            return;
+        }
+        let body = null;
+        try {
+            body = route.request().postDataJSON();
+        } catch {
+            body = null;
+        }
+        holds.push(body);
+        await route.fulfill({ status, json });
+    });
+    await proceedToPayment(page, holds);
+    return holds;
+}
+
+// The block of the payment step that says why there is no card form: the alert that holds the sentence, whole as written.
+const refusalBlock = (page, sentence) => page.getByRole('alert').filter({ has: page.getByText(sentence, { exact: true }) });
+
+// The refusal takes the place of the card form: no amount held on the card and no button that authorizes the payment.
+async function expectNoCardForm(page) {
+    await expect(page.getByText('Amount held on your card')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Authorize Payment/ })).toHaveCount(0);
+}
+
+// The hold is created once per visit: one request was made, and the refusal does not lead to a second.
+async function expectOneHoldRequest(page, holds) {
+    // A second request, if the step made one, is on its way well inside this wait.
+    await page.waitForTimeout(500);
+    expect(holds, 'the card hold was asked for once').toHaveLength(1);
+}
+
 test.describe('Guided booking flow', () => {
     test.beforeEach(() => {
         test.setTimeout(120_000);
@@ -1047,5 +1099,40 @@ test.describe('Guided booking flow', () => {
                 expect(text.toLowerCase(), `${status}: ${field}`).not.toContain('already paid');
             }
         }
+    });
+
+    test('the payment page tells a customer whose session has ended to sign in again', async ({ page }) => {
+        const holds = await openRefusedPayment(page, 401, { success: false, message: 'Unauthorized' });
+
+        const refusal = refusalBlock(page, SESSION_ENDED_MESSAGE);
+        await expect(refusal).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(refusal.getByRole('link', { name: 'Log In', exact: true })).toHaveAttribute('href', '/login?redirect=/booking/payment');
+        await expectNoCardForm(page);
+
+        // The booking in progress is still in storage, so signing in again can pick it up.
+        expect(await page.evaluate(() => sessionStorage.getItem('pendingBooking') !== null), 'the booking waits in storage for the sign-in').toBe(true);
+        await expectOneHoldRequest(page, holds);
+    });
+
+    test('the payment page shows the reason a hold is refused for the answers and a way back to them', async ({ page }) => {
+        const holds = await openRefusedPayment(page, 400, { success: false, message: ANSWERS_REFUSED_SENTENCE, field: 'answers' });
+
+        const refusal = refusalBlock(page, ANSWERS_REFUSED_SENTENCE);
+        await expect(refusal).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(refusal.getByRole('link', { name: 'Change your answers', exact: true })).toHaveAttribute('href', `/booking/schedule?service=${FULL_RULE}&step=1`);
+        await expectNoCardForm(page);
+        await expectOneHoldRequest(page, holds);
+    });
+
+    test('the payment page says when the service is not available for booking', async ({ page }) => {
+        const holds = await openRefusedPayment(page, 400, { success: false, message: 'x' });
+
+        const refusal = refusalBlock(page, NOT_AVAILABLE_MESSAGE);
+        await expect(refusal).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(refusal.getByRole('link', { name: 'Browse services', exact: true })).toHaveAttribute('href', '/services');
+        // No answer is at fault, so the step offers no way back to the answers.
+        await expect(refusal.getByRole('link', { name: 'Change your answers' })).toHaveCount(0);
+        await expectNoCardForm(page);
+        await expectOneHoldRequest(page, holds);
     });
 });
