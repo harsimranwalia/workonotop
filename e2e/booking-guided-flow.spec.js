@@ -1,8 +1,9 @@
 // @ts-check
 // The guided booking flow at /booking/schedule?service=<id>[&step=<n>]: up to four steps built from the service's pricing rule, with the
 // price of the answers on screen shown at every step. The cases drive the page through its accessible surface only (roles, labels, the
-// 'Your price' region with its price-total and price-line test ids, and the customer-facing copy) and work out every expected figure
-// themselves from the rows of database/fixtures/catalog.js (oracle() below): no figure is read from the page's own pricing responses.
+// 'Your price' region with its price-total and price-line test ids, and the customer-facing copy) and work out every expected price
+// themselves from the rows of database/fixtures/catalog.js (oracle() below): no expected price is read from the page's own pricing responses;
+// the booking case also checks that the lines and quoted minutes it stored are the ones the page was served.
 // The cases of the flow page need no sign-in and write nothing to the database; the confirm case signs in as a fixture customer, and the booking
 // case writes one booking row through the API and deletes it in a finally block.
 //
@@ -154,6 +155,7 @@ const removeOne = (page, label) => page.getByRole('button', { name: `Remove one 
 // A radio's accessible name starts with the item's label and may go on with its amount.
 const radio = (root, label) => root.getByRole('radio', { name: startingWith(label) });
 const hoursInput = (page) => page.getByLabel('How many hours?');
+const addressField = (page) => page.getByLabel('Service Address');
 const counter = (page, k, n) => page.getByText(`Step ${k} of ${n}`).first();
 const onStep = (n) => (url) => url.pathname === '/booking/schedule' && url.searchParams.get('step') === String(n);
 
@@ -334,6 +336,10 @@ function normalised(answers) {
 
 const SIX_KEYS = ['date', 'extras', 'hours', 'option', 'property_type', 'units'];
 
+// The street the flow page has kept in sessionStorage for the confirm step and for a reload.
+/** @param {Page} page */
+const storedAddress = (page) => page.evaluate(() => JSON.parse(sessionStorage.getItem('bookingFlow') ?? 'null')?.whenAndWhere?.address ?? null);
+
 /**
  * Taps "Add one" on bedrooms with the next request held, taps it again so that a newer request goes through, then lets the held
  * request go: the newer figure stays on screen, with no failure shown. `picks` holds the bedrooms already on screen.
@@ -359,6 +365,14 @@ async function supersedeAndRelease(page, watch, picks) {
 // ---- the checkout: from the last step to the request that asks for the card hold ----
 // The 345.00 path: the 315.00 answers with a Saturday as the job's first date.
 const FULL_ON_SATURDAY = { ...FULL, weekend: true };
+// The same path as the pricing rule's answers (normalised), for the first date `date`: what a price request, a hold and a stored booking carry.
+const answersOfFullPathOn = (date) => ({
+    units: { bedrooms: 2, bathrooms: 1 },
+    option: 'deep',
+    property_type: 'house',
+    date: isoOf(date),
+    extras: [{ code: 'oven', quantity: 1 }, { code: 'fridge', quantity: 2 }],
+});
 // Typed on step 4; the description needs at least 20 characters.
 const ADDRESS = '1 Probe Street';
 const DESCRIPTION = 'A deep clean of the whole house, with the oven and the two fridges.';
@@ -388,7 +402,7 @@ async function openDatabase() {
 // The bookings made with a payment id, as stored. A DATE column is read as text, so no time zone is involved.
 async function bookingsMadeWith(connection, paymentId) {
     const [found] = await connection.query(
-        "SELECT id, DATE_FORMAT(job_date, '%Y-%m-%d') AS job_date, address_line1, service_price, price_breakdown, standard_duration_minutes FROM bookings WHERE payment_intent_id = ?",
+        "SELECT id, DATE_FORMAT(job_date, '%Y-%m-%d') AS job_date, timing_constraints, address_line1, service_price, price_breakdown, standard_duration_minutes FROM bookings WHERE payment_intent_id = ?",
         [paymentId],
     );
     return /** @type {any[]} */ (found);
@@ -460,9 +474,10 @@ async function refuseHold(page) {
 }
 
 /**
- * Signs in as the fixture customer, answers service 1 with the 345.00 path (a Saturday as the first date, the morning, an address and a
- * description) and continues from the last step to the confirm step. Answers the first date, the pricing requests the page sent (watch),
- * the pricing exchanges (priced) and the bodies of the hold requests (holds).
+ * Signs in as the fixture customer, answers service 1 with the 345.00 path (a Saturday as the first date and the Monday after it as the
+ * second, the morning of each, an address and a description) and continues from the last step to the confirm step. Two dates, so that the
+ * first and the last differ. Answers the two dates, the pricing requests the page sent (watch), the pricing exchanges (priced) and the
+ * bodies of the hold requests (holds).
  * @param {Page} page
  */
 async function openConfirm(page) {
@@ -474,16 +489,22 @@ async function openConfirm(page) {
     await answerFullPath(page);
     await goOn(page, WHEN_WHERE, FULL);
     const saturday = saturdayAfter(await today(page));
+    const monday = addDays(saturday, 2);
     await pickDay(page, saturday);
     await expectPrice(page, FULL_ON_SATURDAY);
-    await page.getByRole('button', { name: startingWith('Morning') }).click();
-    await page.getByLabel('Service Address').fill(ADDRESS);
+    await pickDay(page, monday);
+    // The first date prices the booking: a second date leaves the 345.00 as it was.
+    await expectPrice(page, FULL_ON_SATURDAY);
+    for (const date of [saturday, monday]) {
+        await page.getByRole('group', { name: dayLabel(date), exact: true }).getByRole('button', { name: startingWith('Morning') }).click();
+    }
+    await addressField(page).fill(ADDRESS);
     await page.getByRole('textbox', { name: /What do you need done/ }).fill(DESCRIPTION);
     await expect(continueButton(page)).toBeEnabled();
     await continueButton(page).click();
 
     await expect(page).toHaveURL((url) => url.pathname === '/booking/confirm', { timeout: FIRST_VISIT_MS });
-    return { saturday, watch, priced, holds };
+    return { saturday, monday, watch, priced, holds };
 }
 
 /**
@@ -720,6 +741,18 @@ test.describe('Guided booking flow', () => {
         await expectPrice(page, FULL);
         await expect(totalOf(page)).toHaveText('$315.00');
         await expect(priceBox(page).getByText(`Your price is for your first date, ${dayLabel(friday)}.`).first()).toBeVisible();
+
+        // The same two days the other way round: the first date is the earliest day, not the first one picked and not the newest.
+        await pickDay(page, saturday);
+        await pickDay(page, friday);
+        await expectPrice(page, FULL);
+        await expect(page.getByText(/Your price is for your first date/), 'with no date picked there is no first-date notice').toHaveCount(0);
+        await pickDay(page, friday);
+        await expectPrice(page, FULL);
+        await pickDay(page, saturday);
+        await expectPrice(page, FULL);
+        await expect(totalOf(page)).toHaveText('$315.00');
+        await expect(priceBox(page).getByText(`Your price is for your first date, ${dayLabel(friday)}.`).first()).toBeVisible();
     });
 
     test('by the hour the price is the hours at the hourly amount plus the property type and extras', async ({ page }) => {
@@ -808,13 +841,7 @@ test.describe('Guided booking flow', () => {
         const saturday = saturdayAfter(await today(page));
         await pickDay(page, saturday);
         await expectPrice(page, { ...FULL, weekend: true });
-        expect(normalised(watch.bodies.at(-1).answers), 'the answers of the last request of the 345.00 path').toEqual({
-            units: { bedrooms: 2, bathrooms: 1 },
-            option: 'deep',
-            property_type: 'house',
-            date: isoOf(saturday),
-            extras: [{ code: 'oven', quantity: 1 }, { code: 'fridge', quantity: 2 }],
-        });
+        expect(normalised(watch.bodies.at(-1).answers), 'the answers of the last request of the 345.00 path').toEqual(answersOfFullPathOn(saturday));
 
         // The 172.50 path in a flow of its own, then the same Saturday: every one of the six keys is present.
         await page.evaluate(() => sessionStorage.clear());
@@ -875,6 +902,7 @@ test.describe('Guided booking flow', () => {
         await expect(hours).toHaveAttribute('aria-invalid', 'true');
         await expect(hours).toHaveAccessibleDescription(HOURS_MESSAGE);
         await expect(page.getByText(HOURS_MESSAGE).first()).toBeVisible();
+        await expect(statusOf(page), 'the refusal is announced').toHaveText(HOURS_MESSAGE);
         await expectNoFigure(page);
         await expect(continueButton(page)).toBeDisabled();
 
@@ -898,6 +926,7 @@ test.describe('Guided booking flow', () => {
         await addOne(page, BEDROOMS).click();
         await reached(failing);
         await expect(page.getByText(FAILED_MESSAGE).first()).toBeVisible();
+        await expect(statusOf(page), 'the failure is announced').toHaveText(FAILED_MESSAGE);
         await expect(tryAgainButton(page)).toBeVisible();
         await expectNoFigure(page);
         await expect(continueButton(page)).toBeDisabled();
@@ -991,7 +1020,7 @@ test.describe('Guided booking flow', () => {
     });
 
     test('confirm shows the price for the same answers and the hold is asked for with exactly those answers', async ({ page }) => {
-        const { saturday, watch, holds } = await openConfirm(page);
+        const { saturday, monday, watch, holds } = await openConfirm(page);
 
         // The confirm step shows the price of the same answers.
         await expectPrice(page, FULL_ON_SATURDAY, FIRST_VISIT_MS);
@@ -1000,14 +1029,16 @@ test.describe('Guided booking flow', () => {
 
         const pending = await proceedToPayment(page, holds);
 
-        // The hold is asked for with the service and the answers of the last price request, and nothing else.
+        // The hold is asked for with the service and the answers of the last price request, and nothing else. Two dates were chosen, so the
+        // answers are the 345.00 path's with the Saturday, the first date, and not the Monday, the last.
         const answers = watch.bodies.at(-1).answers;
-        expect(answers.date, 'the last price request carries the first date').toBe(isoOf(saturday));
+        expect(normalised(answers), 'the last price request carries the answers of the 345.00 path with the first date').toEqual(answersOfFullPathOn(saturday));
         for (const hold of holds) {
             expect(hold, 'the hold request has a JSON body').not.toBeNull();
             expect(Object.keys(hold).sort(), 'the hold is asked for with the service and the answers').toEqual(['answers', 'service_id']);
             expect(Number(hold.service_id), 'the service of the hold').toBe(FULL_RULE);
             expect(hold.answers, 'the answers of the hold are the answers of the last price request').toEqual(answers);
+            expect(normalised(hold.answers), 'the answers of the hold are the 345.00 path with the first date').toEqual(answersOfFullPathOn(saturday));
         }
 
         // The booking kept for the payment step holds the answers and no money number.
@@ -1015,7 +1046,8 @@ test.describe('Guided booking flow', () => {
         expect(Object.keys(pending), 'no service price is stored').not.toContain('service_price');
         expect(Object.keys(pending), 'no additional price is stored').not.toContain('additional_price');
         expect(pending.answers, 'the stored answers are the answers of the last price request').toEqual(answers);
-        expect(String(pending.job_date), 'the stored job date starts with the first date').toMatch(new RegExp(`^${isoOf(saturday)}`));
+        expect(normalised(pending.answers), 'the stored answers are the 345.00 path with the first date').toEqual(answersOfFullPathOn(saturday));
+        expect(pending.job_date, 'the stored job dates are the two chosen, the first date first').toBe(`${isoOf(saturday)},${isoOf(monday)}`);
     });
 
     test('a booking made with that body is a one-time job for the chosen date and address, priced by the pricing rule', async ({ page }) => {
@@ -1023,7 +1055,7 @@ test.describe('Guided booking flow', () => {
         const connection = await openDatabase();
         const paymentId = `pi_e2e_eng009_${randomBytes(6).toString('hex')}`;
         try {
-            const { saturday, priced, holds } = await openConfirm(page);
+            const { saturday, monday, priced, holds } = await openConfirm(page);
             const pending = await proceedToPayment(page, holds);
             expect(pending, 'the confirm step stored the booking').not.toBeNull();
             // The price the page was last served: its lines and quoted minutes are what the booking must record.
@@ -1040,6 +1072,7 @@ test.describe('Guided booking flow', () => {
             expect(stored, 'one booking is stored for the payment id').toHaveLength(1);
             const [row] = stored;
             expect(row.job_date, 'the job is on the first date chosen').toBe(isoOf(saturday));
+            expect(row.timing_constraints, 'the booking lists the dates chosen, in the order the request gave them').toBe(`Selected Dates: ${isoOf(saturday)}, ${isoOf(monday)}`);
             expect(row.address_line1, 'the job is at the address entered').toBe(ADDRESS);
             expect(Number(row.service_price), 'the price recorded is the pricing rule\'s').toBe(oracle(FULL_ON_SATURDAY).cents / 100);
             const breakdown = typeof row.price_breakdown === 'string' ? JSON.parse(row.price_breakdown) : row.price_breakdown;
@@ -1139,5 +1172,62 @@ test.describe('Guided booking flow', () => {
         await expect(refusal.getByRole('link', { name: 'Change your answers' })).toHaveCount(0);
         await expectNoCardForm(page);
         await expectOneHoldRequest(page, holds);
+    });
+
+    test('a stored booking whose step-4 answers are incomplete does not reach the payment step', async ({ page }) => {
+        const { holds } = await openConfirm(page);
+
+        // Back on step 4 the customer empties the address; the page keeps what is on screen.
+        await page.goBack();
+        await expect(page).toHaveURL(onStep(4), { timeout: FIRST_VISIT_MS });
+        await expect(stepHeading(page, WHEN_WHERE)).toBeVisible();
+        await expect(addressField(page), 'the address the customer entered comes back').toHaveValue(ADDRESS);
+        await addressField(page).fill('');
+        await expect.poll(() => storedAddress(page), { message: 'the page kept the empty address' }).toBe('');
+
+        // Forward to the confirm step again: step 4 would not let this booking through, so the confirm step sends the customer back to it.
+        await page.goForward();
+        await expect(page).toHaveURL(onStep(4), { timeout: FIRST_VISIT_MS });
+        await expect(stepHeading(page, WHEN_WHERE)).toBeVisible();
+        await expect(addressField(page)).toHaveValue('');
+        await expect(page.getByRole('button', { name: /Proceed to Payment/ })).toHaveCount(0);
+        expect(holds, 'no card hold was asked for').toHaveLength(0);
+    });
+
+    test("a booking restarted at another place opens step 4 with that place's address", async ({ page }) => {
+        const FIRST_PLACE = { address: '10 First Avenue', city: 'Vancouver' };
+        const OTHER_PLACE = { address: '20 Second Avenue', city: 'Burnaby' };
+        const TYPED = '30 Typed Street';
+        const reopenStep4 = async () => {
+            await page.goto(`/booking/schedule?service=${FULL_RULE}&step=4`, { timeout: FIRST_VISIT_MS });
+            await expect(stepHeading(page, WHEN_WHERE)).toBeVisible({ timeout: FIRST_VISIT_MS });
+        };
+
+        // The service page leaves the place the customer picked in sessionStorage; seeded once, before the first page of the case.
+        await page.addInitScript(([address, city]) => {
+            if (sessionStorage.getItem('userAddress') === null) {
+                sessionStorage.setItem('userAddress', address);
+                sessionStorage.setItem('userCity', city);
+            }
+        }, [FIRST_PLACE.address, FIRST_PLACE.city]);
+        await answerFullPath(page);
+        await goOn(page, WHEN_WHERE, FULL);
+        await expect(addressField(page), 'step 4 opens with the place that was picked').toHaveValue(FIRST_PLACE.address);
+        await expect.poll(() => storedAddress(page), { message: 'the page kept that address' }).toBe(FIRST_PLACE.address);
+
+        // The customer starts the booking again from another place: the same booking in progress opens at step 4 with that place.
+        await page.evaluate(([address, city]) => {
+            sessionStorage.setItem('userAddress', address);
+            sessionStorage.setItem('userCity', city);
+        }, [OTHER_PLACE.address, OTHER_PLACE.city]);
+        await reopenStep4();
+        await expect(addressField(page), 'step 4 opens with the place picked since').toHaveValue(OTHER_PLACE.address);
+        await expect.poll(() => storedAddress(page), { message: 'the page kept the new address' }).toBe(OTHER_PLACE.address);
+
+        // With the place unchanged, what the customer typed in the field stands.
+        await addressField(page).fill(TYPED);
+        await expect.poll(() => storedAddress(page), { message: 'the page kept the typed street' }).toBe(TYPED);
+        await reopenStep4();
+        await expect(addressField(page), 'the street the customer typed stays while the place is the same').toHaveValue(TYPED);
     });
 });

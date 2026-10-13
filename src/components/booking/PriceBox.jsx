@@ -15,6 +15,22 @@ export function formatMoney(value) {
 
 const SLOT_NAMES = { morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening' };
 
+// The sentences that say why there is no price. The page shows each one and the live region announces it, so each is written once.
+const HOURS_SENTENCE = 'Enter the number of hours (for example 2 or 2.5) to see your price.';
+const TOO_LARGE_SENTENCE = "That's more than we can book online. Please lower a quantity.";
+const UNAVAILABLE_SENTENCE = "This service isn't available for booking right now.";
+const FAILED_SENTENCE = "We couldn't update the price. Check your connection and try again.";
+
+// What a screen reader is told when the price settles: the figure, or the sentence that says why there is none. Nothing while it is worked out.
+function announcementOf(live) {
+  if (live.status === 'priced') return `Price ${formatMoney(live.price)}`;
+  if (live.status === 'refused') return live.field === 'hours' ? HOURS_SENTENCE : live.message;
+  if (live.status === 'too_large') return TOO_LARGE_SENTENCE;
+  if (live.status === 'unavailable') return UNAVAILABLE_SENTENCE;
+  if (live.status === 'failed') return FAILED_SENTENCE;
+  return '';
+}
+
 function StateText({ live }) {
   const { status } = live;
   if (status === 'loading' || status === 'updating' || status === 'stale_choices') {
@@ -27,16 +43,16 @@ function StateText({ live }) {
   }
   if (status === 'refused') {
     return live.field === 'hours'
-      ? <p id={HOURS_MESSAGE_ID} className="text-amber-800 font-medium">Enter the number of hours (for example 2 or 2.5) to see your price.</p>
+      ? <p id={HOURS_MESSAGE_ID} className="text-amber-800 font-medium">{HOURS_SENTENCE}</p>
       : <p className="text-amber-800 font-medium">{live.message}</p>;
   }
   if (status === 'too_large') {
-    return <p className="text-amber-800 font-medium">That&apos;s more than we can book online. Please lower a quantity.</p>;
+    return <p className="text-amber-800 font-medium">{TOO_LARGE_SENTENCE}</p>;
   }
   if (status === 'unavailable') {
     return (
       <div>
-        <p className="text-amber-800 font-medium">This service isn&apos;t available for booking right now.</p>
+        <p className="text-amber-800 font-medium">{UNAVAILABLE_SENTENCE}</p>
         <Link href="/services" className="mt-2 inline-block font-semibold text-green-700 underline hover:text-green-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 rounded">
           Browse services
         </Link>
@@ -46,7 +62,7 @@ function StateText({ live }) {
   if (status === 'failed') {
     return (
       <div>
-        <p className="text-red-700 font-medium">We couldn&apos;t update the price. Check your connection and try again.</p>
+        <p className="text-red-700 font-medium">{FAILED_SENTENCE}</p>
         <button
           type="button"
           onClick={live.retry}
@@ -161,7 +177,7 @@ export default function PriceBox({ live, serviceName, overtimeRate, weekendAmoun
         )}
 
         <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-          {priced ? `Price ${formatMoney(live.price)}` : ''}
+          {announcementOf(live)}
         </div>
       </div>
     </section>

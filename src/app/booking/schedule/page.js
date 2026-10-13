@@ -8,9 +8,10 @@ import { toast } from 'react-hot-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PriceBox, { HOURS_MESSAGE_ID, formatMoney } from '@/components/booking/PriceBox';
-import WhenAndWhereStep, { EMPTY_WHEN_AND_WHERE, checkWhenAndWhere, whenAndWhereBooking } from '@/components/booking/WhenAndWhereStep';
+import WhenAndWhereStep from '@/components/booking/WhenAndWhereStep';
 import { answersWithoutDate, bookingAnswers, hoursAnswer } from '@/lib/booking-answers';
 import { useLivePrice } from '@/lib/use-live-price';
+import { EMPTY_WHEN_AND_WHERE, checkWhenAndWhere, whenAndWhereBooking } from '@/lib/when-and-where';
 
 const STEPS = [
   { number: 1, name: 'About the job', kinds: ['unit', 'property_type'] },
@@ -154,6 +155,8 @@ function FlowContent({ serviceId }) {
   const [uploading, setUploading] = useState(false);
   const headingRef = useRef(null);
   const shownStep = useRef(null);
+  // The picked place that the address field was last filled from, kept with the flow so a restore can tell a new place from the customer's own edit.
+  const addressFrom = useRef(null);
 
   useEffect(() => {
     sessionStorage.removeItem('bookingSchedule');
@@ -166,19 +169,24 @@ function FlowContent({ serviceId }) {
     let flow = null;
     try {
       flow = JSON.parse(sessionStorage.getItem('bookingFlow') || 'null');
-    } catch {
-      flow = null;
+    } catch (error) {
+      console.error('The stored booking flow could not be read:', error);
     }
+    // The place the customer picked on the service page, which the address field is filled from; the confirm step pairs the field with that place's city and coordinates.
+    const userAddress = sessionStorage.getItem('userAddress');
+    const picked = userAddress && userAddress.trim() && userAddress !== NO_ADDRESS ? userAddress : null;
     if (flow && String(flow.service_id) === String(serviceId)) {
       setSelections(readSelections(flow.selections));
-      setWhenAndWhere({ ...EMPTY_WHEN_AND_WHERE, ...(flow.whenAndWhere || {}) });
+      const stored = { ...EMPTY_WHEN_AND_WHERE, ...(flow.whenAndWhere || {}) };
+      // A place picked since the field was filled replaces the stored street; while the place is the same, the customer's own edit of the field stands.
+      const placeChanged = picked !== null && picked !== flow.addressFrom;
+      setWhenAndWhere(placeChanged ? { ...stored, address: picked } : stored);
+      addressFrom.current = picked ?? flow.addressFrom ?? null;
       const saved = flow.answers && typeof flow.answers === 'object' ? flow.answers : {};
       setInitialAnswers(requestedStep >= 4 ? saved : answersWithoutDate(saved));
     } else {
-      const userAddress = sessionStorage.getItem('userAddress');
-      if (userAddress && userAddress.trim() && userAddress !== NO_ADDRESS) {
-        setWhenAndWhere({ ...EMPTY_WHEN_AND_WHERE, address: userAddress });
-      }
+      if (picked !== null) setWhenAndWhere({ ...EMPTY_WHEN_AND_WHERE, address: picked });
+      addressFrom.current = picked;
     }
     setReady(true);
     // Restores once, at mount, for the service in the address.
@@ -246,6 +254,7 @@ function FlowContent({ serviceId }) {
       step: step ?? requestedStep,
       selections,
       whenAndWhere,
+      addressFrom: addressFrom.current,
       schedule: { job_date: booking.job_date, job_time_slot: booking.job_time_slot, timing_constraints: booking.timing_constraints },
       details: {
         job_description: booking.job_description,

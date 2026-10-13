@@ -9,6 +9,7 @@ import CustomerAuthModal from '@/components/CustomerAuthModal';
 import PriceBox from '@/components/booking/PriceBox';
 import { dayLabel } from '@/lib/booking-answers';
 import { useLivePrice } from '@/lib/use-live-price';
+import { checkWhenAndWhere } from '@/lib/when-and-where';
 import { useAuth } from 'src/context/AuthContext';
 
 export default function BookingConfirmPage() {
@@ -36,12 +37,14 @@ export default function BookingConfirmPage() {
     let saved = null;
     try {
       saved = JSON.parse(sessionStorage.getItem('bookingFlow') || 'null');
-    } catch {
-      saved = null;
+    } catch (error) {
+      console.error('The stored booking flow could not be read:', error);
     }
 
     if (saved && saved.service_id && saved.schedule && saved.details) {
-      if (!Array.isArray(saved.schedule.job_date) || saved.schedule.job_date.length === 0) {
+      // A booking goes on to the payment step only when its step-4 answers pass today's checks: the flow page keeps what is on screen, and that may be a step left half done.
+      const hasDates = Array.isArray(saved.schedule.job_date) && saved.schedule.job_date.length > 0;
+      if (!hasDates || checkWhenAndWhere(saved.whenAndWhere)) {
         router.push(`/booking/schedule?service=${encodeURIComponent(saved.service_id)}&step=4`);
         return;
       }

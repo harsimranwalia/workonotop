@@ -12,8 +12,8 @@ export default function BookingDetailsPage() {
     try {
       const flow = JSON.parse(sessionStorage.getItem('bookingFlow') || 'null');
       serviceId = flow && flow.service_id ? flow.service_id : null;
-    } catch {
-      serviceId = null;
+    } catch (error) {
+      console.error('The stored booking flow could not be read:', error);
     }
     router.replace(serviceId ? `/booking/schedule?service=${encodeURIComponent(serviceId)}&step=4` : '/services');
   }, [router]);

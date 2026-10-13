@@ -6,7 +6,7 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const isCount = (value) => Number.isSafeInteger(value) && value > 0;
 
-// Hours as the pricing rule takes them: a number from 1 to 24 with at most two decimals, else null.
+// Hours as this page takes them: a number from 1 to 24 with at most two decimals (the pricing rule takes any number above 0 with at most two decimals), else null.
 export function hoursAnswer(value) {
   const text = typeof value === 'number' ? String(value) : String(value ?? '').trim();
   if (!/^\d+(\.\d{1,2})?$/.test(text)) return null;

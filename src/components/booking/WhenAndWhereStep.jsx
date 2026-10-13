@@ -2,32 +2,13 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import { dayLabel } from '@/lib/booking-answers';
-
-export const EMPTY_WHEN_AND_WHERE = {
-  selectedDates: [],
-  selectedTimes: {},
-  timingConstraints: '',
-  address: '',
-  jobDescription: '',
-  photos: [],
-  parkingAccess: false,
-  elevatorAccess: false,
-  hasPets: false,
-};
+import { MIN_DESCRIPTION_LENGTH, TIME_SLOTS, withDefaults } from '@/lib/when-and-where';
 
 const MAX_DATES = 3;
 const MAX_TIMING_LENGTH = 400;
 const MAX_DESCRIPTION_LENGTH = 500;
-const MIN_DESCRIPTION_LENGTH = 20;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_PHOTOS = 5;
-
-// closesAt: on today's date a slot is offered until this local hour, then reads "Slot passed"
-const TIME_SLOTS = [
-  { id: 'morning', label: 'Morning', icon: '🌅', time: '8am - 12pm', closesAt: 11 },
-  { id: 'afternoon', label: 'Afternoon', icon: '☀️', time: '12pm - 4pm', closesAt: 15 },
-  { id: 'evening', label: 'Evening', icon: '🌙', time: '4pm - 8pm', closesAt: 19 },
-];
 
 const FLAGS = [
   { id: 'parking', field: 'parkingAccess', label: 'Free street parking available', help: 'Let pros know they can park without permits' },
@@ -44,7 +25,6 @@ const MONTH_NAMES = [
 const FOCUS_RING = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2';
 const FIELD_FOCUS = 'focus:outline-none focus:border-green-700 focus:ring-2 focus:ring-green-700/30';
 
-const withDefaults = (value) => ({ ...EMPTY_WHEN_AND_WHERE, ...value });
 const toDateStr = (year, month, day) => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 const describedBy = (...ids) => ids.filter(Boolean).join(' ') || undefined;
 
@@ -75,50 +55,6 @@ function initialView(selectedDates) {
   if (year && month) return { year, month };
   const now = new Date();
   return { year: now.getFullYear(), month: now.getMonth() + 1 };
-}
-
-export function checkWhenAndWhere(value) {
-  const { selectedDates, selectedTimes, address, jobDescription } = withDefaults(value);
-
-  if (selectedDates.length === 0) {
-    return { kind: 'dates', title: 'Selection Required', text: 'Please select 1 to 3 dates to continue' };
-  }
-  if (selectedDates.some((d) => !selectedTimes[d] || selectedTimes[d].length === 0)) {
-    return { kind: 'slots', title: 'Time Slot Required', text: 'Please select at least one time slot for each date' };
-  }
-  if (!address || address.trim() === '') {
-    return { kind: 'address', title: '', text: 'Please enter your service location' };
-  }
-  if (jobDescription.trim().length < MIN_DESCRIPTION_LENGTH) {
-    return { kind: 'description', title: '', text: 'Please write at least 20 characters to help pros understand your job' };
-  }
-  return null;
-}
-
-export function whenAndWhereBooking(value) {
-  const v = withDefaults(value);
-  const jobTimeSlot = [];
-
-  v.selectedDates.forEach((dateStr) => {
-    const slots = v.selectedTimes[dateStr];
-    if (slots && slots.length > 0) {
-      const names = slots.map((id) => TIME_SLOTS.find((slot) => slot.id === id)?.label ?? id);
-      jobTimeSlot.push(`${dayLabel(dateStr)}: ${names.join(' & ')}`);
-    }
-  });
-
-  return {
-    job_date: v.selectedDates,
-    job_time_slot: jobTimeSlot,
-    timing_constraints: v.timingConstraints,
-    job_description: v.jobDescription,
-    instructions: '',
-    parking_access: v.parkingAccess,
-    elevator_access: v.elevatorAccess,
-    has_pets: v.hasPets,
-    photos: v.photos,
-    address: v.address,
-  };
 }
 
 function Card({ children }) {
