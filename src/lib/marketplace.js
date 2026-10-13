@@ -45,7 +45,7 @@ export async function notifyMatchingProviders(booking) {
     }
 
     const providers = await execute(
-      `SELECT id, phone, email, service_areas, skills FROM service_providers WHERE status = 'active'`
+      `SELECT id, service_areas, skills FROM service_providers WHERE status = 'active'`
     )
 
     // Match providers
@@ -78,7 +78,7 @@ export async function notifyMatchingProviders(booking) {
       }
     })
 
-    console.log(`[API Bookings] Blasting to ${matchedProviders.length} providers for cluster ${jobCluster}`)
+    console.log(`[Marketplace] Blasting to ${matchedProviders.length} providers for cluster ${jobCluster}`)
 
     const earningsAmount = (basePrice * 0.65).toFixed(2)
     const displayDate = new Date(job_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -96,6 +96,6 @@ export async function notifyMatchingProviders(booking) {
       }, execute, 'provider').catch(err => console.error('[Push] Notification Error:', err))
     })
   } catch (err) {
-    console.error('[API Bookings] Failed to blast providers in background:', err)
+    console.error('[Marketplace] Failed to blast providers in background:', err)
   }
 }
