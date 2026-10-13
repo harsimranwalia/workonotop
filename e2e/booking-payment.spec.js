@@ -44,6 +44,7 @@ function scriptedClient(script = {}) {
 
 const cardError = (code) => Object.assign(new Error('card error'), { type: 'StripeCardError', code });
 const connError = () => Object.assign(new Error('connection'), { type: 'StripeConnectionError' });
+const missingError = () => Object.assign(new Error("No such payment_intent: 'pi_hold_1'"), { type: 'StripeInvalidRequestError', code: 'resource_missing', statusCode: 404 });
 
 const BOOKING = { id: 42, service_price: '135.00', payment_intent_id: 'pi_hold_1' };
 const EXPECTED = 13500;
@@ -71,6 +72,9 @@ test.describe('Booking payment', () => {
 
     test('a by-the-hour price that rounds to 0.45 is refused as below the card minimum', () => {
         expect(paymentAmountCents(0.45)).toEqual({ ok: false, reason: 'below_minimum' });
+        // The price is rounded to the nearest cent: 19.99 times 100 is 1998.9999999999998 and is 1999 cents; 0.495 is 49.5 and is 50.
+        expect(paymentAmountCents(19.99)).toEqual({ ok: true, cents: 1999 });
+        expect(paymentAmountCents(0.495)).toEqual({ ok: true, cents: 50 });
     });
 
     test('999,999.99 is taken and 1,000,000.00 is refused as larger than a card payment can take', () => {
@@ -126,6 +130,9 @@ test.describe('Booking payment', () => {
             const check = checkHeldPayment(heldIntent({ status }), { amountCents: EXPECTED, currency: 'cad', customerId: 'cus_1', nowSeconds: NOW });
             expect(check.ok, `status ${status}`).toBe(false);
         }
+        // An intent that waits for capture but is set to automatic capture is not a hold.
+        const automatic = checkHeldPayment(heldIntent({ capture_method: 'automatic' }), { amountCents: EXPECTED, currency: 'cad', customerId: 'cus_1', nowSeconds: NOW });
+        expect(automatic).toEqual({ ok: false, status: 400, message: 'This payment does not match this booking.', check: 'match' });
     });
 
     test('a payment taken by automatic capture in the last day is accepted as paid when it received the booking price', () => {
@@ -138,6 +145,9 @@ test.describe('Booking payment', () => {
             expect(off.ok, `received ${received}`).toBe(false);
             expect(off.status, `received ${received}`).toBe(409);
         }
+        // An intent made with no capture method carries Stripe's default, automatic_async: it is taken by automatic capture too.
+        const byDefault = checkHeldPayment({ ...intent, capture_method: 'automatic_async' }, { amountCents: EXPECTED, currency: 'cad', customerId: 'cus_1', nowSeconds: NOW });
+        expect(byDefault).toEqual({ ok: true, paymentStatus: 'paid', authorizedCents: EXPECTED });
     });
 
     test('a taken payment older than a day, or one made with manual capture, is refused', () => {
@@ -145,6 +155,9 @@ test.describe('Booking payment', () => {
         expect(old.ok).toBe(false);
         const manual = checkHeldPayment(heldIntent({ status: 'succeeded', capture_method: 'manual', amount_received: EXPECTED, created: NOW - 60 }), { amountCents: EXPECTED, currency: 'cad', customerId: 'cus_1', nowSeconds: NOW });
         expect(manual.ok).toBe(false);
+        // A completion charge names its booking and is never taken as the payment for another.
+        const completion = checkHeldPayment(heldIntent({ status: 'succeeded', capture_method: 'automatic_async', amount_received: EXPECTED, created: NOW - 60, metadata: { booking_id: '7' } }), { amountCents: EXPECTED, currency: 'cad', customerId: 'cus_1', nowSeconds: NOW });
+        expect(completion).toEqual({ ok: false, status: 400, message: 'This payment does not match this booking.', check: 'match' });
     });
 
     test('a held card is captured once for the recorded price with the booking key, and the charge id is returned', async () => {
@@ -159,6 +172,13 @@ test.describe('Booking payment', () => {
             ['capture', 'pi_hold_1', { amount_to_capture: EXPECTED }, { idempotencyKey: 'booking-42-capture' }],
             ['retrieve', 'pi_hold_1'],
         ]);
+        // The recorded price is rounded to the nearest cent: 19.99 is captured as 1999.
+        const odd = scriptedClient({
+            retrieve: [heldIntent({ amount: 1999, amount_capturable: 1999 }), heldIntent({ status: 'succeeded', amount: 1999, amount_received: 1999 })],
+            capture: [{}],
+        });
+        expect(await collectBookingPayment(odd, { ...BOOKING, service_price: '19.99' }, OPTS)).toEqual({ ok: true, chargeId: 'ch_1', amountCents: 1999, overCollected: false });
+        expect(odd.calls[1]).toEqual(['capture', 'pi_hold_1', { amount_to_capture: 1999 }, { idempotencyKey: 'booking-42-capture' }]);
     });
 
     test('a hold larger than the recorded price is captured for the recorded price', async () => {
@@ -226,6 +246,20 @@ test.describe('Booking payment', () => {
         // Saved on the booking before it is confirmed.
         expect(saved).toEqual([['pi_new_1', 'pi_hold_1']]);
         expect(stripe.calls[2][0]).toBe('confirm');
+        // The charge is created in the currency the route passes in, and in cad when none is passed.
+        const again = () => scriptedClient({ retrieve: [lapsed, { ...created, status: 'succeeded', amount_received: EXPECTED, latest_charge: 'ch_9' }], create: [created], confirm: [{}] });
+        const inUsd = again();
+        await collectBookingPayment(inUsd, BOOKING, { ...OPTS, currency: 'usd' });
+        expect(inUsd.calls[1][1].currency).toBe('usd');
+        const inDefault = again();
+        await collectBookingPayment(inDefault, BOOKING, { saveIntentId: OPTS.saveIntentId, readIntentId: OPTS.readIntentId });
+        expect(inDefault.calls[1][1].currency).toBe('cad');
+        // The save is ordered before the confirm in the same log: the save is the call between the create and the confirm.
+        const order = [];
+        const ordered = again();
+        for (const method of ['create', 'confirm']) { const original = ordered.paymentIntents[method]; ordered.paymentIntents[method] = async (...args) => { order.push(method); return original(...args); }; }
+        await collectBookingPayment(ordered, BOOKING, { ...OPTS, saveIntentId: async () => { order.push('save'); return true; } });
+        expect(order).toEqual(['create', 'save', 'confirm']);
     });
 
     test('a lapsed hold with no payment method of its own uses the payment method of its latest charge', async () => {
@@ -267,6 +301,12 @@ test.describe('Booking payment', () => {
         const result = await collectBookingPayment(stripe, BOOKING, OPTS);
         expect(result).toEqual({ ok: false, reason: 'cancelled_by_person' });
         expect(stripe.calls.filter(([m]) => m === 'create' || m === 'confirm')).toEqual([]);
+        // Every other reason a cancellation can carry, and none, is a person's too.
+        for (const reason of [null, 'duplicate', 'fraudulent', 'requested_by_customer']) {
+            const other = scriptedClient({ retrieve: [heldIntent({ status: 'canceled', cancellation_reason: reason })] });
+            expect(await collectBookingPayment(other, BOOKING, OPTS), String(reason)).toEqual({ ok: false, reason: 'cancelled_by_person' });
+            expect(other.calls.filter(([m]) => m === 'create' || m === 'confirm'), String(reason)).toEqual([]);
+        }
     });
 
     test('a declined saved-card charge is reported as declined, and one that needs the customer as action required', async () => {
@@ -287,6 +327,17 @@ test.describe('Booking payment', () => {
         });
         const result2 = await collectBookingPayment(needsAction, BOOKING, OPTS);
         expect(result2).toEqual({ ok: false, reason: 'action_required' });
+
+        // A saved charge found on a retry that needs the customer is reported so, and nothing is created or confirmed.
+        const waiting = { id: 'pi_new_1', status: 'requires_action', payment_method: 'pm_1', metadata: { booking_id: '42' } };
+        const retryAction = scriptedClient({ retrieve: [waiting] });
+        expect(await collectBookingPayment(retryAction, { ...BOOKING, payment_intent_id: 'pi_new_1' }, OPTS)).toEqual({ ok: false, reason: 'action_required' });
+        expect(retryAction.calls.filter(([m]) => m === 'create' || m === 'confirm')).toEqual([]);
+        // A call that returns with the charge not taken is read from the intent: needs the customer, or declined.
+        for (const [status, reason] of [['requires_action', 'action_required'], ['requires_payment_method', 'declined']]) {
+            const unsettled = scriptedClient({ retrieve: [heldIntent(), heldIntent({ status })], capture: [{}] });
+            expect(await collectBookingPayment(unsettled, BOOKING, OPTS), status).toEqual({ ok: false, reason });
+        }
     });
 
     test('a retry finds the saved charge waiting for confirmation and confirms it without creating another', async () => {
@@ -299,6 +350,17 @@ test.describe('Booking payment', () => {
         expect(result).toEqual({ ok: true, chargeId: 'ch_9', amountCents: EXPECTED, overCollected: false });
         expect(stripe.calls.filter(([m]) => m === 'create')).toEqual([]);
         expect(stripe.calls.filter(([m]) => m === 'confirm')).toEqual([['confirm', 'pi_new_1', { payment_method: 'pm_1', off_session: true }]]);
+
+        // Only a charge made for this booking is confirmed: one that names another booking, or none, is not.
+        for (const metadata of [{ booking_id: '99' }, {}]) {
+            const other = scriptedClient({ retrieve: [{ ...savedCharge, metadata }], confirm: [{}] });
+            expect(await collectBookingPayment(other, { ...BOOKING, payment_intent_id: 'pi_new_1' }, OPTS), JSON.stringify(metadata)).toEqual({ ok: false, reason: 'mismatch' });
+            expect(other.calls.filter(([m]) => m === 'confirm'), JSON.stringify(metadata)).toEqual([]);
+        }
+        // A saved charge that has lost its card is reported, and nothing is confirmed.
+        const cardless = scriptedClient({ retrieve: [{ ...savedCharge, payment_method: null }], confirm: [{}] });
+        expect(await collectBookingPayment(cardless, { ...BOOKING, payment_intent_id: 'pi_new_1' }, OPTS)).toEqual({ ok: false, reason: 'no_payment_method' });
+        expect(cardless.calls.filter(([m]) => m === 'confirm')).toEqual([]);
     });
 
     test('a retry finds the saved charge taken and carries on without charging again', async () => {
@@ -351,17 +413,67 @@ test.describe('Booking payment', () => {
         });
         const result = await collectBookingPayment(stripe, BOOKING, OPTS);
         expect(result).toEqual({ ok: true, chargeId: 'ch_1', amountCents: EXPECTED, overCollected: false });
+
+        // A capture error with no message to read is settled the same way.
+        const silent = scriptedClient({ retrieve: [heldIntent(), heldIntent({ status: 'succeeded', amount_received: EXPECTED })], capture: [connError()] });
+        expect(await collectBookingPayment(silent, BOOKING, OPTS)).toEqual({ ok: true, chargeId: 'ch_1', amountCents: EXPECTED, overCollected: false });
+
+        // The same for a confirm: the charge was taken though the call failed.
+        const lapsed = heldIntent({ status: 'canceled', cancellation_reason: 'automatic' });
+        const created = { id: 'pi_new_1', status: 'requires_confirmation', payment_method: 'pm_1', metadata: { booking_id: '42' } };
+        const confirmed = scriptedClient({
+            retrieve: [lapsed, { ...created, status: 'succeeded', amount_received: EXPECTED, latest_charge: 'ch_9' }],
+            create: [created],
+            confirm: [connError()],
+        });
+        expect(await collectBookingPayment(confirmed, BOOKING, OPTS)).toEqual({ ok: true, chargeId: 'ch_9', amountCents: EXPECTED, overCollected: false });
+        // And when the intent cannot be read again either, the kind of error decides.
+        const unreadable = scriptedClient({ retrieve: [heldIntent(), connError()], capture: [connError()] });
+        expect(await collectBookingPayment(unreadable, BOOKING, OPTS)).toEqual({ ok: false, reason: 'unavailable' });
     });
 
     test('Stripe out of reach leaves the booking untouched for a later try', async () => {
         const stripe = scriptedClient({ retrieve: [connError()] });
         const result = await collectBookingPayment(stripe, BOOKING, OPTS);
         expect(result).toEqual({ ok: false, reason: 'unavailable' });
+
+        // Every call a charge makes is a try-later when Stripe is out of reach, and so is an intent that is still processing.
+        const lapsed = heldIntent({ status: 'canceled', cancellation_reason: 'automatic' });
+        const created = { id: 'pi_new_1', status: 'requires_confirmation', payment_method: 'pm_1', metadata: { booking_id: '42' } };
+        const later = {
+            'the lookup of the card': [scriptedClient({ retrieve: [heldIntent({ status: 'canceled', cancellation_reason: 'automatic', payment_method: null, latest_charge: 'ch_1' })], charge: [connError()] }), OPTS, BOOKING],
+            'the create of the charge': [scriptedClient({ retrieve: [lapsed], create: [connError()] }), OPTS, BOOKING],
+            'the read of a charge another call saved': [scriptedClient({ retrieve: [lapsed, connError()] }), { ...OPTS, readIntentId: async () => 'pi_new_1' }, BOOKING],
+            'the read after a confirm': [scriptedClient({ retrieve: [lapsed, connError()], create: [created], confirm: [{}] }), OPTS, BOOKING],
+            'a hold still processing': [scriptedClient({ retrieve: [heldIntent({ status: 'processing' })] }), OPTS, BOOKING],
+            'a charge another call saved, still processing': [scriptedClient({ retrieve: [lapsed, { ...created, status: 'processing' }] }), { ...OPTS, readIntentId: async () => 'pi_new_1' }, BOOKING],
+            'a capture that returns with the charge still processing': [scriptedClient({ retrieve: [heldIntent(), heldIntent({ status: 'processing' })], capture: [{}] }), OPTS, BOOKING],
+            'a rate limit': [scriptedClient({ retrieve: [Object.assign(new Error('rate limit'), { type: 'StripeRateLimitError' })] }), OPTS, BOOKING],
+            'a server error': [scriptedClient({ retrieve: [Object.assign(new Error('server error'), { type: 'StripeAPIError', statusCode: 500 })] }), OPTS, BOOKING],
+            'a key Stripe refuses': [scriptedClient({ retrieve: [Object.assign(new Error('invalid key'), { type: 'StripeAuthenticationError', statusCode: 401 })] }), OPTS, BOOKING],
+        };
+        for (const [name, [client, opts, booking]] of Object.entries(later)) {
+            expect(await collectBookingPayment(client, booking, opts), name).toEqual({ ok: false, reason: 'unavailable' });
+        }
     });
 
     test('with no payment client nothing is called and the answer is not configured', async () => {
         const result = await collectBookingPayment(null, BOOKING, OPTS);
         expect(result).toEqual({ ok: false, reason: 'not_configured' });
+    });
+
+    test('an intent Stripe does not know, or a request it refuses for this booking, is a mismatch and nothing is charged', async () => {
+        const stripe = scriptedClient({ retrieve: [missingError()] });
+        const result = await collectBookingPayment(stripe, BOOKING, OPTS);
+        expect(result).toEqual({ ok: false, reason: 'mismatch' });
+        expect(stripe.calls).toEqual([['retrieve', 'pi_hold_1']]);
+        // A request Stripe refuses as malformed or conflicting is about this booking, whichever call it answers.
+        const invalid = Object.assign(new Error('invalid request'), { type: 'StripeInvalidRequestError', code: 'parameter_invalid_empty', statusCode: 400 });
+        const conflict = Object.assign(new Error('idempotency'), { type: 'StripeIdempotencyError', statusCode: 400 });
+        const atCreate = scriptedClient({ retrieve: [heldIntent({ status: 'canceled', cancellation_reason: 'automatic' })], create: [invalid] });
+        expect(await collectBookingPayment(atCreate, BOOKING, OPTS)).toEqual({ ok: false, reason: 'mismatch' });
+        const atCapture = scriptedClient({ retrieve: [heldIntent()], capture: [conflict] });
+        expect(await collectBookingPayment(atCapture, BOOKING, OPTS)).toEqual({ ok: false, reason: 'mismatch' });
     });
 
     // ── Through the dev app (no payment key: bookings are recorded pending, unverified) ─────────────────────────────
