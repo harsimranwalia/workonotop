@@ -63,6 +63,8 @@ export default function Header() {
   }
 
   const isLoggedIn = !!userType;
+  // The booking button is the header's main action for everyone who can book (not providers, not admins).
+  const canBook = !isLoggedIn || (!isProvider() && !isAdmin());
 
   return (
     <>
@@ -84,6 +86,12 @@ export default function Header() {
           </div>
 
           <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+            {canBook && (
+              <Link href="/#book"
+                className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition shadow-sm">
+                Book now
+              </Link>
+            )}
             {isLoggedIn ? (
               <div className="relative" ref={userMenuRef}>
                 <button onClick={() => setUserMenuOpen(p => !p)}
@@ -143,7 +151,7 @@ export default function Header() {
 
                 <div className="relative" ref={proRef}>
                   <button onClick={() => { setProDropdownOpen(p => !p); setLoginDropdownOpen(false); }}
-                    className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition shadow-sm">
+                    className="flex items-center gap-1.5 border border-gray-200 hover:border-green-600 text-gray-700 hover:text-green-700 text-sm font-semibold px-4 py-2 rounded-xl transition">
                     Sign Up <ChevronDown className={`h-3.5 w-3.5 transition-transform ${proDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {proDropdownOpen && (
@@ -165,10 +173,19 @@ export default function Header() {
             )}
           </div>
 
-          <button className="md:hidden p-2 rounded-xl text-gray-600 hover:bg-gray-100 transition"
-            onClick={() => setMobileMenuOpen(p => !p)}>
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          <div className="md:hidden flex items-center gap-2">
+            {canBook && (
+              <Link href="/#book" onClick={() => setMobileMenuOpen(false)}
+                className="bg-green-600 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-sm whitespace-nowrap active:scale-[0.98]">
+                Book now
+              </Link>
+            )}
+            <button className="p-2 rounded-xl text-gray-600 hover:bg-gray-100 transition"
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              onClick={() => setMobileMenuOpen(p => !p)}>
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </nav>
 
         {/* Mobile Menu */}

@@ -3,11 +3,23 @@
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { ArrowRight, CalendarCheck, CreditCard, ListChecks, MapPin, ShieldCheck, SlidersHorizontal, Tag } from 'lucide-react';
 import AnimatedSearchBar from '@/components/AnimatedSearchBar';
+import BookingStarter from '@/components/home/BookingStarter';
 
 export default function HomeClient() {
   const [openFaq, setOpenFaq] = useState(null);
+  const [starterInView, setStarterInView] = useState(true);
+
+  // The phone-width bar at the foot of the screen appears once the hero's booking box has scrolled away.
+  useEffect(() => {
+    const starter = document.getElementById('book');
+    if (!starter || typeof IntersectionObserver === 'undefined') return undefined;
+    const observer = new IntersectionObserver(([entry]) => setStarterInView(entry.isIntersecting));
+    observer.observe(starter);
+    return () => observer.disconnect();
+  }, []);
 
   const services = [
     'house cleaning', 'apartment moving', 'furniture assembly',
@@ -15,7 +27,29 @@ export default function HomeClient() {
     'tv mounting', 'carpet cleaning'
   ];
 
+  const bookingSteps = [
+    { icon: SlidersHorizontal, title: 'Tell us about the job', desc: 'A few quick questions about your home or the task. No phone call, no waiting for a quote.' },
+    { icon: Tag, title: 'Pick your option', desc: 'Choose the level of service that fits. The price on screen changes with every answer.' },
+    { icon: ListChecks, title: "See what's included", desc: 'Check exactly what is covered and add any extras you want.' },
+    { icon: CalendarCheck, title: 'Choose when and where', desc: 'Pick a date and time, add your address and confirm. Your card is held, not charged.' },
+  ];
+
+  const promises = [
+    { icon: Tag, title: 'Your price before you book', desc: 'Worked out from your answers, on screen at every step.' },
+    { icon: CreditCard, title: 'Pay when the job is done', desc: 'Your card is held at booking and charged only after the work is finished.' },
+    { icon: ShieldCheck, title: 'Protection Promise', desc: 'Not happy with the work? Tell us within 48 hours and we will make it right.', href: '/guarantee' },
+    { icon: MapPin, title: 'Metro Vancouver', desc: 'Vancouver and surrounding areas, subject to service availability.' },
+  ];
+
   const faqs = [
+    {
+      q: "How do I get a price?",
+      a: "Choose a service and answer a few short questions about the job. Your price is shown on screen and updates with every answer, so you see what the job costs before you book. There is no call and no waiting for a quote."
+    },
+    {
+      q: "When am I charged?",
+      a: "Your card is held when you book, not charged. Payment is taken once the job is done."
+    },
     {
       q: "What services does Work On Tap provide?",
       a: "Work On Tap focuses on three main service categories:\n\nCleaning\nMoving\nHandyman\n\nAvailable services include regular house cleaning, deep cleaning, move-in and move-out cleaning, carpet cleaning, packing and unpacking, loading and unloading, full moving help, wall and drywall repair, furniture assembly, TV mounting, shelving installation and general home repairs."
@@ -55,8 +89,8 @@ export default function HomeClient() {
       <Header />
 
       {/* Hero Section */}
-      <section className="relative min-h-[calc(100vh-64px)] flex items-center overflow-hidden bg-white">
-        <div className="container mx-auto px-6 max-w-7xl relative z-10 py-20">
+      <section className="relative flex items-center overflow-hidden bg-white">
+        <div className="container mx-auto px-6 max-w-7xl relative z-10 py-12 lg:py-20">
           <div className="flex flex-col lg:flex-row items-center gap-16">
             <div className="flex-1 text-center lg:text-left relative z-10">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[#15803D] text-sm font-medium mb-6 backdrop-blur-sm animate-fadeIn">
@@ -67,18 +101,22 @@ export default function HomeClient() {
                 Metro Vancouver
               </div>
 
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-[family-name:var(--font-outfit)] leading-[1.1] mb-8 tracking-tight">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-[family-name:var(--font-outfit)] leading-[1.1] mb-5 tracking-tight">
                 Cleaning, Moving & Handyman Services in Vancouver <br className="hidden lg:block" />
                 <span className="text-[#16A34A]">— All in One Place</span>
               </h1>
 
-              <p className="text-md md:text-lg mb-8 max-w-xl lg:mx-0 mx-auto leading-relaxed text-slate-600">
-                Your home and property to-do list should not take over your day. Whether you need a cleaner, help with your next move, or someone to handle everyday repairs and installations, Work On Tap brings essential cleaning, moving and handyman services in Vancouver together in one convenient place.<br/><br/>
-                {/* From homes and apartments to rental properties and everyday household needs, choose the service you need and get your job moving. */}
+              <p className="text-lg md:text-xl mb-8 max-w-xl lg:mx-0 mx-auto leading-relaxed text-slate-600">
+                See your price in about a minute and book online. No quotes to wait for, no phone calls, and your card is not charged until the job is done.
               </p>
 
-              <AnimatedSearchBar services={services} />
-              
+              <BookingStarter />
+
+              <div className="mt-10">
+                <p className="text-sm font-medium text-slate-500 mb-3">Looking for something else? Search every service.</p>
+                <AnimatedSearchBar services={services} />
+              </div>
+
             </div>
 
             <div className="absolute inset-0 z-0 lg:relative lg:flex-1 lg:z-10 mt-12 lg:mt-0 opacity-25 lg:opacity-100 flex items-center justify-end lg:-mr-20">
@@ -90,6 +128,54 @@ export default function HomeClient() {
                 />
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* What you can count on */}
+      <section className="bg-slate-900 text-white">
+        <div className="container mx-auto px-6 max-w-7xl py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {promises.map(({ icon: PromiseIcon, title, desc, href }) => (
+            <div key={title} className="flex gap-4">
+              <PromiseIcon className="w-7 h-7 text-emerald-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <div>
+                <h3 className="font-bold mb-1">{title}</h3>
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  {desc}{href && <> <Link href={href} className="underline underline-offset-2 hover:text-white">How it works</Link></>}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* How booking works */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-6 max-w-7xl">
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mb-5 font-[family-name:var(--font-outfit)]">Booked in Four Short Steps</h2>
+            <p className="text-lg text-slate-600 leading-relaxed">
+              You see the price the whole way through, so there are no surprises when you confirm.
+            </p>
+          </div>
+
+          <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {bookingSteps.map(({ icon: StepIcon, title, desc }, i) => (
+              <li key={title} className="bg-slate-50 rounded-3xl p-7 border border-slate-100">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="w-9 h-9 rounded-full bg-[#16A34A] text-white font-bold flex items-center justify-center">{i + 1}</span>
+                  <StepIcon className="w-6 h-6 text-[#16A34A]" aria-hidden="true" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">{title}</h3>
+                <p className="text-slate-600 text-sm leading-relaxed">{desc}</p>
+              </li>
+            ))}
+          </ol>
+
+          <div className="text-center mt-12">
+            <a href="#book" className="inline-flex items-center gap-2 px-10 py-4 bg-[#16A34A] text-white rounded-2xl text-lg font-bold hover:bg-[#15803D] transition shadow-lg shadow-green-500/20">
+              See my price <ArrowRight className="w-5 h-5" aria-hidden="true" />
+            </a>
           </div>
         </div>
       </section>
@@ -149,9 +235,14 @@ export default function HomeClient() {
                 ))}
               </div>
               <p className="text-slate-600 mb-8 italic">Whether you need regular cleaning, a more thorough deep clean, carpet cleaning, or help preparing a home before moving in or after moving out, choose the service that best fits your needs.</p>
-              <Link href="/services?category=cleaning" className="inline-flex items-center gap-2 px-8 py-4 bg-[#16A34A] text-white rounded-xl font-bold hover:bg-[#15803D] transition shadow-lg shadow-green-500/20">
-                Explore Cleaning Services <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-              </Link>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+                <a href="#book" className="inline-flex items-center gap-2 px-8 py-4 bg-[#16A34A] text-white rounded-xl font-bold hover:bg-[#15803D] transition shadow-lg shadow-green-500/20">
+                  Get a cleaning price <ArrowRight className="w-5 h-5" aria-hidden="true" />
+                </a>
+                <Link href="/services?category=cleaning" className="font-semibold text-[#15803D] underline underline-offset-4 hover:no-underline">
+                  Explore Cleaning Services
+                </Link>
+              </div>
             </div>
             <div className="flex-1 relative">
               <div className="aspect-square md:aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl relative z-10 bg-emerald-100 flex items-center justify-center">
@@ -191,9 +282,14 @@ export default function HomeClient() {
                 ))}
               </div>
               <p className="text-slate-600 mb-8 italic">Our moving assistance is designed for customers who already have their own transportation or truck and need reliable help with the physical moving work. When requesting moving help, provide details such as the pickup location, destination, property type, stairs or elevators, larger furniture items and preferred moving date.</p>
-              <Link href="/services?category=movers" className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20">
-                Explore Moving Services <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-              </Link>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+                <a href="#book" className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/20">
+                  Get a moving price <ArrowRight className="w-5 h-5" aria-hidden="true" />
+                </a>
+                <Link href="/services?category=movers" className="font-semibold text-blue-700 underline underline-offset-4 hover:no-underline">
+                  Explore Moving Services
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -221,9 +317,14 @@ export default function HomeClient() {
                 ))}
               </div>
               <p className="text-slate-600 mb-8 italic">From repairing wall damage and touching up paint to assembling furniture and installing shelves, choose the handyman service that matches the job you need completed.</p>
-              <Link href="/services?category=handyman" className="inline-flex items-center gap-2 px-8 py-4 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition shadow-lg shadow-amber-500/20">
-                Explore Handyman Services <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-              </Link>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+                <a href="#book" className="inline-flex items-center gap-2 px-8 py-4 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition shadow-lg shadow-amber-500/20">
+                  Get a handyman price <ArrowRight className="w-5 h-5" aria-hidden="true" />
+                </a>
+                <Link href="/services?category=handyman" className="font-semibold text-amber-700 underline underline-offset-4 hover:no-underline">
+                  Explore Handyman Services
+                </Link>
+              </div>
             </div>
             <div className="flex-1 relative">
               <div className="aspect-square md:aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl relative z-10 bg-amber-100 flex items-center justify-center">
@@ -344,57 +445,6 @@ export default function HomeClient() {
         </div>
       </section>
 
-      {/* How to Request */}
-      <section className="py-24 bg-slate-50 border-t border-slate-100">
-        <div className="container mx-auto px-6 max-w-7xl">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mb-6 font-[family-name:var(--font-outfit)]">Make Your Service Request More Accurate</h2>
-            <p className="text-lg text-slate-600 leading-relaxed">
-              Providing the right information from the beginning can make it easier to understand the scope of your job. Clear job details can reduce confusion and help ensure the right service is selected.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-md">
-              <h4 className="text-xl font-bold text-[#16A34A] mb-6 flex items-center gap-3"><span className="text-3xl bg-emerald-50 p-3 rounded-2xl">🧹</span> Cleaning Services</h4>
-              <ul className="list-disc pl-5 text-slate-600 space-y-3">
-                <li>Property type</li>
-                <li>Approximate size</li>
-                <li>Areas that need cleaning</li>
-                <li>Current condition of the property</li>
-                <li>Type of cleaning required</li>
-                <li>Preferred date</li>
-              </ul>
-            </div>
-
-            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-md">
-              <h4 className="text-xl font-bold text-blue-600 mb-6 flex items-center gap-3"><span className="text-3xl bg-blue-50 p-3 rounded-2xl">📦</span> Moving Services</h4>
-              <ul className="list-disc pl-5 text-slate-600 space-y-3">
-                <li>Pickup location</li>
-                <li>Destination</li>
-                <li>Property type</li>
-                <li>Stairs or elevators</li>
-                <li>Larger furniture items</li>
-                <li>Whether you have your own truck/vehicle</li>
-                <li>Preferred moving date</li>
-              </ul>
-              <p className="text-sm text-slate-500 mt-6 italic bg-slate-50 p-4 rounded-xl">Please note: Work On Tap&apos;s moving services are provided without a truck.</p>
-            </div>
-
-            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-md">
-              <h4 className="text-xl font-bold text-amber-600 mb-6 flex items-center gap-3"><span className="text-3xl bg-amber-50 p-3 rounded-2xl">🛠️</span> Handyman Services</h4>
-              <ul className="list-disc pl-5 text-slate-600 space-y-3">
-                <li>What needs to be repaired or installed</li>
-                <li>Where the job is located</li>
-                <li>Approximate dimensions where relevant</li>
-                <li>Product or fixture details</li>
-                <li>Photos of the issue where helpful</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* FAQs */}
       <section className="py-24 bg-slate-50 border-t border-slate-100">
         <div className="container mx-auto px-6 max-w-3xl">
@@ -433,15 +483,34 @@ export default function HomeClient() {
             Cleaning the house? Planning a move? Need repairs completed?<br />
             Work On Tap helps you find the service that matches your job without making the process unnecessarily complicated.
           </p>
-          <Link href="/services" className="inline-flex items-center gap-3 bg-white text-[#16A34A] px-10 py-5 rounded-2xl font-bold hover:bg-slate-50 transition-all shadow-xl active:scale-95 group text-lg">
-            Explore All Services
-            <svg className="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-          </Link>
-          <p className="mt-8 text-emerald-200">Explore cleaning, moving and handyman services in Vancouver and take the next task off your list.</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
+            <a href="#book" className="inline-flex items-center gap-3 bg-white text-[#15803D] px-10 py-5 rounded-2xl font-bold hover:bg-slate-50 transition-all shadow-xl active:scale-95 group text-lg">
+              See my price
+              <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
+            </a>
+            <Link href="/services" className="text-white font-semibold underline underline-offset-4 hover:no-underline">
+              Explore All Services
+            </Link>
+          </div>
+          <p className="mt-8 text-emerald-100">Your price in about a minute. Your card is not charged until the job is done.</p>
         </div>
       </section>
 
       <Footer />
+
+      {/* Phone-width booking bar */}
+      <div
+        className={`md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] transition-transform duration-300 ${starterInView ? 'translate-y-full' : 'translate-y-0'}`}
+        aria-hidden={starterInView}
+      >
+        <a
+          href="#book"
+          tabIndex={starterInView ? -1 : 0}
+          className="flex items-center justify-center gap-2 w-full min-h-[52px] rounded-2xl bg-[#16A34A] text-white text-base font-bold active:scale-[0.99]"
+        >
+          See my price <ArrowRight className="w-5 h-5" aria-hidden="true" />
+        </a>
+      </div>
 
       <style jsx>{`
         @keyframes fadeIn {
@@ -451,6 +520,14 @@ export default function HomeClient() {
         .animate-fadeIn { animation: fadeIn 0.8s ease-out forwards; }
         :global(html, body) {
           overflow-x: hidden;
+        }
+        :global(html) {
+          scroll-behavior: smooth;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          :global(html) {
+            scroll-behavior: auto;
+          }
         }
       `}</style>
     </div>
