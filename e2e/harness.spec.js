@@ -134,7 +134,7 @@ test.describe('Payment path - Stripe', () => {
             expect(body.success).toBe(true);
             expect(body.client_secret).toBeTruthy();
         } else {
-            // Without a key the route builds no Stripe client (create-intent/route.js:14 is null), passes the guard,
+            // Without a key the route builds no Stripe client (create-intent/route.js:15 is null), passes the guard,
             // the ownership check, the pricing read of the service named by service_id and the users read, and throws
             // 'STRIPE_SECRET_KEY is not set' (:51) into its own catch, which answers the JSON 500 'Failed to initialize
             // payment' (:105, measured 2026-10-04) and logs the
