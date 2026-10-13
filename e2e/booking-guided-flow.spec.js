@@ -1,0 +1,778 @@
+// @ts-check
+// The guided booking flow at /booking/schedule?service=<id>[&step=<n>]: up to four steps built from the service's pricing rule, with the
+// price of the answers on screen shown at every step. The cases drive the page through its accessible surface only (roles, labels, the
+// 'Your price' region with its price-total and price-line test ids, and the customer-facing copy) and work out every expected figure
+// themselves from the rows of database/fixtures/catalog.js (oracle() below): no figure is read from the page's own pricing responses.
+// They need no sign-in and write nothing to the database. The cases of the confirm and payment steps are appended inside the same describe.
+//
+// The worked figures (service 1; amounts from the catalog rows, base 80.00):
+//   bedrooms 2, bathrooms 1, house, deep clean, oven 1, fridge 2, on a weekday:
+//     80.00 + 2 x 20.00 + 1 x 15.00 + 60.00 + 25.00 + 1 x 35.00 + 2 x 30.00 = 315.00; on a Saturday, + 30.00 = 345.00.
+//   by the hour, 2.5 h, house, oven 1 (the hours replace the base and the units, so bedrooms 2 add nothing):
+//     2.5 x 45.00 + 25.00 + 35.00 = 172.50; on a Saturday, + 30.00 = 202.50.
+//   by the hour, 2 h, house: 2 x 45.00 + 25.00 = 115.00.
+import { test, expect } from '@playwright/test';
+import { catalog } from '../database/fixtures/catalog.js';
+
+/** @typedef {import('@playwright/test').Page} Page */
+
+// Every case starts with no stored cookies and an empty sessionStorage: a visitor who has not started a booking.
+test.use({ storageState: { cookies: [], origins: [] }, timezoneId: 'America/Vancouver' });
+
+// `next dev` compiles a route on its first visit.
+const FIRST_VISIT_MS = 45_000;
+
+// Fixture services (database/fixtures/catalog.js): 1 has a full rule, 2 has a unit and an extra, 3 has none.
+const FULL_RULE = 1;
+const UNITS_AND_EXTRA = 2;
+const NO_RULE = 3;
+
+const ABOUT = 'About the job';
+const OPTION = 'The option';
+const INCLUDED = "What's included";
+const WHEN_WHERE = 'When and where';
+
+const HOURS_MESSAGE = 'Enter the number of hours (for example 2 or 2.5) to see your price.';
+const FAILED_MESSAGE = "We couldn't update the price. Check your connection and try again.";
+const CHANGED_MESSAGE = 'Some choices for this service have changed. Please check your answers.';
+const BY_THE_HOUR_NOTE = 'Priced by the hour: the hours you choose set the price.';
+
+const SERVICES = catalog.tables.services;
+const RULE_ROWS = catalog.tables.service_pricing_items;
+
+function ruleRow(serviceId, kind, code) {
+    const found = RULE_ROWS.find((row) => row.service_id === serviceId && row.kind === kind && row.code === code);
+    if (!found) throw new Error(`the catalog fixture has no ${kind} '${code}' for service ${serviceId}`);
+    return found;
+}
+
+const cents = (amount) => Math.round(Number(amount) * 100);
+// Every total of these cases is under 1,000.00, so the en-CA format has no thousands separator.
+const money = (valueCents) => `$${(valueCents / 100).toFixed(2)}`;
+const plain = (valueCents) => (valueCents / 100).toFixed(2);
+
+const BEDROOMS = ruleRow(FULL_RULE, 'unit', 'bedrooms').label;
+const BATHROOMS = ruleRow(FULL_RULE, 'unit', 'bathrooms').label;
+const APARTMENT = ruleRow(FULL_RULE, 'property_type', 'apartment').label;
+const HOUSE = ruleRow(FULL_RULE, 'property_type', 'house').label;
+const STANDARD = ruleRow(FULL_RULE, 'option', 'standard').label;
+const DEEP = ruleRow(FULL_RULE, 'option', 'deep').label;
+const BY_THE_HOUR = ruleRow(FULL_RULE, 'option', 'hourly').label;
+const OVEN = ruleRow(FULL_RULE, 'extra', 'oven').label;
+const FRIDGE = ruleRow(FULL_RULE, 'extra', 'fridge').label;
+const WEEKEND_NOTICE = `Weekend dates add ${money(cents(ruleRow(FULL_RULE, 'weekend', 'weekend').amount))}. Your price updates when you pick a date.`;
+
+/**
+ * The expected price of a set of answers, summed from the catalog rows. `picks` names the service (default 1), the quantity of each
+ * unit and extra by code, the option, the hours, the property type and whether the job's first date falls on a weekend.
+ * Answers the total and the amount of each line, in cents.
+ */
+function oracle(picks) {
+    const service = picks.service ?? FULL_RULE;
+    const rule = (kind, code) => ruleRow(service, kind, code);
+    const lines = [];
+    const chosen = picks.option ? rule('option', picks.option) : null;
+    if (chosen && chosen.is_hourly === 1) {
+        lines.push(Math.round(picks.hours * cents(chosen.amount)));
+    } else {
+        const row = SERVICES.find((candidate) => candidate.id === service);
+        if (!row) throw new Error(`the catalog fixture has no service ${service}`);
+        lines.push(cents(row.base_price));
+        for (const [code, count] of Object.entries(picks.units ?? {})) {
+            if (count > 0) lines.push(count * cents(rule('unit', code).amount));
+        }
+        if (chosen) lines.push(cents(chosen.amount));
+    }
+    if (picks.propertyType) lines.push(cents(rule('property_type', picks.propertyType).amount));
+    if (picks.weekend) lines.push(cents(rule('weekend', 'weekend').amount));
+    for (const [code, count] of Object.entries(picks.extras ?? {})) {
+        if (count > 0) lines.push(count * cents(rule('extra', code).amount));
+    }
+    return { cents: lines.reduce((sum, line) => sum + line, 0), lines };
+}
+
+// The answers of the 315.00 path.
+const FULL = { units: { bedrooms: 2, bathrooms: 1 }, option: 'deep', propertyType: 'house', extras: { oven: 1, fridge: 2 } };
+// The answers of the 172.50 path.
+const HOURLY = { units: { bedrooms: 2 }, option: 'hourly', hours: 2.5, propertyType: 'house', extras: { oven: 1 } };
+
+// ---- dates, built from numbers (no date text is ever parsed) ----
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const WEEKDAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const weekdayOf = ({ year, month, day }) => new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+const dayLabel = (date) => `${WEEKDAYS_SHORT[weekdayOf(date)]}, ${MONTHS_SHORT[date.month - 1]} ${date.day}`;
+const isoOf = ({ year, month, day }) => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+function addDays({ year, month, day }, days) {
+    const moved = new Date(Date.UTC(year, month - 1, day + days));
+    return { year: moved.getUTCFullYear(), month: moved.getUTCMonth() + 1, day: moved.getUTCDate() };
+}
+
+// The first Saturday after the given day (a Saturday gives the one a week on).
+const saturdayAfter = (date) => addDays(date, ((6 - weekdayOf(date) + 7) % 7) || 7);
+
+// Today on the browser's clock, the clock the calendar of the page disables past days by.
+/** @param {Page} page */
+async function today(page) {
+    return page.evaluate(() => {
+        const now = new Date();
+        return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() };
+    });
+}
+
+// ---- locators: the accessible surface of the page ----
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const startingWith = (label) => new RegExp(`^${escapeRegExp(label)}`);
+
+/** @param {Page} page */
+const priceBox = (page) => page.getByRole('region', { name: 'Your price' });
+/** @param {Page} page */
+const totalOf = (page) => priceBox(page).getByTestId('price-total');
+/** @param {Page} page */
+const linesOf = (page) => priceBox(page).getByTestId('price-line');
+/** @param {Page} page */
+const statusOf = (page) => priceBox(page).locator('[role="status"][aria-live="polite"]');
+/** @param {Page} page */
+const stepsNav = (page) => page.getByRole('navigation', { name: 'Booking steps' });
+/** @param {Page} page */
+const currentStep = (page) => stepsNav(page).locator('[aria-current="step"]');
+const stepHeading = (page, name) => page.getByRole('heading', { level: 2, name, exact: true });
+const continueButton = (page) => page.getByRole('button', { name: 'Continue', exact: true });
+const backButton = (page) => page.getByRole('button', { name: 'Back', exact: true });
+const tryAgainButton = (page) => page.getByRole('button', { name: 'Try again', exact: true });
+const stepper = (page, label) => page.getByRole('group', { name: label, exact: true });
+const quantityOf = (page, label) => stepper(page, label).getByRole('spinbutton');
+const addOne = (page, label) => page.getByRole('button', { name: `Add one ${label}`, exact: true });
+const removeOne = (page, label) => page.getByRole('button', { name: `Remove one ${label}`, exact: true });
+// A radio's accessible name starts with the item's label and may go on with its amount.
+const radio = (root, label) => root.getByRole('radio', { name: startingWith(label) });
+const hoursInput = (page) => page.getByLabel('How many hours?');
+const counter = (page, k, n) => page.getByText(`Step ${k} of ${n}`).first();
+const onStep = (n) => (url) => url.pathname === '/booking/schedule' && url.searchParams.get('step') === String(n);
+
+// The calendar of step 4: the month heading and its two month buttons, which carry no text of their own.
+const MONTH_HEADING = new RegExp(`^(${MONTHS.join('|')}) \\d{4}$`);
+const monthHeading = (page) => page.getByText(MONTH_HEADING).first();
+const previousMonth = (page) => page.getByRole('button', { name: /previous month/i }).or(monthHeading(page).locator('xpath=..').getByRole('button').first());
+const nextMonth = (page) => page.getByRole('button', { name: /next month/i }).or(monthHeading(page).locator('xpath=..').getByRole('button').last());
+
+/** Shows the month of `date` in the calendar by pressing its month buttons. */
+async function showMonth(page, date) {
+    const wanted = date.year * 12 + (date.month - 1);
+    for (let presses = 0; presses < 6; presses += 1) {
+        const [name, year] = (await monthHeading(page).innerText()).trim().split(' ');
+        const shown = Number(year) * 12 + MONTHS.indexOf(name);
+        if (shown === wanted) return;
+        await (shown < wanted ? nextMonth(page) : previousMonth(page)).click();
+    }
+    throw new Error(`the calendar did not reach ${MONTHS[date.month - 1]} ${date.year}`);
+}
+
+/** Taps a day of the calendar, in its own month; a day button is named by its full date. */
+async function pickDay(page, date) {
+    await showMonth(page, date);
+    await page.getByRole('button', { name: `${MONTHS[date.month - 1]} ${date.day}, ${date.year}`, exact: true }).click();
+}
+
+// ---- the price on screen against the oracle ----
+const showsAmount = (text, amount) => new RegExp(`(^|[^\\d.])${escapeRegExp(amount)}(?!\\d)`).test(text);
+
+/**
+ * Waits for the price box to show the oracle's total for `picks`, with one line for each line of the oracle's sum and each line's amount.
+ * @param {Page} page
+ * @param {number} [timeout]
+ */
+async function expectPrice(page, picks, timeout) {
+    const expected = oracle(picks);
+    await expect(totalOf(page), `the total for ${JSON.stringify(picks)}`).toHaveText(money(expected.cents), timeout ? { timeout } : undefined);
+    await expect(linesOf(page), 'one price line for each part of the sum').toHaveCount(expected.lines.length);
+    const left = await linesOf(page).allTextContents();
+    for (const line of expected.lines) {
+        const at = left.findIndex((text) => showsAmount(text, plain(line)));
+        expect(at, `a price line shows ${plain(line)} (lines shown: ${JSON.stringify(left)})`).toBeGreaterThanOrEqual(0);
+        left.splice(at, 1);
+    }
+}
+
+// The price region holds no total and no line, and announces no price, while the answers are being priced or cannot be priced.
+async function expectNoFigure(page) {
+    await expect(totalOf(page)).toHaveCount(0);
+    await expect(linesOf(page)).toHaveCount(0);
+    await expect(statusOf(page)).not.toHaveText(/\$\d/);
+}
+
+// ---- driving the page ----
+/** @param {Page} page */
+async function openFlow(page, serviceId) {
+    await page.goto(`/booking/schedule?service=${serviceId}`, { timeout: FIRST_VISIT_MS });
+    await expect(totalOf(page)).toBeVisible({ timeout: FIRST_VISIT_MS });
+}
+
+// Continues to the step called `heading`, once the price on screen is the oracle's figure for `picks`.
+async function goOn(page, heading, picks) {
+    if (picks) await expectPrice(page, picks);
+    await expect(continueButton(page)).toBeEnabled();
+    await continueButton(page).click();
+    await expect(stepHeading(page, heading)).toBeVisible();
+}
+
+async function setQuantity(page, label, count) {
+    await quantityOf(page, label).fill(String(count));
+}
+
+// Answers steps 1 to 3 of service 1 with the 315.00 path and stays on step 3.
+async function answerFullPath(page) {
+    await openFlow(page, FULL_RULE);
+    await setQuantity(page, BEDROOMS, FULL.units.bedrooms);
+    await setQuantity(page, BATHROOMS, FULL.units.bathrooms);
+    await radio(page, HOUSE).check();
+    await goOn(page, OPTION, { units: FULL.units, propertyType: 'house' });
+    await radio(page, DEEP).check();
+    await goOn(page, INCLUDED, { units: FULL.units, propertyType: 'house', option: 'deep' });
+    await setQuantity(page, OVEN, FULL.extras.oven);
+    await setQuantity(page, FRIDGE, FULL.extras.fridge);
+    await expectPrice(page, FULL);
+}
+
+// Answers steps 1 to 3 of service 1 with the 172.50 path and stays on step 3.
+async function answerHourlyPath(page) {
+    await openFlow(page, FULL_RULE);
+    await setQuantity(page, BEDROOMS, HOURLY.units.bedrooms);
+    await radio(page, HOUSE).check();
+    await goOn(page, OPTION, { units: HOURLY.units, propertyType: 'house' });
+    await radio(page, BY_THE_HOUR).check();
+    await hoursInput(page).fill(String(HOURLY.hours));
+    await goOn(page, INCLUDED, { units: HOURLY.units, propertyType: 'house', option: 'hourly', hours: HOURLY.hours });
+    await setQuantity(page, OVEN, HOURLY.extras.oven);
+    await expectPrice(page, HOURLY);
+}
+
+// ---- the requests the page sends to /api/pricing ----
+/**
+ * Records every POST /api/pricing request body, in order, and applies one-shot plans to the next requests: hold one until it is
+ * released, abort one, or answer one with a given status and JSON body. A plan's `index` is the position of the request it took (-1 until then).
+ * @param {Page} page
+ */
+async function watchPricing(page) {
+    /** @type {any[]} */
+    const bodies = [];
+    /** @type {any[]} */
+    const plans = [];
+    await page.route('**/api/pricing', async (route) => {
+        const request = route.request();
+        if (request.method() !== 'POST') {
+            await route.continue();
+            return;
+        }
+        let body = null;
+        try {
+            body = request.postDataJSON();
+        } catch {
+            body = null;
+        }
+        const index = bodies.push(body) - 1;
+        const plan = plans.shift();
+        if (plan) plan.index = index;
+        try {
+            if (plan?.kind === 'hold') {
+                await plan.gate;
+                await route.continue();
+            } else if (plan?.kind === 'abort') {
+                await route.abort('failed');
+            } else if (plan?.kind === 'answer') {
+                await route.fulfill({ status: plan.status, json: plan.body });
+            } else {
+                await route.continue();
+            }
+        } catch {
+            // The page dropped the request before the handler answered it.
+        }
+    });
+    return {
+        bodies,
+        holdNext() {
+            let release = () => {};
+            const gate = new Promise((resolve) => {
+                release = () => resolve(undefined);
+            });
+            const plan = { kind: 'hold', gate, release, index: -1 };
+            plans.push(plan);
+            return plan;
+        },
+        failNext() {
+            const plan = { kind: 'abort', index: -1 };
+            plans.push(plan);
+            return plan;
+        },
+        answerNext(status, body) {
+            const plan = { kind: 'answer', status, body, index: -1 };
+            plans.push(plan);
+            return plan;
+        },
+    };
+}
+
+// Waits until the page has sent the request a plan took.
+async function reached(plan) {
+    await expect.poll(() => plan.index, { message: 'the page sent the request' }).toBeGreaterThanOrEqual(0);
+}
+
+// Answers as the pricing rule reads them: a unit or extra list with nothing in it is the same as none.
+function normalised(answers) {
+    const copy = { ...answers };
+    if (copy.units && Object.keys(copy.units).length === 0) delete copy.units;
+    if (Array.isArray(copy.extras) && copy.extras.length === 0) delete copy.extras;
+    return copy;
+}
+
+const SIX_KEYS = ['date', 'extras', 'hours', 'option', 'property_type', 'units'];
+
+/**
+ * Taps "Add one" on bedrooms with the next request held, taps it again so that a newer request goes through, then lets the held
+ * request go: the newer figure stays on screen, with no failure shown. `picks` holds the bedrooms already on screen.
+ * @param {Page} page
+ */
+async function supersedeAndRelease(page, watch, picks) {
+    const count = picks.units.bedrooms;
+    const newest = { ...picks, units: { bedrooms: count + 2 } };
+    const held = watch.holdNext();
+    await addOne(page, BEDROOMS).click();
+    await reached(held);
+    await addOne(page, BEDROOMS).click();
+    await expectPrice(page, newest);
+    held.release();
+    for (let look = 0; look < 6; look += 1) {
+        await page.waitForTimeout(250);
+        await expect(totalOf(page)).toHaveText(money(oracle(newest).cents));
+        await expect(page.getByText(FAILED_MESSAGE)).toHaveCount(0);
+    }
+    await expect(quantityOf(page, BEDROOMS)).toHaveValue(String(count + 2));
+}
+
+test.describe('Guided booking flow', () => {
+    test.beforeEach(() => {
+        test.setTimeout(120_000);
+    });
+
+    test("the steps of a service with a full rule are about the job, the option, what's included, and when and where, in that order", async ({ page }) => {
+        await openFlow(page, FULL_RULE);
+
+        await expect(stepsNav(page).getByRole('listitem')).toHaveText([ABOUT, OPTION, INCLUDED, WHEN_WHERE]);
+        await expect(currentStep(page)).toHaveText(ABOUT);
+        await expect(counter(page, 1, 4)).toBeAttached();
+        await expect(stepHeading(page, ABOUT)).toBeVisible();
+        await expect(backButton(page), 'no Back on the first step').toHaveCount(0);
+
+        // Step 1 holds a stepper for each unit and the property types, with nothing chosen.
+        for (const [label, code] of [[BEDROOMS, 'bedrooms'], [BATHROOMS, 'bathrooms']]) {
+            await expect(stepper(page, label)).toBeVisible();
+            await expect(stepper(page, label).getByText(`${money(cents(ruleRow(FULL_RULE, 'unit', code).amount))} each`)).toBeVisible();
+            await expect(quantityOf(page, label)).toHaveValue('0');
+            await expect(removeOne(page, label), 'Remove is off at 0').toBeDisabled();
+            await expect(addOne(page, label)).toBeEnabled();
+        }
+        const types = page.getByRole('group', { name: 'Type of property', exact: true });
+        await expect(types.getByRole('radio')).toHaveCount(2);
+        await expect(radio(types, APARTMENT)).not.toBeChecked();
+        await expect(radio(types, HOUSE)).not.toBeChecked();
+        await expect(continueButton(page), 'a property type is required').toBeDisabled();
+
+        await radio(page, HOUSE).check();
+        await expectPrice(page, { propertyType: 'house' });
+        await goOn(page, OPTION);
+
+        // Step 2 holds the three options, with nothing chosen.
+        await expect(page).toHaveURL(onStep(2));
+        await expect(stepHeading(page, OPTION), 'focus moves to the step heading').toBeFocused();
+        await expect(currentStep(page)).toHaveText(OPTION);
+        await expect(counter(page, 2, 4)).toBeAttached();
+        await expect(backButton(page)).toBeVisible();
+        const options = page.getByRole('group', { name: 'Choose an option', exact: true });
+        await expect(options.getByRole('radio')).toHaveCount(3);
+        for (const label of [STANDARD, DEEP, BY_THE_HOUR]) {
+            await expect(radio(options, label)).not.toBeChecked();
+        }
+        await expect(options.getByText(`${money(cents(ruleRow(FULL_RULE, 'option', 'hourly').amount))} an hour`)).toBeVisible();
+        await expect(continueButton(page), 'an option is required').toBeDisabled();
+
+        await radio(page, STANDARD).check();
+        await goOn(page, INCLUDED, { propertyType: 'house', option: 'standard' });
+        await expect(page).toHaveURL(onStep(3));
+        await expect(currentStep(page)).toHaveText(INCLUDED);
+        await expect(stepper(page, OVEN)).toBeVisible();
+        await expect(stepper(page, FRIDGE)).toBeVisible();
+
+        await goOn(page, WHEN_WHERE, { propertyType: 'house', option: 'standard' });
+        await expect(page).toHaveURL(onStep(4));
+        await expect(currentStep(page)).toHaveText(WHEN_WHERE);
+        await expect(counter(page, 4, 4)).toBeAttached();
+    });
+
+    test('a service with units and an extra shows three steps and a service with no rule shows one', async ({ page }) => {
+        await openFlow(page, UNITS_AND_EXTRA);
+        await expect(stepsNav(page).getByRole('listitem')).toHaveText([ABOUT, INCLUDED, WHEN_WHERE]);
+        await expect(counter(page, 1, 3)).toBeAttached();
+        await expect(stepper(page, ruleRow(UNITS_AND_EXTRA, 'unit', 'bedrooms').label)).toBeVisible();
+        await expectPrice(page, { service: UNITS_AND_EXTRA });
+
+        // The step number in the address is the canonical one: the second step shown is number 3.
+        await goOn(page, INCLUDED, { service: UNITS_AND_EXTRA });
+        await expect(page).toHaveURL(onStep(3));
+        await expect(counter(page, 2, 3)).toBeAttached();
+        await expect(stepper(page, ruleRow(UNITS_AND_EXTRA, 'extra', 'oven').label)).toBeVisible();
+
+        await openFlow(page, NO_RULE);
+        await expect(stepsNav(page).getByRole('listitem')).toHaveText([WHEN_WHERE]);
+        await expect(stepHeading(page, WHEN_WHERE)).toBeVisible();
+        await expect(page.getByText(/Step \d+ of \d+/), 'one step has no counter').toHaveCount(0);
+        // No rule: the price is the service's catalog price.
+        await expectPrice(page, { service: NO_RULE });
+        await expect(totalOf(page)).toHaveText('$100.00');
+    });
+
+    test("the price on every step equals the pricing rule's price for the answers on screen", async ({ page }) => {
+        await openFlow(page, FULL_RULE);
+        // Nothing answered: the service's base price.
+        await expectPrice(page, {}, FIRST_VISIT_MS);
+        await expect(totalOf(page)).toHaveText('$80.00');
+
+        const picks = { units: {}, extras: {} };
+        // The total for the answers so far, with the page still on the step it was on.
+        const settled = async (step) => {
+            await expectPrice(page, picks);
+            await expect(currentStep(page)).toHaveText(step);
+        };
+
+        // Step 1: one tap at a time, the total after each tap.
+        await addOne(page, BEDROOMS).click();
+        picks.units.bedrooms = 1;
+        await settled(ABOUT);
+        await addOne(page, BEDROOMS).click();
+        picks.units.bedrooms = 2;
+        await settled(ABOUT);
+        await addOne(page, BATHROOMS).click();
+        picks.units.bathrooms = 1;
+        await settled(ABOUT);
+        await radio(page, HOUSE).check();
+        picks.propertyType = 'house';
+        await settled(ABOUT);
+        await expect(statusOf(page)).toHaveText(`Price ${money(oracle(picks).cents)}`);
+        await goOn(page, OPTION);
+
+        // Step 2: the price carries over and moves with the option.
+        await settled(OPTION);
+        await radio(page, DEEP).check();
+        picks.option = 'deep';
+        await settled(OPTION);
+        await goOn(page, INCLUDED);
+
+        // Step 3: the extras.
+        await settled(INCLUDED);
+        await addOne(page, OVEN).click();
+        picks.extras.oven = 1;
+        await settled(INCLUDED);
+        await addOne(page, FRIDGE).click();
+        picks.extras.fridge = 1;
+        await settled(INCLUDED);
+        await setQuantity(page, FRIDGE, 2);
+        picks.extras.fridge = 2;
+        await settled(INCLUDED);
+        expect(money(oracle(picks).cents), 'the worked figure of the ticket').toBe('$315.00');
+        await expect(totalOf(page)).toHaveText('$315.00');
+        await expect(page).toHaveURL(onStep(3));
+
+        // Taking one away prices the smaller answers, and putting it back prices the larger ones again.
+        await removeOne(page, FRIDGE).click();
+        picks.extras.fridge = 1;
+        await settled(INCLUDED);
+        await addOne(page, FRIDGE).click();
+        picks.extras.fridge = 2;
+        await settled(INCLUDED);
+        await expect(totalOf(page)).toHaveText('$315.00');
+    });
+
+    test('a Saturday as the first date adds the weekend amount and a Friday before it does not', async ({ page }) => {
+        await answerFullPath(page);
+        // Before a date is picked the weekday price stands, and the box says what a weekend date adds.
+        await expect(page.getByText(WEEKEND_NOTICE).first()).toBeVisible();
+        await goOn(page, WHEN_WHERE, FULL);
+        await expectPrice(page, FULL);
+
+        const saturday = saturdayAfter(await today(page));
+        const friday = addDays(saturday, -1);
+
+        await pickDay(page, saturday);
+        await expectPrice(page, { ...FULL, weekend: true });
+        await expect(totalOf(page)).toHaveText('$345.00');
+        await expect(page.getByText(/Your price is for your first date/), 'one date has no first-date notice').toHaveCount(0);
+
+        // The earlier day sorts first and becomes the first date.
+        await pickDay(page, friday);
+        await expectPrice(page, FULL);
+        await expect(totalOf(page)).toHaveText('$315.00');
+        await expect(priceBox(page).getByText(`Your price is for your first date, ${dayLabel(friday)}.`).first()).toBeVisible();
+    });
+
+    test('by the hour the price is the hours at the hourly amount plus the property type and extras', async ({ page }) => {
+        await openFlow(page, FULL_RULE);
+        await setQuantity(page, BEDROOMS, 2);
+        await radio(page, HOUSE).check();
+        await goOn(page, OPTION, { units: { bedrooms: 2 }, propertyType: 'house' });
+
+        await radio(page, BY_THE_HOUR).check();
+        await expect(page.getByText(BY_THE_HOUR_NOTE).first()).toBeVisible();
+        await expect(hoursInput(page)).toBeVisible();
+        await expect(hoursInput(page)).toHaveValue('');
+        await hoursInput(page).fill('2.5');
+        // The hours replace the base and the units: 2.5 x 45.00 + 25.00.
+        await goOn(page, INCLUDED, { units: { bedrooms: 2 }, option: 'hourly', hours: 2.5, propertyType: 'house' });
+        await setQuantity(page, OVEN, 1);
+        await expectPrice(page, HOURLY);
+        expect(money(oracle(HOURLY).cents), 'the worked figure of the ticket').toBe('$172.50');
+        await expect(totalOf(page)).toHaveText('$172.50');
+
+        // Switching to a tier clears the hours and prices the tier, with no refusal.
+        const tier = { units: { bedrooms: 2 }, option: 'deep', propertyType: 'house', extras: { oven: 1 } };
+        await backButton(page).click();
+        await expect(stepHeading(page, OPTION)).toBeVisible();
+        await radio(page, DEEP).check();
+        await expectPrice(page, tier);
+        await expect(hoursInput(page)).toHaveCount(0);
+        await expect(page.getByText(HOURS_MESSAGE)).toHaveCount(0);
+
+        // By the hour again: the hours were cleared, so they are asked for again.
+        await radio(page, BY_THE_HOUR).check();
+        await expect(hoursInput(page)).toHaveValue('');
+        await expect(page.getByText(HOURS_MESSAGE).first()).toBeVisible();
+        await hoursInput(page).fill('2.5');
+        await expectPrice(page, HOURLY);
+    });
+
+    test('no figure is shown while the price for the current answers is still being worked out', async ({ page }) => {
+        const watch = await watchPricing(page);
+        await openFlow(page, FULL_RULE);
+        await radio(page, HOUSE).check();
+        await expectPrice(page, { propertyType: 'house' });
+        await expect(continueButton(page)).toBeEnabled();
+        await expect(statusOf(page)).toHaveText(`Price ${money(oracle({ propertyType: 'house' }).cents)}`);
+
+        const held = watch.holdNext();
+        await addOne(page, BEDROOMS).click();
+        await reached(held);
+
+        // The request for one bedroom is open: no total, no lines, nothing announced, and Continue is off.
+        await expect(priceBox(page).getByText('Updating price…', { exact: true }).first()).toBeVisible();
+        await expectNoFigure(page);
+        await expect(statusOf(page), 'nothing is announced while updating').toHaveText('');
+        await expect(continueButton(page)).toBeDisabled();
+        await expect(quantityOf(page, BEDROOMS)).toHaveValue('1');
+
+        held.release();
+        const answered = { units: { bedrooms: 1 }, propertyType: 'house' };
+        await expectPrice(page, answered);
+        await expect(statusOf(page)).toHaveText(`Price ${money(oracle(answered).cents)}`);
+        await expect(continueButton(page)).toBeEnabled();
+    });
+
+    test('an earlier price response that arrives after a later one is not shown', async ({ page }) => {
+        const watch = await watchPricing(page);
+        await openFlow(page, FULL_RULE);
+        await radio(page, HOUSE).check();
+        await expectPrice(page, { propertyType: 'house' });
+
+        // Request A (one bedroom) is held, request B (two bedrooms) is answered, then A is let go.
+        await supersedeAndRelease(page, watch, { units: { bedrooms: 0 }, propertyType: 'house' });
+    });
+
+    test("every price request carries the service and the answers, and the answers use only the pricing rule's six keys", async ({ page }) => {
+        const watch = await watchPricing(page);
+
+        // The 315.00 path, then a Saturday on step 4.
+        await answerFullPath(page);
+        await goOn(page, WHEN_WHERE, FULL);
+        const saturday = saturdayAfter(await today(page));
+        await pickDay(page, saturday);
+        await expectPrice(page, { ...FULL, weekend: true });
+        expect(normalised(watch.bodies.at(-1).answers), 'the answers of the last request of the 345.00 path').toEqual({
+            units: { bedrooms: 2, bathrooms: 1 },
+            option: 'deep',
+            property_type: 'house',
+            date: isoOf(saturday),
+            extras: [{ code: 'oven', quantity: 1 }, { code: 'fridge', quantity: 2 }],
+        });
+
+        // The 172.50 path in a flow of its own, then the same Saturday: every one of the six keys is present.
+        await page.evaluate(() => sessionStorage.clear());
+        await answerHourlyPath(page);
+        await goOn(page, WHEN_WHERE, HOURLY);
+        await pickDay(page, saturday);
+        await expectPrice(page, { ...HOURLY, weekend: true });
+        const last = watch.bodies.at(-1);
+        expect(Object.keys(last.answers).sort(), 'the hourly path with a date sends all six keys').toEqual(SIX_KEYS);
+        expect(last.answers).toEqual({
+            units: { bedrooms: 2 },
+            option: 'hourly',
+            hours: 2.5,
+            property_type: 'house',
+            date: isoOf(saturday),
+            extras: [{ code: 'oven', quantity: 1 }],
+        });
+        expect(money(oracle({ ...HOURLY, weekend: true }).cents)).toBe('$202.50');
+
+        // Every request of both paths: the body is exactly the service and the answers, the answers use the six keys and well-formed values.
+        expect(watch.bodies.length, 'requests were recorded').toBeGreaterThan(10);
+        watch.bodies.forEach((body, at) => {
+            const which = `request ${at} ${JSON.stringify(body)}`;
+            expect(body, `${which} is JSON`).not.toBeNull();
+            expect(Object.keys(body).sort(), `${which}: the body keys`).toEqual(['answers', 'service_id']);
+            expect(Number(body.service_id), `${which}: the service`).toBe(FULL_RULE);
+            for (const key of Object.keys(body.answers)) {
+                expect(SIX_KEYS, `${which}: answer key ${key}`).toContain(key);
+            }
+            const { units, hours, extras, date } = body.answers;
+            if (units !== undefined) {
+                for (const count of Object.values(units)) expect(Number.isInteger(count) && count > 0, `${which}: unit counts`).toBe(true);
+            }
+            if (hours !== undefined) expect(typeof hours, `${which}: hours is a number`).toBe('number');
+            if (extras !== undefined) {
+                for (const extra of extras) {
+                    expect(Object.keys(extra).sort(), `${which}: an extra`).toEqual(['code', 'quantity']);
+                    expect(Number.isInteger(extra.quantity) && extra.quantity > 0, `${which}: extra quantities`).toBe(true);
+                }
+            }
+            if (date !== undefined) expect(date, `${which}: the date`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        });
+    });
+
+    test('the hours box asks for the hours before a by-the-hour price is shown', async ({ page }) => {
+        await openFlow(page, FULL_RULE);
+        await radio(page, HOUSE).check();
+        await goOn(page, OPTION, { propertyType: 'house' });
+
+        await radio(page, BY_THE_HOUR).check();
+        const hours = hoursInput(page);
+        await expect(hours).toBeVisible();
+        await expect(hours).toHaveAttribute('min', '1');
+        await expect(hours).toHaveAttribute('max', '24');
+        await expect(hours).toHaveAttribute('step', '0.5');
+        // The hours are missing: the message, the invalid mark, no figure, no way on.
+        await expect(hours).toHaveAttribute('aria-invalid', 'true');
+        await expect(hours).toHaveAccessibleDescription(HOURS_MESSAGE);
+        await expect(page.getByText(HOURS_MESSAGE).first()).toBeVisible();
+        await expectNoFigure(page);
+        await expect(continueButton(page)).toBeDisabled();
+
+        // 2 x 45.00 + 25.00 for the house.
+        await hours.fill('2');
+        await expectPrice(page, { propertyType: 'house', option: 'hourly', hours: 2 });
+        await expect(totalOf(page)).toHaveText('$115.00');
+        await expect(hours).not.toHaveAttribute('aria-invalid', 'true');
+        await expect(continueButton(page)).toBeEnabled();
+    });
+
+    test('a failed price request shows a retry and no figure', async ({ page }) => {
+        const watch = await watchPricing(page);
+        await openFlow(page, FULL_RULE);
+        await radio(page, HOUSE).check();
+        await expectPrice(page, { propertyType: 'house' });
+        await expect(continueButton(page)).toBeEnabled();
+
+        // The request for one bedroom fails in transit.
+        const failing = watch.failNext();
+        await addOne(page, BEDROOMS).click();
+        await reached(failing);
+        await expect(page.getByText(FAILED_MESSAGE).first()).toBeVisible();
+        await expect(tryAgainButton(page)).toBeVisible();
+        await expectNoFigure(page);
+        await expect(continueButton(page)).toBeDisabled();
+
+        // Try again sends the answers on screen, and this time the request goes through.
+        const answered = { units: { bedrooms: 1 }, propertyType: 'house' };
+        await tryAgainButton(page).click();
+        await expectPrice(page, answered);
+        await expect(page.getByText(FAILED_MESSAGE)).toHaveCount(0);
+        await expect(continueButton(page)).toBeEnabled();
+
+        // A request that the page itself drops because a newer answer replaced it is not a failure.
+        await supersedeAndRelease(page, watch, answered);
+    });
+
+    test('reloading a step keeps the answers and the price', async ({ page }) => {
+        await answerFullPath(page);
+        await page.reload();
+
+        await expect(page).toHaveURL(onStep(3));
+        await expect(stepHeading(page, INCLUDED)).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(currentStep(page)).toHaveText(INCLUDED);
+        await expect(quantityOf(page, OVEN)).toHaveValue('1');
+        await expect(quantityOf(page, FRIDGE)).toHaveValue('2');
+        await expectPrice(page, FULL, FIRST_VISIT_MS);
+
+        // The answers of the earlier steps are there too.
+        await backButton(page).click();
+        await expect(stepHeading(page, OPTION)).toBeVisible();
+        await expect(radio(page, DEEP)).toBeChecked();
+        await backButton(page).click();
+        await expect(stepHeading(page, ABOUT)).toBeVisible();
+        await expect(quantityOf(page, BEDROOMS)).toHaveValue('2');
+        await expect(quantityOf(page, BATHROOMS)).toHaveValue('1');
+        await expect(radio(page, HOUSE)).toBeChecked();
+        await expect(radio(page, APARTMENT)).not.toBeChecked();
+        await expectPrice(page, FULL);
+    });
+
+    test("when the service's choices change between taps the page reloads them and asks the customer to check", async ({ page }) => {
+        const watch = await watchPricing(page);
+        await openFlow(page, FULL_RULE);
+        await radio(page, HOUSE).check();
+        await goOn(page, OPTION, { propertyType: 'house' });
+        await radio(page, STANDARD).check();
+        const before = { propertyType: 'house', option: 'standard' };
+        await goOn(page, INCLUDED, before);
+
+        // The next request is refused as the server refuses an extra it does not know.
+        const refusal = watch.answerNext(400, { success: false, field: 'extras', message: 'These answers cannot be priced for this service' });
+        await addOne(page, OVEN).click();
+        await reached(refusal);
+
+        await expect(page.getByText(CHANGED_MESSAGE).first()).toBeVisible();
+        // The choices are asked for once with no answers, then the answers are priced again: 80.00 + 0.00 + 25.00 + 35.00.
+        const priced = { ...before, extras: { oven: 1 } };
+        await expectPrice(page, priced);
+        await expect(totalOf(page)).toHaveText('$140.00');
+        await expect(quantityOf(page, OVEN)).toHaveValue('1');
+
+        expect(normalised(watch.bodies[refusal.index].answers), 'the refused request carried the oven').toEqual({
+            option: 'standard',
+            property_type: 'house',
+            extras: [{ code: 'oven', quantity: 1 }],
+        });
+        const after = watch.bodies.slice(refusal.index + 1);
+        expect(normalised(after[0].answers), 'the request after the refusal has no answers').toEqual({});
+        expect(after.filter((body) => Object.keys(normalised(body.answers)).length === 0), 'the choices are asked for once').toHaveLength(1);
+        expect(normalised(after.at(-1).answers), 'the answers that remain are priced').toEqual({
+            option: 'standard',
+            property_type: 'house',
+            extras: [{ code: 'oven', quantity: 1 }],
+        });
+    });
+
+    test('the details address opens the booking flow at its last step, or the services page when there is no booking in progress', async ({ page }) => {
+        // No booking in progress.
+        await page.goto('/booking/details', { timeout: FIRST_VISIT_MS });
+        await expect(page).toHaveURL((url) => url.pathname === '/services', { timeout: FIRST_VISIT_MS });
+
+        // A service with no rule has one step, and that step is number 4.
+        await openFlow(page, NO_RULE);
+        await expect(stepHeading(page, WHEN_WHERE)).toBeVisible();
+        await expectPrice(page, { service: NO_RULE });
+        await page.goto('/booking/details', { timeout: FIRST_VISIT_MS });
+        await expect(page).toHaveURL(
+            (url) => url.pathname === '/booking/schedule' && url.searchParams.get('service') === String(NO_RULE) && url.searchParams.get('step') === '4',
+            { timeout: FIRST_VISIT_MS },
+        );
+        await expect(stepHeading(page, WHEN_WHERE)).toBeVisible();
+    });
+});
