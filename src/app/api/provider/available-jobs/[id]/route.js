@@ -5,6 +5,7 @@ import { requireCaller } from '@/lib/api-auth'
 import { notifyUser } from '@/lib/push'
 import { sendEmail } from '@/lib/email'
 import { logActivity } from '@/lib/logger'
+import { OPEN_ON_MARKETPLACE, offerOf } from '@/lib/marketplace'
 
 const forbidden = () => NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
 
@@ -36,7 +37,7 @@ export async function GET(request, { params }) {
         b.address_line1, b.address_line2, b.city, b.postal_code,
         b.job_description, b.instructions, b.timing_constraints,
         b.parking_access, b.elevator_access, b.has_pets,
-        b.status, b.provider_id, b.created_at,
+        b.status, b.provider_id, b.marketplace_pushed_at, b.created_at,
         b.provider_amount, b.commission_percent,
         b.service_price as base_price,
         b.additional_price as overtime_rate,
@@ -45,7 +46,7 @@ export async function GET(request, { params }) {
       FROM bookings b
       LEFT JOIN services s ON b.service_id = s.id
       LEFT JOIN service_categories c ON s.category_id = c.id
-      WHERE b.id = ? AND (b.provider_id = ? OR (b.provider_id IS NULL AND b.status IN ('pending', 'matching')))`,
+      WHERE b.id = ? AND (b.provider_id = ? OR ${OPEN_ON_MARKETPLACE})`,
       [id, caller.id]
     )
 
@@ -90,7 +91,7 @@ export async function GET(request, { params }) {
     }
 
     let availability_reason = null
-    const isAvailable = booking.provider_id === null && ['pending', 'matching'].includes(booking.status)
+    const isAvailable = offerOf(booking, caller.id) === 'open'
 
     if (!isAvailable) {
       if (booking.provider_id !== null) availability_reason = 'already_accepted'
@@ -130,7 +131,7 @@ export async function POST(request, { params }) {
 
     try {
       const [[job]] = await connection.execute(
-        `SELECT b.id, b.provider_id, b.status, b.provider_amount, b.service_name,
+        `SELECT b.id, b.provider_id, b.status, b.marketplace_pushed_at, b.provider_amount, b.service_name,
                 b.commission_percent, b.service_price, b.additional_price as overtime_rate,
                 s.duration_minutes as service_duration
          FROM bookings b
@@ -141,9 +142,9 @@ export async function POST(request, { params }) {
 
       if (!job) { await connection.query('ROLLBACK'); return NextResponse.json({ success: false, message: 'Job not found' }, { status: 404 }) }
 
-      // Ownership, on the locked row: the caller's own job, or an unassigned one open to providers (the clause jobs/[id] has). Another provider's job,
+      // Ownership, on the locked row: the caller's own job, or one on the marketplace (the rule jobs/[id] has). Another provider's job,
       // or one that is neither, is a 403, never the 409 below (it stays for the caller's own job, which has a provider already).
-      if (!(job.provider_id === caller.id || (job.provider_id === null && ['pending', 'matching'].includes(job.status)))) {
+      if (!(job.provider_id === caller.id || offerOf(job, caller.id) === 'open')) {
         await connection.query('ROLLBACK')
         return forbidden()
       }
@@ -157,8 +158,9 @@ export async function POST(request, { params }) {
         await connection.execute('UPDATE bookings SET commission_percent = ? WHERE id = ?', [commPct, id])
       }
 
+      // Writing provider_id clears the push marker: a job reaches providers only through a push made while it has no provider.
       await connection.execute(
-        `UPDATE bookings SET provider_id=?, status='confirmed', accepted_at=NOW(), updated_at=NOW() WHERE id=?`,
+        `UPDATE bookings SET provider_id=?, status='confirmed', accepted_at=NOW(), marketplace_pushed_at=NULL, updated_at=NOW() WHERE id=?`,
         [caller.id, id]
       )
       await connection.execute(

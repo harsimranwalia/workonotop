@@ -3,6 +3,7 @@ import { execute, query, getConnection } from '@/lib/db'
 import { requireCaller } from '@/lib/api-auth'
 import { notifyUser } from '@/lib/push'
 import { sendEmail } from '@/lib/email'
+import { OPEN_ON_MARKETPLACE, offerOf } from '@/lib/marketplace'
 
 export const dynamic = 'force-dynamic';
 
@@ -133,7 +134,7 @@ export async function GET(request) {
         WHERE (
           (b.provider_id = ? AND b.status IN ('pending', 'matching'))
           OR
-          (b.provider_id IS NULL AND b.status IN ('pending', 'matching', 'unassigned', 'open') ${locationCondition})
+          (${OPEN_ON_MARKETPLACE} ${locationCondition})
         )
       `
       const countResult = await query(countSql, [providerId, ...locationParams])
@@ -144,7 +145,7 @@ export async function GET(request) {
         WHERE (
           (b.provider_id = ? AND b.status IN ('pending', 'matching'))
           OR
-          (b.provider_id IS NULL AND b.status IN ('pending', 'matching', 'unassigned', 'open') ${locationCondition})
+          (${OPEN_ON_MARKETPLACE} ${locationCondition})
         )
         ORDER BY created_at DESC
         LIMIT ?
@@ -198,10 +199,9 @@ export async function GET(request) {
           AND b.status IN ('pending', 'matching')
         )
         OR
-        -- ✅ Open jobs
+        -- ✅ Jobs an admin has pushed to the marketplace
         (
-          b.provider_id IS NULL
-          AND b.status IN ('pending', 'matching', 'unassigned', 'open')
+          ${OPEN_ON_MARKETPLACE}
           ${locationCondition}
         )
       )
@@ -216,7 +216,7 @@ export async function GET(request) {
       WHERE (
         (b.provider_id = ? AND b.status IN ('pending', 'matching'))
         OR
-        (b.provider_id IS NULL AND b.status IN ('pending', 'matching', 'unassigned', 'open') ${locationCondition})
+        (${OPEN_ON_MARKETPLACE} ${locationCondition})
       )
     `
     const countParams = [providerId, ...locationParams]
@@ -318,7 +318,7 @@ export async function POST(request) {
 
     try {
       const [[job]] = await connection.execute(
-        `SELECT b.id, b.provider_id, b.status, b.provider_amount, b.service_name,
+        `SELECT b.id, b.provider_id, b.status, b.marketplace_pushed_at, b.provider_amount, b.service_name,
                 b.commission_percent, b.service_price, b.additional_price as overtime_rate,
                 s.duration_minutes as service_duration
          FROM bookings b
@@ -334,14 +334,16 @@ export async function POST(request) {
 
       const commPct = job.commission_percent !== null ? parseFloat(job.commission_percent) : defaultComm
 
-      if (job.provider_id !== null && job.provider_id !== providerId) {
+      const offer = offerOf(job, providerId)
+
+      if (offer === 'taken') {
         await connection.query('ROLLBACK')
         return NextResponse.json({ success: false, message: 'Job already accepted by another provider' }, { status: 409 })
       }
 
-      if (!['pending', 'matching', 'unassigned', 'open'].includes(job.status)) {
+      if (offer === 'not_offered') {
         await connection.query('ROLLBACK')
-        return NextResponse.json({ success: false, message: `Job not available (status: ${job.status})` }, { status: 409 })
+        return NextResponse.json({ success: false, message: 'Job not available' }, { status: 409 })
       }
 
       // ✅ Update commission_percent if it was null
@@ -352,8 +354,9 @@ export async function POST(request) {
         )
       }
 
+      // Writing provider_id clears the push marker: a job reaches providers only through a push made while it has no provider.
       await connection.execute(
-        `UPDATE bookings SET provider_id = ?, status = 'confirmed', accepted_at = NOW(), updated_at = NOW() WHERE id = ?`,
+        `UPDATE bookings SET provider_id = ?, status = 'confirmed', accepted_at = NOW(), marketplace_pushed_at = NULL, updated_at = NOW() WHERE id = ?`,
         [providerId, booking_id]
       )
       await connection.execute(
