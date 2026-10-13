@@ -622,7 +622,8 @@ test.describe('Guided booking flow', () => {
         expect(money(oracle({ ...HOURLY, weekend: true }).cents)).toBe('$202.50');
 
         // Every request of both paths: the body is exactly the service and the answers, the answers use the six keys and well-formed values.
-        expect(watch.bodies.length, 'requests were recorded').toBeGreaterThan(10);
+        // One request for each settled change on both paths (the quiet period folds a burst of taps into one).
+        expect(watch.bodies.length, 'requests were recorded').toBeGreaterThanOrEqual(8);
         watch.bodies.forEach((body, at) => {
             const which = `request ${at} ${JSON.stringify(body)}`;
             expect(body, `${which} is JSON`).not.toBeNull();
