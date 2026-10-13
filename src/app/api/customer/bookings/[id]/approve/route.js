@@ -158,8 +158,8 @@ export async function POST(request, { params }) {
 
   try {
     // The booking is read on the pool and the payment is taken with no connection held: collectBookingPayment's save and read
-    // callbacks take their own connections from the pool, and a request that held one while it waited for another would, with as
-    // many requests at once as the pool has connections, leave every request waiting. The transaction below records the result.
+    // callbacks take their own connections from the pool, so a connection held by this request never waits for another. The
+    // transaction below records the result.
     // ── Fetch booking ──────────────────────────────────────────────────
     const [booking] = await execute(`
       SELECT 
@@ -341,7 +341,7 @@ export async function POST(request, { params }) {
           const providerAmount = providerPayout(booking)
           const platformAmount = parseFloat((finalAmount - providerAmount).toFixed(2))
 
-          // The payment was taken above, before this transaction began.
+          // The payment was taken above, ahead of the transaction.
           if (!collected.ok) {
             // The payment could not be taken: mark it, tell the admins, pay no one, and leave the booking at
             // awaiting_approval (the hourly cron does not pick it up again; the customer's own approve tries again).

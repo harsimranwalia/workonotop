@@ -37,8 +37,8 @@ export async function GET(request) {
     let connection
     try {
       // The release takes the one charge for the booking's recorded price and pays the provider by the payout rule. The payment
-      // is taken before this booking's connection is: the two callbacks take their own from the pool, and a run that held one
-      // while it waited for another could, with enough requests at once, leave every connection held.
+      // is taken ahead of the booking's connection: the two callbacks take their own from the pool, so a connection held by this
+      // run never waits for another.
       const collected = await collectBookingPayment(stripe, booking, {
         currency: process.env.STRIPE_CURRENCY || 'cad',
         // These two run on the pool and this run holds no connection while they do: a charge saved on the booking stays saved
