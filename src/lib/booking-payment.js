@@ -2,8 +2,8 @@
 // charge when the job is done. The Stripe client is passed in, so each branch runs with a scripted client in the suite.
 // This module imports nothing and holds no connection: the routes hand it their client and their save/read callbacks.
 
-// The smallest and largest amounts a card payment can take, in the smallest unit (0.50 CAD; the eight-digit ceiling that
-// holds for every method the Payment Element may offer).
+// The smallest and largest amounts a card payment can take (50 in the smallest unit, the CAD minimum; the eight-digit ceiling
+// that holds for every method the Payment Element may offer).
 const MIN_CENTS = 50;
 const MAX_CENTS = 99999999;
 
@@ -24,8 +24,9 @@ export function paymentCheckMode({ hasKey, nodeEnv }) {
 
 // checkHeldPayment(intent, { amountCents, currency, customerId, nowSeconds }) decides whether a retrieved intent is the
 // payment for this booking: a hold of exactly this booking's price, in this currency, for the account the booking is
-// recorded for. For one day after the deploy, and by construction never later, a payment already taken by automatic
-// capture in the last 24 hours is accepted as paid. Customer and currency are checked first, so a request naming another
+// recorded for. A payment already taken by automatic capture in the last 24 hours, received for the booking's price, is
+// accepted as paid; the intents create-intent makes are holds and a completion charge names its booking, so neither is taken
+// as one. Customer and currency are checked first, so a request naming another
 // account's intent gets the general refusal and never the price message.
 //   -> { ok: true, paymentStatus: 'authorized' | 'paid', authorizedCents }
 //    | { ok: false, status, message, check }
@@ -43,10 +44,11 @@ export function checkHeldPayment(intent, { amountCents, currency, customerId, no
     return { ok: true, paymentStatus: 'authorized', authorizedCents: intent.amount };
   }
 
-  // A payment taken by automatic capture in the last day, received for the booking's price: accepted as paid. Every new
-  // intent is a hold, so this branch matches nothing a day after the deploy; a later ticket deletes it.
+  // A payment taken by automatic capture in the last day, received for the booking's price: accepted as paid. A completion
+  // charge names its booking (metadata.booking_id) and is never a payment for another booking.
   if (intent.status === 'succeeded' && intent.capture_method !== 'manual'
       && typeof intent.created === 'number' && nowSeconds - intent.created < 86400) {
+    if (intent.metadata && intent.metadata.booking_id) return mismatch;
     if (intent.amount_received !== amountCents) return changed;
     return { ok: true, paymentStatus: 'paid', authorizedCents: intent.amount_received };
   }
@@ -74,7 +76,8 @@ export async function collectBookingPayment(stripe, booking, opts = {}) {
   }
 
   // A retry after a crash between saving the charge and confirming it, or the customer's own retry after a decline: the
-  // saved charge is waiting on the booking and is confirmed without creating another.
+  // saved charge is waiting on the booking and is confirmed without creating another (one that needs the customer is reported,
+  // not confirmed).
   if ((intent.status === 'requires_confirmation' || intent.status === 'requires_payment_method' || intent.status === 'requires_action')
       && intent.metadata && String(intent.metadata.booking_id) === String(booking.id)) {
     return decideSavedCharge(stripe, intent, expected);
@@ -96,7 +99,7 @@ export async function collectBookingPayment(stripe, booking, opts = {}) {
     if (intent.cancellation_reason !== 'automatic' && intent.cancellation_reason !== 'expired') {
       return { ok: false, reason: 'cancelled_by_person' };
     }
-    // The hold lapsed. A retry after a crash between creating the charge and confirming it finds the charge on the booking.
+    // The hold lapsed. Another call may have saved its charge on the booking after this call read it: carry on with that one.
     const onBooking = typeof opts.readIntentId === 'function' ? await opts.readIntentId() : null;
     if (onBooking && onBooking !== booking.payment_intent_id) return continueSavedCharge(stripe, onBooking, expected);
     return chargeSavedCard(stripe, booking, intent, expected, currency, opts);
@@ -196,8 +199,8 @@ async function settleAfterError(stripe, intentId, expected, err) {
   let fresh = null;
   try {
     fresh = await stripe.paymentIntents.retrieve(intentId);
-  } catch {
-    fresh = null;
+  } catch (readErr) {
+    console.error(`Payment ${intentId}: the read after a failed call failed (${readErr && readErr.type})`);
   }
   if (fresh && fresh.status === 'succeeded') return collectedFrom(fresh, expected);
   return { ok: false, reason: errorReason(err) };
@@ -230,10 +233,16 @@ function idOf(value) {
   return (value && typeof value.id === 'string' && value.id) || null;
 }
 
+// Connection, rate-limit, server and key errors are about Stripe or this server's configuration, not about the booking: try
+// again later. A card error is the card's answer. Any other error (an intent Stripe does not know, a request Stripe refuses)
+// is about this booking: it is a mismatch, so the admins hear of it once and it is not retried for ever.
+const TRY_LATER = new Set(['StripeConnectionError', 'StripeRateLimitError', 'StripeAPIError', 'StripeAuthenticationError', 'StripePermissionError']);
+
 function errorReason(err) {
   if (err && err.type === 'StripeCardError') {
     if (err.code === 'authentication_required') return 'action_required';
     return 'declined';
   }
-  return 'unavailable';
+  if (err && (TRY_LATER.has(err.type) || err.statusCode >= 500)) return 'unavailable';
+  return 'mismatch';
 }
