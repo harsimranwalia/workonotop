@@ -5,6 +5,7 @@ import { useAuth } from 'src/context/AuthContext'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
+import { paymentStatusText } from '@/lib/payment-status-text'
 import {
   Calendar, MapPin, User, ArrowLeft, CreditCard,
   AlertCircle, Clock, CheckCircle, Image as ImageIcon, Star, X,
@@ -283,6 +284,7 @@ export default function CustomerBookingDetails() {
   const customerTotal = basePrice
   const originalBasePrice = parseFloat(booking.service_price || 0) // What they actually paid upfront
   const totalAuthorized = parseFloat(booking.authorized_amount || originalBasePrice)
+  const paymentText = paymentStatusText(booking.payment_status)
   const allPhotos = [...(booking.before_photos || []), ...(booking.after_photos || []), ...(booking.photos || []).map(url => ({ url }))]
 
   return (
@@ -393,7 +395,7 @@ export default function CustomerBookingDetails() {
                   </div>
                   
                   <div className="flex justify-between font-bold pt-2 mt-2 border-t text-red-600">
-                    <span>{booking.payment_status === 'authorized' ? 'Held on your card (base price):' : 'Already Paid (Base Price):'}</span>
+                    <span>{paymentText.baseLabel}</span>
                     <span>-{fmt(originalBasePrice)}</span>
                   </div>
                   <div className="flex justify-between font-bold pt-2 mt-1 border-t text-teal-700 text-sm">
@@ -623,7 +625,7 @@ export default function CustomerBookingDetails() {
                       <div className="min-w-0">
                         <p className="text-teal-100 text-xs font-bold uppercase tracking-wider truncate">Final Amount</p>
                         <p className="text-white text-[10px] mt-0.5 font-medium opacity-80 leading-tight">
-                          {booking.status === 'completed' ? 'Paid in full' : booking.payment_status === 'authorized' ? 'Held on your card; charged when the job is done' : 'Base amount charged'}
+                          {booking.status === 'completed' ? 'Paid in full' : paymentText.notCompletedText}
                         </p>
                       </div>
                       <span className="text-2xl sm:text-3xl font-black text-white shrink-0">{fmt(customerTotal)}</span>
@@ -684,7 +686,7 @@ export default function CustomerBookingDetails() {
                 <span>{fmt(basePrice)}</span>
               </div>
               <div className="flex justify-between text-sm mb-2 text-red-600 font-bold border-t pt-3">
-                <span>{booking.payment_status === 'authorized' ? 'Held on your card (base price):' : 'Already Paid (Base Price):'}</span>
+                <span>{paymentText.baseLabel}</span>
                 <span>-{fmt(originalBasePrice)}</span>
               </div>
               <div className="border-t pt-3 mt-1 flex justify-between">

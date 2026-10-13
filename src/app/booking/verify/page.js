@@ -13,6 +13,7 @@ function VerifyPaymentContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState('processing'); // processing, success, error
   const [message, setMessage] = useState('Verifying your payment authorization...');
+  const [paymentReference, setPaymentReference] = useState(null);
   const bookingCreatedRef = useRef(false);
 
   useEffect(() => {
@@ -69,7 +70,7 @@ function VerifyPaymentContent() {
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (data.success) {
         setStatus('success');
@@ -79,8 +80,11 @@ function VerifyPaymentContent() {
           ...pendingData,
           booking_id: data.booking_id,
           booking_number: data.booking_number,
+          service_price: data.service_price,
+          additional_price: data.overtime_rate,
         }));
         sessionStorage.removeItem('pendingBooking');
+        sessionStorage.removeItem('bookingFlow');
 
         // Redirect to success page
         setTimeout(() => {
@@ -89,6 +93,7 @@ function VerifyPaymentContent() {
       } else {
         setStatus('error');
         setMessage(data.message || 'Payment authorized but booking creation failed.');
+        setPaymentReference(paymentIntentId);
       }
     } catch (err) {
       console.error('Verify booking error:', err);
@@ -102,7 +107,7 @@ function VerifyPaymentContent() {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-gray-100">
         {status === 'processing' && (
           <>
-            <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+            <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full motion-safe:animate-spin mx-auto mb-6"></div>
             <h1 className="text-xl font-bold text-gray-900 mb-2">Verifying Payment</h1>
             <p className="text-gray-500 text-sm">{message}</p>
           </>
@@ -128,7 +133,10 @@ function VerifyPaymentContent() {
               </svg>
             </div>
             <h1 className="text-xl font-bold text-gray-900 mb-2">Verification Failed</h1>
-            <p className="text-red-500 text-sm mb-6">{message}</p>
+            <div role="alert" className="text-red-700 text-sm mb-6">
+              <p>{message}</p>
+              {paymentReference && <p className="mt-1 break-all">Payment reference: {paymentReference}</p>}
+            </div>
             <button
               onClick={() => router.push('/booking/payment')}
               className="w-full bg-green-700 text-white py-3.5 rounded-xl font-bold hover:bg-green-800 transition shadow-lg"
@@ -149,7 +157,7 @@ export default function VerifyPaymentPage() {
       <Suspense fallback={
         <div className="flex-1 flex items-center justify-center p-4 py-12">
           <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-gray-100">
-            <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+            <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full motion-safe:animate-spin mx-auto mb-6"></div>
             <h1 className="text-xl font-bold text-gray-900 mb-2">Loading Verification</h1>
             <p className="text-gray-500 text-sm">Please wait...</p>
           </div>

@@ -7,15 +7,18 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
+import { dayLabel } from '@/lib/booking-answers';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+const cad = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' });
 
 // ✅ Payment success ke baad booking create hoti hai
-function PaymentForm({ pendingBookingData, clientSecret, onSuccess }) {
+function PaymentForm({ pendingBookingData, clientSecret, onSuccess, onBack }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
+  const [paymentReference, setPaymentReference] = useState(null);
   const bookingCreatedRef = useRef(false);
 
   const handleSubmit = async (e) => {
@@ -58,20 +61,23 @@ function PaymentForm({ pendingBookingData, clientSecret, onSuccess }) {
           }),
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
 
         if (data.success) {
           sessionStorage.setItem('lastBooking', JSON.stringify({
             ...pendingBookingData,
             booking_id: data.booking_id,
             booking_number: data.booking_number,
+            service_price: data.service_price,
+            additional_price: data.overtime_rate,
           }));
           sessionStorage.removeItem('pendingBooking');
+          sessionStorage.removeItem('bookingFlow');
           onSuccess(data.booking_id);
         } else {
-          // Payment hua lekin booking nahi bani — support se contact karo
-          setError('Payment authorized but booking creation failed. Please contact support with your payment reference: ' + paymentIntent.id);
-          bookingCreatedRef.current = false;
+          // bookingCreatedRef stays set: this form does not send the same payment with a booking again.
+          setError(data.message || 'Payment authorized but booking creation failed.');
+          setPaymentReference(paymentIntent.id);
           setProcessing(false);
         }
       }
@@ -88,19 +94,29 @@ function PaymentForm({ pendingBookingData, clientSecret, onSuccess }) {
       <PaymentElement />
 
       {error && (
-        <div className="p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs sm:text-sm">
-          {error}
+        <div role="alert" className="p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs sm:text-sm">
+          <p>{error}</p>
+          {paymentReference && (
+            <>
+              <p className="mt-1 break-all">Payment reference: {paymentReference}</p>
+              <button
+                type="button"
+                onClick={onBack}
+                className="mt-3 inline-block bg-gray-200 text-gray-800 px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-gray-300 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
+              >← Go Back</button>
+            </>
+          )}
         </div>
       )}
 
       <button
         type="submit"
-        disabled={!stripe || processing}
+        disabled={!stripe || processing || paymentReference !== null}
         className="w-full bg-gradient-to-r from-green-700 to-green-600 text-white py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg shadow-lg hover:from-green-800 hover:to-green-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
       >
         {processing ? (
           <>
-            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <svg className="motion-safe:animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
@@ -123,6 +139,8 @@ export default function PaymentPage() {
   const [pendingBookingData, setPendingBookingData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [clientSecret, setClientSecret] = useState(null);
+  const [heldAmount, setHeldAmount] = useState(null);
+  const [overtimeRate, setOvertimeRate] = useState(null);
   const [fetchingIntent, setFetchingIntent] = useState(false);
   const [intentError, setIntentError] = useState(null);
 
@@ -130,20 +148,14 @@ export default function PaymentPage() {
 
   useEffect(() => {
     if (intentFetchedRef.current) return;
+    intentFetchedRef.current = true;
+    sessionStorage.removeItem('prefetchedClientSecret');
     const pending = sessionStorage.getItem('pendingBooking');
     if (pending) {
-      intentFetchedRef.current = true;
       const parsed = JSON.parse(pending);
       setPendingBookingData(parsed);
-      
-      const prefetchedSecret = sessionStorage.getItem('prefetchedClientSecret');
-      if (prefetchedSecret) {
-        setClientSecret(prefetchedSecret);
-        sessionStorage.removeItem('prefetchedClientSecret');
-        setLoading(false);
-      } else {
-        createPaymentIntent(parsed);
-      }
+      createPaymentIntent(parsed);
+      loadOvertimeRate(parsed.service_id);
     } else {
       router.push('/services');
     }
@@ -155,27 +167,47 @@ export default function PaymentPage() {
     setFetchingIntent(true);
     setIntentError(null);
     try {
+      // The hold is created here, once per visit, for the answers in the pending booking.
       const res = await fetch('/api/payment/create-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           service_id: bookingData.service_id,
-          service_price: bookingData.service_price,
-          additional_price: bookingData.additional_price || 0,
-          service_name: bookingData.service_name,
+          answers: bookingData.answers || {},
         }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      const refused = res.status === 400 && data.success === false;
       if (data.success && data.client_secret) {
         setClientSecret(data.client_secret);
+        setHeldAmount(Number.isFinite(data.amount) ? data.amount : null);
+      } else if (res.status === 401) {
+        setIntentError({ kind: 'session' });
+      } else if (refused && !data.field) {
+        setIntentError({ kind: 'unavailable' });
+      } else if (refused && data.message) {
+        setIntentError({ kind: 'answers', message: data.message });
       } else {
-        setIntentError('Could not initialize payment. Please go back and try again.');
+        setIntentError({ kind: 'failed' });
       }
     } catch (err) {
       console.error('Payment intent error:', err);
-      setIntentError('Could not initialize payment. Please go back and try again.');
+      setIntentError({ kind: 'failed' });
     } finally {
       setFetchingIntent(false);
+    }
+  };
+
+  const loadOvertimeRate = async (serviceId) => {
+    if (!serviceId) return;
+    try {
+      const res = await fetch(`/api/services?id=${encodeURIComponent(serviceId)}`);
+      const data = await res.json();
+      const row = data.success && data.data && !Array.isArray(data.data) ? data.data : null;
+      const rate = row ? Number(row.additional_price) : NaN;
+      if (rate > 0) setOvertimeRate(rate);
+    } catch (err) {
+      console.error('Service lookup error:', err);
     }
   };
 
@@ -187,7 +219,7 @@ export default function PaymentPage() {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-12 sm:h-16 w-12 sm:w-16 border-4 border-green-500 border-t-transparent"></div>
+          <div className="motion-safe:animate-spin rounded-full h-12 sm:h-16 w-12 sm:w-16 border-4 border-green-500 border-t-transparent"></div>
           <p className="text-sm sm:text-base text-gray-600">Loading payment details...</p>
         </div>
       </div>
@@ -205,9 +237,11 @@ export default function PaymentPage() {
     );
   }
 
-  const basePrice = parseFloat(pendingBookingData.service_price);
-  const hourlyRate = parseFloat(pendingBookingData.additional_price || 0);
-  const totalAuthorized = basePrice;
+  const jobDates = (Array.isArray(pendingBookingData.job_date)
+    ? pendingBookingData.job_date
+    : String(pendingBookingData.job_date || '').split(','))
+    .map((d) => String(d).trim())
+    .filter(Boolean);
 
   return (
     <div className="min-h-screen bg-gray-50/50 font-sans antialiased">
@@ -216,11 +250,11 @@ export default function PaymentPage() {
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
         <div className="max-w-2xl mx-auto">
 
-          {/* Progress Bar - Step 4 of 4 */}
+          {/* Progress Bar - Payment */}
           <div className="mb-4 sm:mb-6 md:mb-8">
             <div className="flex items-center justify-between mb-2 sm:mb-3">
               <span className="text-[10px] sm:text-xs font-bold text-green-700 bg-green-100 px-2 sm:px-4 py-1 sm:py-1.5 rounded-full">
-                STEP 4 OF 4
+                PAYMENT
               </span>
               <span className="text-[10px] sm:text-xs text-gray-500 font-medium">Authorize & Confirm</span>
             </div>
@@ -255,11 +289,9 @@ export default function PaymentPage() {
                   <div className="flex justify-between gap-2">
                     <span className="text-gray-600">Dates:</span>
                     <span className="font-medium text-right flex flex-col items-end text-xs sm:text-sm">
-                      {Array.isArray(pendingBookingData.job_date) 
-                        ? pendingBookingData.job_date.map(d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })).join(', ')
-                        : (pendingBookingData.job_date?.includes(',') 
-                            ? pendingBookingData.job_date.split(',').map(d => new Date(d.trim()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })).join(', ')
-                            : new Date(pendingBookingData.job_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))}
+                      {jobDates.map((d, i) => (
+                        <span key={`${d}-${i}`}>{dayLabel(d, 'long')}</span>
+                      ))}
                     </span>
                   </div>
                   <div className="flex justify-between gap-2">
@@ -268,23 +300,20 @@ export default function PaymentPage() {
                   </div>
 
                   <div className="pt-2 border-t border-gray-200">
-                    <div className="flex justify-between gap-2">
-                      <span className="text-gray-600">Base rate:</span>
-                      <span className="font-bold text-gray-900">${basePrice.toFixed(2)}</span>
-                    </div>
-
-                    {hourlyRate > 0 && (
+                    {overtimeRate !== null && (
                       <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <p className="text-xs sm:text-sm font-medium text-blue-800">
-                          ⏱️ Overtime: ${hourlyRate.toFixed(2)}/hr (Billed separately if used)
+                          ⏱️ Overtime: {cad.format(overtimeRate)}/hr (Billed separately if used)
                         </p>
                       </div>
                     )}
 
-                    <div className="flex justify-between pt-2 sm:pt-3 mt-2 border-t border-gray-300">
-                      <span className="font-bold text-gray-900 text-xs sm:text-sm">Total Pay Now:</span>
-                      <span className="font-bold text-green-700 text-base sm:text-lg md:text-xl">${totalAuthorized.toFixed(2)}</span>
-                    </div>
+                    {heldAmount !== null && (
+                      <div className="flex justify-between pt-2 sm:pt-3 mt-2 border-t border-gray-300">
+                        <span className="font-bold text-gray-900 text-xs sm:text-sm">Amount held on your card</span>
+                        <span className="font-bold text-green-700 text-base sm:text-lg md:text-xl">{cad.format(heldAmount)}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -292,16 +321,44 @@ export default function PaymentPage() {
               {/* Payment Element */}
               {fetchingIntent ? (
                 <div className="flex flex-col items-center py-8 gap-3">
-                  <div className="animate-spin rounded-full h-10 w-10 border-4 border-green-500 border-t-transparent"></div>
+                  <div className="motion-safe:animate-spin rounded-full h-10 w-10 border-4 border-green-500 border-t-transparent"></div>
                   <p className="text-sm text-gray-500">Setting up payment...</p>
                 </div>
               ) : intentError ? (
-                <div className="text-center py-6">
-                  <p className="text-red-600 text-sm mb-4">{intentError}</p>
-                  <button
-                    onClick={() => router.push('/booking/confirm')}
-                    className="inline-block bg-gray-200 text-gray-800 px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-gray-300 transition"
-                  >← Go Back</button>
+                <div role="alert" className="text-center py-6">
+                  {intentError.kind === 'session' ? (
+                    <>
+                      <p className="text-red-600 text-sm mb-4">Your session has expired. Please sign in again to finish your booking.</p>
+                      <Link
+                        href="/login?redirect=/booking/payment"
+                        className="inline-block bg-green-700 text-white px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-green-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
+                      >Log In</Link>
+                    </>
+                  ) : intentError.kind === 'answers' ? (
+                    <>
+                      <p className="text-red-600 text-sm mb-4">{intentError.message}</p>
+                      <Link
+                        href={`/booking/schedule?service=${encodeURIComponent(pendingBookingData.service_id)}&step=1`}
+                        className="inline-block bg-green-700 text-white px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-green-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
+                      >Change your answers</Link>
+                    </>
+                  ) : intentError.kind === 'unavailable' ? (
+                    <>
+                      <p className="text-red-600 text-sm mb-4">This service isn&apos;t available for booking right now.</p>
+                      <Link
+                        href="/services"
+                        className="inline-block bg-green-700 text-white px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-green-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
+                      >Browse services</Link>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-red-600 text-sm mb-4">Could not initialize payment. Please go back and try again.</p>
+                      <button
+                        onClick={() => router.push('/booking/confirm')}
+                        className="inline-block bg-gray-200 text-gray-800 px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-gray-300 transition"
+                      >← Go Back</button>
+                    </>
+                  )}
                 </div>
               ) : clientSecret ? (
                 <Elements stripe={stripePromise} options={{ 
@@ -313,6 +370,7 @@ export default function PaymentPage() {
                     pendingBookingData={pendingBookingData}
                     clientSecret={clientSecret}
                     onSuccess={handlePaymentSuccess}
+                    onBack={() => router.push('/booking/confirm')}
                   />
                 </Elements>
               ) : null}

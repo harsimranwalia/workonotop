@@ -6,13 +6,16 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CustomerAuthModal from '@/components/CustomerAuthModal';
+import PriceBox from '@/components/booking/PriceBox';
+import { dayLabel } from '@/lib/booking-answers';
+import { useLivePrice } from '@/lib/use-live-price';
+import { checkWhenAndWhere } from '@/lib/when-and-where';
 import { useAuth } from 'src/context/AuthContext';
 
 export default function BookingConfirmPage() {
   const router = useRouter();
   const { user, login } = useAuth();
-  const [scheduleData, setScheduleData] = useState(null);
-  const [detailsData, setDetailsData] = useState(null);
+  const [flow, setFlow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -31,14 +34,22 @@ export default function BookingConfirmPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const savedSchedule = sessionStorage.getItem('bookingSchedule');
-    const savedDetails = sessionStorage.getItem('bookingDetails');
+    let saved = null;
+    try {
+      saved = JSON.parse(sessionStorage.getItem('bookingFlow') || 'null');
+    } catch (error) {
+      console.error('The stored booking flow could not be read:', error);
+    }
 
-    if (savedSchedule && savedDetails) {
-      setScheduleData(JSON.parse(savedSchedule));
-      const details = JSON.parse(savedDetails);
-      setDetailsData(details);
-      if (details.address) setAddress(details.address);
+    if (saved && saved.service_id && saved.schedule && saved.details) {
+      // A booking goes on to the payment step only when its step-4 answers pass today's checks: the flow page keeps what is on screen, and that may be a step left half done.
+      const hasDates = Array.isArray(saved.schedule.job_date) && saved.schedule.job_date.length > 0;
+      if (!hasDates || checkWhenAndWhere(saved.whenAndWhere)) {
+        router.push(`/booking/schedule?service=${encodeURIComponent(saved.service_id)}&step=4`);
+        return;
+      }
+      setFlow(saved);
+      if (saved.details.address) setAddress(saved.details.address);
       
       const locName = sessionStorage.getItem('selectedLocationName');
       const userCity = sessionStorage.getItem('userCity');
@@ -62,6 +73,10 @@ export default function BookingConfirmPage() {
     setLoading(false);
   }, [router, user]);
 
+  const answers = flow && flow.answers && typeof flow.answers === 'object' ? flow.answers : {};
+  const live = useLivePrice(flow ? flow.service_id : null, answers);
+  const canProceed = live.status === 'priced' && acceptTerms && !submitting;
+
   // ✅ NO booking creation here — just save to session and redirect to payment
   const handleProceedToPayment = async (e) => {
     e.preventDefault();
@@ -69,58 +84,39 @@ export default function BookingConfirmPage() {
       router.push('/login?redirect=/booking/confirm'); 
       return; 
     }
-    if (submitting) return;
+    if (!canProceed) return;
     setSubmitting(true);
 
+    const { schedule, details } = flow;
+    // The booking carries the answers its price was worked out for; the hold and the booking are priced from them on the server.
     const pendingBookingData = {
-      service_id: scheduleData.service_id,
-      service_name: scheduleData.service_name,
-      service_price: scheduleData.service_price,
-      additional_price: scheduleData.additional_price || 0,
+      service_id: flow.service_id,
+      service_name: flow.service_name,
       first_name: firstName,
       last_name: lastName,
       email: email,
       phone: phone,
-      job_date: Array.isArray(scheduleData.job_date) ? scheduleData.job_date.join(',') : scheduleData.job_date,
-      job_time_slot: scheduleData.job_time_slot,
-      timing_constraints: scheduleData.timing_constraints || '',
-      job_description: detailsData.job_description,
-      instructions: detailsData.instructions || '',
-      parking_access: detailsData.parking_access || false,
-      elevator_access: detailsData.elevator_access || false,
-      has_pets: detailsData.has_pets || false,
+      job_date: Array.isArray(schedule.job_date) ? schedule.job_date.join(',') : schedule.job_date,
+      job_time_slot: schedule.job_time_slot,
+      timing_constraints: schedule.timing_constraints || '',
+      job_description: details.job_description,
+      instructions: details.instructions || '',
+      parking_access: details.parking_access || false,
+      elevator_access: details.elevator_access || false,
+      has_pets: details.has_pets || false,
       address_line1: address,
       address_line2: '',
       city: city,
       postal_code: postalCode,
       latitude: lat,
       longitude: lng,
-      photos: detailsData.photos || [],
+      photos: details.photos || [],
       user_id: currentUser?.id,
+      answers,
     };
 
-    try {
-      const res = await fetch('/api/payment/create-intent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          service_id: scheduleData.service_id,
-          service_price: scheduleData.service_price,
-          additional_price: scheduleData.additional_price || 0,
-          service_name: scheduleData.service_name,
-        }),
-      });
-      const data = await res.json();
-      if (data.success && data.client_secret) {
-        sessionStorage.setItem('prefetchedClientSecret', data.client_secret);
-      }
-    } catch (err) {
-      console.error('Prefetch intent error:', err);
-    }
-
     sessionStorage.setItem('pendingBooking', JSON.stringify(pendingBookingData));
-    sessionStorage.removeItem('bookingSchedule');
-    sessionStorage.removeItem('bookingDetails');
+    sessionStorage.removeItem('prefetchedClientSecret');
 
     router.push('/booking/payment');
   };
@@ -173,18 +169,17 @@ export default function BookingConfirmPage() {
     finally { setSubmitting(false); }
   };
 
-  if (loading || !scheduleData || !detailsData) {
+  if (loading || !flow) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-green-500 border-t-transparent"></div>
+        <div className="motion-safe:animate-spin rounded-full h-12 w-12 border-4 border-green-500 border-t-transparent"></div>
       </div>
     );
   }
 
-  const formatDate = (dateStr) => {
-    const d = new Date(dateStr.trim());
-    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  };
+  const jobDates = flow.schedule.job_date;
+  const savedTimes = flow.whenAndWhere && flow.whenAndWhere.selectedTimes;
+  const times = savedTimes && typeof savedTimes === 'object' ? savedTimes : {};
 
   return (
     <div className="min-h-screen bg-gray-50/50 font-sans antialiased">
@@ -193,11 +188,11 @@ export default function BookingConfirmPage() {
       <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 md:py-12">
         <div className="max-w-6xl mx-auto">
 
-          {/* Progress Bar - Step 3 of 4 */}
+          {/* Progress Bar */}
           <div className="mb-6 sm:mb-8 md:mb-12">
             <div className="flex items-center justify-between mb-2 sm:mb-3">
               <span className="text-xs sm:text-sm md:text-base font-bold text-green-700 bg-green-100 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full">
-                STEP 3 OF 4
+                REVIEW
               </span>
               <span className="text-xs sm:text-sm text-gray-500 font-medium">Almost there!</span>
             </div>
@@ -208,9 +203,9 @@ export default function BookingConfirmPage() {
               <div className="flex justify-between mt-1 sm:mt-2">
                 {['Schedule', 'Details', 'Confirm', 'Payment'].map((step, i) => (
                   <div key={step} className="flex items-center">
-                    <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold
+                    <div aria-hidden="true" className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold
                       ${i < 3 ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-500'}`}>
-                      {i < 2 ? '✓' : i + 1}
+                      {i < 2 ? '✓' : ''}
                     </div>
                     <span className={`ml-1 sm:ml-2 text-[10px] sm:text-xs md:text-sm font-semibold ${i < 3 ? 'text-green-700' : 'text-gray-400'}`}>
                       {step}
@@ -268,9 +263,9 @@ export default function BookingConfirmPage() {
                         <div className="flex justify-between gap-2">
                           <span className="text-gray-600 text-xs sm:text-sm">Dates:</span>
                           <span className="font-medium text-right text-xs sm:text-sm flex flex-col items-end">
-                            {Array.isArray(scheduleData.job_date) 
-                              ? scheduleData.job_date.map(d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })).join(', ')
-                              : scheduleData.job_date.split(',').map(d => new Date(d.trim()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })).join(', ')}
+                            {jobDates.map((date) => (
+                              <span key={date}>{dayLabel(date, 'long')}</span>
+                            ))}
                           </span>
                         </div>
                         <div className="flex items-start gap-2 mt-3">
@@ -304,16 +299,16 @@ export default function BookingConfirmPage() {
                       {/* CTA Button */}
                       <button
                         onClick={handleProceedToPayment}
-                        disabled={submitting || !acceptTerms}
+                        disabled={!canProceed}
                         className={`w-full py-3 sm:py-4 rounded-lg sm:rounded-xl font-bold text-base sm:text-lg shadow-lg
                           flex items-center justify-center transition-all duration-300
-                          ${submitting || !acceptTerms
-                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-green-700 to-green-600 text-white hover:from-green-800 hover:to-green-700 hover:scale-[1.02]'}`}
+                          ${!canProceed
+                            ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-green-700 to-green-600 text-white hover:from-green-800 hover:to-green-700 motion-safe:hover:scale-[1.02]'}`}
                       >
                         {submitting ? (
                           <>
-                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <svg aria-hidden="true" className="motion-safe:animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
@@ -353,50 +348,24 @@ export default function BookingConfirmPage() {
             {/* Sidebar */}
             <div className="lg:col-span-1">
               <div className="sticky top-24 space-y-4 sm:space-y-6">
-                <div className="bg-white rounded-xl sm:rounded-2xl border-2 border-green-100 overflow-hidden shadow-xl">
-                  <div className="bg-gradient-to-r from-green-800 to-green-700 px-4 sm:px-6 py-4 sm:py-5">
-                    <h3 className="text-lg sm:text-xl font-bold text-white flex items-center">
-                      <span className="mr-2">📋</span> Your booking
-                    </h3>
-                  </div>
-                  <div className="p-4 sm:p-6">
-                    <div className="flex items-start space-x-2 sm:space-x-3 mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-gray-200">
-                      <div className="bg-green-100 rounded-lg sm:rounded-xl p-2 sm:p-3">
-                        <span className="text-xl sm:text-2xl">🔧</span>
-                      </div>
-                      <h4 className="font-bold text-gray-900 text-sm sm:text-base">{scheduleData.service_name}</h4>
-                    </div>
-                    <div className="mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-gray-200">
-                      <div className="flex items-center mb-2 flex-wrap gap-1">
-                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-700 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                        </svg>
-                        <span className="font-semibold text-gray-800 text-xs sm:text-sm">
-                          {Array.isArray(scheduleData.job_date) 
-                            ? scheduleData.job_date.map(formatDate).join(' • ')
-                            : scheduleData.job_date.split(',').map(formatDate).join(' • ')}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-1 sm:gap-2 mt-2">
-                        {scheduleData.job_time_slot?.map((time) => (
-                          <span key={time} className="px-2 sm:px-3 py-0.5 sm:py-1 bg-green-700 text-white text-xs font-medium rounded-full capitalize">{time}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-gray-200">
-                      <div className="flex items-start">
-                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-700 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                        </svg>
-                        <div>
-                          <p className="text-xs sm:text-sm text-gray-700 font-medium mb-1">Service Location</p>
-                          <p className="text-xs text-gray-600">{address}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center text-sm sm:text-base">
-                      <span className="text-gray-700">Service price</span>
-                      <span className="font-bold text-gray-900">${parseFloat(scheduleData.service_price).toFixed(2)}</span>
+                <div className="rounded-xl border-2 border-green-100 overflow-hidden shadow-lg lg:rounded-none lg:border-0 lg:shadow-none lg:overflow-visible">
+                  <PriceBox
+                    live={live}
+                    serviceName={flow.service_name}
+                    firstDate={jobDates.length > 1 ? jobDates[0] : null}
+                    dates={jobDates}
+                    times={times}
+                  />
+                </div>
+
+                <div className="bg-white rounded-xl sm:rounded-2xl border-2 border-green-100 shadow-lg p-4 sm:p-6">
+                  <div className="flex items-start">
+                    <svg aria-hidden="true" className="w-4 h-4 sm:w-5 sm:h-5 text-green-700 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                    </svg>
+                    <div>
+                      <p className="text-xs sm:text-sm text-gray-700 font-medium mb-1">Service Location</p>
+                      <p className="text-xs text-gray-600">{address}</p>
                     </div>
                   </div>
                 </div>

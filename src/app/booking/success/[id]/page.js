@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
+import { paymentStatusText } from '@/lib/payment-status-text';
 import { useAuth } from 'src/context/AuthContext';
 
 export default function BookingSuccessPage({ params }) {
@@ -112,6 +113,7 @@ export default function BookingSuccessPage({ params }) {
   const basePrice   = parseFloat(booking.service_price   || 0);
   const hourlyRate  = parseFloat(booking.additional_price || 0);
   const totalPaid   = basePrice;
+  const paymentText = paymentStatusText(booking.payment_status);
 
   return (
     <div className="min-h-screen bg-[#f5f4f0] font-sans antialiased">
@@ -207,11 +209,11 @@ export default function BookingSuccessPage({ params }) {
                   <span className="text-sm font-bold text-gray-900">${basePrice.toFixed(2)}</span>
                 </div>
 
-                {/* Held total */}
+                {/* Total */}
                 <div className="flex justify-between items-center pt-3 pb-1">
                   <div>
-                    <p className="text-sm font-semibold text-gray-800">Total held</p>
-                    <p className="text-xs text-gray-400">Your card is held and is charged when the job is done</p>
+                    <p className="text-sm font-semibold text-gray-800">{paymentText.totalLabel}</p>
+                    <p className="text-xs text-gray-400">{paymentText.totalNote}</p>
                   </div>
                   <span className="text-xl font-extrabold text-green-700">${totalPaid.toFixed(2)}</span>
                 </div>
