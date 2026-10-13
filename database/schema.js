@@ -249,6 +249,7 @@ const tables = [
     INDEX idx_job_date (job_date),
     INDEX idx_customer_email (customer_email),
     INDEX idx_payment_intent (payment_intent_id),
+    UNIQUE INDEX uq_bookings_payment_intent (payment_intent_id),
     INDEX idx_payment_status (payment_status),
     INDEX idx_stripe_customer (stripe_customer_id),
     INDEX idx_job_timer_status (job_timer_status)
@@ -690,6 +691,11 @@ const alterations = [
     sql: 'ALTER TABLE users ADD UNIQUE INDEX phone_unique (phone)',
     type: 'unique'
   },
+  // One payment is attached to one booking (migration 0002). The tables entry creates the index on a fresh install; on an
+  // existing database this entry adds it, or only warns and carries on if two bookings share an id, so there the migration is
+  // applied by hand.
+  { table: 'bookings', column: 'uq_bookings_payment_intent', sql: 'ALTER TABLE bookings ADD UNIQUE INDEX uq_bookings_payment_intent (payment_intent_id)', type: 'unique' },
+
   // service_categories table additions
   { table: 'service_categories', column: 'image_url', sql: 'ALTER TABLE service_categories ADD COLUMN image_url VARCHAR(255) AFTER icon' },
   

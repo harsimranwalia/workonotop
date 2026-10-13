@@ -393,7 +393,7 @@ export default function CustomerBookingDetails() {
                   </div>
                   
                   <div className="flex justify-between font-bold pt-2 mt-2 border-t text-red-600">
-                    <span>Already Paid (Base Price):</span>
+                    <span>{booking.payment_status === 'authorized' ? 'Held on your card (base price):' : 'Already Paid (Base Price):'}</span>
                     <span>-{fmt(originalBasePrice)}</span>
                   </div>
                   <div className="flex justify-between font-bold pt-2 mt-1 border-t text-teal-700 text-sm">
@@ -623,7 +623,7 @@ export default function CustomerBookingDetails() {
                       <div className="min-w-0">
                         <p className="text-teal-100 text-xs font-bold uppercase tracking-wider truncate">Final Amount</p>
                         <p className="text-white text-[10px] mt-0.5 font-medium opacity-80 leading-tight">
-                          {booking.status === 'completed' ? 'Paid in full' : 'Base amount charged'}
+                          {booking.status === 'completed' ? 'Paid in full' : booking.payment_status === 'authorized' ? 'Held on your card; charged when the job is done' : 'Base amount charged'}
                         </p>
                       </div>
                       <span className="text-2xl sm:text-3xl font-black text-white shrink-0">{fmt(customerTotal)}</span>
@@ -684,7 +684,7 @@ export default function CustomerBookingDetails() {
                 <span>{fmt(basePrice)}</span>
               </div>
               <div className="flex justify-between text-sm mb-2 text-red-600 font-bold border-t pt-3">
-                <span>Already Paid (Base Price):</span>
+                <span>{booking.payment_status === 'authorized' ? 'Held on your card (base price):' : 'Already Paid (Base Price):'}</span>
                 <span>-{fmt(originalBasePrice)}</span>
               </div>
               <div className="border-t pt-3 mt-1 flex justify-between">

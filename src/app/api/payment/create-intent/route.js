@@ -8,6 +8,7 @@ import Stripe from 'stripe';
 import { requireCaller } from '@/lib/api-auth';
 import { catalogPrice } from '@/lib/booking-price';
 import { loadPricing, priceJob, refusalOf } from '@/lib/pricing-rules';
+import { paymentAmountCents } from '@/lib/booking-payment';
 
 // Null without a key (as bookings/route.js and stripe/webhook/route.js build theirs): a missing key used to make this module throw
 // while it loaded, so the guard below could never answer anyone in an environment without STRIPE_SECRET_KEY.
@@ -41,6 +42,20 @@ export async function POST(request) {
     }
     const catalog = catalogPrice(serviceRow);
 
+    // The bounds refusal comes before any Stripe work, so a price a card payment cannot take is a clean 400 even with no
+    // key configured (the dev stack runs without one).
+    const basePrice = job.price;
+    const bounds = paymentAmountCents(basePrice);
+    if (!bounds.ok) {
+      return NextResponse.json({
+        success: false,
+        message: bounds.reason === 'below_minimum'
+          ? 'The price for these answers is below the smallest amount a card payment can take'
+          : 'The price for these answers is larger than a card payment can take',
+        field: 'answers',
+      }, { status: 400 });
+    }
+
     // ── Check or Create Stripe Customer ──────────────────────────────────────────
     const users = await execute('SELECT id, email, first_name, last_name, stripe_customer_id FROM users WHERE id = ?', [caller.id]);
     if (!users || users.length === 0) {
@@ -62,29 +77,31 @@ export async function POST(request) {
       await execute('UPDATE users SET stripe_customer_id = ? WHERE id = ?', [stripeCustomerId, user.id]);
     }
 
-    const basePrice = job.price;
     const hourlyRate = catalog.rate;
     const maxOvertimeCost = 0; // Removed the 2hr hold as per new split payment logic
     const totalAmount = basePrice;
-    const amountInCents = Math.round(totalAmount * 100);
+    const amountInCents = bounds.cents;
 
     // Service duration (metadata ke liye): the quoted minutes of these answers
     const standardDuration = job.minutes;
 
-    // ✅ capture_method: automatic — charge immediately
-    // 💳 setup_future_usage: 'off_session' — Save the card on the customer for later payments
+    // The card is held for the price and charged when the job is done. The card is saved on the customer so the booking
+    // can be charged if the hold expires before then.
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
-      currency: process.env.STRIPE_CURRENCY || 'cad', 
+      currency: process.env.STRIPE_CURRENCY || 'cad',
       customer: stripeCustomerId,
       description: `Authorization for: ${serviceRow.name || 'Service Booking'}`,
+      capture_method: 'manual',
       setup_future_usage: 'off_session',
-      automatic_payment_methods: { 
+      automatic_payment_methods: {
         enabled: true,
-        allow_redirects: 'always' 
+        allow_redirects: 'always'
       },
       metadata: {
         service_name: serviceRow.name || '',
+        service_id: String(serviceRow.id || service_id || ''),
+        quoted_price: basePrice.toFixed(2),
         base_price: basePrice.toFixed(2),
         overtime_rate: hourlyRate.toFixed(2),
         standard_duration: standardDuration.toString(),

@@ -107,7 +107,7 @@ async function rowAsAdmin(request, as, id) {
     return (await response.json()).data;
 }
 
-const UNTOUCHED = { status: 'pending', payment_status: 'authorized', provider_id: null };
+const UNTOUCHED = { status: 'pending', payment_status: 'pending', provider_id: null };
 function expectUntouched(row, who) {
     expect(row, `${who}: the probe booking is still there`).not.toBeNull();
     for (const [column, value] of Object.entries(UNTOUCHED)) {

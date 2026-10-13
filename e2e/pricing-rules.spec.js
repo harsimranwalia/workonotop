@@ -779,17 +779,17 @@ test.describe('Pricing rules', () => {
     test('a booking records the price and the quoted minutes its answers produce', async ({ request, baseURL }) => {
         const as = await headersFor(baseURL);
 
-        // Two bedrooms and one bathroom on a Wednesday: 135.00 and 200 minutes. The amount held on the card is the price and two hours at the
-        // service's hourly rate of 40.00: 215.00. The answer says what was recorded, the row holds it, and the breakdown holds the three lines.
+        // Two bedrooms and one bathroom on a Wednesday: 135.00 and 200 minutes. With no payment key on the dev stack nothing is held, so the
+        // held amount is null in the answer and the row. The answer says what was recorded, the row holds it, and the breakdown holds the three lines.
         await withBooking(request, as, { job_date: WEDNESDAY, answers: twoAndOne() }, async (id, answer) => {
             expect(answer.service_price, 'the answer: the price recorded').toBe(135);
             expect(answer.standard_duration, 'the answer: the standard duration').toBe(200);
             expect(answer.quoted_minutes, 'the answer: the quoted minutes').toBe(200);
-            expect(answer.authorized_amount, 'the answer: the amount held on the card').toBe(215);
+            expect(answer.authorized_amount, 'the answer: nothing is held without a payment key').toBeNull();
             const stored = await storedBooking(id);
             expect(Number(stored.service_price), 'the stored price').toBe(135);
             expect(Number(stored.standard_duration_minutes), 'the stored quoted minutes').toBe(200);
-            expect(Number(stored.authorized_amount), 'the stored amount held on the card').toBe(215);
+            expect(stored.authorized_amount, 'the stored held amount is null').toBeNull();
             expect(linesOf(stored), 'the stored breakdown: a base line and two unit lines').toEqual([
                 { kind: 'base', code: 'base', quantity: 1, amount: '80.00', minutes: 120 },
                 { kind: 'unit', code: 'bedrooms', quantity: 2, amount: '40.00', minutes: 60 },
@@ -798,11 +798,11 @@ test.describe('Pricing rules', () => {
         });
 
         // Several dates: the booking's first date prices it. The date inside the answers (the Wednesday) is not read here, so the Saturday adds
-        // its 30.00: 165.00 and the same 200 minutes, 245.00 on the card, and a weekend line.
+        // its 30.00: 165.00 and the same 200 minutes, and a weekend line.
         await withBooking(request, as, { job_date: `${SATURDAY},${WEDNESDAY}`, answers: twoAndOne({ date: WEDNESDAY }) }, async (id, answer) => {
             expect(answer.service_price, 'several dates, the first a Saturday: the price recorded').toBe(165);
             expect(answer.quoted_minutes, 'several dates, the first a Saturday: the quoted minutes').toBe(200);
-            expect(answer.authorized_amount, 'several dates, the first a Saturday: the amount held on the card').toBe(245);
+            expect(answer.authorized_amount, 'several dates, the first a Saturday: nothing is held without a payment key').toBeNull();
             const stored = await storedBooking(id);
             expect(Number(stored.service_price), 'several dates, the first a Saturday: the stored price').toBe(165);
             expect(linesOf(stored).map((line) => line.code), 'several dates, the first a Saturday: the stored lines').toEqual(['base', 'bedrooms', 'bathrooms', 'weekend']);
@@ -830,13 +830,14 @@ test.describe('Pricing rules', () => {
             expect(answer.quoted_minutes, 'an empty answers object, a first date that is not a day: the quoted minutes').toBe(120);
         });
 
-        // The amount held on the card is a decimal(10,2) too. 2,857,139 ovens at 35.00 with the base are 99,999,945.00, which the rule prices;
-        // with the two hours at 40.00 on top the card would hold 100,000,025.00, so the booking is refused before anything is written.
-        const oversize = checkoutBody({ answers: { extras: [{ code: 'oven', quantity: 2_857_139 }] } });
+        // A card payment takes at most 99,999,999 in the smallest unit (999,999.99). 28,572 ovens at 35.00 with the base are
+        // 1,000,100.00, which the rule prices and a booking's column holds but no card payment can take, so the booking
+        // is refused before anything is written.
+        const oversize = checkoutBody({ answers: { extras: [{ code: 'oven', quantity: 28_572 }] } });
         try {
             const refused = await postCheckout(request, oversize);
-            expect(refused.status(), 'a price whose card amount is larger than a booking can record is refused').toBe(400);
-            expect(await refused.json(), 'a price whose card amount is larger than a booking can record').toEqual({ success: false, message: 'The price for these answers is larger than a booking can record', field: 'answers' });
+            expect(refused.status(), 'a price whose card amount is larger than a card payment can take is refused').toBe(400);
+            expect(await refused.json(), 'a price whose card amount is larger than a card payment can take').toEqual({ success: false, message: 'The price for these answers is larger than a card payment can take', field: 'answers' });
             expect(await rows('SELECT id FROM bookings WHERE customer_email = ?', [oversize.email]), 'the refused booking wrote nothing').toEqual([]);
         } finally {
             for (const { id } of await rows('SELECT id FROM bookings WHERE customer_email = ?', [oversize.email])) await deleteBooking(request, as, id);
@@ -924,13 +925,13 @@ test.describe('Pricing rules', () => {
     test('a booking an admin makes is priced by the rule from its answers', async ({ request, baseURL }) => {
         const as = await headersFor(baseURL);
         // Twelve bedrooms, six bathrooms, deep, a house and three ovens on a Wednesday, booked with the admin's credential and a price of 1 in the
-        // body: 80 + 12 x 20 + 6 x 15 + 60 + 25 + 3 x 35 = 600.00, and 120 + 12 x 30 + 6 x 20 + 60 + 30 + 3 x 30 = 780 minutes. The amount held
-        // on the card is 600.00 and two hours at 40.00: 680.00.
+        // body: 80 + 12 x 20 + 6 x 15 + 60 + 25 + 3 x 35 = 600.00, and 120 + 12 x 30 + 6 x 20 + 60 + 30 + 3 x 30 = 780 minutes. With no payment key
+        // on the dev stack nothing is held.
         const answers = { units: { bedrooms: 12, bathrooms: 6 }, option: 'deep', property_type: 'house', extras: [{ code: 'oven', quantity: 3 }] };
         await withBooking(request, as, { job_date: WEDNESDAY, answers, service_price: 1 }, async (id, answer) => {
             expect(answer.service_price, "the answer: the rule's price").toBe(600);
             expect(answer.quoted_minutes, "the answer: the rule's quoted minutes").toBe(780);
-            expect(answer.authorized_amount, 'the answer: the amount held on the card').toBe(680);
+            expect(answer.authorized_amount, 'the answer: nothing is held without a payment key').toBeNull();
             const stored = await storedBooking(id);
             expect(Number(stored.service_price), "the stored price is the rule's").toBe(600);
             expect(Number(stored.standard_duration_minutes), "the stored quoted minutes are the rule's").toBe(780);

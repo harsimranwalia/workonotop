@@ -1,14 +1,15 @@
 // app/api/customer/bookings/[id]/approve/route.js
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { withConnection } from '@/lib/db'
+import { execute, withConnection } from '@/lib/db'
 import { requireCaller } from '@/lib/api-auth'
 import { sendEmail } from '@/lib/email'
 import { notifyUser } from '@/lib/push'
 import { logActivity } from '@/lib/logger'
 import { providerPayout } from '@/lib/booking-price'
+import { collectBookingPayment } from '@/lib/booking-payment'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock', { apiVersion: '2026-05-27.dahlia' })
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-05-27.dahlia' }) : null
 
 // ── Receipt email ─────────────────────────────────────────────────────────────
 function receiptHtml({ bookingNumber, serviceName, customerName, providerName, amount, isCustomer, jobDate }) {
@@ -156,42 +157,90 @@ export async function POST(request, { params }) {
   }
 
   try {
+    // The booking is read on the pool and the payment is taken with no connection held: collectBookingPayment's save and read
+    // callbacks take their own connections from the pool, so a connection held by this request never waits for another. The
+    // transaction below records the result.
+    // ── Fetch booking ──────────────────────────────────────────────────
+    const [booking] = await execute(`
+      SELECT 
+        b.*,
+        sp.stripe_account_id,
+        sp.name            AS provider_name,
+        sp.email           AS provider_email,
+        sp.stripe_onboarding_complete,
+        u.phone AS customer_phone,
+        COALESCE(s.duration_minutes, b.standard_duration_minutes, 60) AS standard_mins
+      FROM bookings b
+      LEFT JOIN service_providers sp ON b.provider_id = sp.id
+      LEFT JOIN services          s  ON b.service_id  = s.id
+      LEFT JOIN users             u  ON b.user_id     = u.id
+      WHERE b.id = ? AND b.user_id = ?
+    `, [id, caller.id])
+
+    if (!booking) {
+      // A booking that exists but is not the caller's own is a 403, never the 404 below; one that does not exist keeps the 404.
+      const [existing] = await execute('SELECT id FROM bookings WHERE id = ?', [id])
+      if (existing) {
+        return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
+      }
+      return NextResponse.json({ success: false, message: 'Booking not found' }, { status: 404 })
+    }
+
+    if (booking.status !== 'awaiting_approval') {
+      return NextResponse.json({
+        success: false,
+        message: `Booking status is '${booking.status}', expected 'awaiting_approval'`
+      }, { status: 400 })
+    }
+
+    // ── The one charge, for the recorded price ───────────────────────
+    let collected = null
+    if (action === 'approve') {
+      if (!booking.payment_intent_id) {
+        return NextResponse.json({ success: false, message: 'No payment intent found' }, { status: 400 })
+      }
+
+      collected = await collectBookingPayment(stripe, booking, {
+        currency: process.env.STRIPE_CURRENCY || 'cad',
+        // These two run on the pool and this request holds no connection while they do: a charge saved on the booking stays
+        // saved whatever this request does next.
+        saveIntentId: async (newId, oldId) => {
+          const result = await execute(
+            'UPDATE bookings SET payment_intent_id = ? WHERE id = ? AND payment_intent_id = ?',
+            [newId, id, oldId]
+          )
+          return result.affectedRows > 0
+        },
+        readIntentId: async () => {
+          const [row] = await execute('SELECT payment_intent_id FROM bookings WHERE id = ?', [id])
+          return row ? row.payment_intent_id : null
+        },
+      })
+
+      if (!collected.ok && (collected.reason === 'unavailable' || collected.reason === 'not_configured')) {
+        return NextResponse.json({
+          success: false,
+          message: 'Payments are not available right now. Please try again shortly.'
+        }, { status: 503 })
+      }
+    }
+
     return await withConnection(async (connection) => {
       await connection.query('START TRANSACTION')
 
       try {
-        // ── Fetch booking ──────────────────────────────────────────────────
-        const [[booking]] = await connection.execute(`
-          SELECT 
-            b.*,
-            sp.stripe_account_id,
-            sp.name            AS provider_name,
-            sp.email           AS provider_email,
-            sp.stripe_onboarding_complete,
-            u.phone AS customer_phone,
-            COALESCE(s.duration_minutes, b.standard_duration_minutes, 60) AS standard_mins
-          FROM bookings b
-          LEFT JOIN service_providers sp ON b.provider_id = sp.id
-          LEFT JOIN services          s  ON b.service_id  = s.id
-          LEFT JOIN users             u  ON b.user_id     = u.id
-          WHERE b.id = ? AND b.user_id = ?
-        `, [id, caller.id])
-
-        if (!booking) {
+        // The booking is read again under a lock. A request that finished it while this one took the payment has recorded it,
+        // and this one records nothing.
+        const [[current]] = await connection.execute('SELECT status FROM bookings WHERE id = ? FOR UPDATE', [id])
+        if (!current) {
           await connection.query('ROLLBACK')
-          // A booking that exists but is not the caller's own is a 403, never the 404 below; one that does not exist keeps the 404.
-          const [[existing]] = await connection.execute('SELECT id FROM bookings WHERE id = ?', [id])
-          if (existing) {
-            return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
-          }
           return NextResponse.json({ success: false, message: 'Booking not found' }, { status: 404 })
         }
-
-        if (booking.status !== 'awaiting_approval') {
+        if (current.status !== 'awaiting_approval') {
           await connection.query('ROLLBACK')
           return NextResponse.json({
             success: false,
-            message: `Booking status is '${booking.status}', expected 'awaiting_approval'`
+            message: `Booking status is '${current.status}', expected 'awaiting_approval'`
           }, { status: 400 })
         }
 
@@ -287,45 +336,56 @@ export async function POST(request, { params }) {
         // APPROVE ACTION
         // ════════════════════════════════════════════════════════════════════
         if (action === 'approve') {
-          if (!booking.payment_intent_id) {
-            await connection.query('ROLLBACK')
-            return NextResponse.json({ success: false, message: 'No payment intent found' }, { status: 400 })
-          }
-
           // The customer is charged the booking's recorded price and the provider is paid by the payout rule (src/lib/booking-price.js).
           const finalAmount = parseFloat(booking.service_price || 0)
           const providerAmount = providerPayout(booking)
           const platformAmount = parseFloat((finalAmount - providerAmount).toFixed(2))
 
-          // ── Stripe capture ───────────────────────────────────────────────
-          try {
-            const pi = await stripe.paymentIntents.retrieve(booking.payment_intent_id)
-            const basePriceCents = Math.round(finalAmount * 100)
-            const latestCharge = pi.latest_charge
+          // The payment was taken above, ahead of the transaction.
+          if (!collected.ok) {
+            // The payment could not be taken: mark it, tell the admins, pay no one, and leave the booking at
+            // awaiting_approval (the hourly cron does not pick it up again; the customer's own approve tries again).
+            await connection.execute(
+              `UPDATE bookings SET payment_status = 'failed', updated_at = NOW() WHERE id = ?`,
+              [id]
+            )
+            await connection.execute(
+              `INSERT INTO booking_status_history (booking_id, status, notes) VALUES (?, 'payment_failed', ?)`,
+              [id, `Payment could not be taken: ${collected.reason}`]
+            )
+            await connection.query('COMMIT')
 
-            if (!latestCharge) {
-              await connection.query('ROLLBACK')
-              return NextResponse.json({ success: false, message: 'No charge available to capture.' }, { status: 400 })
-            }
-
-            if (pi.status === 'requires_capture') {
-              await stripe.paymentIntents.capture(booking.payment_intent_id, { amount_to_capture: basePriceCents })
-              console.log(`✅ Captured $${finalAmount} for booking #${id}`)
-            } else if (pi.status !== 'succeeded') {
-              await connection.query('ROLLBACK')
-              return NextResponse.json({ success: false, message: `Cannot capture — status: ${pi.status}` }, { status: 400 })
-            }
-          } catch (stripeErr) {
-            if (stripeErr.message?.includes('already been captured')) {
-              console.log('Payment already captured, continuing...')
+            const adminEmail = process.env.ADMIN_EMAIL || process.env.NEXT_PUBLIC_ADMIN_EMAIL
+            if (adminEmail) {
+              sendEmail({
+                to: adminEmail,
+                subject: `⚠️ Payment could not be taken — Booking #${booking.booking_number}`,
+                html: `<p>The payment for booking <strong>#${booking.booking_number}</strong> could not be taken (${collected.reason}). No payout was made. Please contact the customer.</p>`,
+                text: `The payment for booking #${booking.booking_number} could not be taken (${collected.reason}). No payout was made.`
+              }).catch(e => console.error('Admin payment-failed email error:', e))
             } else {
-              await connection.query('ROLLBACK')
-              return NextResponse.json({
-                success: false,
-                message: 'Payment capture failed: ' + stripeErr.message
-              }, { status: 400 })
+              console.warn('ADMIN_EMAIL not set: the payment-failed email was not sent')
             }
+            execute("SELECT id FROM users WHERE role = 'admin'").then(admins => {
+              admins.forEach(admin => {
+                notifyUser(admin.id, 'Payment could not be taken', `Booking #${booking.booking_number}: the payment could not be taken. No payout was made.`, { bookingId: Number(id), type: 'payment_failed' }, execute, 'admin')
+                  .catch(e => console.error('Admin payment-failed push error:', e))
+              })
+            }).catch(e => console.error('Admin payment-failed lookup error:', e))
+
+            return NextResponse.json({
+              success: false,
+              message: 'The payment for this booking could not be taken. Our team has been told and will contact you.'
+            }, { status: 402 })
           }
+
+          if (collected.overCollected) {
+            await connection.execute(
+              `INSERT INTO booking_status_history (booking_id, status, notes) VALUES (?, 'payment_review', ?)`,
+              [id, `The payment collected $${(collected.amountCents / 100).toFixed(2)} against a recorded price of $${finalAmount.toFixed(2)}; the difference is for the admin to review.`]
+            )
+          }
+          console.log(`✅ Collected $${(collected.amountCents / 100).toFixed(2)} for booking #${id}`)
 
           // ── Update booking ────────────────────────────────────────────────────────────────
           await connection.execute(
@@ -356,19 +416,20 @@ export async function POST(request, { params }) {
 
           if (hasStripe && providerCents > 0) {
             try {
-              // Note: For split payments over multiple charges, we can skip source_transaction 
-              // or handle it differently. But for now, we just transfer the amount.
+              // The provider is paid from this booking's charge (source_transaction), so every payout of that charge
+              // stays within it; the key makes a repeat of this call for the same booking and charge return the first transfer.
               const transfer = await stripe.transfers.create({
                 amount: providerCents,
                 currency: process.env.STRIPE_CURRENCY || 'cad',
                 destination: booking.stripe_account_id,
+                source_transaction: collected.chargeId,
                 metadata: {
-                  booking_id: String(id),
+                  booking_id: String(booking.id),
                   booking_number: booking.booking_number,
                   provider_id: String(booking.provider_id)
                 },
                 description: `Payment for booking #${booking.booking_number}`
-              })
+              }, { idempotencyKey: `booking-${booking.id}-transfer-${collected.chargeId}` })
               transferId = transfer.id
               console.log(`✅ Transfer ${transfer.id} → ${booking.provider_name}`)
             } catch (transferErr) {
