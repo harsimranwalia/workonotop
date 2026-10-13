@@ -344,13 +344,15 @@ export async function POST(request, { params }) {
                 html: `<p>The payment for booking <strong>#${booking.booking_number}</strong> could not be taken (${collected.reason}). No payout was made. Please contact the customer.</p>`,
                 text: `The payment for booking #${booking.booking_number} could not be taken (${collected.reason}). No payout was made.`
               }).catch(e => console.error('Admin payment-failed email error:', e))
+            } else {
+              console.warn('ADMIN_EMAIL not set: the payment-failed email was not sent')
             }
             execute("SELECT id FROM users WHERE role = 'admin'").then(admins => {
               admins.forEach(admin => {
                 notifyUser(admin.id, 'Payment could not be taken', `Booking #${booking.booking_number}: the payment could not be taken. No payout was made.`, { bookingId: Number(id), type: 'payment_failed' }, execute, 'admin')
-                  .catch(() => { })
+                  .catch(e => console.error('Admin payment-failed push error:', e))
               })
-            }).catch(() => { })
+            }).catch(e => console.error('Admin payment-failed lookup error:', e))
 
             return NextResponse.json({
               success: false,
@@ -396,7 +398,7 @@ export async function POST(request, { params }) {
           if (hasStripe && providerCents > 0) {
             try {
               // The provider is paid from this booking's charge (source_transaction), so every payout of that charge
-              // stays within it.
+              // stays within it; the key makes a repeat of this call for the same booking and charge return the first transfer.
               const transfer = await stripe.transfers.create({
                 amount: providerCents,
                 currency: process.env.STRIPE_CURRENCY || 'cad',
@@ -408,7 +410,7 @@ export async function POST(request, { params }) {
                   provider_id: String(booking.provider_id)
                 },
                 description: `Payment for booking #${booking.booking_number}`
-              })
+              }, { idempotencyKey: `booking-${id}-transfer-${collected.chargeId}` })
               transferId = transfer.id
               console.log(`✅ Transfer ${transfer.id} → ${booking.provider_name}`)
             } catch (transferErr) {

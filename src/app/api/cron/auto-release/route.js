@@ -81,13 +81,15 @@ export async function GET(request) {
             html: `<p>The payment for booking <strong>#${booking.booking_number}</strong> could not be taken (${collected.reason}). No payout was made. Please contact the customer.</p>`,
             text: `The payment for booking #${booking.booking_number} could not be taken (${collected.reason}). No payout was made.`
           }).catch(e => console.error('Admin payment-failed email error:', e))
+        } else {
+          console.warn('ADMIN_EMAIL not set: the payment-failed email was not sent')
         }
         execute("SELECT id FROM users WHERE role = 'admin'").then(admins => {
           admins.forEach(admin => {
             notifyUser(admin.id, 'Payment could not be taken', `Booking #${booking.booking_number}: the payment could not be taken. No payout was made.`, { bookingId: booking.id, type: 'payment_failed' }, execute, 'admin')
-              .catch(() => { })
+              .catch(e => console.error('Admin payment-failed push error:', e))
           })
-        }).catch(() => { })
+        }).catch(e => console.error('Admin payment-failed lookup error:', e))
 
         results.push({ booking_id: booking.id, status: 'payment_failed' })
         console.error(`❌ Booking ${booking.id}: payment could not be taken (${collected.reason})`)
@@ -107,7 +109,8 @@ export async function GET(request) {
 
       if (providerAmountCents > 0 && booking.stripe_account_id) {
         // The provider is paid from this booking's charge (source_transaction), so every payout of that charge
-        // stays within it.
+        // stays within it; the key makes the next run's repeat of this call for the same booking and charge return the first
+        // transfer.
         await stripe.transfers.create({
           amount: providerAmountCents,
           currency: process.env.STRIPE_CURRENCY || 'cad',
@@ -119,7 +122,7 @@ export async function GET(request) {
             booking_number: booking.booking_number,
             auto_release: 'true'
           }
-        })
+        }, { idempotencyKey: `booking-${booking.id}-transfer-${collected.chargeId}` })
       }
 
       await connection.execute(
