@@ -3,7 +3,8 @@
 // price of the answers on screen shown at every step. The cases drive the page through its accessible surface only (roles, labels, the
 // 'Your price' region with its price-total and price-line test ids, and the customer-facing copy) and work out every expected figure
 // themselves from the rows of database/fixtures/catalog.js (oracle() below): no figure is read from the page's own pricing responses.
-// They need no sign-in and write nothing to the database. The cases of the confirm and payment steps are appended inside the same describe.
+// The cases of the flow page need no sign-in and write nothing to the database; the confirm case signs in as a fixture customer, and the booking
+// case writes one booking row through the API and deletes it in a finally block.
 //
 // The worked figures (service 1; amounts from the catalog rows, base 80.00):
 //   bedrooms 2, bathrooms 1, house, deep clean, oven 1, fridge 2, on a weekday:
@@ -13,6 +14,10 @@
 //   by the hour, 2 h, house: 2 x 45.00 + 25.00 = 115.00.
 import { test, expect } from '@playwright/test';
 import { catalog } from '../database/fixtures/catalog.js';
+import { randomBytes } from 'node:crypto';
+import mysql from 'mysql2/promise';
+import { RESET_RETRIES, signInAs } from './support/auth.js';
+import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.js';
 
 /** @typedef {import('@playwright/test').Page} Page */
 
@@ -351,6 +356,151 @@ async function supersedeAndRelease(page, watch, picks) {
     await expect(quantityOf(page, BEDROOMS)).toHaveValue(String(count + 2));
 }
 
+// ---- the checkout: from the last step to the request that asks for the card hold ----
+// The 345.00 path: the 315.00 answers with a Saturday as the job's first date.
+const FULL_ON_SATURDAY = { ...FULL, weekend: true };
+// Typed on step 4; the description needs at least 20 characters.
+const ADDRESS = '1 Probe Street';
+const DESCRIPTION = 'A deep clean of the whole house, with the oven and the two fridges.';
+
+// One object feeds both the guard and the connection, so the guard certifies the values that get used (as database/fixtures/load.js).
+// The test command runs the app's container with --network host, so the published port 127.0.0.1:3307 is the dev database.
+const DB = { host: '127.0.0.1', port: 3307, user: 'root', password: 'root123', database: 'workontap_db' };
+
+// A connection to the dev database, opened after the guard has checked the target and the rows in it.
+async function openDatabase() {
+    assertDevTarget(DB);
+    let connection;
+    try {
+        connection = await mysql.createConnection(DB);
+    } catch (error) {
+        throw new Error(`the dev database did not accept a connection at ${DB.host}:${DB.port} (${/** @type {any} */ (error).code || 'no code'}); the test command runs the container with --network host`, { cause: error });
+    }
+    try {
+        await assertNoRealPeople(connection);
+    } catch (error) {
+        await connection.end();
+        throw error;
+    }
+    return connection;
+}
+
+// The bookings made with a payment id, as stored. A DATE column is read as text, so no time zone is involved.
+async function bookingsMadeWith(connection, paymentId) {
+    const [found] = await connection.query(
+        "SELECT id, DATE_FORMAT(job_date, '%Y-%m-%d') AS job_date, address_line1, service_price, price_breakdown, standard_duration_minutes FROM bookings WHERE payment_intent_id = ?",
+        [paymentId],
+    );
+    return /** @type {any[]} */ (found);
+}
+
+// Deletes the bookings made with a payment id and the status history and photo rows the checkout wrote for them.
+// The activity_logs and notification rows that the checkout writes about a booking stay.
+async function deleteBookingsMadeWith(connection, paymentId) {
+    for (const { id } of await bookingsMadeWith(connection, paymentId)) {
+        await connection.query('DELETE FROM booking_status_history WHERE booking_id = ?', [id]);
+        await connection.query('DELETE FROM booking_photos WHERE booking_id = ?', [id]);
+        await connection.query('DELETE FROM bookings WHERE id = ?', [id]);
+    }
+}
+
+/**
+ * Records, in the order the requests were sent, the body of each POST /api/pricing request and the JSON the server answered it with
+ * (null until the answer is in).
+ * @param {Page} page
+ */
+function recordPriced(page) {
+    /** @type {{ body: any, answer: any }[]} */
+    const priced = [];
+    /** @type {Map<any, { body: any, answer: any }>} */
+    const byRequest = new Map();
+    page.on('request', (request) => {
+        if (request.method() !== 'POST' || new URL(request.url()).pathname !== '/api/pricing') return;
+        let body = null;
+        try {
+            body = request.postDataJSON();
+        } catch {
+            body = null;
+        }
+        const entry = { body, answer: null };
+        byRequest.set(request, entry);
+        priced.push(entry);
+    });
+    page.on('response', async (response) => {
+        const entry = byRequest.get(response.request());
+        if (!entry) return;
+        try {
+            entry.answer = await response.json();
+        } catch {
+            entry.answer = null;
+        }
+    });
+    return priced;
+}
+
+/**
+ * Answers each POST /api/payment/create-intent with HTTP 500 and a failure body, as a server with no payment key does, and records the
+ * request bodies, in order.
+ * @param {Page} page
+ */
+async function refuseHold(page) {
+    /** @type {any[]} */
+    const holds = [];
+    await page.route('**/api/payment/create-intent', async (route) => {
+        let body = null;
+        try {
+            body = route.request().postDataJSON();
+        } catch {
+            body = null;
+        }
+        holds.push(body);
+        await route.fulfill({ status: 500, json: { success: false, message: 'x' } });
+    });
+    return holds;
+}
+
+/**
+ * Signs in as the fixture customer, answers service 1 with the 345.00 path (a Saturday as the first date, the morning, an address and a
+ * description) and continues from the last step to the confirm step. Answers the first date, the pricing requests the page sent (watch),
+ * the pricing exchanges (priced) and the bodies of the hold requests (holds).
+ * @param {Page} page
+ */
+async function openConfirm(page) {
+    const watch = await watchPricing(page);
+    const priced = recordPriced(page);
+    const holds = await refuseHold(page);
+    await signInAs(page, 'customer1');
+
+    await answerFullPath(page);
+    await goOn(page, WHEN_WHERE, FULL);
+    const saturday = saturdayAfter(await today(page));
+    await pickDay(page, saturday);
+    await expectPrice(page, FULL_ON_SATURDAY);
+    await page.getByRole('button', { name: startingWith('Morning') }).click();
+    await page.getByLabel('Service Address').fill(ADDRESS);
+    await page.getByRole('textbox', { name: /What do you need done/ }).fill(DESCRIPTION);
+    await expect(continueButton(page)).toBeEnabled();
+    await continueButton(page).click();
+
+    await expect(page).toHaveURL((url) => url.pathname === '/booking/confirm', { timeout: FIRST_VISIT_MS });
+    return { saturday, watch, priced, holds };
+}
+
+/**
+ * Ticks the terms on the confirm step and presses "Proceed to Payment"; the payment step then asks for the card hold, which refuseHold
+ * answers with a failure. Answers the booking the confirm step stored in sessionStorage for the payment step.
+ * @param {Page} page
+ * @param {any[]} holds the bodies that refuseHold recorded
+ */
+async function proceedToPayment(page, holds) {
+    await page.getByRole('checkbox', { name: /Terms of Service/ }).check();
+    const proceed = page.getByRole('button', { name: /Proceed to Payment/ });
+    await expect(proceed).toBeEnabled();
+    await proceed.click();
+    await expect.poll(() => holds.length, { message: 'the page asked for the card hold', timeout: FIRST_VISIT_MS }).toBeGreaterThan(0);
+    return page.evaluate(() => JSON.parse(sessionStorage.getItem('pendingBooking') ?? 'null'));
+}
+
 test.describe('Guided booking flow', () => {
     test.beforeEach(() => {
         test.setTimeout(120_000);
@@ -559,7 +709,12 @@ test.describe('Guided booking flow', () => {
         await expect(statusOf(page)).toHaveText(`Price ${money(oracle({ propertyType: 'house' }).cents)}`);
 
         const held = watch.holdNext();
-        await addOne(page, BEDROOMS).click();
+        // The change itself hides the figure: the page is read in the same task as the tap, before the quiet period is over.
+        const figuresAfterTap = await page.evaluate((label) => {
+            document.querySelector(`button[aria-label="Add one ${label}"]`).click();
+            return document.querySelectorAll('[data-testid="price-total"]').length;
+        }, BEDROOMS);
+        expect(figuresAfterTap, 'no figure in the same task as the tap').toBe(0);
         await reached(held);
 
         // The request for one bedroom is open: no total, no lines, nothing announced, and Continue is off.
@@ -775,5 +930,121 @@ test.describe('Guided booking flow', () => {
             { timeout: FIRST_VISIT_MS },
         );
         await expect(stepHeading(page, WHEN_WHERE)).toBeVisible();
+    });
+
+    test('confirm shows the price for the same answers and the hold is asked for with exactly those answers', async ({ page }) => {
+        const { saturday, watch, holds } = await openConfirm(page);
+
+        // The confirm step shows the price of the same answers.
+        await expectPrice(page, FULL_ON_SATURDAY, FIRST_VISIT_MS);
+        expect(money(oracle(FULL_ON_SATURDAY).cents), 'the worked figure of the ticket').toBe('$345.00');
+        await expect(totalOf(page)).toHaveText('$345.00');
+
+        const pending = await proceedToPayment(page, holds);
+
+        // The hold is asked for with the service and the answers of the last price request, and nothing else.
+        const answers = watch.bodies.at(-1).answers;
+        expect(answers.date, 'the last price request carries the first date').toBe(isoOf(saturday));
+        for (const hold of holds) {
+            expect(hold, 'the hold request has a JSON body').not.toBeNull();
+            expect(Object.keys(hold).sort(), 'the hold is asked for with the service and the answers').toEqual(['answers', 'service_id']);
+            expect(Number(hold.service_id), 'the service of the hold').toBe(FULL_RULE);
+            expect(hold.answers, 'the answers of the hold are the answers of the last price request').toEqual(answers);
+        }
+
+        // The booking kept for the payment step holds the answers and no money number.
+        expect(pending, 'the confirm step stored the booking').not.toBeNull();
+        expect(Object.keys(pending), 'no service price is stored').not.toContain('service_price');
+        expect(Object.keys(pending), 'no additional price is stored').not.toContain('additional_price');
+        expect(pending.answers, 'the stored answers are the answers of the last price request').toEqual(answers);
+        expect(String(pending.job_date), 'the stored job date starts with the first date').toMatch(new RegExp(`^${isoOf(saturday)}`));
+    });
+
+    test('a booking made with that body is a one-time job for the chosen date and address, priced by the pricing rule', async ({ page }) => {
+        // The guard and the connection come first, so a database that cannot be reached stops the case before a booking exists.
+        const connection = await openDatabase();
+        const paymentId = `pi_e2e_eng009_${randomBytes(6).toString('hex')}`;
+        try {
+            const { saturday, priced, holds } = await openConfirm(page);
+            const pending = await proceedToPayment(page, holds);
+            expect(pending, 'the confirm step stored the booking').not.toBeNull();
+            // The price the page was last served: its lines and quoted minutes are what the booking must record.
+            await expect.poll(() => priced.at(-1)?.answer?.success, { message: 'the last price response was recorded' }).toBe(true);
+            const served = priced.at(-1)?.answer;
+
+            // With no payment key on this host the booking is recorded as pending.
+            const created = await page.request.post('/api/bookings', { data: { ...pending, payment_intent_id: paymentId }, maxRetries: RESET_RETRIES, timeout: 60_000 });
+            const text = await created.text();
+            expect(created.status(), `the checkout makes the booking: ${text.slice(0, 200)}`).toBe(200);
+            expect(JSON.parse(text).success, 'the checkout reports success').toBe(true);
+
+            const stored = await bookingsMadeWith(connection, paymentId);
+            expect(stored, 'one booking is stored for the payment id').toHaveLength(1);
+            const [row] = stored;
+            expect(row.job_date, 'the job is on the first date chosen').toBe(isoOf(saturday));
+            expect(row.address_line1, 'the job is at the address entered').toBe(ADDRESS);
+            expect(Number(row.service_price), 'the price recorded is the pricing rule\'s').toBe(oracle(FULL_ON_SATURDAY).cents / 100);
+            const breakdown = typeof row.price_breakdown === 'string' ? JSON.parse(row.price_breakdown) : row.price_breakdown;
+            expect(breakdown, 'the breakdown recorded is the lines the page was served').toEqual(served.lines);
+            expect(Number(row.standard_duration_minutes), 'the standard duration recorded is the quoted minutes').toBe(served.quoted_minutes);
+        } finally {
+            try {
+                await deleteBookingsMadeWith(connection, paymentId);
+            } finally {
+                await connection.end();
+            }
+        }
+    });
+
+    test("the wording beside a booking's amount follows its payment status", async () => {
+        const { paymentStatusText } = await import('../src/lib/payment-status-text.js');
+        // The words of each status, written out in full.
+        const WORDS = {
+            authorized: {
+                baseLabel: 'Held on your card (base price):',
+                notCompletedText: 'Held on your card; charged when the job is done',
+                totalLabel: 'Total held',
+                totalNote: 'Your card is held and is charged when the job is done',
+            },
+            paid: {
+                baseLabel: 'Paid (base price):',
+                notCompletedText: 'Paid',
+                totalLabel: 'Total paid',
+                totalNote: 'Paid when the job was done',
+            },
+            pending: {
+                baseLabel: 'Payment not confirmed yet (base price):',
+                notCompletedText: 'Payment not confirmed yet',
+                totalLabel: 'Total',
+                totalNote: 'Payment not confirmed yet',
+            },
+            failed: {
+                baseLabel: 'Payment not completed (base price):',
+                notCompletedText: 'Payment not completed',
+                totalLabel: 'Total',
+                totalNote: 'Payment not completed',
+            },
+            refunded: {
+                baseLabel: 'Refunded (base price):',
+                notCompletedText: 'Refunded',
+                totalLabel: 'Total refunded',
+                totalNote: 'Refunded to your card',
+            },
+        };
+        for (const [status, words] of Object.entries(WORDS)) {
+            expect(paymentStatusText(status), `the words for ${status}`).toEqual(words);
+        }
+
+        // No status, or one that is not listed, gets the authorized words: the receipt shown right after checkout carries none.
+        for (const status of [undefined, null, '', 'unlisted', 'constructor']) {
+            expect(paymentStatusText(status), `the words for ${JSON.stringify(status) ?? 'no status'}`).toEqual(WORDS.authorized);
+        }
+
+        // No row says that a booking is already paid.
+        for (const status of Object.keys(WORDS)) {
+            for (const [field, text] of Object.entries(paymentStatusText(status))) {
+                expect(text.toLowerCase(), `${status}: ${field}`).not.toContain('already paid');
+            }
+        }
     });
 });
