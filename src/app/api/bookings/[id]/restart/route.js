@@ -19,8 +19,9 @@ export async function POST(request, { params }) {
         )
 
         // Update booking - remove provider and reset
+        // Writing provider_id clears the push marker: a job reaches providers only through a push made while it has no provider.
         await connection.execute(
-          `UPDATE bookings 
+          `UPDATE bookings
            SET provider_id = NULL,
                previous_provider_id = ?,
                status = 'pending',
@@ -28,6 +29,7 @@ export async function POST(request, { params }) {
                start_time = NULL,
                end_time = NULL,
                accepted_at = NULL,
+               marketplace_pushed_at = NULL,
                updated_at = NOW()
            WHERE id = ?`,
           [booking?.provider_id || null, id]
