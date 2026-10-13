@@ -307,6 +307,14 @@ test.describe('Booking payment', () => {
         const result = await collectBookingPayment(stripe, { ...BOOKING, payment_intent_id: 'pi_new_1' }, OPTS);
         expect(result).toEqual({ ok: true, chargeId: 'ch_9', amountCents: EXPECTED, overCollected: false });
         expect(stripe.calls.filter(([m]) => m === 'create' || m === 'confirm' || m === 'capture')).toEqual([]);
+
+        // The same when the booking this call holds still names the lapsed hold and another call has saved its charge since: the
+        // charge on the booking is read and carried on with, and no second charge is created.
+        const lapsed = heldIntent({ status: 'canceled', cancellation_reason: 'automatic' });
+        const since = scriptedClient({ retrieve: [lapsed, savedCharge] });
+        const result2 = await collectBookingPayment(since, BOOKING, { ...OPTS, readIntentId: async () => 'pi_new_1' });
+        expect(result2).toEqual({ ok: true, chargeId: 'ch_9', amountCents: EXPECTED, overCollected: false });
+        expect(since.calls.filter(([m]) => m === 'create' || m === 'confirm' || m === 'capture')).toEqual([]);
     });
 
     test('when another call saved its charge first, this call continues with that one', async () => {
