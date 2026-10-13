@@ -2682,6 +2682,9 @@
     "marketplace.spec.js › Marketplace › pushing a booking twice keeps the first push time and answers already": {
       "outcome": "PASS"
     },
+    "marketplace.spec.js › Marketplace › the job queue is paged: a page holds at most limit bookings, total counts the whole queue, and offset reaches the newest booking": {
+      "outcome": "PASS"
+    },
     "marketplace.spec.js › Marketplace › two providers claiming one pushed booking at once through POST /api/provider/available-jobs/[id]: exactly one succeeds, the other gets 403, and the booking has one provider": {
       "outcome": "PASS"
     },
