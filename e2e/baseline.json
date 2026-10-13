@@ -2037,6 +2037,63 @@
     "booking-flow.spec.js › Booking Flow › should load booking success page": {
       "outcome": "PASS"
     },
+    "booking-guided-flow.spec.js › Guided booking flow › a Saturday as the first date adds the weekend amount and a Friday before it does not": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › a booking made with that body is a one-time job for the chosen date and address, priced by the pricing rule": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › a failed price request shows a retry and no figure": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › a service with units and an extra shows three steps and a service with no rule shows one": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › an earlier price response that arrives after a later one is not shown": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › by the hour the price is the hours at the hourly amount plus the property type and extras": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › confirm shows the price for the same answers and the hold is asked for with exactly those answers": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › every price request carries the service and the answers, and the answers use only the pricing rule's six keys": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › no figure is shown while the price for the current answers is still being worked out": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › reloading a step keeps the answers and the price": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › the details address opens the booking flow at its last step, or the services page when there is no booking in progress": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › the hours box asks for the hours before a by-the-hour price is shown": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › the payment page says when the service is not available for booking": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › the payment page shows the reason a hold is refused for the answers and a way back to them": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › the payment page tells a customer whose session has ended to sign in again": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › the price on every step equals the pricing rule's price for the answers on screen": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › the steps of a service with a full rule are about the job, the option, what's included, and when and where, in that order": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › the wording beside a booking's amount follows its payment status": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › when the service's choices change between taps the page reloads them and asks the customer to check": {
+      "outcome": "PASS"
+    },
     "booking-payment.spec.js › Booking payment › 999,999.99 is taken and 1,000,000.00 is refused as larger than a card payment can take": {
       "outcome": "PASS"
     },
