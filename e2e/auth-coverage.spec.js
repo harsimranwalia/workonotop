@@ -22,7 +22,7 @@
 //    `self` row's file uses its named check: requireCronSecret (rows g8, g9, r1cron) or the Stripe signature check (rows g10,
 //    g11, r1stripe); for verifyAiGatewayAuth a call anywhere in the file counts (row g13, a false pass). The checks are looked for by name,
 //    not by binding: a call to another function that has the same name reads as the check (row t3, a false pass). A `public` row needs
-//    nothing and has no case. The `pending` row counts as classified for coverage, is annotated, and its wiring case is
+//    nothing and has no case. A `pending` row (there is none now) counts as classified for coverage, is annotated, and its wiring case is
 //    skipped with the reason so every run prints it: nothing passes it silently, and AC5 does not hold while one `pending`
 //    row remains (the matrix file's header says so). What the check reads right and wrong is the table `wiringShapes` (above
 //    the cases), one row per shape with the verdict it gets, run by the case "the wiring check gives every shape of the
