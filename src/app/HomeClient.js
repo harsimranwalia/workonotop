@@ -107,7 +107,7 @@ export default function HomeClient() {
               </h1>
 
               <p className="text-lg md:text-xl mb-8 max-w-xl lg:mx-0 mx-auto leading-relaxed text-slate-600">
-                See your price in about a minute and book online. No quotes to wait for, no phone calls, and your card is not charged until the job is done.
+                See your price and book online. No quotes to wait for, no phone calls, and your card is not charged until the job is done.
               </p>
 
               <BookingStarter />
@@ -492,7 +492,7 @@ export default function HomeClient() {
               Explore All Services
             </Link>
           </div>
-          <p className="mt-8 text-emerald-100">Your price in about a minute. Your card is not charged until the job is done.</p>
+          <p className="mt-8 text-emerald-100">Your price before you book. Your card is not charged until the job is done.</p>
         </div>
       </section>
 

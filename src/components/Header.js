@@ -71,7 +71,7 @@ export default function Header() {
       <header className="bg-white sticky top-0 z-50 border-b border-gray-100 shadow-sm">
         <nav className="container mx-auto px-6 max-w-7xl h-20 flex items-center justify-between gap-3">
 
-          <Link href="/" className="flex-shrink-0">
+          <Link href="/" className="shrink min-w-0 md:flex-shrink-0">
             <Image src="/logo.png" alt="Logo" width={200} height={65} className="object-contain hover:opacity-90 transition" priority />
           </Link>
 

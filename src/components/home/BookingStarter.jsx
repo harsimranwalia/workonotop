@@ -57,21 +57,26 @@ export default function BookingStarter() {
           {services.map((service) => {
             const selected = service.id === selectedId;
             return (
-              <button
-                key={service.id}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                onClick={() => setSelectedId(service.id)}
-                className={`inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-xl border text-sm font-semibold transition ${
-                  selected
-                    ? 'bg-emerald-50 border-[#16A34A] text-[#15803D] ring-1 ring-[#16A34A]'
-                    : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400'
-                }`}
-              >
-                {selected && <Check className="w-4 h-4" aria-hidden="true" />}
-                {service.name}
-              </button>
+              <label key={service.id} className="relative flex cursor-pointer">
+                <input
+                  type="radio"
+                  name="book-service"
+                  value={service.id}
+                  checked={selected}
+                  onChange={() => setSelectedId(service.id)}
+                  className="peer sr-only"
+                />
+                <span
+                  className={`inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-xl border text-sm font-semibold transition peer-focus-visible:ring-2 peer-focus-visible:ring-green-700 peer-focus-visible:ring-offset-2 ${
+                    selected
+                      ? 'bg-emerald-50 border-[#16A34A] text-[#15803D] ring-1 ring-[#16A34A]'
+                      : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400'
+                  }`}
+                >
+                  {selected && <Check className="w-4 h-4" aria-hidden="true" />}
+                  {service.name}
+                </span>
+              </label>
             );
           })}
         </div>
