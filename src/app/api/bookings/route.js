@@ -224,6 +224,14 @@ export async function POST(request) {
       try {
         intent = await stripe.paymentIntents.retrieve(payment_intent_id)
       } catch (err) {
+        // An intent Stripe does not know is not this booking's payment: it is refused like any other payment that does not match.
+        if (err.code === 'resource_missing' || err.statusCode === 404) {
+          console.log(`[API Bookings] ${bookingNumber}: payment refused at check 'match'`)
+          return NextResponse.json(
+            { success: false, message: 'This payment does not match this booking.' },
+            { status: 400 }
+          )
+        }
         console.error('[API Bookings] Payment retrieve failed:', err.message)
         return NextResponse.json(
           { success: false, message: 'Payments are not available right now. Please try again shortly.' },
