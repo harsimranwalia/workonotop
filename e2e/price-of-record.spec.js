@@ -340,9 +340,10 @@ test.describe('Price of record', () => {
         }
     });
 
-    // The four routes run after a Stripe call that the dev stack has no key for, so their lines are read, not run: each imports the price
-    // module and holds the line that takes its amount from it, and holds none of the listed inputs, which are the ones the amount does not
-    // come from. This is a source guard, not a behaviour test.
+    // The four routes run after a Stripe call that the dev stack has no key for, so their lines are read, not run: each holds the line that takes
+    // its amount (approve, auto-release and the webhook from the price of record, the price module; create-intent from the pricing rule,
+    // src/lib/pricing-rules.js), each also imports the price module (for create-intent it is its hourly rate), and each holds none of the
+    // listed inputs, which are the ones the amount does not come from. This is a source guard, not a behaviour test.
     test('the routes that charge or pay take the amount from the price of record', () => {
         const routes = [
             {
@@ -362,7 +363,7 @@ test.describe('Price of record', () => {
             },
             {
                 file: 'src/app/api/payment/create-intent/route.js',
-                present: ['catalogPrice(serviceRow)', 'catalog.price'],
+                present: ['priceJob(', 'job.price'],
                 absent: ['service_price'],
             },
         ];

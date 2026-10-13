@@ -570,6 +570,9 @@
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/payment/create-intent is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/pricing is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/availability is in the matrix": {
       "outcome": "PASS"
     },
@@ -1860,6 +1863,9 @@
     "auth-matrix.spec.js › Role by route › POST /api/payment/create-intent": {
       "outcome": "PASS"
     },
+    "auth-matrix.spec.js › Role by route › POST /api/pricing": {
+      "outcome": "PASS"
+    },
     "auth-matrix.spec.js › Role by route › POST /api/provider/availability": {
       "outcome": "PASS"
     },
@@ -2653,6 +2659,42 @@
       "outcome": "PASS"
     },
     "price-of-record.spec.js › Price of record › the routes that charge or pay take the amount from the price of record": {
+      "outcome": "PASS"
+    },
+    "pricing-rules.spec.js › Pricing rules › a booking an admin makes is priced by the rule from its answers": {
+      "outcome": "PASS"
+    },
+    "pricing-rules.spec.js › Pricing rules › a booking records the price and the quoted minutes its answers produce": {
+      "outcome": "PASS"
+    },
+    "pricing-rules.spec.js › Pricing rules › a figure in the request is not read: the price route, create-intent and a booking use the rule's price": {
+      "outcome": "PASS"
+    },
+    "pricing-rules.spec.js › Pricing rules › an extra adds its amount times any whole quantity": {
+      "outcome": "PASS"
+    },
+    "pricing-rules.spec.js › Pricing rules › an option sets the price and the quoted minutes, and by the hour prices the hours asked for": {
+      "outcome": "PASS"
+    },
+    "pricing-rules.spec.js › Pricing rules › answers the rule cannot price are refused and the refusal names the answer": {
+      "outcome": "PASS"
+    },
+    "pricing-rules.spec.js › Pricing rules › changing only the option, the property type or the date changes the price by exactly that adjustment": {
+      "outcome": "PASS"
+    },
+    "pricing-rules.spec.js › Pricing rules › every active service prices with no answers at its catalog price and minutes": {
+      "outcome": "PASS"
+    },
+    "pricing-rules.spec.js › Pricing rules › one more room or unit changes the price by that unit's amount": {
+      "outcome": "PASS"
+    },
+    "pricing-rules.spec.js › Pricing rules › the price and the quoted minutes follow the service's rule for each set of answers": {
+      "outcome": "PASS"
+    },
+    "pricing-rules.spec.js › Pricing rules › the price route answers the price, the quoted minutes and the lines for the answers given": {
+      "outcome": "PASS"
+    },
+    "pricing-rules.spec.js › Pricing rules › time past the quote is measured from the booking's quoted minutes": {
       "outcome": "PASS"
     },
     "provider-signup-page.spec.js › Provider sign-up page › the provider sign-up page sends its form in the first response": {

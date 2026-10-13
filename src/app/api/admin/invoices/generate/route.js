@@ -16,9 +16,9 @@ export async function POST(request) {
       }, { status: 400 })
     }
 
-    // Get booking details
+    // Get booking details. The standard duration is the booking's quoted minutes.
     const bookings = await execute(
-      `SELECT b.*, s.name as service_name, s.duration_minutes as service_duration
+      `SELECT b.*, s.name as service_name, COALESCE(b.standard_duration_minutes, s.duration_minutes, 60) as service_duration
        FROM bookings b
        LEFT JOIN services s ON b.service_id = s.id
        WHERE b.id = ?`,

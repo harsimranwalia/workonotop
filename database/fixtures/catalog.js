@@ -88,6 +88,23 @@ export const catalog = {
         updated_at: FIXED_AT,
       },
     ],
+    // The parts of the pricing rules of services 1 and 2 (service 3 has none, so it books at its catalog price and duration). Every
+    // figure is invented, labelled so, and marked is_placeholder = 1; the client's own figures replace them as rows with
+    // is_placeholder = 0. The base of a rule is the service's own base_price and duration_minutes above, not a row here.
+    service_pricing_items: [
+      { id: 1, service_id: 1, kind: 'unit', code: 'bedrooms', label: 'Bedrooms (placeholder figure)', amount: 20.0, minutes: 30, is_hourly: 0, is_placeholder: 1, sort_order: 1, created_at: FIXED_AT, updated_at: FIXED_AT },
+      { id: 2, service_id: 1, kind: 'unit', code: 'bathrooms', label: 'Bathrooms (placeholder figure)', amount: 15.0, minutes: 20, is_hourly: 0, is_placeholder: 1, sort_order: 2, created_at: FIXED_AT, updated_at: FIXED_AT },
+      { id: 3, service_id: 1, kind: 'option', code: 'standard', label: 'Standard clean (placeholder figure)', amount: 0.0, minutes: 0, is_hourly: 0, is_placeholder: 1, sort_order: 1, created_at: FIXED_AT, updated_at: FIXED_AT },
+      { id: 4, service_id: 1, kind: 'option', code: 'deep', label: 'Deep clean (placeholder figure)', amount: 60.0, minutes: 60, is_hourly: 0, is_placeholder: 1, sort_order: 2, created_at: FIXED_AT, updated_at: FIXED_AT },
+      { id: 5, service_id: 1, kind: 'option', code: 'hourly', label: 'By the hour (placeholder figure)', amount: 45.0, minutes: 0, is_hourly: 1, is_placeholder: 1, sort_order: 3, created_at: FIXED_AT, updated_at: FIXED_AT },
+      { id: 6, service_id: 1, kind: 'property_type', code: 'apartment', label: 'Apartment (placeholder figure)', amount: 0.0, minutes: 0, is_hourly: 0, is_placeholder: 1, sort_order: 1, created_at: FIXED_AT, updated_at: FIXED_AT },
+      { id: 7, service_id: 1, kind: 'property_type', code: 'house', label: 'House (placeholder figure)', amount: 25.0, minutes: 30, is_hourly: 0, is_placeholder: 1, sort_order: 2, created_at: FIXED_AT, updated_at: FIXED_AT },
+      { id: 8, service_id: 1, kind: 'weekend', code: 'weekend', label: 'Weekend (placeholder figure)', amount: 30.0, minutes: 0, is_hourly: 0, is_placeholder: 1, sort_order: 1, created_at: FIXED_AT, updated_at: FIXED_AT },
+      { id: 9, service_id: 1, kind: 'extra', code: 'oven', label: 'Oven (placeholder figure)', amount: 35.0, minutes: 30, is_hourly: 0, is_placeholder: 1, sort_order: 1, created_at: FIXED_AT, updated_at: FIXED_AT },
+      { id: 10, service_id: 1, kind: 'extra', code: 'fridge', label: 'Fridge (placeholder figure)', amount: 30.0, minutes: 20, is_hourly: 0, is_placeholder: 1, sort_order: 2, created_at: FIXED_AT, updated_at: FIXED_AT },
+      { id: 11, service_id: 2, kind: 'unit', code: 'bedrooms', label: 'Bedrooms (placeholder figure)', amount: 30.0, minutes: 45, is_hourly: 0, is_placeholder: 1, sort_order: 1, created_at: FIXED_AT, updated_at: FIXED_AT },
+      { id: 12, service_id: 2, kind: 'extra', code: 'oven', label: 'Oven (placeholder figure)', amount: 35.0, minutes: 30, is_hourly: 0, is_placeholder: 1, sort_order: 1, created_at: FIXED_AT, updated_at: FIXED_AT },
+    ],
     // The commission the code falls back to (provider/available-jobs/route.js), so a fixture database
     // behaves as the code expects when the setting is absent. In the dev database this table's key is its
     // primary key and it has neither an id nor timestamps, so this row carries none.
