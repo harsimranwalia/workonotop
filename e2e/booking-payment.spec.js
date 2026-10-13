@@ -1,8 +1,8 @@
 // @ts-check
 // The payment of a booking: the amounts a card payment can take, the payment bound to the booking at the checkout, and the
-// one charge when the job is done. Thirty-two cases, each titled for what it shows. C1 to C29 import the module
+// one charge when the job is done. Thirty-three cases, each titled for what it shows. The first thirty import the module
 // (src/lib/booking-payment.js) in this process and drive it with a scripted client that records every call and answers per
-// a script (the precedent is e2e/price-of-record.spec.js); C30 to C32 go through the dev app. The dev stack holds no payment
+// a script (the precedent is e2e/price-of-record.spec.js); the last three go through the dev app. The dev stack holds no payment
 // key, so the dev app books unverified (recorded pending, no held amount); the verified path is the scripted client's and,
 // later, a run with test keys.
 import { test, expect } from '@playwright/test';
