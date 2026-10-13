@@ -1,10 +1,15 @@
 // @ts-check
 // The payment of a booking: the amounts a card payment can take, the payment bound to the booking at the checkout, and the
-// one charge when the job is done. Thirty-three cases, each titled for what it shows. The first thirty import the module
+// one charge when the job is done. Thirty-eight cases, each titled for what it shows. The first thirty import the module
 // (src/lib/booking-payment.js) in this process and drive it with a scripted client that records every call and answers per
-// a script (the precedent is e2e/price-of-record.spec.js); the last three go through the dev app. The dev stack holds no payment
-// key, so the dev app books unverified (recorded pending, no held amount); the verified path is the scripted client's and,
-// later, a run with test keys.
+// a script (the precedent is e2e/price-of-record.spec.js); the next five run the two completion routes (approve and
+// auto-release) in this process against a pool of a few connections; the last three go through the dev app. The dev stack
+// holds no payment key, so the dev app books unverified (recorded pending, no held amount); the verified path is the scripted
+// client's and, later, a run with test keys.
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { test, expect } from '@playwright/test';
 import { getCredentialHeaders } from './auth/credentials.js';
 import { RESET_RETRIES } from './support/auth.js';
@@ -63,6 +68,258 @@ function heldIntent(over = {}) {
 }
 
 const NOW = 1_760_000_000;
+
+// ── The completion routes, in this process ───────────────────────────────────────────────────────────────────────────
+// approve and auto-release run here with the real src/lib/db.js, booking-price.js and booking-payment.js, against a database
+// whose pool has a few connections: a request for a connection waits, with no limit, until one is released (the app's pool is
+// built with waitForConnections and no queue limit), and a SELECT ... FOR UPDATE holds the booking's row until its connection
+// commits, rolls back or is released. The route files are copied into a scratch folder with their imports pointed at stand-ins
+// for next/server, stripe, the mail and push senders and the logger, and the driver behind db.js is replaced by that pool.
+const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const tick = () => new Promise((resolve) => setImmediate(resolve));
+const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const NO_ANSWER = Symbol('no answer');
+
+// The answer of a promise, or NO_ANSWER when it has not come within `ms`.
+function within(ms, promise) {
+    let timer;
+    const deadline = new Promise((resolve) => { timer = setTimeout(() => resolve(NO_ANSWER), ms); });
+    return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
+}
+
+// The pool. A SELECT answers with its rows and a write with { affectedRows }, as mysql2 does through execute().
+class FakeDatabase {
+    constructor(size, rows) {
+        this.size = size;
+        this.inUse = 0;
+        this.waiting = [];
+        this.rows = new Map(rows.map((row) => [row.id, { ...row }]));
+        this.owners = new Map();
+        this.rowQueue = new Map();
+        this.statements = [];
+        this.payouts = [];
+        this.credits = [];
+    }
+
+    getConnection() {
+        return new Promise((resolve) => {
+            const take = () => { this.inUse += 1; resolve(new FakeConnection(this)); };
+            if (this.inUse < this.size) take(); else this.waiting.push(take);
+        });
+    }
+
+    giveBack() {
+        this.inUse -= 1;
+        const next = this.waiting.shift();
+        if (next) next();
+    }
+
+    async lock(id, connection) {
+        while (this.owners.has(id) && this.owners.get(id) !== connection) {
+            await new Promise((resume) => { this.rowQueue.set(id, [...(this.rowQueue.get(id) || []), resume]); });
+        }
+        this.owners.set(id, connection);
+    }
+
+    unlock(connection) {
+        for (const [id, owner] of [...this.owners]) {
+            if (owner !== connection) continue;
+            this.owners.delete(id);
+            const resumes = this.rowQueue.get(id) || [];
+            this.rowQueue.delete(id);
+            resumes.forEach((resume) => resume());
+        }
+    }
+
+    async run(connection, sql, params) {
+        this.statements.push([connection, sql]);
+        const byId = (value) => this.rows.get(Number(value));
+        if (sql.includes('WHERE b.id = ? AND b.user_id = ?')) {
+            const row = byId(params[0]);
+            return row && row.user_id === params[1] ? [{ ...row }] : [];
+        }
+        if (sql.includes("WHERE b.status = 'awaiting_approval'")) {
+            return [...this.rows.values()].filter((row) => row.status === 'awaiting_approval').map((row) => ({ ...row }));
+        }
+        if (sql === 'SELECT id FROM bookings WHERE id = ?') return byId(params[0]) ? [{ id: byId(params[0]).id }] : [];
+        if (sql.startsWith('SELECT email, first_name, last_name FROM users')) return [{ email: 'customer@example.test', first_name: 'Cass', last_name: 'Customer' }];
+        if (sql === 'SELECT payment_intent_id FROM bookings WHERE id = ?') return byId(params[0]) ? [{ payment_intent_id: byId(params[0]).payment_intent_id }] : [];
+        if (sql.startsWith('UPDATE bookings SET payment_intent_id = ?')) {
+            const row = byId(params[1]);
+            const swapped = Boolean(row) && row.payment_intent_id === params[2];
+            if (swapped) row.payment_intent_id = params[0];
+            return { affectedRows: swapped ? 1 : 0 };
+        }
+        if (/^SELECT .* FROM bookings WHERE id = \? FOR UPDATE$/.test(sql)) {
+            const row = byId(params[0]);
+            if (!row) return [];
+            await this.lock(row.id, connection);
+            return [{ status: row.status }];
+        }
+        if (sql.startsWith("UPDATE bookings SET status = 'completed'")) {
+            Object.assign(byId(params[params.length - 1]), { status: 'completed', payment_status: 'paid' });
+            return { affectedRows: 1 };
+        }
+        if (sql.startsWith("UPDATE bookings SET payment_status = 'failed'")) {
+            byId(params[params.length - 1]).payment_status = 'failed';
+            return { affectedRows: 1 };
+        }
+        if (sql.startsWith('INSERT INTO provider_payouts')) {
+            this.payouts.push(params);
+            return { affectedRows: 1 };
+        }
+        if (sql.startsWith('UPDATE service_providers SET total_earnings')) {
+            this.credits.push(params[0]);
+            return { affectedRows: 1 };
+        }
+        if (sql.startsWith('UPDATE invoices SET status') || sql.startsWith('INSERT INTO booking_status_history')) return { affectedRows: 1 };
+        if (sql.startsWith("SELECT id FROM users WHERE role = 'admin'")) return [];
+        throw new Error(`the stand-in database has no answer for: ${sql}`);
+    }
+}
+
+class FakeConnection {
+    constructor(db) {
+        this.db = db;
+        this.released = false;
+    }
+
+    async query(sql) {
+        await tick();
+        const text = sql.trim();
+        this.db.statements.push([this, text]);
+        if (text === 'COMMIT' || text === 'ROLLBACK') this.db.unlock(this);
+        return [[]];
+    }
+
+    async execute(sql, params = []) {
+        await tick();
+        return [await this.db.run(this, sql.replace(/\s+/g, ' ').trim(), params)];
+    }
+
+    release() {
+        if (this.released) throw new Error('a connection was released twice');
+        this.released = true;
+        this.db.unlock(this);
+        this.db.giveBack();
+    }
+}
+
+// A Stripe stand-in that keeps state. The booking's hold is live (requires_capture) or has lapsed (cancelled, expired). The
+// capture, the charge made for a lapsed hold and each transfer happen once per idempotency key, as Stripe has them.
+function statefulStripe(lapsed, { onCapture } = {}) {
+    const intents = new Map([['pi_hold_1', lapsed
+        ? heldIntent({ status: 'canceled', cancellation_reason: 'expired', amount_capturable: 0, latest_charge: 'ch_old' })
+        : heldIntent()]]);
+    const keyed = new Map();
+    const once = (key, make) => {
+        if (!keyed.has(key)) keyed.set(key, make());
+        return keyed.get(key);
+    };
+    const calls = [];
+    const call = (name, work) => async (...args) => {
+        calls.push([name, ...args]);
+        await pause(5);
+        return work(...args);
+    };
+    return {
+        calls,
+        paymentIntents: {
+            retrieve: call('retrieve', (id) => structuredClone(intents.get(id))),
+            capture: call('capture', (id, params, options) => once(options.idempotencyKey, () => {
+                if (onCapture) onCapture();
+                Object.assign(intents.get(id), { status: 'succeeded', amount_received: params.amount_to_capture, latest_charge: 'ch_1' });
+                return structuredClone(intents.get(id));
+            })),
+            create: call('create', (params, options) => once(options.idempotencyKey, () => {
+                const made = {
+                    id: 'pi_new_1', status: 'requires_confirmation', customer: params.customer, payment_method: params.payment_method,
+                    amount: params.amount, currency: params.currency, metadata: params.metadata, latest_charge: null,
+                };
+                intents.set(made.id, made);
+                return structuredClone(made);
+            })),
+            confirm: call('confirm', (id) => {
+                Object.assign(intents.get(id), { status: 'succeeded', amount_received: intents.get(id).amount, latest_charge: 'ch_new' });
+                return structuredClone(intents.get(id));
+            }),
+        },
+        charges: { retrieve: call('charge', () => ({ payment_method: 'pm_1' })) },
+        transfers: { create: call('transfer', (params, options) => once(options.idempotencyKey, () => ({ id: `tr_${keyed.size + 1}` }))) },
+    };
+}
+
+const routeBooking = (over = {}) => ({
+    id: 5, user_id: 7, status: 'awaiting_approval', payment_status: 'authorized', payment_intent_id: 'pi_hold_1',
+    service_price: '135.00', additional_price: '40.00', provider_id: 3, stripe_account_id: 'acct_1', stripe_onboarding_complete: 1,
+    provider_name: 'Pat Provider', provider_email: 'pat@example.test', booking_number: 'BK5', service_name: 'Clean', job_date: '2026-02-02',
+    ...over,
+});
+
+// The arguments of the approve route's POST for the booking named by `id` in the address.
+const approveCall = (id = '5') => [{ json: async () => ({ action: 'approve' }) }, { params: Promise.resolve({ id }) }];
+
+// Runs `body` with the two routes loaded against a database whose pool has `poolSize` connections. `stripe(db)` makes the
+// Stripe stand-in the routes are given. Everything the case set up is put back afterwards.
+async function withRoutes({ poolSize, rows, stripe }, body) {
+    const db = new FakeDatabase(poolSize, rows);
+    const standIn = stripe(db);
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'booking-routes-'));
+    const put = (relative, text) => {
+        fs.mkdirSync(path.dirname(path.join(dir, relative)), { recursive: true });
+        fs.writeFileSync(path.join(dir, relative), text);
+    };
+    const imports = {
+        'next/server': '../stubs/next-server.mjs',
+        stripe: '../stubs/stripe.mjs',
+        'mysql2/promise': '../stubs/mysql.mjs',
+        '@/lib/db': '../lib/db.mjs',
+        '@/lib/api-auth': '../stubs/api-auth.mjs',
+        '@/lib/email': '../stubs/email.mjs',
+        '@/lib/push': '../stubs/push.mjs',
+        '@/lib/logger': '../stubs/logger.mjs',
+        '@/lib/booking-price': '../lib/booking-price.mjs',
+        '@/lib/booking-payment': '../lib/booking-payment.mjs',
+    };
+    const copy = (relative) => fs.readFileSync(path.join(REPO, relative), 'utf8').replace(/from '([^']+)'/g, (whole, specifier) => {
+        if (!(specifier in imports)) throw new Error(`the route stand-ins have none for the import '${specifier}' in ${relative}`);
+        return `from '${imports[specifier]}'`;
+    });
+    put('stubs/next-server.mjs', 'export const NextResponse = { json: (body, init = {}) => ({ body, status: init.status || 200 }) };\n');
+    put('stubs/stripe.mjs', 'export default class Stripe { constructor() { return globalThis.__routeStripe; } }\n');
+    put('stubs/mysql.mjs', "export default { createPool() { throw new Error('the case supplies the pool'); } };\n");
+    put('stubs/api-auth.mjs', "export const requireCaller = async () => ({ ok: true, caller: { id: 7, role: 'customer' } });\nexport const requireCronSecret = () => ({ ok: true });\n");
+    put('stubs/email.mjs', 'export const sendEmail = async () => {};\n');
+    put('stubs/push.mjs', 'export const notifyUser = async () => {};\n');
+    put('stubs/logger.mjs', 'export const logActivity = () => {};\n');
+    put('lib/db.mjs', copy('src/lib/db.js'));
+    put('lib/booking-price.mjs', copy('src/lib/booking-price.js'));
+    put('lib/booking-payment.mjs', copy('src/lib/booking-payment.js'));
+    put('routes/approve.mjs', copy('src/app/api/customer/bookings/[id]/approve/route.js'));
+    put('routes/auto-release.mjs', copy('src/app/api/cron/auto-release/route.js'));
+
+    const before = { pool: globalThis.mysqlPool, key: process.env.STRIPE_SECRET_KEY, currency: process.env.STRIPE_CURRENCY };
+    const quiet = { log: console.log, error: console.error, warn: console.warn };
+    globalThis.mysqlPool = db;
+    globalThis.__routeStripe = standIn;
+    process.env.STRIPE_SECRET_KEY = 'sk_test_stand_in';
+    process.env.STRIPE_CURRENCY = 'cad';
+    console.log = () => {};
+    console.error = () => {};
+    console.warn = () => {};
+    try {
+        const load = (name) => import(pathToFileURL(path.join(dir, 'routes', `${name}.mjs`)).href);
+        return await body({ db, stripe: standIn, approve: await load('approve'), autoRelease: await load('auto-release') });
+    } finally {
+        Object.assign(console, quiet);
+        for (const [name, value] of [['STRIPE_SECRET_KEY', before.key], ['STRIPE_CURRENCY', before.currency]]) {
+            if (value === undefined) delete process.env[name]; else process.env[name] = value;
+        }
+        if (before.pool === undefined) delete globalThis.mysqlPool; else globalThis.mysqlPool = before.pool;
+        delete globalThis.__routeStripe;
+        fs.rmSync(dir, { recursive: true, force: true });
+    }
+}
 
 test.describe('Booking payment', () => {
     test('the smallest price a card payment takes is 0.50, and 0.49 is refused', () => {
@@ -474,6 +731,68 @@ test.describe('Booking payment', () => {
         expect(await collectBookingPayment(atCreate, BOOKING, OPTS)).toEqual({ ok: false, reason: 'mismatch' });
         const atCapture = scriptedClient({ retrieve: [heldIntent()], capture: [conflict] });
         expect(await collectBookingPayment(atCapture, BOOKING, OPTS)).toEqual({ ok: false, reason: 'mismatch' });
+    });
+
+    // ── The completion routes, in this process, against a pool of a few connections ─────────────────────────────────
+
+    test('a booking whose hold lapsed is charged, paid out and recorded when the pool has a single connection', async () => {
+        await withRoutes({ poolSize: 1, rows: [routeBooking()], stripe: () => statefulStripe(true) }, async ({ db, stripe, approve }) => {
+            const answer = await within(4000, approve.POST(...approveCall()));
+            expect(answer, 'the route answers').not.toBe(NO_ANSWER);
+            expect(answer.status, JSON.stringify(answer.body)).toBe(200);
+            expect(db.rows.get(5)).toMatchObject({ status: 'completed', payment_status: 'paid', payment_intent_id: 'pi_new_1' });
+            expect(stripe.calls.filter(([name]) => name === 'transfer')).toHaveLength(1);
+            expect(db.payouts).toHaveLength(1);
+        });
+    });
+
+    test('three approvals of one lapsed booking at once, with three connections, all answer and the booking is recorded once', async () => {
+        await withRoutes({ poolSize: 3, rows: [routeBooking()], stripe: () => statefulStripe(true) }, async ({ db, stripe, approve }) => {
+            const answers = await within(6000, Promise.all([1, 2, 3].map(() => approve.POST(...approveCall()))));
+            expect(answers, 'every request answers').not.toBe(NO_ANSWER);
+            expect(answers.map((answer) => answer.status).sort()).toEqual([200, 400, 400]);
+            expect(answers.filter((answer) => answer.status === 400).map((answer) => answer.body.message))
+                .toEqual(Array(2).fill("Booking status is 'completed', expected 'awaiting_approval'"));
+            expect(db.rows.get(5)).toMatchObject({ status: 'completed', payment_status: 'paid', payment_intent_id: 'pi_new_1' });
+            expect(stripe.calls.filter(([name]) => name === 'transfer')).toHaveLength(1);
+            expect(db.payouts).toHaveLength(1);
+            expect(db.credits).toEqual([108]);
+        });
+    });
+
+    test('a lapsed booking is released by the hourly run when the pool has a single connection', async () => {
+        await withRoutes({ poolSize: 1, rows: [routeBooking()], stripe: () => statefulStripe(true) }, async ({ db, stripe, autoRelease }) => {
+            const answer = await within(4000, autoRelease.GET({}));
+            expect(answer, 'the run answers').not.toBe(NO_ANSWER);
+            expect(answer.body.results).toEqual([{ booking_id: 5, status: 'released' }]);
+            expect(db.rows.get(5)).toMatchObject({ status: 'completed', payment_status: 'paid', payment_intent_id: 'pi_new_1' });
+            expect(stripe.calls.filter(([name]) => name === 'transfer')).toHaveLength(1);
+        });
+    });
+
+    test('a booking that another request finished while the payment was being taken is not recorded again', async () => {
+        const finishedElsewhere = (db) => () => { db.rows.get(5).status = 'completed'; };
+        await withRoutes({ poolSize: 3, rows: [routeBooking()], stripe: (db) => statefulStripe(false, { onCapture: finishedElsewhere(db) }) }, async ({ db, stripe, approve }) => {
+            const answer = await within(4000, approve.POST(...approveCall()));
+            expect(answer, 'the route answers').not.toBe(NO_ANSWER);
+            expect(answer.status, JSON.stringify(answer.body)).toBe(400);
+            expect(answer.body.message).toBe("Booking status is 'completed', expected 'awaiting_approval'");
+            expect(stripe.calls.filter(([name]) => name === 'transfer')).toHaveLength(0);
+            expect(db.payouts).toHaveLength(0);
+            expect(db.credits).toHaveLength(0);
+            expect(db.statements.some(([, sql]) => sql.startsWith("UPDATE bookings SET status = 'completed'"))).toBe(false);
+        });
+    });
+
+    test('the payout key is built from the booking id, whichever way the id is written in the address', async () => {
+        await withRoutes({ poolSize: 3, rows: [routeBooking()], stripe: () => statefulStripe(false) }, async ({ stripe, approve }) => {
+            const answer = await within(4000, approve.POST(...approveCall('05')));
+            expect(answer, 'the route answers').not.toBe(NO_ANSWER);
+            expect(answer.status, JSON.stringify(answer.body)).toBe(200);
+            const [transfer] = stripe.calls.filter(([name]) => name === 'transfer');
+            expect(transfer[2]).toEqual({ idempotencyKey: 'booking-5-transfer-ch_1' });
+            expect(transfer[1].metadata.booking_id).toBe('5');
+        });
     });
 
     // ── Through the dev app (no payment key: bookings are recorded pending, unverified) ─────────────────────────────
