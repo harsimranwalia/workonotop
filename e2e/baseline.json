@@ -2118,6 +2118,9 @@
     "booking-payment.spec.js › Booking payment › a taken payment older than a day, or one made with manual capture, is refused": {
       "outcome": "PASS"
     },
+    "booking-payment.spec.js › Booking payment › an intent Stripe does not know, or a request it refuses for this booking, is a mismatch and nothing is charged": {
+      "outcome": "PASS"
+    },
     "booking-payment.spec.js › Booking payment › an intent that is not a hold (needs a payment method, cancelled, processing) is refused": {
       "outcome": "PASS"
     },
