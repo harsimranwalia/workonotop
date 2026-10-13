@@ -709,12 +709,13 @@ test.describe('Guided booking flow', () => {
         await expect(statusOf(page)).toHaveText(`Price ${money(oracle({ propertyType: 'house' }).cents)}`);
 
         const held = watch.holdNext();
-        // The change itself hides the figure: the page is read in the same task as the tap, before the quiet period is over.
-        const figuresAfterTap = await page.evaluate((label) => {
+        // The change itself hides the figure: the page is read one task after the tap, long before the quiet period (250 ms) is over.
+        const figuresAfterTap = await page.evaluate(async (label) => {
             document.querySelector(`button[aria-label="Add one ${label}"]`).click();
+            await new Promise((resolve) => setTimeout(resolve, 0));
             return document.querySelectorAll('[data-testid="price-total"]').length;
         }, BEDROOMS);
-        expect(figuresAfterTap, 'no figure in the same task as the tap').toBe(0);
+        expect(figuresAfterTap, 'no figure just after the tap').toBe(0);
         await reached(held);
 
         // The request for one bedroom is open: no total, no lines, nothing announced, and Continue is off.
