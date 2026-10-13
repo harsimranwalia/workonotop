@@ -468,4 +468,40 @@ test.describe('Marketplace', () => {
         const provider2 = await signedInAs(playwright, baseURL, 'provider2');
         await expectWritesRefused(request, as, { headers: provider2, status: 403, body: FORBIDDEN, assignTo: PROVIDER2.id, who: 'provider2' });
     });
+
+    // M17. The queue is read a page at a time: oldest first with the id as tie-break, so the two probes are its last two bookings.
+    // The answer carries total (the whole queue) and the limit and offset it applied.
+    test('the job queue is paged: a page holds at most limit bookings, total counts the whole queue, and offset reaches the newest booking', async ({ request, baseURL }) => {
+        const as = await credentials(baseURL);
+        const page = async (query) => {
+            const response = await request.get(`/api/bookings?queue=1${query}`, { headers: as.admin });
+            expect(response.status(), `admin reads the job queue${query}`).toBe(200);
+            const body = await response.json();
+            expect(body.success, `the job queue${query}: success`).toBe(true);
+            return body;
+        };
+        const ids = (body) => body.data.map((row) => row.id);
+        const before = (await page('&limit=1')).total;
+        await withProbeBooking(request, as, async (first) => {
+            await withProbeBooking(request, as, async (second) => {
+                const one = await page('&limit=1');
+                const { total } = one;
+                expect([one.data.length, total, one.limit, one.offset], 'limit=1: one booking, the whole queue counted (two more than before the probes), the limit and offset applied').toEqual([1, before + 2, 1, 0]);
+                expect(ids(await page(`&limit=1&offset=${total - 1}`)), 'offset = total - 1 holds the newest booking').toEqual([second]);
+                expect(ids(await page(`&limit=2&offset=${total - 2}`)), 'offset = total - 2 with limit=2 holds the two probes, oldest first').toEqual([first, second]);
+                const past = await page(`&limit=1&offset=${total}`);
+                expect([past.data.length, past.total, past.offset], 'offset = total is past the end: no booking, the same total').toEqual([0, total, total]);
+                // The page size is held to 1 to 500 and is 200 when absent or not a number; a negative or non-numeric offset is 0.
+                for (const [query, size] of [['&limit=0', 1], ['&limit=-7', 1], ['&limit=100000', 500], ['&limit=many', 200], ['', 200]]) {
+                    const body = await page(query);
+                    expect([body.limit, body.offset, body.total], `${query || 'no limit'}: the limit applied, offset 0, the whole queue counted`).toEqual([size, 0, total]);
+                    expect(body.data.length, `${query || 'no limit'}: the page holds the queue up to that size`).toBe(Math.min(total, size));
+                }
+                for (const query of ['&offset=-3', '&offset=many']) {
+                    const body = await page(query);
+                    expect([body.offset, body.data.length], `${query}: offset 0, the first page`).toEqual([0, Math.min(total, 200)]);
+                }
+            });
+        });
+    });
 });
