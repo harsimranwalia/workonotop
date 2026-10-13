@@ -606,10 +606,15 @@ test.describe('Guided booking flow', () => {
         await expect(stepper(page, OVEN)).toBeVisible();
         await expect(stepper(page, FRIDGE)).toBeVisible();
 
+        // The summary's note about who the pro is shows on the last step only.
+        const proNote = page.getByRole('heading', { name: 'Who is my pro?' });
+        await expect(proNote).toHaveCount(0);
+
         await goOn(page, WHEN_WHERE, { propertyType: 'house', option: 'standard' });
         await expect(page).toHaveURL(onStep(4));
         await expect(currentStep(page)).toHaveText(WHEN_WHERE);
         await expect(counter(page, 4, 4)).toBeAttached();
+        await expect(proNote).toBeVisible();
     });
 
     test('a service with units and an extra shows three steps and a service with no rule shows one', async ({ page }) => {

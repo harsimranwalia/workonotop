@@ -60,8 +60,8 @@ function StateText({ live }) {
   return null;
 }
 
-// `live` is what useLivePrice returns. The other props are labels: none of them is added to the price.
-export default function PriceBox({ live, serviceName, overtimeRate, weekendAmount = null, firstDate = null, dates = [], times = {} }) {
+// `live` is what useLivePrice returns. The other props are labels and notes: none of them is added to the price.
+export default function PriceBox({ live, serviceName, overtimeRate, weekendAmount = null, firstDate = null, dates = [], times = {}, proNote = false }) {
   const priced = live.status === 'priced';
   const busy = live.status === 'loading' || live.status === 'updating' || live.status === 'stale_choices';
   const showRate = Number(overtimeRate) > 0;
@@ -145,6 +145,20 @@ export default function PriceBox({ live, serviceName, overtimeRate, weekendAmoun
           <p>You won&apos;t be charged until the job is complete</p>
           <p>Free cancellation up to 24 hours before</p>
         </div>
+
+        {proNote && (
+          <div className="hidden lg:block mt-5 pt-5 border-t border-gray-200">
+            <div className="bg-gradient-to-br from-green-50 to-white rounded-xl p-4 border border-green-100">
+              <h4 className="font-semibold text-gray-800 mb-2 flex items-center">
+                <span className="text-xl mr-2" aria-hidden="true">👨‍🔧</span>
+                Who is my pro?
+              </h4>
+              <p className="text-sm text-gray-600">
+                WorkOnTap will match you with certified, background-checked pros in your area once you submit your job.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
           {priced ? `Price ${formatMoney(live.price)}` : ''}

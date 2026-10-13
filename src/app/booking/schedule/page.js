@@ -464,6 +464,7 @@ function FlowContent({ serviceId }) {
                   firstDate={current && current.number === 4 && whenAndWhere.selectedDates.length > 1 ? whenAndWhere.selectedDates[0] : null}
                   dates={whenAndWhere.selectedDates}
                   times={whenAndWhere.selectedTimes}
+                  proNote={current != null && current.number === 4}
                 />
                 <div className="flex gap-3 px-4 pb-4 lg:p-0">
                   {current && stepIndex > 0 && (
