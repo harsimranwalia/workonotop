@@ -691,8 +691,9 @@ const alterations = [
     sql: 'ALTER TABLE users ADD UNIQUE INDEX phone_unique (phone)',
     type: 'unique'
   },
-  // One payment is attached to one booking (migration 0002; on an existing database the migration is applied by hand —
-  // this entry only warns and carries on if two bookings share an id, so it is the fresh-install path).
+  // One payment is attached to one booking (migration 0002). The tables entry creates the index on a fresh install; on an
+  // existing database this entry adds it, or only warns and carries on if two bookings share an id, so there the migration is
+  // applied by hand.
   { table: 'bookings', column: 'uq_bookings_payment_intent', sql: 'ALTER TABLE bookings ADD UNIQUE INDEX uq_bookings_payment_intent (payment_intent_id)', type: 'unique' },
 
   // service_categories table additions
