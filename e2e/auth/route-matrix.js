@@ -648,7 +648,7 @@ export const matrix = [
     },
     {
         route: '/api/bookings', method: 'POST', today: 'partial', kind: 'public', public: 'guest checkout; a credential, if sent, sets the owner (R1)', owner: '-',
-        note: 'HIGH: payment_intent_id only checked truthy (120), never verified with Stripe (client declared … Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Missing required fields (Service, Date, Time, Address, or Email)\'.',
+        note: 'The payment intent id is retrieved and bound to the booking: it must be a hold of this booking\'s price, in the configured currency, for the account the booking is recorded for, attached to no other booking (a 409 pre-check and a unique index). Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Missing required fields (Service, Date, Time, Address, or Email)\'.',
         probe: { path: '/api/bookings', body: {}, anon: [400] },
     },
     {

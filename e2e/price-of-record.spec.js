@@ -1,7 +1,7 @@
 // @ts-check
 // The amounts a booking is charged and paid come from the price recorded when it is booked. Eight cases, each titled for what it shows:
 //   1  a booking records the catalog price of the service it books;
-//   2  a booking records the catalog hourly rate of the service it books and authorizes by it (fixture service 2, whose figures differ
+//   2  a booking records the catalog hourly rate of the service it books (fixture service 2, whose figures differ
 //      from service 1's, the service cases 1 and 4 to 6 book);
 //   3  create-intent answers 400 for a service the catalog does not offer, and so does the checkout (the case posts to both routes);
 //   4  the finish stores the payout as the booking's price less its commission, whatever hours and crew are entered;
@@ -207,20 +207,20 @@ test.describe('Price of record', () => {
         });
     });
 
-    test('a booking records the catalog hourly rate of the service it books and authorizes by it', async ({ request, baseURL }) => {
+    test('a booking records the catalog hourly rate of the service it books', async ({ request, baseURL }) => {
         const as = await headersFor(baseURL);
         // Fixture service 2 has another price, rate and duration than service 1, so a booking priced from service 1 (or from the first row of
         // the catalog) records figures that are not this service's.
         const service = await catalogService(SECOND_SERVICE_ID);
-        // The request names ten times the catalog's price and a different hourly rate; the booking records the catalog's figures and
-        // authorizes the price plus two hours at the catalog's rate.
+        // The request names ten times the catalog's price and a different hourly rate; the booking records the catalog's figures. With no
+        // payment key on the dev stack nothing is held, so the held amount is null in the row and the answer.
         await withBooking(request, as, service, { service_price: service.price * 10, additional_price: service.rate * 100 + 1 }, async (id, answer) => {
             const stored = await storedBooking(id);
             expect(Number(stored.service_price), 'the price the booking records').toBe(service.price);
             expect(Number(stored.additional_price), 'the hourly rate the booking records').toBe(service.rate);
-            expect(Number(stored.authorized_amount), 'the amount the booking authorizes').toBe(service.price + 2 * service.rate);
+            expect(stored.authorized_amount, 'nothing is held without a payment key').toBeNull();
             expect(answer.overtime_rate, 'the hourly rate the checkout answers').toBe(service.rate);
-            expect(answer.authorized_amount, 'the amount the checkout answers').toBe(service.price + 2 * service.rate);
+            expect(answer.authorized_amount, 'the held amount the checkout answers').toBeNull();
         });
     });
 
@@ -348,12 +348,12 @@ test.describe('Price of record', () => {
         const routes = [
             {
                 file: 'src/app/api/customer/bookings/[id]/approve/route.js',
-                present: ['providerPayout(booking)', 'booking.service_price', 'amount_to_capture'],
+                present: ['providerPayout(booking)', 'booking.service_price', 'collectBookingPayment(', 'source_transaction'],
                 absent: ['submitted_headcount', 'submitted_duration_minutes', 'calcFinalAmount', 'off_session', 'worker_count', 'additional_price'],
             },
             {
                 file: 'src/app/api/cron/auto-release/route.js',
-                present: ['providerPayout(booking)', 'booking.service_price', 'amount_to_capture'],
+                present: ['providerPayout(booking)', 'booking.service_price', 'collectBookingPayment(', 'source_transaction'],
                 absent: ['final_provider_amount ||', 'worker_count'],
             },
             {
@@ -372,6 +372,16 @@ test.describe('Price of record', () => {
             expect(/from\s+['"]@\/lib\/booking-price['"]/.test(source), `${file} imports the price module`).toBe(true);
             for (const text of present) expect(source.includes(text), `${file} holds ${JSON.stringify(text)}`).toBe(true);
             for (const text of absent) expect(source.includes(text), `${file} does not hold ${JSON.stringify(text)}`).toBe(false);
+        }
+
+        // The payment module holds the charge decisions: the recorded price, the capture amount and the off-session charge of
+        // the saved card; it never reads the booking's held amount or the hourly figure.
+        const moduleSource = fs.readFileSync(path.join(ROOT, 'src/lib/booking-payment.js'), 'utf8');
+        for (const text of ['booking.service_price', 'amount_to_capture', 'off_session']) {
+            expect(moduleSource.includes(text), `booking-payment.js holds ${JSON.stringify(text)}`).toBe(true);
+        }
+        for (const text of ['additional_price', 'authorized_amount']) {
+            expect(moduleSource.includes(text), `booking-payment.js does not hold ${JSON.stringify(text)}`).toBe(false);
         }
     });
 
