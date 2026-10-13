@@ -2043,10 +2043,16 @@
     "booking-guided-flow.spec.js › Guided booking flow › a booking made with that body is a one-time job for the chosen date and address, priced by the pricing rule": {
       "outcome": "PASS"
     },
+    "booking-guided-flow.spec.js › Guided booking flow › a booking restarted at another place opens step 4 with that place's address": {
+      "outcome": "PASS"
+    },
     "booking-guided-flow.spec.js › Guided booking flow › a failed price request shows a retry and no figure": {
       "outcome": "PASS"
     },
     "booking-guided-flow.spec.js › Guided booking flow › a service with units and an extra shows three steps and a service with no rule shows one": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › a stored booking whose step-4 answers are incomplete does not reach the payment step": {
       "outcome": "PASS"
     },
     "booking-guided-flow.spec.js › Guided booking flow › an earlier price response that arrives after a later one is not shown": {
