@@ -742,7 +742,7 @@ test.describe('Guided booking flow', () => {
         await expect(totalOf(page)).toHaveText('$315.00');
         await expect(priceBox(page).getByText(`Your price is for your first date, ${dayLabel(friday)}.`).first()).toBeVisible();
 
-        // The same two days the other way round: the first date is the earliest day, not the first one picked and not the newest.
+        // Both days off, then the same two picked the other way round (Friday first): over the two orders the first date is neither the first one picked nor the newest, it is the earliest day.
         await pickDay(page, saturday);
         await pickDay(page, friday);
         await expectPrice(page, FULL);
