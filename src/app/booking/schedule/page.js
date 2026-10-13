@@ -1,230 +1,324 @@
-
-
-
-
-// app/booking/schedule/page.js - FIXED PROGRESS BAR
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Swal from 'sweetalert2';
+import { toast } from 'react-hot-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import Swal from 'sweetalert2';
+import PriceBox, { HOURS_MESSAGE_ID, formatMoney } from '@/components/booking/PriceBox';
+import WhenAndWhereStep, { EMPTY_WHEN_AND_WHERE, checkWhenAndWhere, whenAndWhereBooking } from '@/components/booking/WhenAndWhereStep';
+import { answersWithoutDate, bookingAnswers, hoursAnswer } from '@/lib/booking-answers';
+import { useLivePrice } from '@/lib/use-live-price';
 
-// Separate component that uses useSearchParams
-function ScheduleContent() {
+const STEPS = [
+  { number: 1, name: 'About the job', kinds: ['unit', 'property_type'] },
+  { number: 2, name: 'The option', kinds: ['option'] },
+  { number: 3, name: "What's included", kinds: ['extra'] },
+  { number: 4, name: 'When and where', kinds: null },
+];
+
+const EMPTY_SELECTIONS = { units: {}, propertyType: null, option: null, hours: '', extras: {} };
+const NO_ADDRESS = 'Please enter your service location';
+
+const ofKind = (choices, kind) => (choices || []).filter((item) => item && item.kind === kind);
+const shownStepsOf = (choices) => STEPS.filter((step) => !step.kinds || step.kinds.some((kind) => ofKind(choices, kind).length > 0));
+const isHourly = (item) => Boolean(item) && Number(item.is_hourly) === 1;
+
+function stepComplete(number, choices, selections) {
+  if (number === 1) {
+    const types = ofKind(choices, 'property_type');
+    return types.length === 0 || types.some((item) => item.code === selections.propertyType);
+  }
+  if (number === 2) {
+    const options = ofKind(choices, 'option');
+    if (options.length === 0) return true;
+    const chosen = options.find((item) => item.code === selections.option);
+    return Boolean(chosen) && (!isHourly(chosen) || hoursAnswer(selections.hours) !== null);
+  }
+  return true;
+}
+
+function resolveStep(requested, choices, selections) {
+  const shown = shownStepsOf(choices).map((step) => step.number);
+  const wanted = shown.find((number) => number >= requested) ?? shown[shown.length - 1];
+  return shown.find((number) => number < wanted && !stepComplete(number, choices, selections)) ?? wanted;
+}
+
+function readSelections(saved) {
+  const value = saved && typeof saved === 'object' ? saved : {};
+  return {
+    units: value.units && typeof value.units === 'object' ? value.units : {},
+    propertyType: typeof value.propertyType === 'string' ? value.propertyType : null,
+    option: typeof value.option === 'string' ? value.option : null,
+    hours: typeof value.hours === 'string' ? value.hours : '',
+    extras: value.extras && typeof value.extras === 'object' ? value.extras : {},
+  };
+}
+
+function wholeCount(text) {
+  const count = Number.parseInt(text, 10);
+  if (!Number.isFinite(count) || count < 0) return 0;
+  return Math.min(count, Number.MAX_SAFE_INTEGER);
+}
+
+function Stepper({ item, value, onChange }) {
+  const id = `count-${item.kind}-${item.code}`;
+  return (
+    <div role="group" aria-label={item.label} className="flex items-center justify-between gap-4 py-4 border-b border-gray-100 last:border-b-0">
+      <div>
+        <p className="font-semibold text-gray-800">{item.label}</p>
+        <p className="text-sm text-gray-600">{formatMoney(item.amount)} each</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          aria-label={`Remove one ${item.label}`}
+          disabled={value === 0}
+          onClick={() => onChange(Math.max(0, value - 1))}
+          className="w-10 h-10 rounded-full border-2 border-gray-300 text-lg font-bold text-gray-700 hover:border-green-600 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
+        >
+          −
+        </button>
+        <input
+          id={id}
+          type="number"
+          inputMode="numeric"
+          min={0}
+          step={1}
+          aria-label={item.label}
+          value={value}
+          onChange={(e) => onChange(wholeCount(e.target.value))}
+          className="w-16 p-2 text-center border-2 border-gray-200 rounded-lg text-gray-800 focus:outline-none focus:border-green-600 focus:ring-2 focus:ring-green-200"
+        />
+        <button
+          type="button"
+          aria-label={`Add one ${item.label}`}
+          onClick={() => onChange(Math.min(Number.MAX_SAFE_INTEGER, value + 1))}
+          className="w-10 h-10 rounded-full border-2 border-gray-300 text-lg font-bold text-gray-700 hover:border-green-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RadioGroup({ legend, name, items, value, onChange }) {
+  return (
+    <fieldset className="mt-2">
+      <legend className="font-semibold text-gray-800 mb-3">{legend}</legend>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {items.map((item) => {
+          const amount = Number(item.amount) > 0 ? `${isHourly(item) ? '' : '+'}${formatMoney(item.amount)}${isHourly(item) ? ' an hour' : ''}` : '';
+          const checked = value === item.code;
+          return (
+            <label
+              key={item.code}
+              className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition focus-within:ring-2 focus-within:ring-green-600 ${checked ? 'border-green-700 bg-green-50' : 'border-gray-200 hover:border-green-500'}`}
+            >
+              <input type="radio" name={name} value={item.code} checked={checked} onChange={() => onChange(item)} className="w-4 h-4 accent-green-700" />
+              <span className="font-medium text-gray-800">{item.label}</span>
+              {amount && <span className="ml-auto text-sm text-gray-600">{amount}</span>}
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+function Spinner() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="motion-safe:animate-spin rounded-full h-16 w-16 border-4 border-green-500 border-t-transparent"></div>
+    </div>
+  );
+}
+
+function FlowContent({ serviceId }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const serviceId = searchParams.get('service');
+  const stepParam = searchParams.get('step');
+  const parsedStep = Number.parseInt(stepParam ?? '', 10);
+  const requestedStep = Number.isFinite(parsedStep) && parsedStep >= 1 ? parsedStep : 1;
 
   const [service, setService] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedDates, setSelectedDates] = useState([]);
-  const [selectedTimes, setSelectedTimes] = useState({}); // Now maps dateStr -> [timeSlots]
-  const [timingConstraints, setTimingConstraints] = useState('');
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [serviceLoading, setServiceLoading] = useState(true);
+  const [ready, setReady] = useState(false);
+  const [selections, setSelections] = useState(EMPTY_SELECTIONS);
+  const [whenAndWhere, setWhenAndWhere] = useState(EMPTY_WHEN_AND_WHERE);
+  const [initialAnswers, setInitialAnswers] = useState({});
+  const [showHints, setShowHints] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const headingRef = useRef(null);
+  const shownStep = useRef(null);
 
-  // Fetch service details
   useEffect(() => {
-    const fetchService = async () => {
-      if (!serviceId) {
-        router.push('/services');
-        return;
+    sessionStorage.removeItem('bookingSchedule');
+    sessionStorage.removeItem('bookingDetails');
+    sessionStorage.removeItem('prefetchedClientSecret');
+    if (!serviceId) {
+      router.push('/services');
+      return;
+    }
+    let flow = null;
+    try {
+      flow = JSON.parse(sessionStorage.getItem('bookingFlow') || 'null');
+    } catch {
+      flow = null;
+    }
+    if (flow && String(flow.service_id) === String(serviceId)) {
+      setSelections(readSelections(flow.selections));
+      setWhenAndWhere({ ...EMPTY_WHEN_AND_WHERE, ...(flow.whenAndWhere || {}) });
+      const saved = flow.answers && typeof flow.answers === 'object' ? flow.answers : {};
+      setInitialAnswers(requestedStep >= 4 ? saved : answersWithoutDate(saved));
+    } else {
+      const userAddress = sessionStorage.getItem('userAddress');
+      if (userAddress && userAddress.trim() && userAddress !== NO_ADDRESS) {
+        setWhenAndWhere({ ...EMPTY_WHEN_AND_WHERE, address: userAddress });
       }
+    }
+    setReady(true);
+    // Restores once, at mount, for the service in the address.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceId]);
 
-      try {
-        const res = await fetch(`/api/services?id=${serviceId}`);
-        const data = await res.json();
-        if (data.success && data.data) {
-          if (Array.isArray(data.data)) {
-            setService(data.data[0]);
-          } else {
-            setService(data.data);
-          }
-        } else {
-          router.push('/services');
-        }
-      } catch (error) {
+  useEffect(() => {
+    if (!serviceId) return undefined;
+    let alive = true;
+    fetch(`/api/services?id=${encodeURIComponent(serviceId)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!alive) return;
+        const row = data && data.success ? (Array.isArray(data.data) ? data.data[0] : data.data) : null;
+        if (row) setService(row);
+        else router.push('/services');
+      })
+      .catch((error) => {
         console.error('Error fetching service:', error);
-        router.push('/services');
-      } finally {
-        setLoading(false);
-      }
+        if (alive) router.push('/services');
+      })
+      .finally(() => {
+        if (alive) setServiceLoading(false);
+      });
+    return () => {
+      alive = false;
     };
-
-    fetchService();
   }, [serviceId, router]);
 
-  // Time slots
-  const timeSlots = [
-    { id: 'morning', label: 'Morning', icon: '🌅', time: '8am - 12pm' },
-    { id: 'afternoon', label: 'Afternoon', icon: '☀️', time: '12pm - 4pm' },
-    { id: 'evening', label: 'Evening', icon: '🌙', time: '4pm - 8pm' }
-  ];
+  const live = useLivePrice(ready ? serviceId : null, (choices) => {
+    if (!choices) return initialAnswers;
+    const step = resolveStep(requestedStep, choices, selections);
+    return bookingAnswers(selections, step === 4 ? whenAndWhere.selectedDates : [], choices);
+  });
+  const { choices } = live;
+  const shown = choices ? shownStepsOf(choices) : null;
+  const step = choices ? resolveStep(requestedStep, choices, selections) : null;
+  const stepIndex = shown ? shown.findIndex((item) => item.number === step) : -1;
+  const locked = live.status === 'unavailable';
 
-  const isSlotAvailable = (dateStr, slotId) => {
-    const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    
-    if (dateStr !== todayStr) return true;
-    
-    const hour = now.getHours();
-    if (slotId === 'morning' && hour >= 11) return false;   // Morning (8am-12pm) disabled after 11am
-    if (slotId === 'afternoon' && hour >= 15) return false; // Afternoon (12pm-4pm) disabled after 3pm
-    if (slotId === 'evening' && hour >= 19) return false;   // Evening (4pm-8pm) disabled after 7pm
-    
-    return true;
-  };
-
-  const toggleTimeSlot = (dateStr, slot) => {
-    if (!isSlotAvailable(dateStr, slot)) return;
-    
-    const currentSlots = selectedTimes[dateStr] || [];
-    if (currentSlots.includes(slot)) {
-      setSelectedTimes({
-        ...selectedTimes,
-        [dateStr]: currentSlots.filter(s => s !== slot)
-      });
-    } else {
-      setSelectedTimes({
-        ...selectedTimes,
-        [dateStr]: [...currentSlots, slot]
-      });
-    }
-  };
-
-  // Calendar functions
-  const generateCalendarDays = () => {
-    const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-    const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
-    const days = [];
-
-    for (let i = 0; i < firstDay; i++) {
-      days.push({ day: null, available: false });
-    }
-
-    for (let i = 1; i <= daysInMonth; i++) {
-      const today = new Date();
-      const isPast = new Date(currentYear, currentMonth - 1, i) < new Date(today.setHours(0, 0, 0, 0));
-      days.push({
-        day: i,
-        available: !isPast,
-        highlighted: i === 16
-      });
-    }
-
-    return days;
-  };
-
-  const calendarDays = generateCalendarDays();
-  const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
-  const handlePreviousMonth = () => {
-    if (currentMonth > 1) {
-      setCurrentMonth(currentMonth - 1);
-    } else {
-      setCurrentMonth(12);
-      setCurrentYear(currentYear - 1);
-    }
-  };
-
-  const handleNextMonth = () => {
-    if (currentMonth < 12) {
-      setCurrentMonth(currentMonth + 1);
-    } else {
-      setCurrentMonth(1);
-      setCurrentYear(currentYear + 1);
-    }
-  };
-
-  const handleDateClick = (day) => {
-    const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    if (selectedDates.includes(dateStr)) {
-      setSelectedDates(selectedDates.filter(d => d !== dateStr));
-    } else {
-      if (selectedDates.length >= 3) return;
-      setSelectedDates([...selectedDates, dateStr].sort());
-    }
-  };
-
-  const handleContinue = () => {
-    if (selectedDates.length === 0) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Selection Required',
-        text: 'Please select 1 to 3 dates to continue',
-        confirmButtonColor: '#16a34a'
-      });
-      return;
-    }
-
-    if (selectedDates.some(d => !selectedTimes[d] || selectedTimes[d].length === 0)) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Time Slot Required',
-        text: 'Please select at least one time slot for each date',
-        confirmButtonColor: '#16a34a'
-      });
-      return;
-    }
-
-    // Format times for backend
-    const aggregatedTimes = [];
-    selectedDates.forEach(dateStr => {
-      const slots = selectedTimes[dateStr];
-      if (slots && slots.length > 0) {
-        const displayDate = new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        const displaySlots = slots.map(s => {
-          if (s === 'morning') return 'Morning';
-          if (s === 'afternoon') return 'Afternoon';
-          if (s === 'evening') return 'Evening';
-          return s;
-        });
-        aggregatedTimes.push(`${displayDate}: ${displaySlots.join(' & ')}`);
-      }
+  useEffect(() => {
+    if (!choices) return;
+    setSelections((prev) => {
+      const codes = (kind) => new Set(ofKind(choices, kind).map((item) => item.code));
+      const units = codes('unit');
+      const extras = codes('extra');
+      const keep = (counts, known) => Object.fromEntries(Object.entries(counts).filter(([code]) => known.has(code)));
+      const next = {
+        units: keep(prev.units, units),
+        propertyType: codes('property_type').has(prev.propertyType) ? prev.propertyType : null,
+        option: codes('option').has(prev.option) ? prev.option : null,
+        hours: prev.hours,
+        extras: keep(prev.extras, extras),
+      };
+      return JSON.stringify(next) === JSON.stringify(prev) ? prev : next;
     });
+  }, [choices]);
 
-    const scheduleData = {
+  useEffect(() => {
+    if (!ready || !service) return;
+    const booking = whenAndWhereBooking(whenAndWhere);
+    const flow = {
       service_id: service.id,
       service_name: service.name,
-      service_price: service.base_price,
-      additional_price: service.additional_price,
-      job_date: selectedDates,
-      job_time_slot: aggregatedTimes.length > 0 ? aggregatedTimes : [],
-      timing_constraints: timingConstraints
+      step: step ?? requestedStep,
+      selections,
+      whenAndWhere,
+      schedule: { job_date: booking.job_date, job_time_slot: booking.job_time_slot, timing_constraints: booking.timing_constraints },
+      details: {
+        job_description: booking.job_description,
+        instructions: booking.instructions,
+        parking_access: booking.parking_access,
+        elevator_access: booking.elevator_access,
+        has_pets: booking.has_pets,
+        photos: booking.photos,
+        address: booking.address,
+      },
+      answers: choices ? bookingAnswers(selections, whenAndWhere.selectedDates, choices) : initialAnswers,
     };
+    sessionStorage.setItem('bookingFlow', JSON.stringify(flow));
+  }, [ready, service, step, requestedStep, selections, whenAndWhere, choices, initialAnswers]);
 
-    sessionStorage.setItem('bookingSchedule', JSON.stringify(scheduleData));
-    router.push('/booking/details');
-  };
+  useEffect(() => {
+    if (step === null || stepParam === null || String(step) === stepParam) return;
+    router.replace(`/booking/schedule?service=${encodeURIComponent(serviceId)}&step=${step}`);
+  }, [step, stepParam, serviceId, router]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-500 border-t-transparent"></div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (step === null) return;
+    if (shownStep.current !== null && shownStep.current !== step && headingRef.current) headingRef.current.focus();
+    shownStep.current = step;
+  }, [step]);
+
+  const goTo = useCallback((number) => {
+    router.push(`/booking/schedule?service=${encodeURIComponent(serviceId)}&step=${number}`);
+  }, [router, serviceId]);
+
+  const setCount = (group, code, count) => setSelections((prev) => ({ ...prev, [group]: { ...prev[group], [code]: count } }));
+
+  const chooseOption = (item) => setSelections((prev) => ({ ...prev, option: item.code, hours: isHourly(item) ? prev.hours : '' }));
+
+  if (serviceLoading || !ready) return <Spinner />;
 
   if (!service) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Service not found</h2>
-          <Link href="/services" className="text-green-700 hover:underline">
-            Browse services
-          </Link>
+          <Link href="/services" className="text-green-700 hover:underline">Browse services</Link>
         </div>
       </div>
     );
   }
+
+  const current = shown && stepIndex >= 0 ? shown[stepIndex] : null;
+  const isLast = current && stepIndex === shown.length - 1;
+  const ownInputsDone = current ? stepComplete(current.number, choices, selections) : false;
+  const canContinue = Boolean(current) && live.status === 'priced' && ownInputsDone && !locked && !uploading;
+  const chosenOption = ofKind(choices, 'option').find((item) => item.code === selections.option);
+  const hoursRefused = live.status === 'refused' && live.field === 'hours';
+  const weekend = ofKind(choices, 'weekend').find((item) => Number(item.amount) > 0);
+
+  const handleContinue = () => {
+    if (!current || !canContinue) return;
+    if (!isLast) {
+      goTo(shown[stepIndex + 1].number);
+      return;
+    }
+    const problem = checkWhenAndWhere(whenAndWhere);
+    if (problem) {
+      if (problem.kind === 'dates' || problem.kind === 'slots') {
+        Swal.fire({ icon: 'warning', title: problem.title, text: problem.text, confirmButtonColor: '#16a34a' });
+      } else {
+        toast.error(problem.text);
+        setShowHints(true);
+      }
+      return;
+    }
+    router.push('/booking/confirm');
+  };
 
   return (
     <>
@@ -238,372 +332,160 @@ function ScheduleContent() {
             <Link href="/services" className="hover:text-green-700 transition">Services</Link>
             <span className="mx-2">›</span>
             <Link href={`/services/${service.slug}`} className="hover:text-green-700 transition">{service.name}</Link>
-            <span className="mx-2">›</span>
-            <span className="text-gray-900 font-medium">Schedule</span>
+            {current && (
+              <>
+                <span className="mx-2">›</span>
+                <span className="text-gray-900 font-medium">{current.name}</span>
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 md:py-12">
+      <div className="container mx-auto px-4 py-8 md:py-12 pb-48 lg:pb-12">
         <div className="max-w-6xl mx-auto">
-
-          {/* Progress Tracker - Step 1 of 3 */}
-          <div className="mb-10 md:mb-12">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm md:text-base font-bold text-green-700 bg-green-100 px-4 py-1.5 rounded-full">STEP 1 OF 3</span>
-              <span className="text-sm text-gray-500 font-medium">Book in under 2 minutes</span>
-            </div>
-            <div className="relative">
-              <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-green-600 to-green-500 rounded-full" style={{ width: '33%' }}></div>
+          <nav aria-label="Booking steps" className="mb-8 md:mb-10">
+            {shown && shown.length > 1 && (
+              <p className="mb-3 text-sm md:text-base font-bold text-green-700">
+                <span className="bg-green-100 px-4 py-1.5 rounded-full inline-block">Step {stepIndex + 1} of {shown.length}</span>
+                <span className="sm:hidden text-gray-700 font-medium" aria-hidden="true"> · {current?.name}</span>
+              </p>
+            )}
+            {shown && shown.length > 1 && (
+              <div aria-hidden="true" className="flex gap-1.5 sm:hidden">
+                {shown.map((item, index) => (
+                  <span key={item.number} className={`h-2 flex-1 rounded-full ${index <= stepIndex ? 'bg-green-600' : 'bg-gray-200'}`}></span>
+                ))}
               </div>
-              <div className="flex justify-between mt-2">
-                <div className="flex flex-col items-start">
-                  <div className="flex items-center">
-                    <div className="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center text-white text-xs font-bold">1</div>
-                    <span className="ml-2 text-sm font-semibold text-green-700">Schedule</span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-center">
-                  <div className="flex items-center">
-                    <div className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center text-white text-xs">2</div>
-                    <span className="ml-2 text-sm text-gray-500">Details</span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end">
-                  <div className="flex items-center">
-                    <div className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center text-white text-xs">3</div>
-                    <span className="ml-2 text-sm text-gray-500">Confirm</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+            )}
+            <ol className="sr-only sm:not-sr-only sm:flex sm:flex-wrap sm:gap-x-8 sm:gap-y-2">
+              {shown ? shown.map((item, index) => (
+                <li
+                  key={item.number}
+                  aria-current={item.number === step ? 'step' : undefined}
+                  className={`flex items-center gap-2 text-sm ${item.number === step ? 'font-semibold text-green-700' : index < stepIndex ? 'text-green-700' : 'text-gray-600'}`}
+                >
+                  <span aria-hidden="true" className={`inline-block w-2.5 h-2.5 rounded-full ${index <= stepIndex ? 'bg-green-600' : 'bg-gray-300'}`}></span>
+                  {item.name}
+                </li>
+              )) : (
+                <li aria-hidden="true"><span className="inline-block h-4 w-32 rounded bg-gray-200 motion-safe:animate-pulse"></span></li>
+              )}
+            </ol>
+          </nav>
 
-          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">
-            Book {service.name}
-          </h1>
-          <p className="text-lg text-gray-600 mb-8 md:mb-10">
-            Select a date and time that works for you
-          </p>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-8">Book {service.name}</h1>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-
-            {/* Left Column - Main Form */}
-            <div className="lg:col-span-2 space-y-8">
-
-              {/* Date Selection Card */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                <div className="bg-gradient-to-r from-green-800 to-green-700 px-6 py-5">
-                  <h2 className="text-xl md:text-2xl font-bold text-white flex items-center">
-                    <span className="mr-3 text-2xl">📅</span>
-                    When should we send someone?
-                  </h2>
-                  <p className="text-green-100 text-sm mt-1 ml-1">
-                    Select 1 to 3 dates that work for you
-                  </p>
+            <div className="lg:col-span-2">
+              {!current ? (
+                <div aria-hidden="true" className="space-y-4 motion-safe:animate-pulse">
+                  <div className="h-8 w-1/2 rounded bg-gray-200"></div>
+                  <div className="h-24 rounded-2xl bg-gray-200"></div>
+                  <div className="h-24 rounded-2xl bg-gray-200"></div>
                 </div>
+              ) : (
+                <fieldset disabled={locked} className="min-w-0">
+                  <h2 ref={headingRef} tabIndex={-1} className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 rounded">
+                    {current.name}
+                  </h2>
 
-                <div className="p-6 md:p-8">
-                  {/* Calendar Header */}
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-bold text-gray-800">
-                      {monthNames[currentMonth - 1]} {currentYear}
-                    </h3>
-                    <div className="flex gap-2">
-                      <button onClick={handlePreviousMonth} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition border border-gray-300">
-                        <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
-                      <button onClick={handleNextMonth} className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition border border-gray-300">
-                        <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
+                  {current.number === 1 && (
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8 space-y-6">
+                      {ofKind(choices, 'unit').length > 0 && (
+                        <div>
+                          {ofKind(choices, 'unit').map((item) => (
+                            <Stepper key={item.code} item={item} value={wholeCount(selections.units[item.code])} onChange={(count) => setCount('units', item.code, count)} />
+                          ))}
+                        </div>
+                      )}
+                      {ofKind(choices, 'property_type').length > 0 && (
+                        <RadioGroup
+                          legend="Type of property"
+                          name="property-type"
+                          items={ofKind(choices, 'property_type')}
+                          value={selections.propertyType}
+                          onChange={(item) => setSelections((prev) => ({ ...prev, propertyType: item.code }))}
+                        />
+                      )}
                     </div>
-                  </div>
+                  )}
 
-                  {/* Weekday Headers */}
-                  <div className="grid grid-cols-7 gap-1 md:gap-2 mb-2">
-                    {weekdays.map((day, index) => (
-                      <div key={index} className="text-center text-xs md:text-sm font-semibold text-gray-500 py-2">
-                        {day}
-                      </div>
-                    ))}
-                  </div>
+                  {current.number === 2 && (
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8 space-y-6">
+                      <RadioGroup legend="Choose an option" name="option" items={ofKind(choices, 'option')} value={selections.option} onChange={chooseOption} />
+                      {isHourly(chosenOption) && (
+                        <div>
+                          <label htmlFor="booking-hours" className="block font-semibold text-gray-800 mb-2">How many hours?</label>
+                          <input
+                            id="booking-hours"
+                            type="number"
+                            inputMode="decimal"
+                            min={1}
+                            max={24}
+                            step={0.5}
+                            value={selections.hours}
+                            onChange={(e) => {
+                              const hours = e.target.value;
+                              setSelections((prev) => ({ ...prev, hours }));
+                            }}
+                            aria-invalid={hoursRefused ? 'true' : undefined}
+                            aria-describedby={hoursRefused ? HOURS_MESSAGE_ID : undefined}
+                            className={`w-32 p-3 border-2 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-200 ${hoursRefused ? 'border-amber-600' : 'border-gray-200 focus:border-green-600'}`}
+                          />
+                          <p className="mt-3 text-sm text-gray-600">Priced by the hour: the hours you choose set the price.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                  {/* Calendar Grid */}
-                  <div className="grid grid-cols-7 gap-1 md:gap-2">
-                    {calendarDays.map((day, index) => {
-                      const dateStr = day.day ? `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day.day).padStart(2, '0')}` : null;
-                      const isSelected = dateStr && selectedDates.includes(dateStr);
-                      const isMaxReached = selectedDates.length >= 3 && !isSelected;
-                      const isClickable = day.available && !isMaxReached;
+                  {current.number === 3 && (
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8">
+                      {ofKind(choices, 'extra').map((item) => (
+                        <Stepper key={item.code} item={item} value={wholeCount(selections.extras[item.code])} onChange={(count) => setCount('extras', item.code, count)} />
+                      ))}
+                    </div>
+                  )}
 
-                      return (
-                      <div key={index} className="aspect-square">
-                        {day.day ? (
-                          <button
-                            onClick={() => isClickable && handleDateClick(day.day)}
-                            disabled={!isClickable}
-                            className={`
-                              w-full h-full rounded-xl flex items-center justify-center text-sm md:text-base font-medium
-                              transition-all duration-200
-                              ${isSelected
-                                ? 'bg-gradient-to-br from-green-700 to-green-600 text-white shadow-md scale-105'
-                                : isClickable
-                                  ? 'hover:bg-gray-100 text-gray-800 border border-gray-200 hover:border-green-400'
-                                  : 'text-gray-300 bg-gray-50 cursor-not-allowed border border-gray-100'
-                              }
-                            `}
-                          >
-                            {day.day}
-                          </button>
-                        ) : (
-                          <div className="w-full h-full"></div>
-                        )}
-                      </div>
-                    )})}
-                  </div>
+                  {current.number === 4 && (
+                    <WhenAndWhereStep value={whenAndWhere} onChange={setWhenAndWhere} showHints={showHints} onUploadingChange={setUploading} />
+                  )}
+                </fieldset>
+              )}
+            </div>
 
-                  {/* Time Slots (Per Date) */}
-                  <div className="mt-8">
-                    <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                      <span className="mr-2">⏰</span>
-                      Select your preferred times
-                    </h4>
-                    
-                    {selectedDates.length === 0 ? (
-                      <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 text-center">
-                        <p className="text-gray-500">Please select a date from the calendar first.</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {selectedDates.map(dateStr => {
-                          const displayDate = new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-                          return (
-                            <div key={dateStr} className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                              <h5 className="font-semibold text-gray-800 mb-3 border-b border-gray-200 pb-2">{displayDate}</h5>
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                {timeSlots.map((slot) => {
-                                  const available = isSlotAvailable(dateStr, slot.id);
-                                  const isSelected = (selectedTimes[dateStr] || []).includes(slot.id);
-                                  
-                                  return (
-                                    <button
-                                      key={slot.id}
-                                      onClick={() => available && toggleTimeSlot(dateStr, slot.id)}
-                                      disabled={!available}
-                                      className={`
-                                        p-3 rounded-xl border-2 transition-all duration-200
-                                        ${isSelected
-                                          ? 'bg-gradient-to-br from-green-700 to-green-600 border-green-700 text-white shadow-sm'
-                                          : available
-                                            ? 'bg-white border-gray-200 hover:border-green-500 hover:bg-green-50/50 text-gray-800'
-                                            : 'bg-gray-100 border-gray-100 text-gray-300 cursor-not-allowed opacity-60'
-                                        }
-                                      `}
-                                    >
-                                      <div className="flex flex-col items-center">
-                                        <span className={`text-xl mb-1 ${!available && 'grayscale opacity-50'}`}>{slot.icon}</span>
-                                        <span className="font-bold text-sm">{slot.label}</span>
-                                        <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-green-100' : 'text-gray-500'}`}>
-                                          {available ? slot.time : 'Slot passed'}
-                                        </span>
-                                      </div>
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Timing Constraints Card */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                <div className="bg-gradient-to-r from-green-800 to-green-700 px-6 py-5">
-                  <h2 className="text-xl md:text-2xl font-bold text-white flex items-center">
-                    <span className="mr-3 text-2xl">⏳</span>
-                    Timing constraints
-                  </h2>
-                  <p className="text-green-100 text-sm mt-1 ml-1">
-                    Let your pro know about any specific timing needs
-                  </p>
-                </div>
-
-                <div className="p-6 md:p-8">
-                  {/* <textarea
-                    value={timingConstraints}
-                    onChange={(e) => setTimingConstraints(e.target.value)}
-                    placeholder="e.g. Baby is napping from 3-4pm. Please do not arrive during those times. / Please call 30 minutes before arrival. / Building has limited parking — instructions sent via chat."
-                    className="w-full h-32 md:h-40 p-4 border-2 border-gray-200 rounded-xl resize-none focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 transition text-gray-700 placeholder:text-gray-400 text-base"
-                  /> */}
-
-
-
-
-
-
-                  <textarea
-                    value={timingConstraints}
-                    onChange={(e) => setTimingConstraints(e.target.value)}
-                    maxLength={400}
-                    placeholder="e.g. Baby is napping from 3-4pm..."
-                    className="w-full h-32 md:h-40 p-4 border-2 border-gray-200 rounded-xl resize-none focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 transition text-gray-700 placeholder:text-gray-400 text-base"
-                  />
-
-                  <p className="text-xs text-gray-500 mt-2 text-right">
-                    {timingConstraints.length}/400 characters
-                  </p>
-
-
-
-
-
-
-
-                  <p className="text-xs text-gray-500 mt-3 flex items-center">
-                    <svg className="w-4 h-4 text-green-600 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                    </svg>
-                    Your pro will see these notes before accepting the job
-                  </p>
-                </div>
-              </div>
-
-              {/* Navigation Buttons */}
-              <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4">
-                <Link href={`/services/${service.slug}`}>
-                  <button className="w-full sm:w-auto px-8 py-4 border-2 border-gray-300 rounded-xl hover:bg-gray-100 hover:border-gray-400 transition font-medium text-gray-700 flex items-center justify-center">
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    Back
+            <aside className="fixed inset-x-0 bottom-0 z-30 max-h-[50vh] overflow-y-auto border-t border-gray-200 bg-white shadow-lg lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:border-0 lg:bg-transparent lg:shadow-none lg:col-span-1">
+              <div className="lg:sticky lg:top-24 lg:space-y-6">
+                <PriceBox
+                  live={live}
+                  serviceName={service.name}
+                  overtimeRate={service.additional_price}
+                  weekendAmount={current && current.number < 4 && weekend ? weekend.amount : null}
+                  firstDate={current && current.number === 4 && whenAndWhere.selectedDates.length > 1 ? whenAndWhere.selectedDates[0] : null}
+                  dates={whenAndWhere.selectedDates}
+                  times={whenAndWhere.selectedTimes}
+                />
+                <div className="flex gap-3 px-4 pb-4 lg:p-0">
+                  {current && stepIndex > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => goTo(shown[stepIndex - 1].number)}
+                      className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-xl hover:bg-gray-100 transition font-medium text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
+                    >
+                      Back
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleContinue}
+                    disabled={!canContinue}
+                    className={`flex-1 px-6 py-3 rounded-xl font-bold text-lg shadow-lg transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-600 ${canContinue ? 'bg-gradient-to-r from-green-700 to-green-600 text-white hover:from-green-800 hover:to-green-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}
+                  >
+                    {uploading ? 'Uploading...' : 'Continue'}
                   </button>
-                </Link>
-
-                <button
-                  onClick={handleContinue}
-                  className="w-full sm:w-auto px-10 py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center transition-all duration-300 bg-gradient-to-r from-green-700 to-green-600 text-white hover:from-green-800 hover:to-green-700 hover:scale-[1.02] shadow-green-200"
-                >
-                  Continue
-                  <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Right Column - Booking Summary */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-24">
-                <div className="bg-white rounded-2xl border-2 border-green-100 overflow-hidden shadow-xl">
-                  <div className="bg-gradient-to-r from-green-800 to-green-700 px-6 py-5">
-                    <h3 className="text-xl font-bold text-white flex items-center">
-                      <span className="mr-2">📋</span>
-                      Booking summary
-                    </h3>
-                  </div>
-
-                  <div className="p-6">
-                    <div className="flex items-start space-x-3 mb-5 pb-5 border-b border-gray-200">
-                      <div className="bg-green-100 rounded-xl p-3">
-                        <span className="text-2xl">🔧</span>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-gray-900">{service.name}</h4>
-                      </div>
-                    </div>
-
-                    <div className="mb-5 pb-5 border-b border-gray-200">
-                      <div className="bg-green-50 rounded-xl p-4 border border-green-200">
-                        <div className="text-center">
-                          <div className="text-sm uppercase tracking-wider text-gray-600 mb-1">Starting at</div>
-                          <div className="text-3xl md:text-4xl font-extrabold text-green-800">
-                            ${parseFloat(service.base_price).toFixed(2)}
-                          </div>
-                          <div className="text-sm text-gray-600 mt-2">For the first appointment</div>
-                          {service.additional_price > 0 && (
-                            <>
-                              <div className="border-t border-green-200 my-3"></div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-gray-700">Additional</span>
-                                <span className="font-bold text-green-800">+${parseFloat(service.additional_price).toFixed(2)}</span>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {selectedDates.length > 0 && selectedDates.every(d => selectedTimes[d] && selectedTimes[d].length > 0) ? (
-                      <div className="mb-5 pb-5 border-b border-gray-200">
-                        <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
-                          <svg className="w-5 h-5 text-green-700 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                          </svg>
-                          Your selection
-                        </h4>
-                        <div className="bg-gray-50 rounded-lg p-3">
-                          <div className="flex flex-col gap-3">
-                            {selectedDates.map(d => {
-                              const [y, m, day] = d.split('-');
-                              const slots = selectedTimes[d] || [];
-                              return (
-                                <div key={d}>
-                                  <span className="text-sm font-medium text-gray-700 block mb-1">
-                                    {monthNames[parseInt(m) - 1]} {day}, {y}
-                                  </span>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {slots.map(time => (
-                                      <span key={time} className="px-2 py-0.5 bg-green-700 text-white text-xs font-medium rounded-full capitalize flex items-center">
-                                        {time === 'morning' && '🌅'}
-                                        {time === 'afternoon' && '☀️'}
-                                        {time === 'evening' && '🌙'}
-                                        <span className="ml-1">{time}</span>
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mb-5 pb-5 border-b border-gray-200">
-                        <div className="bg-amber-50 rounded-lg p-4 text-center">
-                          <span className="text-2xl mb-2 block">📅</span>
-                          <p className="text-sm text-amber-800">{selectedDates.length > 0 ? `${selectedDates.length} date(s) selected` : 'No dates selected'}</p>
-                          <p className="text-xs text-amber-600 mt-1">Please select dates and time slots to continue</p>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="text-xs text-gray-600 space-y-2">
-                      <div className="flex items-start">
-                        <svg className="w-4 h-4 text-green-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                        </svg>
-                        <span>You won&apos;t be charged until the job is complete</span>
-                      </div>
-                      <div className="flex items-start">
-                        <svg className="w-4 h-4 text-green-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        <span>Free cancellation up to 24 hours before</span>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
-            </div>
+            </aside>
           </div>
         </div>
       </div>
@@ -613,15 +495,15 @@ function ScheduleContent() {
   );
 }
 
-// Main page component with Suspense
+function ScheduleContent() {
+  const serviceId = useSearchParams().get('service');
+  return <FlowContent key={serviceId || 'none'} serviceId={serviceId} />;
+}
+
 export default function BookingSchedulePage() {
   return (
     <div className="min-h-screen bg-gray-50/50 font-sans antialiased">
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-500 border-t-transparent"></div>
-        </div>
-      }>
+      <Suspense>
         <ScheduleContent />
       </Suspense>
     </div>
