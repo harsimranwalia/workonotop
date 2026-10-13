@@ -23,6 +23,16 @@ function calcProviderAmount(servicePrice, commissionPct) {
   return isNaN(result) ? price : parseFloat(result.toFixed(2))
 }
 
+// The job queue (?queue=1) is read a page at a time: QUEUE_DEFAULT_LIMIT bookings when the call names no size, never more than QUEUE_MAX_LIMIT.
+const QUEUE_DEFAULT_LIMIT = 200
+const QUEUE_MAX_LIMIT = 500
+
+// A whole number from a query parameter, held to min..max; a missing or non-numeric value is the fallback.
+function pageNumber(raw, fallback, min, max) {
+  const n = parseInt(raw, 10)
+  return Number.isNaN(n) ? fallback : Math.min(Math.max(n, min), max)
+}
+
 export async function GET(request) {
   const auth = await requireCaller(request, ['admin']);
   if (!auth.ok) return auth.response;
@@ -32,9 +42,12 @@ export async function GET(request) {
     const status = searchParams.get('status')
     const limit = parseInt(searchParams.get('limit') || '50')
     const queue = searchParams.get('queue') === '1'
+    const queueLimit = pageNumber(searchParams.get('limit'), QUEUE_DEFAULT_LIMIT, 1, QUEUE_MAX_LIMIT)
+    const queueOffset = pageNumber(searchParams.get('offset'), 0, 0, Number.MAX_SAFE_INTEGER)
 
     return await withConnection(async (connection) => {
-      // The admin job queue: every booking waiting for a provider, on the marketplace, or assigned and not yet accepted, guest bookings included, oldest first.
+      // The admin job queue: every booking waiting for a provider, on the marketplace, or assigned and not yet accepted, guest bookings included, oldest first, one page at a time.
+      // The answer carries total (the whole queue) and the limit and offset it used, so a client pages by what was applied.
       const where = queue
         ? `b.status NOT IN ('completed', 'cancelled') AND (b.provider_id IS NULL OR b.status IN ('pending', 'matching'))`
         : `EXISTS (SELECT 1 FROM users u WHERE u.email = b.customer_email)`
@@ -52,9 +65,15 @@ export async function GET(request) {
       const params = []
       if (!queue && email) { sql += ' AND b.customer_email = ?'; params.push(email) }
       if (!queue && status) { sql += ' AND b.status = ?'; params.push(status) }
-      sql += queue ? ' ORDER BY b.created_at ASC' : ` ORDER BY b.created_at DESC LIMIT ${limit}`
+      sql += queue ? ` ORDER BY b.created_at ASC, b.id ASC LIMIT ${queueLimit} OFFSET ${queueOffset}` : ` ORDER BY b.created_at DESC LIMIT ${limit}`
 
       const [bookings] = await connection.execute(sql, params)
+
+      let total
+      if (queue) {
+        const [counted] = await connection.execute(`SELECT COUNT(*) AS total FROM bookings b WHERE ${where}`)
+        total = Number(counted[0].total)
+      }
 
       let photosByBooking = {}
       if (bookings.length > 0) {
@@ -83,7 +102,9 @@ export async function GET(request) {
         booking.duration_minutes = booking.service_duration || 60
       }
 
-      return NextResponse.json({ success: true, data: bookings })
+      return NextResponse.json(queue
+        ? { success: true, data: bookings, total, limit: queueLimit, offset: queueOffset }
+        : { success: true, data: bookings })
     })
   } catch (error) {
     console.error('Error fetching bookings:', error)
