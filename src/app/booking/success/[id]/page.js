@@ -207,11 +207,11 @@ export default function BookingSuccessPage({ params }) {
                   <span className="text-sm font-bold text-gray-900">${basePrice.toFixed(2)}</span>
                 </div>
 
-                {/* Paid total */}
+                {/* Held total */}
                 <div className="flex justify-between items-center pt-3 pb-1">
                   <div>
-                    <p className="text-sm font-semibold text-gray-800">Total Paid</p>
-                    <p className="text-xs text-gray-400">Card charged successfully</p>
+                    <p className="text-sm font-semibold text-gray-800">Total held</p>
+                    <p className="text-xs text-gray-400">Your card is held and is charged when the job is done</p>
                   </div>
                   <span className="text-xl font-extrabold text-green-700">${totalPaid.toFixed(2)}</span>
                 </div>

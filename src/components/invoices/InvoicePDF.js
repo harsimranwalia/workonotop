@@ -147,9 +147,9 @@ const styles = StyleSheet.create({
 
 const InvoicePDF = ({ booking, invoiceNumber, date }) => {
   const basePrice = parseFloat(booking.service_price || 0);
-  const additionalPrice = parseFloat(booking.additional_price || 0);
-  const overtimeHold = additionalPrice * 2;
-  const totalAmount = basePrice + overtimeHold;
+  // The held total is the booking's held amount when one is recorded, else the price.
+  const heldAmount = booking.authorized_amount != null ? parseFloat(booking.authorized_amount) : null;
+  const totalAmount = heldAmount != null ? heldAmount : basePrice;
 
   const formatArrayData = (data, isDate = false) => {
     if (!data) return 'N/A';
@@ -224,15 +224,6 @@ const InvoicePDF = ({ booking, invoiceNumber, date }) => {
             <Text style={styles.tableColAmount}>$ {basePrice.toFixed(2)}</Text>
           </View>
 
-          {overtimeHold > 0 && (
-            <View style={styles.tableRow}>
-              <View style={styles.tableColDesc}>
-                <Text style={{ fontWeight: 'bold' }}>Overtime Authorization (Hold)</Text>
-                <Text style={{ color: '#64748b', fontSize: 9 }}>Up to 2 hours of additional time if required</Text>
-              </View>
-              <Text style={styles.tableColAmount}>$ {overtimeHold.toFixed(2)}</Text>
-            </View>
-          )}
         </View>
 
         <View style={styles.totalContainer}>
