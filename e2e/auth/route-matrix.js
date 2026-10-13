@@ -743,7 +743,7 @@ export const matrix = [
     },
     {
         route: '/api/customer/bookings/[id]/approve', method: 'POST', today: 'partial', kind: 'roles', roles: ['customer'], owner: 'bookings.user_id = caller (today enforced, role not)',
-        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/customer/bookings/[id]/approve/route.js:146-147, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). Ownership (bookings.user_id = caller (today enforced, role not)) comes from auth.caller, never from a request field; 403 refusals src/app/api/customer/bookings/[id]/approve/route.js:186. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): MEDIUM: moves money; role unchecked, a provider JWT whose id equals the customer\'s users.id pas…',
+        note: 'ENG-023, converted: the guard is the first statement of POST (src/app/api/customer/bookings/[id]/approve/route.js:146-147, requireCaller(request, [customer]): no credential is 401 and a wrong role 403 before the body is read). Ownership (bookings.user_id = caller (today enforced, role not)) comes from auth.caller, never from a request field; 403 refusals src/app/api/customer/bookings/[id]/approve/route.js:184. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): MEDIUM: moves money; role unchecked, a provider JWT whose id equals the customer\'s users.id pas…',
         probe: { path: '/api/customer/bookings/999999999/approve', body: {}, anon: 401 },
     },
     {
