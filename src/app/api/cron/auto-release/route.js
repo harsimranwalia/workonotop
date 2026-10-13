@@ -34,15 +34,15 @@ export async function GET(request) {
   const results = []
 
   for (const booking of expiredBookings) {
-    const connection = await getConnection()
+    let connection
     try {
-      await connection.query('START TRANSACTION')
-
-      // The release takes the one charge for the booking's recorded price and pays the provider by the payout rule.
+      // The release takes the one charge for the booking's recorded price and pays the provider by the payout rule. The payment
+      // is taken before this booking's connection is: the two callbacks take their own from the pool, and a run that held one
+      // while it waited for another could, with enough requests at once, leave every connection held.
       const collected = await collectBookingPayment(stripe, booking, {
         currency: process.env.STRIPE_CURRENCY || 'cad',
-        // These two run on the pool, outside this transaction: a charge saved on the booking stays saved whatever this
-        // run does next.
+        // These two run on the pool and this run holds no connection while they do: a charge saved on the booking stays saved
+        // whatever this run does next.
         saveIntentId: async (newId, oldId) => {
           const result = await execute(
             'UPDATE bookings SET payment_intent_id = ? WHERE id = ? AND payment_intent_id = ?',
@@ -56,13 +56,16 @@ export async function GET(request) {
         },
       })
 
+      if (!collected.ok && (collected.reason === 'unavailable' || collected.reason === 'not_configured')) {
+        results.push({ booking_id: booking.id, status: 'retry' })
+        console.error(`⏳ Booking ${booking.id}: payments unavailable, the next run tries again`)
+        continue
+      }
+
+      connection = await getConnection()
+      await connection.query('START TRANSACTION')
+
       if (!collected.ok) {
-        if (collected.reason === 'unavailable' || collected.reason === 'not_configured') {
-          await connection.query('ROLLBACK')
-          results.push({ booking_id: booking.id, status: 'retry' })
-          console.error(`⏳ Booking ${booking.id}: payments unavailable, the next run tries again`)
-          continue
-        }
         await connection.execute(
           `UPDATE bookings SET payment_status = 'failed', updated_at = NOW() WHERE id = ?`,
           [booking.id]
@@ -139,11 +142,11 @@ export async function GET(request) {
       console.log(`✅ Auto-released booking ${booking.id}`)
 
     } catch (err) {
-      await connection.query('ROLLBACK')
+      if (connection) await connection.query('ROLLBACK')
       results.push({ booking_id: booking.id, status: 'failed', error: err.message })
       console.error(`❌ Failed booking ${booking.id}:`, err.message)
     } finally {
-      connection.release()
+      if (connection) connection.release()
     }
   }
 
