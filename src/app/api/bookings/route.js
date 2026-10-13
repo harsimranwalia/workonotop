@@ -8,6 +8,7 @@ import { getClusterFromCity } from '@/lib/location'
 import { logActivity } from '@/lib/logger'
 import { catalogPrice } from '@/lib/booking-price'
 import { loadPricing, priceJob, refusalOf } from '@/lib/pricing-rules'
+import { paymentAmountCents, paymentCheckMode, checkHeldPayment } from '@/lib/booking-payment'
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-05-27.dahlia' }) : null
 
@@ -120,7 +121,8 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: 'Missing required fields (Service, Date, Time, Address, or Email)' }, { status: 400 })
     }
 
-    if (!payment_intent_id) {
+    if (!payment_intent_id || typeof payment_intent_id !== 'string'
+        || payment_intent_id.length > 255 || !/^pi_[A-Za-z0-9_-]+$/.test(payment_intent_id)) {
       return NextResponse.json(
         { success: false, message: 'Payment must be authorized before booking can be created.' },
         { status: 400 }
@@ -172,11 +174,75 @@ export async function POST(request) {
 
     const basePrice = job.price
     const overtimeRate = catalog.rate
-    const maxOvertimeCost = overtimeRate * 2
-    const totalAuthorizedAmount = basePrice + maxOvertimeCost
-    // The authorized amount is a decimal(10,2) column too: a price inside the limit can still be pushed over it by the two hours held on top.
-    if (Math.round(basePrice * 100) + 2 * Math.round(overtimeRate * 100) > 9999999999) {
-      return NextResponse.json(refusalOf({ ok: false, reason: 'too_large', field: 'answers' }), { status: 400 })
+    const bounds = paymentAmountCents(basePrice)
+    if (!bounds.ok) {
+      return NextResponse.json({
+        success: false,
+        message: bounds.reason === 'below_minimum'
+          ? 'The price for these answers is below the smallest amount a card payment can take'
+          : 'The price for these answers is larger than a card payment can take',
+        field: 'answers',
+      }, { status: 400 })
+    }
+
+    // A booking is made only with a payment held for its own price, in this currency, for the account it is recorded for,
+    // and attached to no other booking.
+    const [intentInUse] = await execute('SELECT 1 AS used FROM bookings WHERE payment_intent_id = ? LIMIT 1', [payment_intent_id])
+    if (intentInUse) {
+      return NextResponse.json(
+        { success: false, message: 'This payment is already attached to a booking.' },
+        { status: 409 }
+      )
+    }
+
+    // Without a payment key, production refuses bookings; other environments record them as pending, unverified.
+    const checkMode = paymentCheckMode({ hasKey: !!stripe, nodeEnv: process.env.NODE_ENV })
+    if (checkMode === 'refuse') {
+      return NextResponse.json(
+        { success: false, message: 'Payments are not available right now. Please try again shortly.' },
+        { status: 503 }
+      )
+    }
+
+    let paymentStatus = 'pending'
+    let authorizedAmount = null
+    if (checkMode === 'verify') {
+      // The account the booking is recorded for must hold a Stripe customer the intent can belong to.
+      let payerCustomerId = null
+      if (authenticatedUserId) {
+        const [payer] = await execute('SELECT stripe_customer_id FROM users WHERE id = ?', [authenticatedUserId])
+        payerCustomerId = payer ? payer.stripe_customer_id : null
+      }
+      if (!payerCustomerId) {
+        return NextResponse.json(
+          { success: false, message: 'This payment does not match this booking.' },
+          { status: 400 }
+        )
+      }
+
+      let intent
+      try {
+        intent = await stripe.paymentIntents.retrieve(payment_intent_id)
+      } catch (err) {
+        console.error('[API Bookings] Payment retrieve failed:', err.message)
+        return NextResponse.json(
+          { success: false, message: 'Payments are not available right now. Please try again shortly.' },
+          { status: 503 }
+        )
+      }
+      const check = checkHeldPayment(intent, {
+        amountCents: bounds.cents,
+        currency: process.env.STRIPE_CURRENCY || 'cad',
+        customerId: payerCustomerId,
+        nowSeconds: Math.floor(Date.now() / 1000),
+      })
+      if (!check.ok) {
+        // One line naming the booking number and which check refused, never the intent's values.
+        console.log(`[API Bookings] ${bookingNumber}: payment refused at check '${check.check}'`)
+        return NextResponse.json({ success: false, message: check.message }, { status: check.status })
+      }
+      paymentStatus = check.paymentStatus
+      authorizedAmount = check.authorizedCents / 100
     }
 
     let jobCluster = 'UNKNOWN_CLUSTER';
@@ -217,7 +283,7 @@ export async function POST(request) {
           address_line1, address_line2, city, postal_code, latitude, longitude, cluster,
           commission_percent, provider_amount, status, job_timer_status, payment_status,
           standard_duration_minutes, price_breakdown, payment_intent_id, authorized_amount)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,'pending','not_started','authorized',?,?,?,?)`,
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,'pending','not_started',?,?,?,?,?)`,
         [
           bookingNumber, authenticatedUserId || null, service_id || null, service_name || null,
           basePrice, overtimeRate,
@@ -227,8 +293,8 @@ export async function POST(request) {
           parking_access ? 1 : 0, elevator_access ? 1 : 0, has_pets ? 1 : 0,
           address_line1 || '', address_line2 || null, city || '', postal_code || null,
           latitude || null, longitude || null, jobCluster,
-          standardDuration || 60, JSON.stringify(job.lines),
-          payment_intent_id || null, totalAuthorizedAmount || 0,
+          paymentStatus, standardDuration || 60, JSON.stringify(job.lines),
+          payment_intent_id || null, authorizedAmount,
         ]
       )
 
@@ -255,7 +321,7 @@ export async function POST(request) {
         action: 'BOOKING_CREATED',
         entity_type: 'booking',
         entity_id: bookingId,
-        details: { service_name, amount: totalAuthorizedAmount }
+        details: { service_name, amount: authorizedAmount }
       })
 
       if (authenticatedUserId) {
@@ -343,11 +409,21 @@ export async function POST(request) {
         standard_duration: standardDuration,
         service_price: basePrice,
         quoted_minutes: standardDuration,
-        authorized_amount: totalAuthorizedAmount,
-        message: `✅ Booking confirmed. Card authorized for $${totalAuthorizedAmount}`
+        authorized_amount: authorizedAmount,
+        message: paymentStatus === 'authorized'
+          ? `Booking confirmed. Your card is held for $${authorizedAmount.toFixed(2)} and is charged when the job is done.`
+          : paymentStatus === 'paid'
+            ? `Booking confirmed. Payment of $${authorizedAmount.toFixed(2)} received.`
+            : 'Booking confirmed. Payment was not verified: payments are not configured on this server.'
       })
     } catch (err) {
       await connection.query('ROLLBACK')
+      if (err && err.code === 'ER_DUP_ENTRY') {
+        return NextResponse.json(
+          { success: false, message: 'This payment is already attached to a booking.' },
+          { status: 409 }
+        )
+      }
       throw err
     }
   } catch (error) {
