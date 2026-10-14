@@ -3060,6 +3060,21 @@
     "quote-request.spec.js › Quote requests › the threshold is the item's own: a unit or an extra by its count, an option or a property type once, a weekend never, no quote_from never": {
       "outcome": "PASS"
     },
+    "quote-request.spec.js › Quote requests: the screens › a job that can be priced shows its price and no form, and the price and the form swap as the answers change": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests: the screens › a job that needs a quote shows no price and the form, Continue stays off, and sending the form saves the request": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests: the screens › a post that fails shows the error and keeps what was typed, and the retry sends it": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests: the screens › every field has a label, the status and thank-you text are in live regions, and the field the server refuses is marked": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests: the screens › the admin page lists the requests in \"Quote requests\" and not among the bookings; with none there is no section; a failed load shows the error and Retry": {
+      "outcome": "PASS"
+    },
     "recurring-visits.spec.js › booking repeating visits › a frequency outside the list is refused and nothing is saved": {
       "outcome": "PASS"
     },
