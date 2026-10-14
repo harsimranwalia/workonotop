@@ -65,6 +65,10 @@ export default function Header() {
   const isLoggedIn = !!userType;
   // The booking button is the header's main action for everyone who can book (not providers, not admins).
   const canBook = !isLoggedIn || (!isProvider() && !isAdmin());
+  // With that button the desktop row needs 763 px (a visitor's) or 848 px (a customer's) and `md` leaves it 720, so whoever can book keeps the phone
+  // layout until `lg`. Providers and admins have no button, their row fits from `md`, and they are left as they were.
+  const desktopOnly = canBook ? 'hidden lg:flex' : 'hidden md:flex';
+  const mobileOnly = canBook ? 'lg:hidden' : 'md:hidden';
 
   return (
     <>
@@ -75,7 +79,7 @@ export default function Header() {
             <Image src="/logo.png" alt="Logo" width={200} height={65} className="object-contain hover:opacity-90 transition" priority />
           </Link>
 
-          <div className="hidden md:flex items-center gap-6 text-sm font-medium">
+          <div className={`${desktopOnly} items-center gap-6 text-sm font-medium`}>
             {(!isLoggedIn || !isProvider()) && (
               <Link href="/services" className="text-gray-600 hover:text-green-700 transition">Explore Services</Link>
             )}
@@ -85,7 +89,7 @@ export default function Header() {
             <Link href="/help" className="text-gray-600 hover:text-green-700 transition">Help Center</Link>
           </div>
 
-          <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+          <div className={`${desktopOnly} items-center gap-2 flex-shrink-0`}>
             {canBook && (
               <Link href="/#book"
                 className="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition shadow-sm">
@@ -173,7 +177,7 @@ export default function Header() {
             )}
           </div>
 
-          <div className="md:hidden flex items-center gap-2">
+          <div className={`${mobileOnly} flex items-center gap-2`}>
             {canBook && (
               <Link href="/#book" onClick={() => setMobileMenuOpen(false)}
                 className="bg-green-600 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-sm whitespace-nowrap active:scale-[0.98]">
@@ -190,7 +194,7 @@ export default function Header() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white px-4 py-4 space-y-2">
+          <div className={`${mobileOnly} border-t border-gray-100 bg-white px-4 py-4 space-y-2`}>
             {(!isLoggedIn || !isProvider()) && (
               <Link href="/services" onClick={() => setMobileMenuOpen(false)}
                 className="block px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl">
