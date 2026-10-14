@@ -2964,6 +2964,33 @@
     "on-behalf-booking.spec.js › On-behalf booking and the card link › with no payment key on the server a confirm answers 503 and saves nothing, and an id that is not a SetupIntent id is 400": {
       "outcome": "PASS"
     },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › a flag in a customer's session turns the mode off and shows no booking form for a customer": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › a quote request has \"Book this\", which opens the mode with its answers and contact, and the booking made from it shows on the row": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › an admin on the confirm screen creates the booking, is shown the link once, and the flow is cleared": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › the admin's entry lists the services, and choosing one opens the booking steps in the mode at that service": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › the card page of a link that has its card shows the job, the card and the price, and nothing that names the customer": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › the card page of a link that is not valid says so and nothing else, asks not to be indexed, and sends no referrer": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › the card panel shows the card and the link's state, \"New link\" makes a link that is shown once and ends the current link, and a booking with no link has no panel": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › the schedule screen in the mode prices a job that is normally a quote, says so, and has no repeat pick": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › with no payment key the card page of a valid link says card entry is not available, spends no try, and removes a bank's return query from the address": {
+      "outcome": "PASS"
+    },
     "ownership.spec.js › Ownership: POST /api/reviews › Ownership POST /api/reviews: a body naming customer 2 as customer_id, or provider 2 as provider_id, on customer 1's own booking is 403": {
       "outcome": "PASS"
     },
