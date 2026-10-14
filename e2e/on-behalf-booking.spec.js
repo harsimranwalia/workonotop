@@ -17,11 +17,13 @@
 // before it connects, assertNoRealPeople once connected). Every booking this file makes carries an e-mail address that starts 'e2e-onbehalf-' or
 // has its id remembered, and each case ends by deleting those bookings (their card links and history go with them), the activity log rows about
 // them, and the quote requests of that prefix.
+// The last describe holds the cases of the screens: the confirm and done screens of the mode, its schedule screen, the customer's card page and the
+// admin's card panel. They start on a screen with the booking flow written into the session, so that a case does not walk the steps the other specs walk.
 import { createHash } from 'node:crypto';
 import mysql from 'mysql2/promise';
 import { test, expect } from '@playwright/test';
 import { getCredentialHeaders } from './auth/credentials.js';
-import { RESET_RETRIES } from './support/auth.js';
+import { RESET_RETRIES, signInAs } from './support/auth.js';
 import { users } from '../database/fixtures/accounts.js';
 import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.js';
 
@@ -47,6 +49,306 @@ const NOT_VALID = { success: false, message: 'This link is not valid.' };
 const UNAVAILABLE = 'Card entry is not available right now. Please try again shortly.';
 const ALREADY_ON_FILE = 'A card is already on file for this booking.';
 const NOT_SAVED = 'This card could not be saved.';
+
+const FIRST_VISIT_MS = 45_000;
+const ADMIN_VISIT_MS = 90_000;
+const ADDRESS = '1 Probe Street';
+const DESCRIPTION = 'A job booked for a customer who phoned in, deleted by the case.';
+const SERVICE_1_NAME = 'Fixture Standard Clean';
+const COMMERCIAL_LABEL = 'Commercial (placeholder figure)';
+
+// The booking flow of service 1 as the schedule page saves it once its steps are answered, for the cases that start on the confirm screen.
+function savedFlow(over = {}) {
+    return {
+        service_id: 1, service_name: SERVICE_1_NAME, step: 4, selections: { units: { bedrooms: 2, bathrooms: 1 }, propertyType: null, option: null, hours: '', extras: {} },
+        whenAndWhere: {
+            frequency: 'once', selectedDates: [WEDNESDAY], selectedTimes: { [WEDNESDAY]: ['morning'] }, timingConstraints: '', address: ADDRESS,
+            jobDescription: DESCRIPTION, photos: [], parkingAccess: false, elevatorAccess: false, hasPets: false,
+        },
+        addressFrom: null,
+        schedule: { job_date: [WEDNESDAY], job_time_slot: ['Oct 21: Morning'], timing_constraints: '' },
+        details: { job_description: DESCRIPTION, instructions: '', parking_access: false, elevator_access: false, has_pets: false, photos: [], address: ADDRESS },
+        answers: TWO_AND_ONE,
+        ...over,
+    };
+}
+
+// Writes a booking flow into the page's session before its first load, once: a load after the screen has cleared the flow is not seeded again.
+/** @param {import('@playwright/test').Page} page */
+async function seedFlow(page, flow) {
+    await page.addInitScript((text) => {
+        if (sessionStorage.getItem('e2eFlowSeeded')) return;
+        sessionStorage.setItem('e2eFlowSeeded', '1');
+        sessionStorage.setItem('bookingFlow', text);
+    }, JSON.stringify(flow));
+}
+
+/** @param {import('@playwright/test').Page} page */
+const totalOf = (page) => page.getByRole('region', { name: 'Your price', exact: true }).getByTestId('price-total');
+
+test.describe('On-behalf booking: the screens', () => {
+    // Every case starts as a visitor who has not signed in, then signs in as the role it needs.
+    test.use({ storageState: { cookies: [], origins: [] }, timezoneId: 'America/Vancouver' });
+
+    // Mutant that turns this case red: the button posts to the customer's route, stays on while the request runs, sends a form with a field missing, shows no
+    // link or one the server did not issue, shows the typed e-mail wrongly, or leaves the flow in the session.
+    test('an admin on the confirm screen creates the booking, is shown the link once, and the flow is cleared', async ({ page, baseURL }) => {
+        test.setTimeout(150_000);
+        const mine = emailOf('screen');
+        await signInAs(page, 'admin');
+        await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+        await seedFlow(page, savedFlow({ onBehalf: true }));
+        let posts = 0;
+        await page.route('**/api/admin/bookings', async (route) => {
+            if (route.request().method() !== 'POST') return route.continue();
+            posts += 1;
+            await pause(1200);
+            return route.continue();
+        });
+        await page.goto('/booking/confirm', { timeout: FIRST_VISIT_MS });
+        await expect(page.getByRole('heading', { name: /Create the booking/, level: 2 })).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(page.getByText('Booking for a customer', { exact: true })).toBeVisible();
+        await expect(page.getByRole('checkbox'), 'no terms box').toHaveCount(0);
+        await expect(page.getByRole('button', { name: 'Proceed to Payment' }), 'no payment step').toHaveCount(0);
+        await expect(page.getByRole('link', { name: 'Sign Up' }), 'no sign-up prompt').toHaveCount(0);
+
+        const create = page.getByRole('button', { name: /^Creat(e|ing) booking/ });
+        await expect(totalOf(page), 'the price of the answers').toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(create).toBeEnabled();
+        await create.click();
+        await expect(page.getByText("Enter the customer's first name.")).toBeVisible();
+        await expect(page.getByLabel('First name')).toBeFocused();
+        expect(posts, 'a form with fields missing sends nothing').toBe(0);
+
+        await page.getByLabel('First name').fill('Screen');
+        await page.getByLabel('Last name').fill('Caller');
+        await page.getByLabel('Email').fill(mine);
+        await expect(page.getByText('Email on the booking:'), 'the typed e-mail is read back above the button').toContainText(mine);
+        await create.click();
+        await expect(create, 'the button is off while the request runs').toBeDisabled();
+        await expect(create).toHaveText('Creating booking...');
+        await page.getByLabel('Last name').press('Enter');
+
+        const done = page.getByRole('heading', { name: /^Booking .+ created$/, level: 2 });
+        await expect(done).toBeVisible({ timeout: 30_000 });
+        await expect(done, 'focus moves to the done heading').toBeFocused();
+        expect(posts, 'one request however many presses').toBe(1);
+        await expect(page.getByText('No account: booked as a guest')).toBeVisible();
+        const shown = await page.getByLabel('Link for the customer to add their card').inputValue();
+        expect(shown.startsWith(`${baseURL}/card/`), 'the link is on this site').toBe(true);
+        const token = tokenOf(new URL(shown).pathname);
+        expect(token, 'a 256-bit token').toMatch(/^[A-Za-z0-9_-]{43}$/);
+        await expect(page.getByText('This link is shown once; to get another, open the booking and choose New link.')).toBeVisible();
+        await page.getByRole('button', { name: 'Copy link' }).click();
+        await expect(page.getByRole('button', { name: 'Copied' })).toBeVisible();
+        expect(await page.evaluate(() => navigator.clipboard.readText()), 'the link is on the clipboard').toBe(shown);
+
+        const [made] = await rows('SELECT id, payment_intent_id, customer_first_name FROM bookings WHERE customer_email = ?', [mine]);
+        expect(made && made.customer_first_name, 'the booking is made').toBe('Screen');
+        expect(made.payment_intent_id, 'no payment is held').toBeNull();
+        const [stored] = await rows('SELECT token_hash FROM booking_card_links WHERE booking_id = ?', [made.id]);
+        expect(stored.token_hash, 'the stored hash is the hash of the link shown').toBe(sha256(token));
+        await expect(page.getByRole('link', { name: 'Open the booking' })).toHaveAttribute('href', `/admin/bookings/${made.id}`);
+        expect(await page.evaluate(() => sessionStorage.getItem('bookingFlow')), 'the flow is cleared').toBeNull();
+
+        await page.reload({ waitUntil: 'commit' });
+        await expect(page, 'a reload does not show the link again').toHaveURL(/\/services/, { timeout: FIRST_VISIT_MS });
+    });
+
+    // Mutant that turns this case red: the mode is trusted from the flag alone, so a customer's session shows the admin's form, or the refused flag stays in the session.
+    test('a flag in a customer\'s session turns the mode off and shows no booking form for a customer', async ({ page }) => {
+        test.setTimeout(120_000);
+        await signInAs(page, 'customer1');
+        await seedFlow(page, savedFlow({ onBehalf: true }));
+        const asked = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/admin/me', { timeout: FIRST_VISIT_MS });
+        await page.goto('/booking/confirm', { timeout: FIRST_VISIT_MS });
+        expect((await asked).ok(), 'the admin check refuses a customer').toBe(false);
+        await expect.poll(() => page.evaluate(() => (JSON.parse(sessionStorage.getItem('bookingFlow') || 'null') || {}).onBehalf), { timeout: 15_000 }).toBeUndefined();
+        await expect(page.getByRole('button', { name: /^Creat(e|ing) booking/ }), 'no admin form for a customer').toHaveCount(0);
+        await expect(page.getByLabel('First name'), 'no contact form for a customer').toHaveCount(0);
+    });
+
+    // Mutant that turns this case red: the schedule screen prices from the customer's route (a quote and its form show), the note is missing, the banner is missing, or the repeat pick shows.
+    test('the schedule screen in the mode prices a job that is normally a quote, says so, and has no repeat pick', async ({ page }) => {
+        test.setTimeout(150_000);
+        await signInAs(page, 'admin');
+        await seedFlow(page, { service_id: 1, service_name: SERVICE_1_NAME, onBehalf: true });
+        const posted = [];
+        page.on('request', (request) => {
+            const path = new URL(request.url()).pathname;
+            if (request.method() === 'POST' && /^\/api\/(admin\/)?pricing$/.test(path)) posted.push(path);
+        });
+        await page.goto('/booking/schedule?service=1&step=1', { timeout: FIRST_VISIT_MS });
+        await expect(page.getByText('Booking for a customer', { exact: true })).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(totalOf(page)).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await page.getByRole('group', { name: 'Type of property', exact: true }).getByRole('radio', { name: COMMERCIAL_LABEL }).check();
+        await expect(page.getByText(`Normally a quote: ${COMMERCIAL_LABEL}.`)).toBeVisible();
+        await expect(totalOf(page), 'the job is priced from the rule').toBeVisible();
+        await expect(page.getByRole('region', { name: 'Ask for a quote', exact: true }), 'no quote form').toHaveCount(0);
+        await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeEnabled();
+        expect(posted.length > 0 && posted.every((path) => path === '/api/admin/pricing'), `the prices are asked of the admin route (${posted.join(', ')})`).toBe(true);
+
+        await page.goto('/booking/schedule?service=1&step=4', { timeout: FIRST_VISIT_MS });
+        await expect(page.getByText('Booking for a customer', { exact: true })).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(page.getByText('How often?'), 'a booking made on a customer\'s behalf does not repeat').toHaveCount(0);
+    });
+
+    // Mutant that turns this case red: the sidebar has no link, the list does not offer the services, a choice does not open the mode, or the mode opens at another service.
+    test('the admin\'s entry lists the services, and choosing one opens the booking steps in the mode at that service', async ({ page }) => {
+        test.setTimeout(150_000);
+        await signInAs(page, 'admin');
+        await page.goto('/admin/book', { timeout: ADMIN_VISIT_MS });
+        await expect(page.getByRole('heading', { name: 'Book for a customer', level: 2 })).toBeVisible({ timeout: ADMIN_VISIT_MS });
+        await expect(page.getByRole('link', { name: 'Book for a customer' }), 'the sidebar leads here').toBeVisible();
+        const services = page.getByRole('list', { name: 'Services' });
+        await expect(services.getByRole('button', { name: SERVICE_1_NAME })).toBeVisible();
+        await services.getByRole('button', { name: SERVICE_1_NAME }).click();
+        await expect(page).toHaveURL(/\/booking\/schedule\?service=1&step=1$/, { timeout: FIRST_VISIT_MS });
+        await expect(page.getByText('Booking for a customer', { exact: true })).toBeVisible({ timeout: FIRST_VISIT_MS });
+        const flow = await page.evaluate(() => JSON.parse(sessionStorage.getItem('bookingFlow') || 'null'));
+        expect({ service: flow && flow.service_id, mode: flow && flow.onBehalf }, 'the session holds the mode at the service').toEqual({ service: 1, mode: true });
+    });
+
+    // Mutant that turns this case red: the panel shows for a booking with no link, hides the card or the state, shows the new link more than once or in the address bar,
+    // leaves the first link working, or makes the new link without asking.
+    test('the card panel shows the card and the link\'s state, "New link" makes a link that is shown once and ends the current link, and a booking with no link has no panel', async ({ page, request, baseURL }) => {
+        test.setTimeout(180_000);
+        const as = await headersFor(baseURL);
+        const { answer } = await book(request, as.admin);
+        const firstToken = tokenOf(answer.card_link.path);
+        await signInAs(page, 'admin');
+        await page.goto(`/admin/bookings/${answer.booking_id}`, { timeout: ADMIN_VISIT_MS });
+        const panel = page.getByRole('region', { name: 'Card on file' });
+        await expect(panel).toBeVisible({ timeout: ADMIN_VISIT_MS });
+        await expect(panel.getByTestId('card-link-card')).toHaveText('No card yet');
+        await expect(panel.getByTestId('card-link-state')).toContainText('Link active until');
+        await expect(panel.getByLabel('Card link'), 'no address is shown before one is made').toHaveCount(0);
+
+        await panel.getByRole('button', { name: 'New link' }).click();
+        await expect(panel.getByText('This ends the current link. Make a new one?')).toBeVisible();
+        expect((await call(request, 'GET', `/api/card/${firstToken}`, {}, undefined)).status(), 'the link stands until the choice is made').toBe(200);
+        await panel.getByRole('button', { name: 'Make new link' }).click();
+        const address = panel.getByLabel('Card link');
+        await expect(address).toBeVisible();
+        await expect(address, 'focus moves to the new link').toBeFocused();
+        const shown = await address.inputValue();
+        expect(shown.startsWith(`${baseURL}/card/`), 'the link is on this site').toBe(true);
+        const newToken = tokenOf(new URL(shown).pathname);
+        expect(newToken, 'a new token').not.toBe(firstToken);
+        await expect(panel.getByText('This link is shown once; to get another, choose New link.')).toBeVisible();
+        expect(page.url(), 'the token is not in the address bar').not.toContain(newToken);
+        expect((await call(request, 'GET', `/api/card/${firstToken}`, {}, undefined)).status(), 'the first link is a 404 at once').toBe(404);
+        expect((await call(request, 'GET', `/api/card/${newToken}`, {}, undefined)).status(), 'the new link works').toBe(200);
+        const [stored] = await rows('SELECT token_hash FROM booking_card_links WHERE booking_id = ?', [answer.booking_id]);
+        expect(stored.token_hash, 'the stored hash is the new token\'s').toBe(sha256(newToken));
+
+        await (await db()).query(
+            "UPDATE booking_card_links SET payment_method_id = 'pm_e2e_panel', stripe_customer_id = 'cus_e2e_panel', card_brand = 'visa', card_last4 = '4242', used_at = NOW() WHERE booking_id = ?",
+            [answer.booking_id],
+        );
+        await page.reload();
+        await expect(panel.getByTestId('card-link-card')).toHaveText('Visa •••• 4242 on file', { timeout: ADMIN_VISIT_MS });
+        await expect(panel.getByTestId('card-link-state')).toHaveText('Card added through the link');
+        await expect(panel.getByLabel('Card link'), 'a reload does not show the link again').toHaveCount(0);
+
+        const bare = await seedBooking();
+        await page.goto(`/admin/bookings/${bare}`, { timeout: ADMIN_VISIT_MS });
+        await expect(page.getByRole('heading', { name: 'Booking Details', level: 1 })).toBeVisible({ timeout: ADMIN_VISIT_MS });
+        await expect(page.getByTestId('card-link-panel'), 'a booking that has no link has no panel').toHaveCount(0);
+    });
+
+    // Mutant that turns this case red: a request has no "Book this", the mode opens without the request's answers, its contact or its id, the booking is not made against the
+    // request, or a request that has its booking offers "Book this" again and shows no link to it.
+    test('a quote request has "Book this", which opens the mode with its answers and contact, and the booking made from it shows on the row', async ({ page }) => {
+        test.setTimeout(240_000);
+        const mine = emailOf('quote');
+        const [made] = /** @type {any} */ (await (await db()).query(
+            `INSERT INTO quote_requests (service_id, service_name, customer_name, customer_email, customer_phone, address, message, answers, picks)
+             VALUES (1, ?, 'Quote Caller', ?, '+14035550123', '1 Probe Street', 'A request for the screen cases, deleted by the case.', ?, '[]')`,
+            [SERVICE_1_NAME, mine, JSON.stringify(COMMERCIAL)],
+        ));
+        const requestId = Number(made.insertId);
+        await signInAs(page, 'admin');
+        await page.goto('/admin/jobs', { timeout: ADMIN_VISIT_MS });
+        const row = page.getByTestId('quote-request-row').filter({ hasText: mine });
+        await expect(row).toBeVisible({ timeout: ADMIN_VISIT_MS });
+        await row.getByRole('button', { name: 'Book this' }).click();
+        await expect(page).toHaveURL(/\/booking\/schedule\?service=1&step=1$/, { timeout: FIRST_VISIT_MS });
+        await expect(page.getByText('Booking for a customer', { exact: true })).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(page.getByRole('group', { name: 'Type of property', exact: true }).getByRole('radio', { name: COMMERCIAL_LABEL }), 'the request\'s answers are the selections').toBeChecked();
+        const opened = await page.evaluate(() => JSON.parse(sessionStorage.getItem('bookingFlow') || 'null'));
+        expect({ id: opened.quote_request_id, mode: opened.onBehalf, contact: opened.contact }, 'the session carries the request').toEqual({
+            id: requestId, mode: true, contact: { first_name: 'Quote', last_name: 'Caller', email: mine, phone: '+14035550123' },
+        });
+
+        // The steps in between are walked by the other cases; the flow they leave is written here, on top of what "Book this" opened.
+        const answered = savedFlow({ answers: COMMERCIAL });
+        await page.evaluate((extra) => {
+            const flow = JSON.parse(sessionStorage.getItem('bookingFlow') || 'null');
+            sessionStorage.setItem('bookingFlow', JSON.stringify({ ...flow, ...extra }));
+        }, { whenAndWhere: answered.whenAndWhere, schedule: answered.schedule, details: answered.details, answers: answered.answers });
+        await page.goto('/booking/confirm', { timeout: FIRST_VISIT_MS });
+        await expect(page.getByLabel('First name')).toHaveValue('Quote', { timeout: FIRST_VISIT_MS });
+        await expect(page.getByLabel('Last name')).toHaveValue('Caller');
+        await expect(page.getByLabel('Email')).toHaveValue(mine);
+        const create = page.getByRole('button', { name: /^Creat(e|ing) booking/ });
+        await expect(totalOf(page)).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await create.click();
+        await expect(page.getByRole('heading', { name: /^Booking .+ created$/, level: 2 })).toBeVisible({ timeout: 30_000 });
+        const [booking] = await rows('SELECT id, booking_number FROM bookings WHERE customer_email = ?', [mine]);
+        const [request] = await rows('SELECT booking_id FROM quote_requests WHERE id = ?', [requestId]);
+        expect(request.booking_id, 'the request is answered by the booking').toBe(booking.id);
+
+        await page.goto('/admin/jobs', { timeout: ADMIN_VISIT_MS });
+        await expect(row.getByRole('link', { name: `Booked #${booking.booking_number}` })).toHaveAttribute('href', `/admin/bookings/${booking.id}`, { timeout: ADMIN_VISIT_MS });
+        await expect(row.getByRole('button', { name: 'Book this' }), 'a request that has its booking is not offered again').toHaveCount(0);
+    });
+
+    // Mutant that turns this case red: a link that is not valid shows a form or a reason, the page can be indexed, it sends a referrer, or it shows the site's navigation.
+    test('the card page of a link that is not valid says so and nothing else, asks not to be indexed, and sends no referrer', async ({ page }) => {
+        test.setTimeout(120_000);
+        await page.goto(`/card/${'a'.repeat(43)}`, { timeout: FIRST_VISIT_MS });
+        const heading = page.getByRole('heading', { name: 'This link cannot be used', level: 2 });
+        await expect(heading).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(heading, 'focus moves to what happened').toBeFocused();
+        await expect(page.getByText("This link isn't valid or has expired. Ask WorkOnTap for a new one.")).toBeVisible();
+        await expect(page.getByText('Save card'), 'no card form').toHaveCount(0);
+        await expect(page.getByRole('navigation'), 'no site navigation').toHaveCount(0);
+        const robots = await page.locator('meta[name="robots"]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('content')));
+        expect(robots.length > 0 && robots.every((content) => /noindex/.test(String(content))), `every robots tag says noindex (${robots.join(' | ')})`).toBe(true);
+        await expect(page.locator('meta[name="referrer"]')).toHaveAttribute('content', 'no-referrer');
+    });
+
+    // Mutant that turns this case red: the page asks for a card entry with no payment key (a try is spent), shows a form, leaves a bank's return query in the address, or leaves focus behind.
+    test('with no payment key the card page of a valid link says card entry is not available, spends no try, and removes a bank\'s return query from the address', async ({ page }) => {
+        test.setTimeout(120_000);
+        const { id, token } = await seeded();
+        await page.goto(`/card/${token}?setup_intent=seti_e2e_probe&setup_intent_client_secret=seti_e2e_probe_secret_x&redirect_status=succeeded`, { timeout: FIRST_VISIT_MS });
+        const heading = page.getByRole('heading', { name: 'Card entry is not available', level: 2 });
+        await expect(heading).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(heading, 'focus moves to what happened').toBeFocused();
+        await expect(page.getByText(UNAVAILABLE)).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+        await expect(page.getByText('Save card'), 'no card form').toHaveCount(0);
+        expect(new URL(page.url()).search, 'the return query is cleared from the address').toBe('');
+        expect(Number((await linkRow(id)).attempts), 'the link has no try spent').toBe(0);
+    });
+
+    // Mutant that turns this case red: the page of a link that has its card offers a second card, omits the card or the job, or shows who the customer is.
+    test('the card page of a link that has its card shows the job, the card and the price, and nothing that names the customer', async ({ page }) => {
+        test.setTimeout(120_000);
+        const { token } = await seeded({ card: { brand: 'visa', last4: '4242' } });
+        await page.goto(`/card/${token}`, { timeout: FIRST_VISIT_MS });
+        const heading = page.getByRole('heading', { name: 'A card is already on file', level: 2 });
+        await expect(heading).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(heading, 'focus moves to what happened').toBeFocused();
+        await expect(page.getByText('Visa •••• 4242 is on file for this booking.')).toBeVisible();
+        await expect(page.getByText('Save card'), 'no second card form').toHaveCount(0);
+        const shown = await page.locator('main').innerText();
+        for (const part of [SERVICE_NAME, 'October 21, 2026', '09:00', '$135.00']) expect(shown, `the page shows ${part}`).toContain(part);
+        for (const part of ['Behalf', '4035550123', 'Probe Street', '@workontap.test']) expect(shown, `the page does not show ${part}`).not.toContain(part);
+    });
+});
 
 // One object feeds both the guard and the connection, so the guard certifies the values that get used (as database/fixtures/load.js).
 const DB = { host: '127.0.0.1', port: 3307, user: 'root', password: 'root123', database: 'workontap_db' };
