@@ -660,7 +660,8 @@ const tables = [
     INDEX idx_booking (booking_id)
   )`,
 
-  // service_pricing_items: the items of each service's pricing rule (database/migrations/0001-service-pricing-items.up.sql)
+  // service_pricing_items: the items of each service's pricing rule (database/migrations/0001-service-pricing-items.up.sql;
+  // quote_from and the two checks that name it are 0005's)
   `CREATE TABLE IF NOT EXISTS service_pricing_items (
     id INT NOT NULL AUTO_INCREMENT,
     service_id INT NOT NULL,
@@ -670,6 +671,7 @@ const tables = [
     amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     minutes INT NOT NULL DEFAULT 0,
     is_hourly TINYINT(1) NOT NULL DEFAULT 0,
+    quote_from INT NULL,
     is_placeholder TINYINT(1) NOT NULL DEFAULT 1,
     sort_order INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
@@ -681,7 +683,31 @@ const tables = [
     CONSTRAINT chk_service_pricing_items_amount CHECK (amount >= 0),
     CONSTRAINT chk_service_pricing_items_minutes CHECK (minutes >= 0),
     CONSTRAINT chk_service_pricing_items_hourly CHECK (is_hourly = 0 OR kind = 'option'),
-    CONSTRAINT chk_service_pricing_items_weekend CHECK (kind <> 'weekend' OR code = 'weekend')
+    CONSTRAINT chk_service_pricing_items_weekend CHECK (kind <> 'weekend' OR code = 'weekend'),
+    CONSTRAINT chk_service_pricing_items_quote_from CHECK (quote_from IS NULL OR quote_from >= 1),
+    CONSTRAINT chk_service_pricing_items_quote_weekend CHECK (kind <> 'weekend' OR quote_from IS NULL)
+  )`,
+
+  // quote_requests: a customer's request for a job that cannot be priced from a few taps (database/migrations/0005-quote-requests.up.sql).
+  // No money in it and never a booking. The migration sets the engine and collation; this file leaves them to the server default.
+  `CREATE TABLE IF NOT EXISTS quote_requests (
+    id INT NOT NULL AUTO_INCREMENT,
+    user_id INT NULL,
+    service_id INT NOT NULL,
+    service_name VARCHAR(255) NOT NULL,
+    customer_name VARCHAR(120) NOT NULL,
+    customer_email VARCHAR(254) NOT NULL,
+    customer_phone VARCHAR(40) NULL,
+    address VARCHAR(255) NULL,
+    message VARCHAR(1000) NOT NULL,
+    answers JSON NOT NULL,
+    picks JSON NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    INDEX idx_customer_email_created (customer_email, created_at),
+    INDEX idx_created (created_at),
+    CONSTRAINT fk_quote_requests_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_quote_requests_service FOREIGN KEY (service_id) REFERENCES services(id)
   )`
 ];
 
@@ -785,7 +811,19 @@ const alterations = [
   { table: 'job_photos', column: 'captured_at', sql: 'ALTER TABLE job_photos ADD COLUMN captured_at TIMESTAMP NULL AFTER uploaded_by' },
 
   // The lines a booking was priced with, written once when the booking is made (NULL on earlier bookings)
-  { table: 'bookings', column: 'price_breakdown', sql: 'ALTER TABLE bookings ADD COLUMN price_breakdown JSON NULL AFTER standard_duration_minutes' }
+  { table: 'bookings', column: 'price_breakdown', sql: 'ALTER TABLE bookings ADD COLUMN price_breakdown JSON NULL AFTER standard_duration_minutes' },
+
+  // service_pricing_items.quote_from (migration 0005): the quantity from which a pick of the item sends a job to a quote (NULL: never).
+  // The runner decides on the column alone, so the two checks that name it ride in the same ALTER: a database gets all three or none.
+  // quote_requests is a new table, so it needs only its tables entry.
+  {
+    table: 'service_pricing_items',
+    column: 'quote_from',
+    sql: `ALTER TABLE service_pricing_items
+      ADD COLUMN quote_from INT NULL AFTER is_hourly,
+      ADD CONSTRAINT chk_service_pricing_items_quote_from CHECK (quote_from IS NULL OR quote_from >= 1),
+      ADD CONSTRAINT chk_service_pricing_items_quote_weekend CHECK (kind <> 'weekend' OR quote_from IS NULL)`
+  }
 ];
 
 // =====================================================
