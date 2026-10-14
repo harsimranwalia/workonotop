@@ -2223,19 +2223,49 @@
     "booking-payment.spec.js › Booking payment › without a payment key, production refuses a booking and other environments book it unverified": {
       "outcome": "PASS"
     },
+    "booking-payment.spec.js › a later visit of a series › a booking with a payment of its own is charged whatever its date: only a later visit of a series is held to one": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a later visit of a series › a later visit dated after today makes no payment call and is answered not_due, with a payment key or without": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a later visit of a series › a later visit is charged on its date and on every day after it, and not on the day before": {
+      "outcome": "PASS"
+    },
     "booking-payment.spec.js › a later visit of a series › a later visit is charged on the card of its series' first payment, for its own recorded price": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a later visit of a series › a later visit is not charged on a card whose payment a person cancelled, or that names no customer, but a lapsed hold is still the series' card": {
       "outcome": "PASS"
     },
     "booking-payment.spec.js › a later visit of a series › a later visit with no card to charge makes no payment call": {
       "outcome": "PASS"
     },
+    "booking-payment.spec.js › a later visit of a series › a later visit with no readable date, or with no day to compare it with, is refused and makes no payment call": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a later visit of a series › a later visit's date is read as the day it names, whether it is text or the Date the database driver returns, in any server zone": {
+      "outcome": "PASS"
+    },
     "booking-payment.spec.js › a later visit of a series › a retry after the charge is saved on the visit confirms that charge and creates none": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a later visit of a series › today is the day it is in Metro Vancouver, not the day it is in UTC or on the server": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a series at completion › a later visit that reaches the sweep's payment call before its date is skipped, not recorded as a failed payment": {
       "outcome": "PASS"
     },
     "booking-payment.spec.js › a series at completion › the customer's approval of a later visit charges that visit on the series' card": {
       "outcome": "PASS"
     },
+    "booking-payment.spec.js › a series at completion › the customer's approval of a later visit is refused with its date until the day, and charges nothing": {
+      "outcome": "PASS"
+    },
     "booking-payment.spec.js › a series at completion › the release sweep charges only the visit that is done": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a series at completion › the release sweep leaves a done later visit alone until its date, and charges it on the day": {
       "outcome": "PASS"
     },
     "booking-payment.spec.js › a series at completion › the release sweep with no visit done makes no payment call": {
