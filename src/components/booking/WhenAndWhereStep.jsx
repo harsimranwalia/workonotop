@@ -94,7 +94,7 @@ function LockIcon({ className }) {
   );
 }
 
-export default function WhenAndWhereStep({ value, onChange, showHints = false, onUploadingChange }) {
+export default function WhenAndWhereStep({ value, onChange, showHints = false, onUploadingChange, allowRepeat = true }) {
   const v = withDefaults(value);
   const uid = useId();
   const id = (name) => `${uid}-${name}`;
@@ -232,33 +232,35 @@ export default function WhenAndWhereStep({ value, onChange, showHints = false, o
 
   return (
     <div className="space-y-8">
-      <Card>
-        <CardHeader id={id('often')} icon="🔁" title="How often?" />
+      {allowRepeat && (
+        <Card>
+          <CardHeader id={id('often')} icon="🔁" title="How often?" />
 
-        <div className="p-6 md:p-8">
-          <div role="radiogroup" aria-labelledby={id('often')} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {FREQUENCY_CHOICES.map((choice) => {
-              const checked = v.frequency === choice.value;
-              return (
-                <label
-                  key={choice.value}
-                  className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer motion-safe:transition focus-within:ring-2 focus-within:ring-green-700 ${checked ? 'border-green-700 bg-green-50' : 'border-gray-200 hover:border-green-500'}`}
-                >
-                  <input
-                    type="radio"
-                    name={id('often-choice')}
-                    value={choice.value}
-                    checked={checked}
-                    onChange={() => chooseFrequency(choice.value)}
-                    className="w-4 h-4 accent-green-700"
-                  />
-                  <span className="font-medium text-gray-800">{choice.label}</span>
-                </label>
-              );
-            })}
+          <div className="p-6 md:p-8">
+            <div role="radiogroup" aria-labelledby={id('often')} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {FREQUENCY_CHOICES.map((choice) => {
+                const checked = v.frequency === choice.value;
+                return (
+                  <label
+                    key={choice.value}
+                    className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer motion-safe:transition focus-within:ring-2 focus-within:ring-green-700 ${checked ? 'border-green-700 bg-green-50' : 'border-gray-200 hover:border-green-500'}`}
+                  >
+                    <input
+                      type="radio"
+                      name={id('often-choice')}
+                      value={choice.value}
+                      checked={checked}
+                      onChange={() => chooseFrequency(choice.value)}
+                      className="w-4 h-4 accent-green-700"
+                    />
+                    <span className="font-medium text-gray-800">{choice.label}</span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       <Card>
         <CardHeader

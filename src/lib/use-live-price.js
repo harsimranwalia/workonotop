@@ -1,20 +1,24 @@
-// The price of the answers on screen, from POST /api/pricing. A figure is shown only for the answers it was worked out for; a newer
-// change hides it until its own response arrives.
+// The price of the answers on screen, from POST /api/pricing (or the endpoint given: an admin booking for a customer asks POST
+// /api/admin/pricing, which prices every job). A figure is shown only for the answers it was worked out for; a newer change hides it until
+// its own response arrives.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+const DEFAULT_ENDPOINT = '/api/pricing';
 const QUIET_MS = 250;
 const TIMEOUT_MS = 10000;
 const CHOICE_FIELDS = ['units', 'option', 'property_type', 'extras'];
 const EMPTY_KEY = '{}';
 
 // `answers` is the answers object, or a function from the latest `choices` (null before the first price) to it.
-// Returns { status, price, lines, visits, quotedMinutes, flags, field, message, choices, choicesChanged, answers, retry }; status is one of
+// Returns { status, price, lines, visits, quotedMinutes, flags, quoteFlags, field, message, choices, choicesChanged, answers, retry }; status is one of
 // loading, updating, priced, quote, refused, too_large, stale_choices, unavailable, failed. A null serviceId waits in loading.
 // `visits` is the { date, price, lines } of each visit of a booking that repeats, the first visit first; it is [] when the answer has none.
 // `quote` is a job the rule will not price from taps: there is no price, and `flags` is the { kind, code, label, quantity } of the answers that
 // sent it to a quote ([] in every other status).
-export function useLivePrice(serviceId, answers) {
+// `quoteFlags` is the same list on a priced answer from the admin endpoint: the picks that make the job a quote for a customer, which the
+// admin still sees priced ([] when the answer carries none).
+export function useLivePrice(serviceId, answers, endpoint = DEFAULT_ENDPOINT) {
   const [choices, setChoices] = useState(null);
   const [settled, setSettled] = useState({ status: 'loading', key: null });
   const [choicesChanged, setChoicesChanged] = useState(false);
@@ -69,6 +73,7 @@ export function useLivePrice(serviceId, answers) {
           lines: body.lines,
           visits: Array.isArray(body.visits) ? body.visits : [],
           quotedMinutes: body.quoted_minutes,
+          quoteFlags: Array.isArray(body.quote_flags) ? body.quote_flags : [],
         });
         return;
       }
@@ -95,7 +100,7 @@ export function useLivePrice(serviceId, answers) {
       setSettled({ status: 'failed', key: requestKey });
     };
 
-    fetch('/api/pricing', {
+    fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ service_id: serviceId, answers: requestAnswers }),
@@ -119,7 +124,7 @@ export function useLivePrice(serviceId, answers) {
         if (controller.signal.aborted && !timedOut) return;
         setSettled({ status: 'failed', key: requestKey });
       });
-  }, [serviceId]);
+  }, [serviceId, endpoint]);
 
   useEffect(() => {
     if (!serviceId) return undefined;
@@ -151,6 +156,7 @@ export function useLivePrice(serviceId, answers) {
     visits: priced ? settled.visits : [],
     quotedMinutes: priced ? settled.quotedMinutes : null,
     flags: status === 'quote' ? settled.flags : [],
+    quoteFlags: priced ? settled.quoteFlags : [],
     field: status === 'refused' ? settled.field : null,
     message: status === 'refused' ? settled.message : '',
     choices,
