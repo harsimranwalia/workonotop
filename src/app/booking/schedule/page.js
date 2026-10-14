@@ -8,6 +8,7 @@ import { toast } from 'react-hot-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PriceBox, { HOURS_MESSAGE_ID, formatMoney } from '@/components/booking/PriceBox';
+import QuoteRequestForm from '@/components/booking/QuoteRequestForm';
 import WhenAndWhereStep from '@/components/booking/WhenAndWhereStep';
 import { answersWithoutWhen, bookingAnswers, hoursAnswer } from '@/lib/booking-answers';
 import { useLivePrice } from '@/lib/use-live-price';
@@ -461,6 +462,8 @@ function FlowContent({ serviceId }) {
                   )}
                 </fieldset>
               )}
+
+              {live.status === 'quote' && <QuoteRequestForm serviceId={serviceId} answers={live.answers} />}
             </div>
 
             <aside className="fixed inset-x-0 bottom-0 z-30 max-h-[50vh] overflow-y-auto border-t border-gray-200 bg-white shadow-lg lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:border-0 lg:bg-transparent lg:shadow-none lg:col-span-1">
