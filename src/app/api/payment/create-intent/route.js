@@ -34,9 +34,10 @@ export async function POST(request) {
       }
     }
 
-    // The amount is the price the service's pricing rule gives for the answers sent, worked out here.
-    const { service: serviceRow, items: pricingItems } = await loadPricing(execute, service_id);
-    const job = priceJob(serviceRow, pricingItems, body.answers);
+    // The amount is the price the service's pricing rule gives for the answers sent, worked out here. For repeating visits it
+    // is the first visit's price, its frequency's discount included: the one hold of the series.
+    const { service: serviceRow, items: pricingItems, discounts } = await loadPricing(execute, service_id);
+    const job = priceJob(serviceRow, pricingItems, body.answers, discounts);
     if (!job.ok) {
       return NextResponse.json(refusalOf(job), { status: 400 });
     }

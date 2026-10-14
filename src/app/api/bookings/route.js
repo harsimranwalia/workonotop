@@ -8,8 +8,9 @@ import { getClusterFromCity } from '@/lib/location'
 import { logActivity } from '@/lib/logger'
 import { queueStateOf } from '@/lib/marketplace'
 import { catalogPrice } from '@/lib/booking-price'
-import { loadPricing, priceJob, refusalOf } from '@/lib/pricing-rules'
+import { loadPricing, priceJob, priceVisits, refusalOf } from '@/lib/pricing-rules'
 import { paymentAmountCents, paymentCheckMode, checkHeldPayment } from '@/lib/booking-payment'
+import { FREQUENCIES, visitSlot } from '@/lib/visit-series'
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-05-27.dahlia' }) : null
 
@@ -31,6 +32,23 @@ const QUEUE_MAX_LIMIT = 500
 function pageNumber(raw, fallback, min, max) {
   const n = parseInt(raw, 10)
   return Number.isNaN(n) ? fallback : Math.min(Math.max(n, min), max)
+}
+
+// A request for repeating visits that is refused: one line naming the booking number and the check that refused, then the answer.
+function seriesRefusal(bookingNumber, check, answer, status) {
+  console.log(`[API Bookings] ${bookingNumber}: repeating visits refused at check '${check}'`)
+  return NextResponse.json(answer, { status })
+}
+
+// The message of a booked series: how many visits it holds, then what was done with the first visit's payment.
+function seriesMessage(count, paymentStatus, authorizedAmount) {
+  if (paymentStatus === 'authorized') {
+    return `Booking confirmed: ${count} visits. Your card is held for $${authorizedAmount.toFixed(2)} for the first visit. Each visit is charged to this card when it is done.`
+  }
+  if (paymentStatus === 'paid') {
+    return `Booking confirmed: ${count} visits. Payment of $${authorizedAmount.toFixed(2)} received for the first visit. Each later visit is charged to this card when it is done.`
+  }
+  return `Booking confirmed: ${count} visits. Payment was not verified: payments are not configured on this server.`
 }
 
 export async function GET(request) {
@@ -184,14 +202,36 @@ export async function POST(request) {
         : `Selected Dates: ${allDatesString}`;
     }
 
+    // Repeating visits: the frequency comes inside the answers, and its absence is a one-time booking. A series is booked by a
+    // signed-in customer, from one start date and the times of that date; the server works out every visit's date from them.
+    const frequency = body.answers?.frequency
+    const series = frequency != null
+    if (series) {
+      if (!Object.keys(FREQUENCIES).includes(frequency)) {
+        return seriesRefusal(bookingNumber, 'frequency', refusalOf({ ok: false, reason: 'answers', field: 'frequency' }), 400)
+      }
+      if (!customer) {
+        return seriesRefusal(bookingNumber, 'sign_in', { success: false, message: 'Please sign in to book repeating visits.' }, 401)
+      }
+      // The dates counted as they are read above: an array, a comma list, or one date.
+      const dateCount = Array.isArray(job_date) ? job_date.length : String(job_date).split(',').map(d => d.trim()).filter(Boolean).length
+      if (dateCount !== 1) {
+        return seriesRefusal(bookingNumber, 'job_date', { success: false, message: 'Choose one start date for repeating visits.', field: 'job_date' }, 400)
+      }
+      // The times are stored as one comma list, one entry per date.
+      if (!timeSlotString || timeSlotString.includes(',')) {
+        return seriesRefusal(bookingNumber, 'job_time_slot', { success: false, message: 'Choose the times for the start date only.', field: 'job_time_slot' }, 400)
+      }
+    }
+
     // The booking records the price and the quoted minutes the service's pricing rule gives for its answers, worked out here. The job's first date decides the weekend.
-    const { service: serviceInfo, items: pricingItems } = await loadPricing(execute, service_id)
+    const { service: serviceInfo, items: pricingItems, discounts } = await loadPricing(execute, service_id)
     // With answers, the rule is given the booking's own first date (the one stored in job_date) in place of any date the answers hold; with none, no date is read.
     const answers = body.answers
     const isAnswersObject = typeof answers === 'object' && answers !== null && !Array.isArray(answers)
     const hasAnswers = answers !== undefined && answers !== null && !(isAnswersObject && Object.keys(answers).length === 0)
     const ruleAnswers = hasAnswers && isAnswersObject ? { ...answers, date: primaryJobDate } : answers
-    const job = priceJob(serviceInfo, pricingItems, ruleAnswers)
+    const job = priceJob(serviceInfo, pricingItems, ruleAnswers, discounts)
     if (!job.ok) {
       // The date the rule refuses is the booking's first date, which this route calls job_date.
       const refusal = refusalOf(job)
@@ -211,6 +251,28 @@ export async function POST(request) {
           : 'The price for these answers is larger than a card payment can take',
         field: 'answers',
       }, { status: 400 })
+    }
+
+    // Every visit of a series is priced by the rule for its own date, the frequency's discount included, and is charged that price
+    // when it is done, so each visit's price must be one a card payment can take. The first visit is the job priced above.
+    let visits = []
+    if (series) {
+      const priced = priceVisits(serviceInfo, pricingItems, ruleAnswers, discounts)
+      if (!priced.ok) {
+        const refusal = refusalOf(priced)
+        return seriesRefusal(bookingNumber, 'visit_price', priced.field === 'date' ? { ...refusal, field: 'job_date' } : refusal, 400)
+      }
+      const outside = priced.visits.map((visit) => paymentAmountCents(visit.price)).find((visitBounds) => !visitBounds.ok)
+      if (outside) {
+        return seriesRefusal(bookingNumber, 'visit_amount', {
+          success: false,
+          message: outside.reason === 'below_minimum'
+            ? 'The price for these answers is below the smallest amount a card payment can take'
+            : 'The price for these answers is larger than a card payment can take',
+          field: 'answers',
+        }, 400)
+      }
+      visits = priced.visits
     }
 
     // A booking is made only with a payment held for its own price, in this currency, for the account it is recorded for,
@@ -336,19 +398,68 @@ export async function POST(request) {
 
       const bookingId = result.insertId
 
-      if (photos.length > 0) {
-        await Promise.all(photos.map(photo => 
-          connection.execute('INSERT INTO booking_photos (booking_id, photo_url) VALUES (?, ?)', [bookingId, photo])
-        ));
+      // The visits booked, in date order: this booking first and, for a series, each later visit after it.
+      const bookedVisits = [{ booking_id: bookingId, booking_number: bookingNumber, job_date: primaryJobDate, service_price: basePrice }]
+      if (series) {
+        // A series is named by its first visit's id, which every visit of the series carries, the first included.
+        await connection.execute(
+          'UPDATE bookings SET series_id = ?, series_visit = 1, series_frequency = ? WHERE id = ?',
+          [bookingId, frequency, bookingId]
+        )
+
+        // Each later visit is a job of its own, with its own date, time label, price, quoted minutes, lines and number. It holds no
+        // payment of its own: it is charged on the card of its series' first payment when it is done. Its timing note is the
+        // customer's own, without the dates listed for the first visit.
+        for (let k = 2; k <= visits.length; k++) {
+          const visit = visits[k - 1]
+          const visitNumber = `${bookingNumber}-${k}`
+          const [visitResult] = await connection.execute(
+            `INSERT INTO bookings
+             (booking_number, user_id, service_id, service_name, service_price, additional_price,
+              customer_first_name, customer_last_name, customer_email, customer_phone,
+              job_date, job_time_slot, timing_constraints, job_description, instructions,
+              parking_access, elevator_access, has_pets,
+              address_line1, address_line2, city, postal_code, latitude, longitude, cluster,
+              commission_percent, provider_amount, status, job_timer_status, payment_status,
+              standard_duration_minutes, price_breakdown, series_id, series_visit, series_frequency)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,'pending','not_started','pending',?,?,?,?,?)`,
+            [
+              visitNumber, authenticatedUserId || null, service_id || null, service_name || null,
+              visit.price, overtimeRate,
+              first_name || '', last_name || '', email || '', phone || '',
+              visit.date, visitSlot(timeSlotString, visit.date), timing_constraints || null,
+              job_description || '', instructions || null,
+              parking_access ? 1 : 0, elevator_access ? 1 : 0, has_pets ? 1 : 0,
+              address_line1 || '', address_line2 || null, city || '', postal_code || null,
+              latitude || null, longitude || null, jobCluster,
+              visit.minutes || 60, JSON.stringify(visit.lines),
+              bookingId, k, frequency,
+            ]
+          )
+          bookedVisits.push({ booking_id: visitResult.insertId, booking_number: visitNumber, job_date: visit.date, service_price: visit.price })
+        }
       }
 
-      await connection.execute(
-        `INSERT INTO booking_status_history (booking_id, status, notes) VALUES (?, 'pending', 'Booking created after payment authorization')`,
-        [bookingId]
-      )
+      // Each visit is its own job, so the photos and the 'pending' history row are written for every visit.
+      for (const visit of bookedVisits) {
+        if (photos.length > 0) {
+          await Promise.all(photos.map(photo =>
+            connection.execute('INSERT INTO booking_photos (booking_id, photo_url) VALUES (?, ?)', [visit.booking_id, photo])
+          ));
+        }
+
+        await connection.execute(
+          `INSERT INTO booking_status_history (booking_id, status, notes) VALUES (?, 'pending', 'Booking created after payment authorization')`,
+          [visit.booking_id]
+        )
+      }
 
       await connection.query('COMMIT')
       
+      // A series is told as one booking: one activity entry, one push to the customer and one to each admin, each naming the count
+      // of visits. Every visit has its own history row (above).
+      const visitsNote = series ? ` (${bookedVisits.length} visits)` : ''
+
       // Log Activity
       logActivity({
         actor_id: authenticatedUserId || null,
@@ -357,18 +468,18 @@ export async function POST(request) {
         action: 'BOOKING_CREATED',
         entity_type: 'booking',
         entity_id: bookingId,
-        details: { service_name, amount: authorizedAmount }
+        details: { service_name, amount: authorizedAmount, ...(series ? { frequency, visits: bookedVisits.length } : {}) }
       })
 
       if (authenticatedUserId) {
-        notifyUser(authenticatedUserId, 'Booking Confirmed!', `Your booking #${bookingNumber} for ${service_name} has been created.`, { bookingId, bookingNumber, type: 'booking_created' }, execute, 'customer')
+        notifyUser(authenticatedUserId, 'Booking Confirmed!', `Your booking #${bookingNumber} for ${service_name}${visitsNote} has been created.`, { bookingId, bookingNumber, type: 'booking_created' }, execute, 'customer')
           .catch(err => console.error('[Push] Notification Error:', err));
       }
 
       // 🔔 Notify all admins (non-blocking)
       execute("SELECT id FROM users WHERE role = 'admin'").then(admins => {
         admins.forEach(admin => {
-          notifyUser(admin.id, 'New Booking Created', `New booking #${bookingNumber} for ${service_name}`, { bookingId, type: 'booking_created' }, execute, 'admin')
+          notifyUser(admin.id, 'New Booking Created', `New booking #${bookingNumber} for ${service_name}${visitsNote}`, { bookingId, type: 'booking_created' }, execute, 'admin')
             .catch(() => { });
         });
       }).catch(_ => { });
@@ -384,11 +495,15 @@ export async function POST(request) {
         service_price: basePrice,
         quoted_minutes: standardDuration,
         authorized_amount: authorizedAmount,
-        message: paymentStatus === 'authorized'
-          ? `Booking confirmed. Your card is held for $${authorizedAmount.toFixed(2)} and is charged when the job is done.`
-          : paymentStatus === 'paid'
-            ? `Booking confirmed. Payment of $${authorizedAmount.toFixed(2)} received.`
-            : 'Booking confirmed. Payment was not verified: payments are not configured on this server.'
+        message: series
+          ? seriesMessage(bookedVisits.length, paymentStatus, authorizedAmount)
+          : paymentStatus === 'authorized'
+            ? `Booking confirmed. Your card is held for $${authorizedAmount.toFixed(2)} and is charged when the job is done.`
+            : paymentStatus === 'paid'
+              ? `Booking confirmed. Payment of $${authorizedAmount.toFixed(2)} received.`
+              : 'Booking confirmed. Payment was not verified: payments are not configured on this server.',
+        // A series also answers how often it repeats and every visit booked, in date order, the first included.
+        ...(series ? { frequency, visits: bookedVisits } : {}),
       })
     } catch (err) {
       await connection.query('ROLLBACK')
