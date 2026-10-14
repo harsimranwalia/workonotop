@@ -6,6 +6,7 @@ import { notifyUser } from '@/lib/push'
 import { sendEmail } from '@/lib/email'
 import { getClusterFromCity } from '@/lib/location'
 import { logActivity } from '@/lib/logger'
+import { queueStateOf } from '@/lib/marketplace'
 import { catalogPrice } from '@/lib/booking-price'
 import { loadPricing, priceJob, refusalOf } from '@/lib/pricing-rules'
 import { paymentAmountCents, paymentCheckMode, checkHeldPayment } from '@/lib/booking-payment'
@@ -22,6 +23,16 @@ function calcProviderAmount(servicePrice, commissionPct) {
   return isNaN(result) ? price : parseFloat(result.toFixed(2))
 }
 
+// The job queue (?queue=1) is read a page at a time: QUEUE_DEFAULT_LIMIT bookings when the call names no size, never more than QUEUE_MAX_LIMIT.
+const QUEUE_DEFAULT_LIMIT = 200
+const QUEUE_MAX_LIMIT = 500
+
+// A whole number from a query parameter, held to min..max; a missing or non-numeric value is the fallback.
+function pageNumber(raw, fallback, min, max) {
+  const n = parseInt(raw, 10)
+  return Number.isNaN(n) ? fallback : Math.min(Math.max(n, min), max)
+}
+
 export async function GET(request) {
   const auth = await requireCaller(request, ['admin']);
   if (!auth.ok) return auth.response;
@@ -30,8 +41,16 @@ export async function GET(request) {
     const email = searchParams.get('email')
     const status = searchParams.get('status')
     const limit = parseInt(searchParams.get('limit') || '50')
+    const queue = searchParams.get('queue') === '1'
+    const queueLimit = pageNumber(searchParams.get('limit'), QUEUE_DEFAULT_LIMIT, 1, QUEUE_MAX_LIMIT)
+    const queueOffset = pageNumber(searchParams.get('offset'), 0, 0, Number.MAX_SAFE_INTEGER)
 
     return await withConnection(async (connection) => {
+      // The admin job queue: every booking waiting for a provider, on the marketplace, or assigned and not yet accepted, guest bookings included, oldest first, one page at a time.
+      // The answer carries total (the whole queue) and the limit and offset it used, so a client pages by what was applied.
+      const where = queue
+        ? `b.status NOT IN ('completed', 'cancelled') AND (b.provider_id IS NULL OR b.status IN ('pending', 'matching'))`
+        : `EXISTS (SELECT 1 FROM users u WHERE u.email = b.customer_email)`
       // The standard duration is the booking's quoted minutes.
       let sql = `
         SELECT b.*, s.name as service_name, s.slug as service_slug,
@@ -41,14 +60,20 @@ export async function GET(request) {
         LEFT JOIN services s ON b.service_id = s.id
         LEFT JOIN service_categories c ON s.category_id = c.id
         LEFT JOIN service_providers sp ON b.provider_id = sp.id
-        WHERE EXISTS (SELECT 1 FROM users u WHERE u.email = b.customer_email)
+        WHERE ${where}
       `
       const params = []
-      if (email) { sql += ' AND b.customer_email = ?'; params.push(email) }
-      if (status) { sql += ' AND b.status = ?'; params.push(status) }
-      sql += ` ORDER BY b.created_at DESC LIMIT ${limit}`
+      if (!queue && email) { sql += ' AND b.customer_email = ?'; params.push(email) }
+      if (!queue && status) { sql += ' AND b.status = ?'; params.push(status) }
+      sql += queue ? ` ORDER BY b.created_at ASC, b.id ASC LIMIT ${queueLimit} OFFSET ${queueOffset}` : ` ORDER BY b.created_at DESC LIMIT ${limit}`
 
       const [bookings] = await connection.execute(sql, params)
+
+      let total
+      if (queue) {
+        const [counted] = await connection.execute(`SELECT COUNT(*) AS total FROM bookings b WHERE ${where}`)
+        total = Number(counted[0].total)
+      }
 
       let photosByBooking = {}
       if (bookings.length > 0) {
@@ -65,6 +90,7 @@ export async function GET(request) {
       }
 
       for (const booking of bookings) {
+        booking.queue_state = queueStateOf(booking)
         if (booking.job_time_slot) booking.job_time_slot = booking.job_time_slot.split(',')
         booking.photos = photosByBooking[booking.id] || []
         booking.service_price = parseFloat(booking.service_price || 0)
@@ -76,7 +102,9 @@ export async function GET(request) {
         booking.duration_minutes = booking.service_duration || 60
       }
 
-      return NextResponse.json({ success: true, data: bookings })
+      return NextResponse.json(queue
+        ? { success: true, data: bookings, total, limit: queueLimit, offset: queueOffset }
+        : { success: true, data: bookings })
     })
   } catch (error) {
     console.error('Error fetching bookings:', error)
@@ -345,69 +373,7 @@ export async function POST(request) {
         });
       }).catch(_ => { });
 
-      // 🚀 BLAST LOGIC: Match Providers by Cluster and Service Type
-      // Run completely in the background so it doesn't block the API response
-      (async () => {
-        try {
-          let serviceSkills = [];
-          if (service_id) {
-            const serviceRows = await execute('SELECT skills FROM services WHERE id = ?', [service_id]);
-            if (serviceRows.length > 0) {
-              const rawSkills = serviceRows[0].skills;
-              try { serviceSkills = typeof rawSkills === 'string' ? JSON.parse(rawSkills) : (rawSkills || []); } catch(e){}
-            }
-          }
-
-          const providers = await execute(
-            `SELECT id, phone, email, service_areas, skills FROM service_providers WHERE status = 'active'`
-          );
-          
-          // Match providers
-          const matchedProviders = providers.filter(p => {
-            // Check if provider works in this cluster
-            let areas = [];
-            try { areas = typeof p.service_areas === 'string' ? JSON.parse(p.service_areas) : p.service_areas; } catch (e) {}
-            if (!areas || !Array.isArray(areas) || !areas.includes(jobCluster)) return false;
-            
-            // Check if provider has matching skill
-            let pSkills = [];
-            try { pSkills = typeof p.skills === 'string' ? JSON.parse(p.skills) : p.skills; } catch (e) {}
-            if (!pSkills || !Array.isArray(pSkills) || pSkills.length === 0) return false;
-            
-            if (serviceSkills && serviceSkills.length > 0) {
-              // Intersection: provider must have at least one skill required by the service
-              return pSkills.some(ps => serviceSkills.includes(ps));
-            } else {
-              // Fallback for services that don't have skills assigned yet
-              const serviceNameLower = (service_name || '').toLowerCase();
-              return pSkills.some(skill => serviceNameLower.includes(skill.toLowerCase()) || skill.toLowerCase().includes(serviceNameLower));
-            }
-          });
-
-          console.log(`[API Bookings] Blasting to ${matchedProviders.length} providers for cluster ${jobCluster}`);
-          
-          const earningsAmount = (basePrice * 0.65).toFixed(2);
-          const displayDate = new Date(job_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          
-          matchedProviders.forEach(p => {
-            // Send Push Notification
-            notifyUser(p.id, 'New Job Available!', `Tap to view details for ${service_name} in ${city || jobCluster}`, { 
-              bookingId, 
-              type: 'job_blast',
-              service_name,
-              estimated_hours: standardDuration / 60,
-              area: city || jobCluster,
-              date_time: `${displayDate} • ${job_time_slot}`,
-              earnings: earningsAmount
-            }, execute, 'provider').catch(() => {});
-            
-            // TODO: WhatsApp Message Integration
-            // if (p.phone) { sendWhatsApp(p.phone, messageText); }
-          });
-        } catch (err) {
-          console.error('[API Bookings] Failed to blast providers in background:', err);
-        }
-      })();
+      // Providers are told of a job when an admin pushes it to the marketplace (POST /api/admin/bookings/[id]/push).
 
       return NextResponse.json({
         success: true,
@@ -464,8 +430,9 @@ export async function PUT(request) {
     await connection.query('START TRANSACTION');
 
     try {
+      // The row is read FOR UPDATE so an admin assignment and a provider claim on one job run one after the other; a job another provider holds is a 409.
       const [[current]] = await connection.execute(
-        'SELECT status, service_price, additional_price, commission_percent, provider_amount, provider_id as current_provider FROM bookings WHERE id = ?',
+        'SELECT status, service_price, additional_price, commission_percent, provider_amount, provider_id as current_provider FROM bookings WHERE id = ? FOR UPDATE',
         [id]
       );
 
@@ -495,12 +462,14 @@ export async function PUT(request) {
         updateParams.push(status);
       }
 
+      // Writing provider_id clears the push marker: a job reaches providers only through a push made while it has no provider.
       if ('provider_id' in body) {
         if (body.provider_id === null) {
           updateFields.push(
             'provider_id = NULL',
             'previous_provider_id = ?',
             'accepted_at = NULL',
+            'marketplace_pushed_at = NULL',
             'start_time = NULL',
             'end_time = NULL',
             'job_timer_status = ?',
@@ -515,7 +484,12 @@ export async function PUT(request) {
           await connection.execute(`DELETE FROM job_photos WHERE booking_id = ?`, [id]);
           await connection.execute(`DELETE FROM booking_time_logs WHERE booking_id = ?`, [id]);
         } else {
-          updateFields.push('provider_id = ?');
+          if (current.current_provider !== null && Number(current.current_provider) !== Number(body.provider_id)) {
+            console.error(`[API PUT] Booking ${id} is held by provider ${current.current_provider}; assignment to ${body.provider_id} refused.`);
+            await connection.query('ROLLBACK');
+            return NextResponse.json({ success: false, message: 'This job already has a provider. Reload it to see who.' }, { status: 409 });
+          }
+          updateFields.push('provider_id = ?', 'marketplace_pushed_at = NULL');
           updateParams.push(body.provider_id);
           if (!status) {
             updateFields.push('status = ?');

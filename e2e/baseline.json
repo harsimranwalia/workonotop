@@ -435,6 +435,9 @@
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/blogs is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/bookings/[id]/push is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/cities is in the matrix": {
       "outcome": "PASS"
     },
@@ -1024,6 +1027,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/blogs uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/bookings/[id]/push uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/cities uses the guard": {
@@ -1726,6 +1732,9 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/blogs": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/bookings/[id]/push": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/cities": {
@@ -2637,6 +2646,57 @@
     "job-completed-email.spec.js › the job-finish route composes the customer's e-mail with src/lib/job-completed-email.js": {
       "outcome": "PASS"
     },
+    "marketplace.spec.js › Marketplace › a booking no admin has pushed is not in providers' available jobs, and both claim routes and both job reads refuse it": {
+      "outcome": "PASS"
+    },
+    "marketplace.spec.js › Marketplace › a claimed booking refuses a second claim from either provider on both claim routes, and keeps its provider and its one confirmed history row": {
+      "outcome": "PASS"
+    },
+    "marketplace.spec.js › Marketplace › a customer gets 403 assigning, reassigning, unassigning and pushing a booking, and its provider, status and push time are unchanged": {
+      "outcome": "PASS"
+    },
+    "marketplace.spec.js › Marketplace › a provider gets 403 assigning a booking to themselves, reassigning, unassigning and pushing it, and its provider, status and push time are unchanged": {
+      "outcome": "PASS"
+    },
+    "marketplace.spec.js › Marketplace › a push is refused for a booking that has a provider and for a cancelled booking, and neither changes": {
+      "outcome": "PASS"
+    },
+    "marketplace.spec.js › Marketplace › an admin assignment and a provider claim on one pushed booking at once: exactly one succeeds and the booking has one provider": {
+      "outcome": "PASS"
+    },
+    "marketplace.spec.js › Marketplace › an admin assignment to a different provider is a 409 while another provider holds the booking, and the provider stays the same": {
+      "outcome": "PASS"
+    },
+    "marketplace.spec.js › Marketplace › an admin assigns a waiting booking to provider 1: provider 1 sees it, provider 2 does not, and the queue shows it assigned": {
+      "outcome": "PASS"
+    },
+    "marketplace.spec.js › Marketplace › an admin push puts a booking on the marketplace: both providers see it in available jobs and by id, and the queue shows it on the marketplace": {
+      "outcome": "PASS"
+    },
+    "marketplace.spec.js › Marketplace › an unassigned booking is in the admin job queue as waiting, a guest booking with no account included": {
+      "outcome": "PASS"
+    },
+    "marketplace.spec.js › Marketplace › assigning a booking that is on the marketplace takes it off the marketplace": {
+      "outcome": "PASS"
+    },
+    "marketplace.spec.js › Marketplace › pushing a booking twice keeps the first push time and answers already": {
+      "outcome": "PASS"
+    },
+    "marketplace.spec.js › Marketplace › the job queue is paged: a page holds at most limit bookings, total counts the whole queue, and offset reaches the newest booking": {
+      "outcome": "PASS"
+    },
+    "marketplace.spec.js › Marketplace › two providers claiming one pushed booking at once through POST /api/provider/available-jobs/[id]: exactly one succeeds, the other gets 403, and the booking has one provider": {
+      "outcome": "PASS"
+    },
+    "marketplace.spec.js › Marketplace › two providers claiming one pushed booking at once through POST /api/provider/available-jobs: exactly one succeeds, the other gets 409, and the booking has one provider": {
+      "outcome": "PASS"
+    },
+    "marketplace.spec.js › Marketplace › unassigning a booking returns it to the queue as waiting, off the marketplace": {
+      "outcome": "PASS"
+    },
+    "marketplace.spec.js › Marketplace › with no login, assigning, reassigning, unassigning and pushing a booking answer 401, and its provider, status and push time are unchanged": {
+      "outcome": "PASS"
+    },
     "mobile-refresh-role.spec.js › Mobile refresh role › a customer session refreshes to a customer token": {
       "outcome": "PASS"
     },
@@ -2799,7 +2859,7 @@
     "ownership.spec.js › Ownership: provider/availability and provider/profile writes › Ownership PUT /api/provider/profile: provider2 writes provider 2's profile and not provider 1's, and provider1's write by cookie and Bearer leaves provider 2's profile alone, whatever ids the body names": {
       "outcome": "PASS"
     },
-    "ownership.spec.js › Ownership: provider/available-jobs/[id] › Ownership GET /api/provider/available-jobs/[id]: an unassigned pending booking answers 200, a cancelled unassigned one and one assigned to provider 2 answer 403": {
+    "ownership.spec.js › Ownership: provider/available-jobs/[id] › Ownership GET /api/provider/available-jobs/[id]: a pushed unassigned booking answers 200; an unpushed one, a cancelled unassigned one and one assigned to provider 2 answer 403": {
       "outcome": "PASS"
     },
     "ownership.spec.js › Ownership: provider/available-jobs/[id] › Ownership GET /api/provider/available-jobs/[id]: provider1 asking for provider 2's booking is 403 and shows none of its address, description or customer": {

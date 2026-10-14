@@ -188,6 +188,12 @@ const adminUpdates = async (request, as, id, data) => {
     expect(response.status(), `admin updates booking ${id}`).toBe(200);
 };
 
+// The admin's push of an unassigned booking to the marketplace: until it is pushed no provider reads or claims the booking.
+const adminPushes = async (request, as, id) => {
+    const response = await request.post(`/api/admin/bookings/${id}/push`, { headers: as.admin });
+    expect(response.status(), `admin pushes booking ${id} to the marketplace`).toBe(200);
+};
+
 // The row as the admin reads it (GET /api/bookings/[id]).
 async function bookingAsAdmin(request, as, id) {
     const response = await request.get(`/api/bookings/${id}`, { headers: as.admin });
@@ -325,17 +331,20 @@ test.describe('Ownership: provider/available-jobs/[id]', () => {
         }
     });
 
-    // The three states of a booking nobody has accepted. Red when: the `IS NULL AND status IN (...)` branch is deleted (case 1, the
-    // open booking is 403); `b.status IN ('pending','matching')` is dropped (case 2, a cancelled unassigned booking would answer 200);
-    // `b.provider_id IS NULL AND` is dropped (case 3, a booking assigned to provider 2 and `matching` would answer 200).
-    test('Ownership GET /api/provider/available-jobs/[id]: an unassigned pending booking answers 200, a cancelled unassigned one and one assigned to provider 2 answer 403', async ({ request, baseURL }) => {
+    // The states of a booking nobody has accepted. Red when the marketplace rule (src/lib/marketplace.js) loses its `marketplace_pushed_at IS NOT NULL`
+    // clause (case 1, the unpushed booking would answer 200), its `status IN ('pending','matching')` clause (case 1, the cancelled pushed booking
+    // would answer 200) or the branch that serves the pushed booking at all (case 1, it is 403). The booking assigned to provider 2 is refused
+    // whatever the provider clause says: an assignment clears the push.
+    test('Ownership GET /api/provider/available-jobs/[id]: a pushed unassigned booking answers 200; an unpushed one, a cancelled unassigned one and one assigned to provider 2 answer 403', async ({ request, baseURL }) => {
         const as = await credentials(baseURL);
         await withProbeBooking(request, as, async (id) => {
-            const open = await expectOk(await request.get(`/api/provider/available-jobs/${id}`, { headers: as.provider }), 'provider1, open booking');
-            expect(open.body.data.id, 'the open booking is the one asked for').toBe(id);
-            expect(open.body.is_my_job, 'an open booking is not yet provider 1\'s').toBe(false);
+            await expectForbidden(await request.get(`/api/provider/available-jobs/${id}`, { headers: as.provider }), 'provider1, unpushed booking');
+            await adminPushes(request, as, id);
+            const open = await expectOk(await request.get(`/api/provider/available-jobs/${id}`, { headers: as.provider }), 'provider1, pushed booking');
+            expect(open.body.data.id, 'the pushed booking is the one asked for').toBe(id);
+            expect(open.body.is_my_job, 'a pushed booking is not yet provider 1\'s').toBe(false);
             await adminUpdates(request, as, id, { status: 'cancelled' });
-            await expectForbidden(await request.get(`/api/provider/available-jobs/${id}`, { headers: as.provider }), 'provider1, cancelled unassigned booking');
+            await expectForbidden(await request.get(`/api/provider/available-jobs/${id}`, { headers: as.provider }), 'provider1, cancelled pushed booking');
         });
         await withProbeBooking(request, as, async (id) => {
             await adminUpdates(request, as, id, { provider_id: PROVIDER2.id });
@@ -362,15 +371,18 @@ test.describe('Ownership: provider/available-jobs/[id]', () => {
     // what a literal 1 in that bind would store, so provider 1's accept cannot tell the caller from the literal: each provider accepts an open probe booking
     // of their own and the stored provider is read back as the admin. Red if the bind is a literal 1 (provider 2's accept stores provider 1: the provider-2
     // assertion fails on 1, not 2) or a literal 2 (provider 1's accept stores provider 2: the provider-1 assertion fails on 2, not 1). A missing booking keeps its 404.
+    // Each probe booking is pushed first: an unpushed booking is not on the marketplace and is not claimable.
     test('Ownership POST /api/provider/available-jobs/[id]: provider1 accepts an open booking and it becomes provider 1\'s; a missing booking keeps its 404', async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
         const provider2 = await signedInAs(playwright, baseURL, 'provider2');
         await withProbeBooking(request, as, async (id) => {
+            await adminPushes(request, as, id);
             await expectOk(await request.post(`/api/provider/available-jobs/${id}`, { headers: as.provider, data: {} }), 'provider1 accepts the open booking');
             const row = await bookingAsAdmin(request, as, id);
             expect(row.provider_id, 'the accepted booking is provider 1\'s').toBe(PROVIDER1.id);
         });
         await withProbeBooking(request, as, async (id) => {
+            await adminPushes(request, as, id);
             await expectOk(await request.post(`/api/provider/available-jobs/${id}`, { headers: provider2, data: {} }), 'provider2 accepts the open booking');
             const row = await bookingAsAdmin(request, as, id);
             expect(row.provider_id, 'the booking provider 2 accepted is stored with provider 2\'s id (2), not provider 1\'s (1)').toBe(PROVIDER2.id);
@@ -1000,9 +1012,10 @@ test.describe('Ownership: customer account', () => {
 // booking that does not exist. A control first shows the strings are served to the provider who owns them (provider 2's own read).
 // ---------------------------------------------------------------------------------------------------------------------
 test.describe('Ownership: provider routes', () => {
-    // jobs/[id]: the caller's own job, or an open one (unassigned, pending or matching), else the route's existing 404 'Job not found'.
-    // Red if `b.provider_id = ?` is dropped (case 1: booking 2 would be served) or `AND b.status IN (...)` / `b.provider_id IS NULL` is
-    // (cases 2 and 3: the cancelled and the provider-2 probe bookings would be served).
+    // jobs/[id]: the caller's own job, or one on the marketplace (unassigned, pushed, pending or matching), else the route's existing 404 'Job not found'.
+    // The open probe booking is pushed first: an unpushed booking is not served.
+    // Red if `b.provider_id = ?` is dropped (case 1: booking 2 would be served) or `AND b.status IN (...)` is (case 2: the cancelled
+    // probe booking would be served). The provider-2 probe booking (case 3) is refused whatever the provider clause says: an assignment clears the push.
     test("Ownership GET /api/provider/jobs/[id]: provider1 gets their own job and an open one; another provider's booking, a cancelled unassigned one and a missing one keep the 404", async ({ request, baseURL, playwright }) => {
         const as = await credentials(baseURL);
         const provider2 = await signedInAs(playwright, baseURL, 'provider2');
@@ -1019,6 +1032,7 @@ test.describe('Ownership: provider routes', () => {
             await expectAnswer(await request.get(`/api/provider/jobs/${MISSING}`, { headers }), 404, 'Job not found', `${who}, missing booking`);
         }
         await withProbeBooking(request, as, async (id) => {
+            await adminPushes(request, as, id);
             const open = await expectOk(await request.get(`/api/provider/jobs/${id}`, { headers: as.provider }), 'provider1, open booking');
             expect(open.body.data.id, 'the open booking is the one asked for').toBe(id);
             await adminUpdates(request, as, id, { status: 'cancelled' });
@@ -1097,10 +1111,12 @@ test.describe('Ownership: provider routes', () => {
         expect([booking2.provider_id, booking2.status], "booking 2 after the refused claim").toEqual([PROVIDER2.id, BOOKING2.status]);
         await expectAnswer(await request.post('/api/provider/available-jobs', { headers: as.providerBearer, data: { booking_id: MISSING } }), 404, 'Job not found', 'provider1, missing booking');
         await withProbeBooking(request, as, async (id) => {
+            await adminPushes(request, as, id);
             await expectOk(await request.post('/api/provider/available-jobs', { headers: as.provider, data: { booking_id: id } }), 'provider1 claims the open booking');
             expect((await bookingAsAdmin(request, as, id)).provider_id, 'the claimed booking is provider 1\'s').toBe(PROVIDER1.id);
         });
         await withProbeBooking(request, as, async (id) => {
+            await adminPushes(request, as, id);
             await expectOk(await request.post('/api/provider/available-jobs', { headers: provider2, data: { booking_id: id } }), 'provider2 claims the open booking');
             expect((await bookingAsAdmin(request, as, id)).provider_id, 'the booking provider 2 claimed is stored with provider 2\'s id (2), not provider 1\'s (1)').toBe(PROVIDER2.id);
         });

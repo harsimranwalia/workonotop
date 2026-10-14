@@ -217,6 +217,7 @@ const tables = [
     commission_percent DECIMAL(5,2),
     provider_amount DECIMAL(10,2),
     accepted_at DATETIME,
+    marketplace_pushed_at DATETIME NULL,
     start_time DATETIME,
     end_time DATETIME,
     actual_duration_minutes INT,
@@ -719,6 +720,9 @@ const alterations = [
 
   // Bookings table - previous_provider_id
   { table: 'bookings', column: 'previous_provider_id', sql: 'ALTER TABLE bookings ADD COLUMN previous_provider_id INT AFTER provider_id' },
+
+  // Bookings table - marketplace_pushed_at: when an admin offered the job to providers (NULL: not offered)
+  { table: 'bookings', column: 'marketplace_pushed_at', sql: 'ALTER TABLE bookings ADD COLUMN marketplace_pushed_at DATETIME NULL AFTER accepted_at' },
 
   // Index for previous_provider_id
   { table: 'bookings', column: 'idx_previous_provider', sql: 'CREATE INDEX idx_previous_provider ON bookings(previous_provider_id)' },

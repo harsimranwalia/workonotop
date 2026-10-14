@@ -1,4 +1,4 @@
-// The route matrix: every route file and exported method under src/app/api, one row each, as data (208 rows).
+// The route matrix: every route file and exported method under src/app/api, one row each, as data (209 rows).
 //
 // SOURCE: Appendix A of agents/architect/designs/ENG-004-lock-down-unauthenticated-access-and-role-checks.md (the
 // design for ENG-004; ADR-003). This file was generated from that table, in the table's order and with its route
@@ -28,7 +28,8 @@
 //              path      the route with each [param] replaced by PROBE_IDS.missing, an id no fixture row has
 //              body      undefined for GET and DELETE (104 rows) and for the four POST and PUT rows whose handler `await`s
 //                        request.json() before its first side effect (a request with no body throws there, nothing is
-//                        written; the notes of the four cite the lines); {} for the other 100 POST, PUT and PATCH rows. {} is
+//                        written; the notes of the four cite the lines), and for POST /api/admin/bookings/[id]/push, whose
+//                        handler reads no body; {} for the other 100 POST, PUT and PATCH rows. {} is
 //                        the convention, not a finding that the handler validates it: see "What a probe does" below.
 //              query     optional, e.g. '?id=999999999', for a handler that reads its id from the query (none set yet)
 //              anon      roles rows: 401, always (the contract). public and self rows: an array of the statuses a
@@ -50,7 +51,7 @@
 // roles: ['admin', 'provider'] with the split in its note.
 //
 // What a probe does. Every probe uses a fixture account only (@workontap.test), an id no fixture row has, and an empty body
-// or none: 208 of the 208 rows, by a script (the body is undefined or {}, the path is the route with each [param] replaced
+// or none: 209 of the 209 rows, by a script (the body is undefined or {}, the path is the route with each [param] replaced
 // by PROBE_IDS.missing, no row sets a query). That does not make a probe harmless by itself: a handler that needs no input
 // acts on {} and on nothing (ENG-020 review B1, QA F1). What the notes say about it, as counted by script:
 //   - Twelve rows carry a `Probe (B2, 2026-10-02` line (the rows whose note holds that text): GET and PATCH
@@ -61,11 +62,11 @@
 //     where the handler writes or sends, the first side effect it stops before (a write, a schema change, mail, a push, an
 //     outbound call, a payment, a file); GET /api/admin/deletion-requests carries only a cross-reference to the PATCH row, for
 //     the same fetch.
-//   - The other 196 rows have no such line: 117 are write rows (POST, PUT, PATCH, DELETE) and 79 are GET (script counts).
-//     49 of the 196 (36 public, 13 self) carry a `Probe measured on the dev app` line instead, which records the
+//   - The other 197 rows have no such line: 118 are write rows (POST, PUT, PATCH, DELETE) and 79 are GET (script counts).
+//     49 of the 197 (36 public, 13 self) carry a `Probe measured on the dev app` line instead, which records the
 //     status measured there for the request with no credential and no body. Code-review round 1 read the write handlers the
 //     probes reach (88: 31 admin, 57 other; agents/principal-engineer/notebook/2026-10-02-eng020-review.md; the matrix has
-//     94 routes with a write row, 31 admin and 63 other, and the difference was not traced). It did not read the GET
+//     95 routes with a write row, 32 admin and 63 other, and the difference was not traced). It did not read the GET
 //     handlers, nor the public, self and pending rows as such. The GET handlers were scanned in review round 2 (comments
 //     removed; the scan found two that reach a write) and again by this round's sweep of all 83 GET rows (next bullet). No
 //     field of the 195 rows that were there before ENG-007 added its row (POST /api/pricing, a public row with no `Probe measured`
@@ -147,6 +148,11 @@ export const matrix = [
         route: '/api/admin/bookings/[id]/override', method: 'PUT', today: 'full', kind: 'roles', roles: ['admin'], owner: '-',
         note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/bookings/[id]/override/route.js:7-8), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Role trusted from JWT claim, no DB re-check; worker_count and actual_duration_minutes unvalidat…',
         probe: { path: '/api/admin/bookings/999999999/override', body: {}, anon: 401 },
+    },
+    {
+        route: '/api/admin/bookings/[id]/push', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
+        note: 'ENG-010: POST calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/bookings/[id]/push/route.js:9-10), before the database is read: no credential is 401, any other role 403, and the admin gets the push.',
+        probe: { path: '/api/admin/bookings/999999999/push', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/cities', method: 'GET', today: 'partial', kind: 'roles', roles: ['admin'], owner: '-',

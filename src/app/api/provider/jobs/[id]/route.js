@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { execute } from '@/lib/db'
 import { requireCaller } from '@/lib/api-auth'
+import { OPEN_ON_MARKETPLACE } from '@/lib/marketplace'
 
 export async function GET(request, { params }) {
   const auth = await requireCaller(request, ['provider']);
@@ -24,7 +25,7 @@ export async function GET(request, { params }) {
       LEFT JOIN services s ON b.service_id = s.id
       LEFT JOIN service_categories c ON s.category_id = c.id
       LEFT JOIN disputes d ON b.id = d.booking_id
-      WHERE b.id = ? AND (b.provider_id = ? OR (b.provider_id IS NULL AND b.status IN ('pending', 'matching')))`,
+      WHERE b.id = ? AND (b.provider_id = ? OR ${OPEN_ON_MARKETPLACE})`,
       [id, auth.caller.id]  // the caller's own jobs; a job that is not theirs (or open) stays this route's 404
     )
 
