@@ -2574,6 +2574,249 @@
     "harness.spec.js › Payment path - Stripe › POST /api/payment/create-intent as a customer creates an intent, or reports what the code attempts without a Stripe key": {
       "outcome": "ATTEMPTED"
     },
+    "header-book-now.spec.js › Book now in the header › admin at desktop width: Book now does not show": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › Book now in the header › admin at phone width: Book now does not show": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › Book now in the header › customer1 at desktop width: Book now shows": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › Book now in the header › customer1 at phone width: Book now shows": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › Book now in the header › from another page the link lands on the booking box, clear of the sticky header": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › Book now in the header › provider1 at desktop width: Book now does not show": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › Book now in the header › provider1 at phone width: Book now does not show": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › Book now in the header › visitor at desktop width: a green Book now link to /#book, and Sign Up is an outlined button": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › Book now in the header › visitor on a phone: Book now sits beside a menu button that has a name, and pressing it closes an open menu on the way to the box": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header by role at tablet width › admin at 1000 px: the desktop row as before the ticket, with no Book now and no menu button": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header by role at tablet width › admin at 768 px: the desktop row as before the ticket, with no Book now and no menu button": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header by role at tablet width › as a customer at 1000 px: the phone header, and a menu that holds every link the desktop row has": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header by role at tablet width › as a customer at 1023 px: the phone header, and a menu that holds every link the desktop row has": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header by role at tablet width › as a customer at 1024 px: the desktop row, with Book now in it and no menu button": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header by role at tablet width › as a customer at 768 px: the phone header, and a menu that holds every link the desktop row has": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header by role at tablet width › provider1 at 1000 px: the desktop row as before the ticket, with no Book now and no menu button": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header by role at tablet width › provider1 at 768 px: the desktop row as before the ticket, with no Book now and no menu button": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header by role at tablet width › signed out at 1000 px: the phone header, and a menu that holds every link the desktop row has": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header by role at tablet width › signed out at 1023 px: the phone header, and a menu that holds every link the desktop row has": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header by role at tablet width › signed out at 1024 px: the desktop row, with Book now in it and no menu button": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header by role at tablet width › signed out at 768 px: the phone header, and a menu that holds every link the desktop row has": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer at 320 px (phone): the menu button is inside the screen and nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer at 360 px (phone): the menu button is inside the screen and nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer at 375 px (phone): the menu button is inside the screen and nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer at 390 px (phone): the menu button is inside the screen and nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer at 412 px (phone): the menu button is inside the screen and nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer at 768 px (tablet): no worse than the merge base, nothing overflows or overlaps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer at 810 px (tablet): no worse than the merge base, nothing overflows or overlaps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer at 834 px (tablet): no worse than the merge base, nothing overflows or overlaps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer at 896 px (tablet): no worse than the merge base, nothing overflows or overlaps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer on /booking/schedule?service=1 at 375 px: the header fits, as at the merge base": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer on /booking/schedule?service=1 at 768 px: the header fits, as at the merge base": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer on /booking/schedule?service=1 at 834 px: the header fits, as at the merge base": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer on /my-bookings at 375 px: the header fits, as at the merge base": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer on /my-bookings at 768 px: the header fits, as at the merge base": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer on /my-bookings at 834 px: the header fits, as at the merge base": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer on /services at 375 px: the header fits, as at the merge base": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer on /services at 768 px: the header fits, as at the merge base": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as a customer on /services at 834 px: the header fits, as at the merge base": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as admin at 1024 px (desktop): nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as admin at 1280 px (desktop): nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as customer1 at 1024 px (desktop): nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as customer1 at 1280 px (desktop): nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as provider1 at 1024 px (desktop): nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › as provider1 at 1280 px (desktop): nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › signed out at 1024 px (desktop): nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › signed out at 1280 px (desktop): nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › signed out at 320 px (phone): the menu button is inside the screen and nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › signed out at 360 px (phone): the menu button is inside the screen and nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › signed out at 375 px (phone): the menu button is inside the screen and nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › signed out at 390 px (phone): the menu button is inside the screen and nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › signed out at 412 px (phone): the menu button is inside the screen and nothing overflows, overlaps or wraps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › signed out at 768 px (tablet): no worse than the merge base, nothing overflows or overlaps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › signed out at 810 px (tablet): no worse than the merge base, nothing overflows or overlaps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › signed out at 834 px (tablet): no worse than the merge base, nothing overflows or overlaps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › signed out at 896 px (tablet): no worse than the merge base, nothing overflows or overlaps": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › signed out on /booking/schedule?service=1 at 375 px: the header fits, as at the merge base": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › signed out on /booking/schedule?service=1 at 768 px: the header fits, as at the merge base": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › signed out on /booking/schedule?service=1 at 834 px: the header fits, as at the merge base": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › signed out on /guarantee at 375 px: the header fits, as at the merge base": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › signed out on /guarantee at 768 px: the header fits, as at the merge base": {
+      "outcome": "PASS"
+    },
+    "header-book-now.spec.js › The header fits › signed out on /guarantee at 834 px: the header fits, as at the merge base": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › Homepage content › carries the promises, the four steps and, at the top of the FAQ, the answers about the price and the charge": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › Homepage content › desktop width: every main button scrolls to the booking box and each section keeps its Explore link": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › Homepage content › has dropped the \"Make Your Service Request More Accurate\" section": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › Homepage content › makes no claim of ratings, customer counts, \"from\" prices or a time to a price, and the one promise it makes is on /guarantee": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › Homepage content › phone width: every main button scrolls to the booking box and each section keeps its Explore link": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › Homepage hero and booking box › See my price arrives in the guided flow for the service that was chosen": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › Homepage hero and booking box › desktop width: the heading is kept, a line sits under it, the booking box is the main action and the search bar is below it": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › Homepage hero and booking box › lists at most eight services, the popular and trending ones first, and has the first already chosen": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › Homepage hero and booking box › lists the whole catalog when no service is flagged for the homepage": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › Homepage hero and booking box › phone width: the heading is kept, a line sits under it, the booking box is the main action and the search bar is below it": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › Homepage hero and booking box › the link carries the chosen service id alone, encoded, so it cannot add a query parameter": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › Homepage hero and booking box › when the catalog request answers 500 the page raises no error and the button leads to /services": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › Homepage hero and booking box › when the catalog request is dropped the page raises no error and the button leads to /services": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › Homepage hero and booking box › with an empty catalog the button leads to /services": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › The bar at the foot of a phone-width screen › from 768 px up there is no bar, however far the page is scrolled; at 767 px there is": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › The bar at the foot of a phone-width screen › phone width: the bar shows See my price once the box has scrolled out of view, and goes when the box is back": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › The booking box by keyboard and screen reader › keyboard alone: one tab stop on the chosen service, the arrow keys choose, and See my price is the next stop": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › The booking box by keyboard and screen reader › the accessibility tree: one radio group named \"What do you need done?\" with the services in it and exactly one checked": {
+      "outcome": "PASS"
+    },
+    "home-booking-box.spec.js › The first HTML › carries the booking box and its See my price link and no Book now link, which the header draws once the session is known": {
+      "outcome": "PASS"
+    },
     "homepage.spec.js › Homepage › service detail page should display \"How WorkOnTap works\" section": {
       "outcome": "PASS"
     },
