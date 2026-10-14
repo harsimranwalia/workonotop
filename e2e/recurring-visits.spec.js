@@ -1,5 +1,5 @@
 // @ts-check
-// Repeating visits: weekly, every 2 weeks or monthly, each visit its own job. The server cases, in three groups:
+// Repeating visits: weekly, every 2 weeks or monthly, each visit its own job. The cases, in four groups:
 //   visit dates
 //    1  weekly visits are twelve dates seven days apart and every-2-weeks visits are six dates fourteen days apart;
 //    2  monthly visits keep the start's day number and take the last day of a shorter month;
@@ -14,7 +14,11 @@
 //   15  repeating visits take one start date and one set of times;
 //   16  a frequency outside the list is refused and nothing is saved;
 //   17  cancelling one visit leaves the other visits booked;
-//   18  a series makes one notification for the customer and one activity entry.
+//   18  a series makes one notification for the customer and one activity entry;
+//   the booking screens
+//   19  step four offers once, weekly, every 2 weeks and monthly, with once chosen;
+//   20  choosing a repeating visit asks for one start date;
+//   21  the monthly discount is shown as a price line and the confirm page lists each visit's date and price.
 // The module cases (1 to 4) call visitDates from src/lib/visit-series.js and priceJob, priceVisits and loadPricing from src/lib/pricing-rules.js
 // with fixture service 1's rows written as literals in this file. Every expected date and figure is a literal worked by hand, never computed by
 // the code under test. Each case loads the modules itself, so a missing module fails each case on its own. loadPricing is given a stand-in for
@@ -24,17 +28,24 @@
 // stored the way that file does: a small helper checks the target before it connects (assertDevTarget: a local host and the database
 // workontap_db) and the rows once connected (assertNoRealPeople). Every booking a case makes is deleted again as admin, every visit of it,
 // found by its e-mail address and its series (the answer of that delete is not checked); the activity_logs rows the app's routes write about
-// the bookings stay. The booking rules hold no lead time, so the visits are on fixed dates from November 2026 and no expected figure depends
+// the bookings stay. The booking rules hold no lead time, so the visits are on dates written into the cases, from November 2026 and no expected figure depends
 // on the day the suite runs. Case 13 needs the monthly percent of the dev fixture (database/fixtures/catalog.js: 10; weekly and every 2 weeks
 // are 0). A push to the customer writes no row, so case 18 reads the booking route's text for it: a source read is a guard on the text; the
 // behaviour is the rows the running app stores.
+// The screen cases (19 to 21) drive the booking pages in a browser by roles, labels and test ids only: the 'How often?' choices and the
+// calendar of step four, the 'Your price' region with its price-total and price-line test ids, the dialog the page opens when the first visit
+// has no date, and the visit-schedule, visit-line and series-consent test ids of the confirm page. They save nothing: case 21 signs in as
+// customer 1, because a guest on the confirm page sees only the sign-in gate, and stops on the confirm page. The calendar offers only days to
+// come, so each case picks its days from the browser's today (days of next month), so no date is written into a case. Case 21 takes the dates
+// of its series from visitDates and works the price of each visit from service 1's rows by hand: 315.00 on a weekday and 345.00 on a Saturday
+// or Sunday for the answers it gives, less the monthly 10%.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import mysql from 'mysql2/promise';
 import { test, expect } from '@playwright/test';
 import { getCredentialHeaders } from './auth/credentials.js';
-import { RESET_RETRIES } from './support/auth.js';
+import { RESET_RETRIES, signInAs } from './support/auth.js';
 import { users } from '../database/fixtures/accounts.js';
 import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.js';
 
@@ -208,7 +219,7 @@ function postCheckout(request, data, headers = {}) {
     return request.post('/api/bookings', { headers, data, maxRetries: RESET_RETRIES, timeout: 60_000 });
 }
 
-// The visits saved with this e-mail address, in the order they were inserted, with the day of each as text.
+// The visits saved with this e-mail address, in insertion order, with the day of each as text.
 function savedVisits(email) {
     return rows(
         "SELECT id, booking_number, user_id, status, DATE_FORMAT(job_date, '%Y-%m-%d') AS job_date, job_time_slot, series_id, series_visit, series_frequency, service_price, price_breakdown FROM bookings WHERE customer_email = ? ORDER BY id",
@@ -242,7 +253,7 @@ async function withSeries(request, as, body, run) {
 }
 
 // Posts `body` with `headers`, expects the refusal (its status, its message and, when given, the answer it names) and no booking saved with
-// the body's e-mail address; anything that was saved is deleted again.
+// the body's e-mail address; anything saved is deleted again.
 async function expectRefusedCheckout(request, as, { body, headers, what, status, message, field }) {
     try {
         const response = await postCheckout(request, body, headers);
@@ -588,5 +599,251 @@ test.describe('booking repeating visits', () => {
         const pushedTo = [...post.matchAll(/notifyUser\([^;]*?['"](customer|admin|provider)['"]\s*\)/g)].map((match) => match[1]);
         expect(pushedTo.filter((role) => role === 'customer'), 'the POST handler pushes to the customer at one place').toEqual(['customer']);
         expect(pushedTo.filter((role) => role === 'admin'), 'the POST handler pushes to the admins at one place').toEqual(['admin']);
+    });
+});
+
+test.describe('the booking screens', () => {
+    // Each case starts as a visitor with no cookies and no booking under way, in the America/Vancouver time zone. `next dev` compiles a route on its first visit.
+    test.use({ storageState: { cookies: [], origins: [] }, timezoneId: 'America/Vancouver' });
+    test.beforeEach(() => {
+        test.setTimeout(120_000);
+    });
+
+    const FIRST_VISIT_MS = 45_000;
+    const ADDRESS = '1 Probe Street';
+    const DESCRIPTION = 'A deep clean of the whole house, with the oven and the two fridges.';
+    const ONCE_SENTENCE = 'Select 1 to 3 dates that work for you';
+    const REPEAT_SENTENCE = 'Choose the date of the first visit. The next visits are booked from it.';
+    const CONSENT = 'Your card is held for the first visit now. Each visit is charged to this card when it is done, for the price shown for that visit.';
+
+    // ---- days: texts like '2026-11-19', read and built from their numbers so that no time zone moves a day ----
+    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const partsOf = (day) => {
+        const [year, month, date] = day.split('-').map(Number);
+        return { year, month, date };
+    };
+    const isoOf = ({ year, month, date }) => `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+    const weekdayOf = (day) => {
+        const { year, month, date } = partsOf(day);
+        return new Date(Date.UTC(year, month - 1, date)).getUTCDay();
+    };
+    const isWeekend = (day) => [0, 6].includes(weekdayOf(day));
+    // 'November 19, 2026': the name of a day button of the calendar.
+    const longName = (day) => {
+        const { year, month, date } = partsOf(day);
+        return `${MONTHS[month - 1]} ${date}, ${year}`;
+    };
+    // 'Thu, Nov 19': the name of the time group of a day and the day of a visit line.
+    const shortName = (day) => {
+        const { month, date } = partsOf(day);
+        return `${WEEKDAYS[weekdayOf(day)]}, ${MONTHS[month - 1].slice(0, 3)} ${date}`;
+    };
+    // Every figure of these cases is under 1,000.00, so the en-CA format has no thousands separator.
+    const money = (amount) => `$${Number(amount).toFixed(2)}`;
+    // 'Visit 2 · Mon, Nov 10 · $121.50', with U+00B7 between the three parts.
+    const visitLine = (number, day, price) => [`Visit ${number}`, shortName(day), money(price)].join(' · ');
+
+    // The month after the browser's current one, on the browser's clock: the calendar offers days to come, and every day of next month is one.
+    const nextMonthOf = (page) => page.evaluate(() => {
+        const now = new Date();
+        const month = now.getMonth() + 2;
+        return month > 12 ? { year: now.getFullYear() + 1, month: 1 } : { year: now.getFullYear(), month };
+    });
+
+    // ---- locators: the accessible surface of the pages ----
+    const priceBox = (page) => page.getByRole('region', { name: 'Your price' });
+    const totalOf = (page) => priceBox(page).getByTestId('price-total');
+    const linesOf = (page) => priceBox(page).getByTestId('price-line');
+    const continueButton = (page) => page.getByRole('button', { name: 'Continue', exact: true });
+    const stepHeading = (page, name) => page.getByRole('heading', { level: 2, name, exact: true });
+    const howOften = (page) => page.getByRole('radiogroup', { name: 'How often?' });
+    const repeat = (page, name) => howOften(page).getByRole('radio', { name, exact: true });
+    const MONTH_HEADING = new RegExp(`^(${MONTHS.join('|')}) \\d{4}$`);
+    const DAY_BUTTON = new RegExp(`^(${MONTHS.join('|')}) \\d{1,2}, \\d{4}$`);
+    // The names of the days pressed in the calendar, in calendar order.
+    const chosenDays = (page) => page.getByRole('button', { name: DAY_BUTTON, pressed: true }).evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')));
+    // Waits until exactly these days are pressed in the calendar.
+    const expectChosen = (page, days) => expect.poll(() => chosenDays(page), { message: 'the days chosen in the calendar' }).toEqual(days.map(longName));
+
+    // Shows the month of `day` with the month buttons, then presses the day.
+    async function pickDay(page, day) {
+        const { year, month } = partsOf(day);
+        const heading = page.getByRole('heading', { level: 4, name: MONTH_HEADING });
+        const [shownName, shownYear] = (await heading.innerText()).trim().split(' ');
+        const apart = (year * 12 + month) - (Number(shownYear) * 12 + MONTHS.indexOf(shownName) + 1);
+        for (let pressed = 0; pressed < Math.abs(apart); pressed += 1) {
+            await page.getByRole('button', { name: apart > 0 ? 'Next month' : 'Previous month', exact: true }).click();
+        }
+        await expect(heading).toHaveText(`${MONTHS[month - 1]} ${year}`);
+        await page.getByRole('button', { name: longName(day), exact: true }).click();
+    }
+
+    // ---- the path to step four ----
+    const labelOf = (code) => {
+        const item = ITEMS_1.find((candidate) => candidate.code === code);
+        if (!item) throw new Error(`the rows of service 1 hold no item '${code}'`);
+        return item.label;
+    };
+    const quantityOf = (page, code) => page.getByRole('group', { name: labelOf(code), exact: true }).getByRole('spinbutton');
+    // A radio's name starts with the item's label and goes on with its amount.
+    const radioOf = (page, code) => page.getByRole('radio', { name: new RegExp(`^${labelOf(code).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`) });
+
+    // Continues to the step called `name` once the price box shows `total`.
+    async function goOn(page, name, total) {
+        await expect(totalOf(page)).toHaveText(total);
+        await expect(continueButton(page)).toBeEnabled();
+        await continueButton(page).click();
+        await expect(stepHeading(page, name)).toBeVisible();
+    }
+
+    // Answers steps 1 to 3 of fixture service 1 and stops on step 4, 'When and where'. The price after each step, worked by hand:
+    // 80.00 + 2 x 20.00 + 1 x 15.00 + 25.00 (house) = 160.00; + 60.00 (deep clean) = 220.00; + 35.00 (oven) + 2 x 30.00 (fridges) = 315.00.
+    async function openStepFour(page) {
+        await page.goto(`/booking/schedule?service=${SERVICE_1.id}`, { timeout: FIRST_VISIT_MS });
+        await expect(totalOf(page)).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await quantityOf(page, 'bedrooms').fill('2');
+        await quantityOf(page, 'bathrooms').fill('1');
+        await radioOf(page, 'house').check();
+        await goOn(page, 'The option', '$160.00');
+        await radioOf(page, 'deep').check();
+        await goOn(page, "What's included", '$220.00');
+        await quantityOf(page, 'oven').fill('1');
+        await quantityOf(page, 'fridge').fill('2');
+        await goOn(page, 'When and where', '$315.00');
+    }
+
+    // Records each POST /api/pricing request body, in the order the page sends them, with the JSON the server answered it with (null until it is in).
+    function recordPriced(page) {
+        /** @type {{ body: any, answer: any }[]} */
+        const priced = [];
+        const byRequest = new Map();
+        page.on('request', (request) => {
+            if (request.method() !== 'POST' || new URL(request.url()).pathname !== '/api/pricing') return;
+            const entry = { body: request.postDataJSON(), answer: null };
+            byRequest.set(request, entry);
+            priced.push(entry);
+        });
+        page.on('response', async (response) => {
+            const entry = byRequest.get(response.request());
+            if (entry) entry.answer = await response.json().catch(() => null);
+        });
+        return priced;
+    }
+
+    test('step four offers once, weekly, every 2 weeks and monthly, with once chosen', async ({ page }) => {
+        await openStepFour(page);
+
+        // The four ways to book, in this order, with the first chosen.
+        const choices = howOften(page).getByRole('radio');
+        await expect(choices).toHaveCount(4);
+        for (const [index, name] of ['Once', 'Weekly', 'Every 2 weeks', 'Monthly'].entries()) {
+            await expect(choices.nth(index)).toHaveAccessibleName(name);
+            await expect(choices.nth(index)).toBeChecked({ checked: index === 0 });
+        }
+
+        // With once chosen the page asks for 1 to 3 dates, not for the date of a first visit, and the price has lines but no discount line.
+        await expect(page.getByText(ONCE_SENTENCE)).toBeVisible();
+        await expect(page.getByText(REPEAT_SENTENCE)).toHaveCount(0);
+        await expect(linesOf(page).first()).toBeVisible();
+        await expect(linesOf(page).filter({ hasText: /discount/i })).toHaveCount(0);
+    });
+
+    test('choosing a repeating visit asks for one start date', async ({ page }) => {
+        const priced = recordPriced(page);
+        await openStepFour(page);
+        const next = await nextMonthOf(page);
+        const [first, later, other] = [12, 15, 20].map((date) => isoOf({ ...next, date }));
+        // The frequency and the date of the latest price request.
+        const lastAsked = () => {
+            const { frequency, date } = priced.at(-1)?.body?.answers ?? {};
+            return { frequency, date };
+        };
+
+        // Monthly with no day chosen: Continue says the date of the first visit is needed, and the dialog closes with OK.
+        await repeat(page, 'Monthly').check();
+        await expect(continueButton(page)).toBeEnabled();
+        await continueButton(page).click();
+        const dialog = page.getByRole('dialog', { name: 'Selection Required' });
+        await expect(dialog).toContainText('Please select the date of the first visit to continue');
+        await dialog.getByRole('button', { name: 'OK' }).click();
+        await expect(dialog).toBeHidden();
+
+        // Once takes two days.
+        await repeat(page, 'Once').check();
+        await pickDay(page, first);
+        await pickDay(page, later);
+        await expectChosen(page, [first, later]);
+
+        // Weekly keeps the day that comes first, and the sentence for a first visit replaces the one for 1 to 3 dates.
+        await repeat(page, 'Weekly').check();
+        await expect(page.getByText(REPEAT_SENTENCE)).toBeVisible();
+        await expect(page.getByText(ONCE_SENTENCE)).toHaveCount(0);
+        await expectChosen(page, [first]);
+
+        // Another day replaces it, and the price is asked for that start and that frequency.
+        await pickDay(page, other);
+        await expectChosen(page, [other]);
+        await expect.poll(lastAsked, { message: 'the latest price request' }).toEqual({ frequency: 'weekly', date: other });
+
+        // Back to once: the sentence for a first visit goes, and the next price request carries no frequency.
+        const sent = priced.length;
+        await repeat(page, 'Once').check();
+        await expect(page.getByText(REPEAT_SENTENCE)).toHaveCount(0);
+        await expect(page.getByText(ONCE_SENTENCE)).toBeVisible();
+        await expect.poll(() => priced.length, { message: 'the page asks for the price again' }).toBeGreaterThan(sent);
+        expect(Object.keys(priced[sent].body.answers), 'the answers of a booking that happens once').not.toContain('frequency');
+
+        // Once takes up to three days again.
+        await pickDay(page, first);
+        await pickDay(page, later);
+        await expectChosen(page, [first, later, other]);
+    });
+
+    test("the monthly discount is shown as a price line and the confirm page lists each visit's date and price", async ({ page }) => {
+        const { visitDates } = await import('../src/lib/visit-series.js');
+        const priced = recordPriced(page);
+        await signInAs(page, 'customer1');
+        await openStepFour(page);
+        await repeat(page, 'Monthly').check();
+
+        // The start: a weekday from the 10th to the 20th of next month with a weekend visit after it, so the visits do not all cost the same.
+        const next = await nextMonthOf(page);
+        const start = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+            .map((date) => isoOf({ ...next, date }))
+            .find((day) => !isWeekend(day) && (visitDates('monthly', day) ?? []).some(isWeekend));
+        if (!start) throw new Error('no day from the 10th to the 20th of next month starts a monthly series with a weekend visit');
+        const dates = visitDates('monthly', start) ?? [];
+        await pickDay(page, start);
+
+        // The price route answers with the three visits: their dates, and 315.00 less 10% on a weekday and 345.00 less 10% on a weekend.
+        const seriesAnswer = () => priced.find(({ body }) => body?.answers?.date === start && body?.answers?.frequency === 'monthly')?.answer;
+        await expect.poll(() => seriesAnswer()?.visits?.length, { message: 'the price route answers with the visits of the series' }).toBe(3);
+        const { visits } = seriesAnswer();
+        expect(visits.map((visit) => visit.date), 'the dates of the series').toEqual(dates);
+        expect(visits.map((visit) => Number(visit.price)), 'the price of each visit').toEqual(dates.map((day) => (isWeekend(day) ? 310.5 : 283.5)));
+
+        // Step four shows the price of the first visit, and the discount as a line of its own.
+        await expect(totalOf(page)).toHaveText('$283.50');
+        const discount = linesOf(page).filter({ hasText: 'Monthly discount (10%)' });
+        await expect(discount).toHaveCount(1);
+        await expect(discount).toContainText('-$31.50');
+
+        // The first visit's time, the address and the description, then the confirm page.
+        await page.getByRole('group', { name: shortName(start), exact: true }).getByRole('button', { name: /^Morning/ }).click();
+        await page.getByLabel('Service Address').fill(ADDRESS);
+        await page.getByRole('textbox', { name: /What do you need done/ }).fill(DESCRIPTION);
+        await expect(continueButton(page)).toBeEnabled();
+        await continueButton(page).click();
+        await expect(page).toHaveURL((url) => url.pathname === '/booking/confirm', { timeout: FIRST_VISIT_MS });
+
+        // The confirm page names the start of the series, lists each visit with its own date and price, and says how the series is paid.
+        await expect(page.getByRole('heading', { name: 'Your visits' })).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(page.getByText('Starts:')).toBeVisible();
+        await expect(page.getByTestId('visit-schedule').getByTestId('visit-line')).toHaveText(
+            dates.map((day, index) => visitLine(index + 1, day, visits[index].price)),
+            { timeout: FIRST_VISIT_MS },
+        );
+        await expect(page.getByTestId('series-consent')).toHaveText(CONSENT);
     });
 });

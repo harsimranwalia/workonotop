@@ -3006,6 +3006,15 @@
     "recurring-visits.spec.js › booking repeating visits › repeating visits take one start date and one set of times": {
       "outcome": "PASS"
     },
+    "recurring-visits.spec.js › the booking screens › choosing a repeating visit asks for one start date": {
+      "outcome": "PASS"
+    },
+    "recurring-visits.spec.js › the booking screens › step four offers once, weekly, every 2 weeks and monthly, with once chosen": {
+      "outcome": "PASS"
+    },
+    "recurring-visits.spec.js › the booking screens › the monthly discount is shown as a price line and the confirm page lists each visit's date and price": {
+      "outcome": "PASS"
+    },
     "recurring-visits.spec.js › the price of a visit › a frequency outside the list is refused, naming the frequency field; with no percent set there is no discount line": {
       "outcome": "PASS"
     },
