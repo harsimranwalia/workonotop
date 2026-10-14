@@ -1,15 +1,19 @@
 // The price and the quoted minutes of a job, worked out on the server from the service's pricing rule and the answers given. A rule is
 // the service's catalog price and duration plus its rows in service_pricing_items: amounts per unit, options (a tier, or an amount an
 // hour), property types, the weekend and extras by quantity. Every part adds to the price in whole cents; only the hourly line is
-// rounded, once, to the cent.
+// rounded, once, to the cent. A booking that repeats takes a percent off the sum of each visit, by how often it repeats, as a line of its
+// own, rounded once, to the cent; the percents are settings in system_settings.
 
 import { catalogPrice } from './booking-price.js'
+import { FREQUENCIES, visitDates } from './visit-series.js'
 
 // What decimal(10,2) holds, in cents, and what an int holds, in minutes. A quantity has no other limit.
 const MAX_CENTS = 9999999999n
 const MAX_MINUTES = 2147483647n
 // The minutes of a service whose catalog row has none, as the catalog's readers have always taken it.
 const NO_DURATION_MINUTES = 60
+// A percent is held in hundredths of a percent: a whole number from 0 (nothing off) to 10000 (all of it).
+const MAX_HUNDREDTHS = 10000
 
 const KINDS = ['unit', 'option', 'property_type', 'weekend', 'extra']
 
@@ -58,18 +62,48 @@ function twoPlaces(cents) {
   return `${digits.slice(0, -2)}.${digits.slice(-2)}`
 }
 
+// The percent off that `discounts` ({ <frequency>: hundredths of a percent }) gives a booking that repeats at `frequency`, in hundredths of a
+// percent; 0 when it names none. A value that is not a whole number from 0 to 10000 is a fault in the caller, not in the answers, so it
+// stops the price rather than changing it.
+function discountOf(discounts, frequency) {
+  const hundredths = isPlainObject(discounts) ? discounts[frequency] : undefined
+  if (!isGiven(hundredths)) return 0
+  if (!Number.isSafeInteger(hundredths) || hundredths < 0 || hundredths > MAX_HUNDREDTHS) {
+    throw new Error(`the discount for ${frequency} is not a whole number of hundredths of a percent from 0 to ${MAX_HUNDREDTHS}`)
+  }
+  return hundredths
+}
+
+// A percent held in hundredths, as text without trailing zeros: 1000 is '10', 1250 is '12.5', 1255 is '12.55'.
+function percentText(hundredths) {
+  const decimals = String(hundredths % 100).padStart(2, '0').replace(/0+$/, '')
+  return `${Math.floor(hundredths / 100)}${decimals ? `.${decimals}` : ''}`
+}
+
+// That many hundredths of a percent of a sum of cents, in cents: a half cent rounds up.
+function discountCentsOf(cents, hundredths) {
+  return (cents * BigInt(hundredths) + 5000n) / 10000n
+}
+
 // `service` is a services row, `items` the service's rows of service_pricing_items, `answers` the optional answers of the request:
 //   { units: { <unit code>: <whole number> }, option: <option code>, hours: <number>, property_type: <property type code>,
-//     date: 'YYYY-MM-DD', extras: [ { code: <extra code>, quantity: <whole number> } ] }
+//     date: 'YYYY-MM-DD', extras: [ { code: <extra code>, quantity: <whole number> } ], frequency: <a key of FREQUENCIES> }
+// `discounts` is { <frequency>: hundredths of a percent } (loadPricing answers it); a frequency it does not name takes nothing off.
 // Answers { ok: true, price, minutes, lines } with each line { kind, code, label, quantity, amount, minutes } (amount a two-place
 // string), or { ok: false, reason: 'service' } when the catalog does not offer the service, or { ok: false, reason: 'answers', field }
 // when the answers cannot be priced, or { ok: false, reason: 'too_large', field: 'answers' } when the price or the minutes are more than a
 // booking records. No answers price the catalog price and duration. By the hour, the hours asked for replace the base and the units.
-export function priceJob(service, items, answers) {
+// No frequency is a single visit. A frequency that takes a percent off adds a last line { kind: 'discount', code: <the frequency>, ... } whose
+// amount is the cut as a negative two-place string ('-13.50'); the price is the sum of the other lines less the cut, and the minutes are theirs.
+export function priceJob(service, items, answers, discounts = {}) {
   const offered = catalogPrice(service)
   if (!offered) return { ok: false, reason: 'service' }
   const given = isGiven(answers) ? answers : {}
   if (!isPlainObject(given)) return refuse('answers')
+
+  const frequency = isGiven(given.frequency) ? given.frequency : null
+  if (frequency !== null && !Object.keys(FREQUENCIES).includes(frequency)) return refuse('frequency')
+  const discountHundredths = frequency === null ? 0 : discountOf(discounts, frequency)
 
   // The service's items by kind and code. A code is looked up here and nowhere else, so no answer reaches a query.
   const byKind = Object.fromEntries(KINDS.map((kind) => [kind, new Map()]))
@@ -160,7 +194,42 @@ export function priceJob(service, items, answers) {
   if (cents > MAX_CENTS || minutes > MAX_MINUTES) return { ok: false, reason: 'too_large', field: 'answers' }
   // An hourly amount of 0 prices nothing, as a base price of 0 is not offered.
   if (cents <= 0n) return refuse('option')
+  if (discountHundredths > 0) {
+    const discountCents = discountCentsOf(cents, discountHundredths)
+    const label = `${FREQUENCIES[frequency].label} discount (${percentText(discountHundredths)}%)`
+    lines.push({ kind: 'discount', code: frequency, label, quantity: 1, amount: `-${twoPlaces(discountCents)}`, minutes: 0 })
+    return { ok: true, price: Number(cents - discountCents) / 100, minutes: Number(minutes), lines }
+  }
   return { ok: true, price: Number(cents) / 100, minutes: Number(minutes), lines }
+}
+
+// The price of each visit of a booking, for `answers` as priceJob takes them. With a frequency, a visit on each date of
+// visitDates(answers.frequency, answers.date), each priced by priceJob with that date as its date, so that the weekend is worked out for the
+// visit's own day. Answers { ok: true, visits: [{ date, price, minutes, lines }] } in date order, or the first refusal priceJob gives; a
+// frequency with no real start day is { ok: false, reason: 'answers', field: 'date' }. With no frequency, one visit on answers.date (null when
+// there is none), priced by priceJob as it stands.
+export function priceVisits(service, items, answers, discounts) {
+  const given = isPlainObject(answers) ? answers : {}
+  if (!isGiven(given.frequency)) {
+    const job = priceJob(service, items, answers, discounts)
+    if (!job.ok) return job
+    return { ok: true, visits: [{ date: typeof given.date === 'string' ? given.date : null, price: job.price, minutes: job.minutes, lines: job.lines }] }
+  }
+
+  const dates = visitDates(given.frequency, given.date)
+  if (dates === null) {
+    // No dates: priceJob refuses the service, a frequency outside the list, a start that is not a real day or any other answer it cannot
+    // price; if it refuses none of them, the start is missing.
+    const job = priceJob(service, items, answers, discounts)
+    return job.ok ? refuse('date') : job
+  }
+  const visits = []
+  for (const date of dates) {
+    const job = priceJob(service, items, { ...given, date }, discounts)
+    if (!job.ok) return job
+    visits.push({ date, price: job.price, minutes: job.minutes, lines: job.lines })
+  }
+  return { ok: true, visits }
 }
 
 // The body of the 400 that a route answers when priceJob does not price: { success, message } as the neighbouring routes answer, with the
@@ -178,13 +247,36 @@ function serviceIdOf(value) {
   return null
 }
 
-// The one read of a service's rule: its catalog row and its items, by `execute(sql, params)` (the database helper's, passed in so that this
-// module holds no connection). Answers { service, items }; `service` is undefined when there is no such row.
+// The system_settings key that holds the percent off a booking that repeats at `frequency`.
+const discountKeyOf = (frequency) => `recurring_discount_${frequency}_percent`
+
+// A percent as its setting holds it, in hundredths of a percent: text (or a number) from 0 to 100 with at most two decimals, read from its own
+// digits so that no float arithmetic is involved; anything else is 0.
+function percentHundredths(value) {
+  if (typeof value !== 'string' && typeof value !== 'number') return 0
+  const digits = /^(\d{1,3})(?:\.(\d{1,2}))?$/.exec(String(value).trim())
+  if (!digits) return 0
+  const hundredths = Number(digits[1]) * 100 + Number((digits[2] || '').padEnd(2, '0'))
+  return hundredths <= MAX_HUNDREDTHS ? hundredths : 0
+}
+
+// The percent off for each frequency, in hundredths of a percent, from the system_settings rows read for them: 0 for a frequency whose
+// setting is missing or unreadable.
+function discountsOf(settings) {
+  const stored = new Map((settings || []).map((row) => [row.key, row.value]))
+  return Object.fromEntries(Object.keys(FREQUENCIES).map((frequency) => [frequency, percentHundredths(stored.get(discountKeyOf(frequency)))]))
+}
+
+// The one read of a service's rule and of the percents off a booking that repeats: its catalog row, its items and the discount settings, by
+// `execute(sql, params)` (the database helper's, passed in so that this module holds no connection). Answers { service, items, discounts };
+// `service` is undefined when there is no such row. `discounts` is { <frequency>: hundredths of a percent } for every key of FREQUENCIES.
 export async function loadPricing(execute, serviceId) {
   const id = serviceIdOf(serviceId)
-  if (id === null) return { service: undefined, items: [] }
+  if (id === null) return { service: undefined, items: [], discounts: {} }
   const [service] = await execute('SELECT id, name, base_price, additional_price, duration_minutes, is_active FROM services WHERE id = ?', [id])
-  if (!service) return { service: undefined, items: [] }
+  if (!service) return { service: undefined, items: [], discounts: {} }
   const items = await execute('SELECT kind, code, label, amount, minutes, is_hourly FROM service_pricing_items WHERE service_id = ? ORDER BY kind, sort_order, id', [id])
-  return { service, items }
+  const keys = Object.keys(FREQUENCIES).map(discountKeyOf)
+  const settings = await execute(`SELECT \`key\`, \`value\` FROM system_settings WHERE \`key\` IN (${keys.map(() => '?').join(', ')})`, keys)
+  return { service, items, discounts: discountsOf(settings) }
 }
