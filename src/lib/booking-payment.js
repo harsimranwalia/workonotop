@@ -87,15 +87,20 @@ function dayOf(value) {
 }
 
 // collectBookingPayment(stripe, booking, opts) takes the one charge for a booking whose job is done, for the price recorded
-// on the booking. opts: { currency, saveIntentId(newId, oldId) -> saved?, readIntentId() -> the id on the booking, cardIntentId, today }.
+// on the booking. opts: { currency, saveIntentId(newId, oldId) -> saved?, readIntentId() -> the id on the booking, cardIntentId, card, today }.
 // The two callbacks run outside the route's transaction, so a saved charge stays on the booking whatever the route does next.
 // cardIntentId: for a booking with no payment of its own (a later visit of a series), the payment whose card it is charged on.
-// today: businessToday(Date.now()); such a booking is charged on or after its job_date and not before, whatever its status says
-// (a provider's click or an admin's write can mark a visit done weeks early). With no readable date or no today it is refused.
+// card: { customer, payment_method }, for a booking with no payment of its own that an admin made on a customer's behalf: the Stripe
+// customer and the card its customer put on file from a link (cardOnFile, in booking-card.js). It is charged on that card, for the
+// recorded price, as a lapsed hold is, and it is tried before cardIntentId. Given without both fields, it is not there.
+// today: businessToday(Date.now()); a booking with no payment of its own is charged on or after its job_date and not before, whatever
+// its status says (a provider's click or an admin's write can mark a visit done weeks early). With no readable date or no today it is refused.
 // Never throws for an expected outcome.
 //   -> { ok: true, chargeId, amountCents, overCollected } | { ok: false, reason, day? }
 // reason: 'mismatch' | 'declined' | 'action_required' | 'no_payment_method' | 'cancelled_by_person' | 'unavailable' | 'not_configured'
 //   | 'not_due' (nothing was called: the visit's date is still ahead, and day is that date)
+// A booking with no payment of its own, no card and no cardIntentId is 'no_payment_method': one made on a customer's behalf whose
+// customer never added a card.
 export async function collectBookingPayment(stripe, booking, opts = {}) {
   // First, before the key is asked about: this refusal calls nothing, so it holds on a server with no payment key too.
   if (!booking.payment_intent_id) {
@@ -112,6 +117,12 @@ export async function collectBookingPayment(stripe, booking, opts = {}) {
   // payment its series' first visit holds (opts.cardIntentId), as a lapsed hold is. That payment is read first: one a person
   // cancelled is not a card to charge (as for a lapsed hold, below), and one with no customer cannot be charged off-session.
   if (!booking.payment_intent_id) {
+    // A booking an admin made on a customer's behalf holds no payment either and is no visit of a series. Its customer put a card on
+    // file from a link, and that card is charged by the same charge, under the same per-booking key. It names the customer and the
+    // card itself, so there is no payment to read first.
+    if (opts.card && opts.card.customer && opts.card.payment_method) {
+      return chargeSavedCard(stripe, booking, opts.card, expected, currency, opts);
+    }
     if (!opts.cardIntentId) return { ok: false, reason: 'no_payment_method' };
     let source;
     try {

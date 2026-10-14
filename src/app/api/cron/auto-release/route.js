@@ -5,6 +5,7 @@ import { execute, getConnection } from '@/lib/db'
 import { requireCronSecret } from '@/lib/api-auth'
 import { providerPayout } from '@/lib/booking-price'
 import { collectBookingPayment, businessToday } from '@/lib/booking-payment'
+import { cardOnFile } from '@/lib/booking-card'
 import { notifyUser } from '@/lib/push'
 import { sendEmail } from '@/lib/email'
 
@@ -21,6 +22,11 @@ export async function GET(request) {
   // business's time zone, read once for the run: the query leaves out a visit whose date is ahead (it is picked up on the first
   // run on or after its date), and the payment module refuses one that got through. A booking with a payment of its own is not
   // held to a date here (a one-time booking's date is whatever the customer typed); a later visit's date is the series' own.
+  // A booking an admin made on a customer's behalf (it has a row in booking_card_links) holds no payment either and is no visit of a
+  // series: it is charged on the card its customer put on file from the link, held to its date as a later visit is, because the click
+  // that marks it done can come weeks early. It is picked up even when no card was ever added: collectBookingPayment then answers
+  // no_payment_method, and the booking ends payment_status 'failed' with the admins emailed, instead of waiting for ever in
+  // awaiting_approval where nobody would see it. That is the third arm of the group below, which only a booking with a link row matches.
   const today = businessToday(Date.now())
   const expiredBookings = await execute(`
     SELECT b.*, sp.stripe_account_id 
@@ -28,12 +34,15 @@ export async function GET(request) {
     LEFT JOIN service_providers sp ON b.provider_id = sp.id
     WHERE b.status = 'awaiting_approval'
       AND b.updated_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)
-      AND (b.payment_intent_id IS NOT NULL OR (b.series_visit > 1 AND b.job_date <= ?))
+      AND (
+        b.payment_intent_id IS NOT NULL OR (b.series_visit > 1 AND b.job_date <= ?)
+        OR (b.series_id IS NULL AND b.job_date <= ? AND EXISTS (SELECT 1 FROM booking_card_links l WHERE l.booking_id = b.id))
+      )
       AND (b.payment_status IS NULL OR b.payment_status <> 'failed')
       AND NOT EXISTS (
         SELECT 1 FROM disputes d WHERE d.booking_id = b.id AND d.status IN ('open', 'reviewing')
       )
-  `, [today])
+  `, [today, today])
 
   console.log(`Auto-release: Found ${expiredBookings.length} expired bookings`)
 
@@ -53,15 +62,23 @@ export async function GET(request) {
         cardIntentId = first ? first.payment_intent_id : null
       }
 
+      // A booking an admin made on a customer's behalf is charged on the card its customer put on file from a link. That is asked
+      // only when nothing else names a card, so any other booking costs no query; with no card, collectBookingPayment answers
+      // no_payment_method and the booking is failed below like any other whose payment cannot be taken.
+      let card = null
+      if (!booking.payment_intent_id && !cardIntentId) card = await cardOnFile(execute, booking)
+
       // The release takes the one charge for the booking's recorded price and pays the provider by the payout rule. The payment
       // is taken ahead of the booking's connection: the two callbacks take their own from the pool, so a connection held by this
       // run never waits for another.
       const collected = await collectBookingPayment(stripe, booking, {
         currency: process.env.STRIPE_CURRENCY || 'cad',
         cardIntentId,
+        card,
         today,
         // These two run on the pool and this run holds no connection while they do: a charge saved on the booking stays saved
-        // whatever this run does next. The save compares with <=>, which also matches a later visit's empty payment.
+        // whatever this run does next. The save compares with <=>, which also matches the empty payment of a later visit or of
+        // a booking made on a customer's behalf.
         saveIntentId: async (newId, oldId) => {
           const result = await execute(
             'UPDATE bookings SET payment_intent_id = ? WHERE id = ? AND payment_intent_id <=> ?',

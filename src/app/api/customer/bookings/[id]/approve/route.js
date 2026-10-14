@@ -8,6 +8,7 @@ import { notifyUser } from '@/lib/push'
 import { logActivity } from '@/lib/logger'
 import { providerPayout } from '@/lib/booking-price'
 import { collectBookingPayment, businessToday } from '@/lib/booking-payment'
+import { cardOnFile } from '@/lib/booking-card'
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-05-27.dahlia' }) : null
 
@@ -211,16 +212,22 @@ export async function POST(request, { params }) {
         )
         cardIntentId = first ? first.payment_intent_id : null
       }
-      if (!booking.payment_intent_id && !cardIntentId) {
+      // A booking an admin made on a customer's behalf holds no payment and is no visit of a series: it is charged on the card its
+      // customer put on file from a link. That is asked only when nothing else names a card, so any other booking costs no query.
+      let card = null
+      if (!booking.payment_intent_id && !cardIntentId) card = await cardOnFile(execute, booking)
+      if (!booking.payment_intent_id && !cardIntentId && !card) {
         return NextResponse.json({ success: false, message: 'No payment intent found' }, { status: 400 })
       }
 
       collected = await collectBookingPayment(stripe, booking, {
         currency: process.env.STRIPE_CURRENCY || 'cad',
         cardIntentId,
+        card,
         today: businessToday(Date.now()),
         // These two run on the pool and this request holds no connection while they do: a charge saved on the booking stays
-        // saved whatever this request does next. The save compares with <=>, which also matches a later visit's empty payment.
+        // saved whatever this request does next. The save compares with <=>, which also matches the empty payment of a later visit
+        // or of a booking made on a customer's behalf.
         saveIntentId: async (newId, oldId) => {
           const result = await execute(
             'UPDATE bookings SET payment_intent_id = ? WHERE id = ? AND payment_intent_id <=> ?',
