@@ -4,8 +4,8 @@
 // rows added to e2e/auth/route-matrix.js, so it has no case of its own. The screen cases F1 to F5 are the second block of this file.
 //   B1  a job whose answers pick an item at its quote_from is not priced: priceJob answers reason 'quote' and the picks, and no figure;
 //   B2  the threshold is the item's own: a unit or an extra by its count, an option or a property type once, a weekend never, no quote_from never;
-//   B3  an answer that cannot be priced next to a flagged pick is the refusal it is today, not a quote;
-//   B4  a flagged pick quotes with a frequency and as a series, and the same answers without the flag price as before;
+//   B3  an answer that cannot be priced next to a flagged pick is refused, not a quote;
+//   B4  a flagged pick quotes with a frequency and as a series, and the same answers without the flag are priced;
 //   B5  the price route answers a quote with 200, the picks and the choices and no figure, and a job that can be priced with its price;
 //   B6  a booking and create-intent refuse a job that needs a quote: 400, no booking row, no Stripe call (the fail-closed pin);
 //   B7  a request for a quote is saved with the picks that sent it, as a row of quote_requests and never a booking; only a customer's credential sets user_id;
@@ -15,7 +15,7 @@
 //  B11  the admin reads the requests, newest first, a page at a time; no credential is 401, a customer or a provider is 403.
 //   F1  Commercial: no price, the quote notice, Continue off and the form shown; sending the form shows the thank-you and saves one request;
 //   F2  a house or an apartment prices and shows no form; the price and the form swap as the answer changes;
-//   F3  a post that fails (a 500, a network failure, a 429) shows its error and keeps what was typed; the retry sends;
+//   F3  a post that fails (a 500, a network failure, a 429) shows its error and keeps what the customer typed; the retry sends;
 //   F4  the admin page shows the request in "Quote requests" and not in the bookings list; none, no section; a failed load, the error and Retry;
 //   F5  every field has a label, the sending, error and thank-you text is in live regions, and the field the server refuses is marked.
 // B1 to B4 call priceJob, priceVisits, picksOf and quoteFlagsOf from src/lib/pricing-rules.js with the rule's rows passed as literals, written in
@@ -161,7 +161,7 @@ function send(request, data, headers = {}) {
 }
 
 // Sends a body that is expected to be refused and checks the answer: the status, the body (a literal or a check of the field named) and that
-// no row of `email` was saved.
+// no row of `email` is saved.
 async function expectRefusedRequest(request, what, data, status, expected) {
     const response = await send(request, data);
     expect(response.status(), `${what}: the status`).toBe(status);
@@ -200,7 +200,7 @@ async function seedRequest(email, minutesAgo = 0, fields = {}) {
 }
 
 test.describe('Quote requests', () => {
-    // Mutant that turns this case red: priceJob prices a flagged pick at its amount (the verdict removed), or leaves price, minutes or lines on a quote.
+    // Mutant that turns this case red: priceJob prices a flagged pick at its amount (no verdict), or leaves price, minutes or lines on a quote.
     test('a job whose answers pick an item at its quote_from is not priced: the quote carries the picks and no figure', async () => {
         const { priceJob, picksOf, quoteFlagsOf, refusalOf } = await import('../src/lib/pricing-rules.js');
 
@@ -290,7 +290,7 @@ test.describe('Quote requests', () => {
     });
 
     // Mutant that turns this case red: the verdict is made before the answers are checked, so a malformed answer next to a flagged pick quotes.
-    test('an answer that cannot be priced next to a flagged pick is the refusal it is today, not a quote', async () => {
+    test('an answer that cannot be priced next to a flagged pick is refused, not a quote', async () => {
         const { priceJob } = await import('../src/lib/pricing-rules.js');
 
         const refused = [
@@ -313,7 +313,7 @@ test.describe('Quote requests', () => {
             expect('flags' in job, `${what}: no flags come with a refusal`).toBe(false);
         }
 
-        // A service the catalog does not offer is still that refusal, with a flagged pick or not.
+        // A service the catalog does not offer is that refusal, with a flagged pick or not.
         const noService = priceJob(undefined, ITEMS_1, COMMERCIAL, {});
         expect([noService.ok, noService.reason], 'a service that is not offered, beside a flagged pick').toEqual([false, 'service']);
         // No rows are no pick to flag: the property type is one the service does not have.
@@ -322,7 +322,7 @@ test.describe('Quote requests', () => {
     });
 
     // Mutant that turns this case red: the verdict is skipped when the answers carry a frequency, or priceVisits prices the first visit of a flagged series.
-    test('a flagged pick quotes with a frequency and as a series, and the same answers without the flag price as before', async () => {
+    test('a flagged pick quotes with a frequency and as a series, and the same answers without the flag are priced', async () => {
         const { priceJob, priceVisits } = await import('../src/lib/pricing-rules.js');
         const discounts = { monthly: 1000, weekly: 500 };
 
@@ -341,10 +341,10 @@ test.describe('Quote requests', () => {
         expect(series.ok, 'a house as a series is priced').toBe(true);
         expect(series.visits.length, 'the monthly series has three visits').toBe(3);
         expect(series.visits[0].price, 'the first visit, on a Wednesday: 94.50').toBe(94.5);
-        // And a property type that is priced but has no quote_from in a rule that has the column NULL everywhere prices as it did before the column.
+        // A rule with quote_from NULL on every row never sends a job to a quote: the commercial property type with twenty bedrooms is priced.
         const plain = ITEMS_1.map((item) => ({ ...item, quote_from: null }));
-        const old = priceJob(SERVICE_1, plain, { units: { bedrooms: 20 }, property_type: 'commercial' }, {});
-        expect([old.ok, old.price, old.minutes], 'with no quote_from anywhere every answer prices: 80.00 + 20 x 20.00 + 0.00').toEqual([true, 480, 720]);
+        const unflagged = priceJob(SERVICE_1, plain, { units: { bedrooms: 20 }, property_type: 'commercial' }, {});
+        expect([unflagged.ok, unflagged.price, unflagged.minutes], 'with no quote_from anywhere every answer prices: 80.00 + 20 x 20.00 + 0.00').toEqual([true, 480, 720]);
     });
 
     // Mutant that turns this case red: the price route answers a quote with a 400 or a price, or the screen's choices go missing from the quote, or quote_from is listed in a choice.
@@ -360,7 +360,7 @@ test.describe('Quote requests', () => {
         expect(quote.service_id, 'the answer names the service').toBe(1);
         expect(quote.flags, 'the answer holds the pick that sent it').toEqual([COMMERCIAL_FLAG]);
         for (const key of ['price', 'quoted_minutes', 'lines', 'visits']) expect(key in quote, `a quote carries no ${key}`).toBe(false);
-        // The choices are the rows of the rule as a priced answer lists them, so the screen can still change its answers, without the quote_from.
+        // The choices are the rows of the rule as a priced answer lists them, so the screen can change its answers, without the quote_from.
         const choices = ITEMS_1.map(({ quote_from, ...choice }) => choice);
         expect(quote.choices, 'the twelve choices of service 1, in the order a screen shows them').toEqual(choices);
         expect(quote.choices.some((choice) => 'quote_from' in choice), 'the thresholds are not listed').toBe(false);
@@ -386,9 +386,9 @@ test.describe('Quote requests', () => {
         expect(house.lines.map((line) => line.code), 'the lines of a house').toEqual(['base', 'house']);
         expect(house.choices, 'the same twelve choices').toEqual(choices);
 
-        // A refusal that is not a quote stays the 400 it was.
+        // A refusal that is not a quote is a 400.
         const refused = await ask({ service_id: 1, answers: { ...COMMERCIAL, units: { attic: 1 } } });
-        expect(refused.status(), 'an answer that cannot be priced beside a flagged pick is still a 400').toBe(400);
+        expect(refused.status(), 'an answer that cannot be priced beside a flagged pick is a 400').toBe(400);
         expect(await refused.json(), 'and names the answer').toEqual({ success: false, message: 'These answers cannot be priced for this service', field: 'units' });
     });
 
@@ -444,7 +444,7 @@ test.describe('Quote requests', () => {
         expect(saved.message, 'what the customer said about the job').toBe('A warehouse floor of about 4,000 square feet, to be cleaned once after a refit.');
         expect(parsed(saved.answers), 'the answers the rule accepted').toEqual(COMMERCIAL);
         expect(parsed(saved.picks), 'the pick that sent it, with the label the customer saw').toEqual([{ ...COMMERCIAL_FLAG, flagged: true }]);
-        expect(saved.created_at, 'the time it was sent').toBeInstanceOf(Date);
+        expect(saved.created_at, 'the time it is sent').toBeInstanceOf(Date);
         // It is not a job: no bookings row anywhere, none for this customer.
         expect(await count('SELECT COUNT(*) AS n FROM bookings WHERE customer_email = ?', [email]), 'no booking is made for the customer').toBe(0);
         expect(await count('SELECT COUNT(*) AS n FROM bookings'), 'no booking is made at all').toBe(bookingsBefore);
@@ -506,7 +506,7 @@ test.describe('Quote requests', () => {
             const odd = await request.post('/api/quote-requests', { headers: { 'content-type': 'application/json' }, data: body, maxRetries: RESET_RETRIES, timeout: 60_000 });
             expect([odd.status(), await odd.json()], `a body that is ${body}`).toEqual([400, { success: false, message: 'Invalid request body' }]);
         }
-        expect(await count('SELECT COUNT(*) AS n FROM quote_requests WHERE customer_email LIKE ?', [`${EMAIL_PREFIX}%`]), 'nothing was saved by any of these').toBe(0);
+        expect(await count('SELECT COUNT(*) AS n FROM quote_requests WHERE customer_email LIKE ?', [`${EMAIL_PREFIX}%`]), 'nothing is saved by any of these').toBe(0);
     });
 
     // Mutant that turns this case red: a contact field is not checked, or a refusal names another field, or a limit is off by one.
@@ -625,7 +625,7 @@ test.describe('Quote requests', () => {
             expect(listed.status(), `${who} reads the requests`).toBe(200);
             const list = await listed.json();
             expect([list.success, list.total, list.limit, list.offset], `${who}: success, the total of all, the page as applied`).toEqual([true, total, 200, 0]);
-            expect(list.data.filter((row) => mine.includes(row.id)).map((row) => row.id), `${who}: newest first, the later id first when two were made at one moment`).toEqual(mine);
+            expect(list.data.filter((row) => mine.includes(row.id)).map((row) => row.id), `${who}: newest first, the later id first when two are made at one moment`).toEqual(mine);
         }
 
         // The fields are the contract's, with the JSON columns as data and an unset phone or address as null.
@@ -706,7 +706,7 @@ async function fillForm(page, fields) {
 
 /** @param {Page} page */
 async function expectFilled(page, fields) {
-    for (const [key, label] of FIELD_LABELS) await expect(quoteForm(page).getByLabel(label), `${label} keeps what was typed`).toHaveValue(fields[key]);
+    for (const [key, label] of FIELD_LABELS) await expect(quoteForm(page).getByLabel(label), `${label} keeps what the customer typed`).toHaveValue(fields[key]);
 }
 
 // The flow of service 1 on step 1, with its price shown and the four property types there.
@@ -760,7 +760,7 @@ test.describe('Quote requests: the screens', () => {
         await expect(sentNotice(page)).toBeVisible();
         await expect(sentNotice(page).getByRole('heading', { name: 'Request sent', level: 2 }), 'focus moves to the thank-you').toBeFocused();
         await expect(sentNotice(page)).toContainText(sentText(mine.email));
-        await expect(quoteForm(page), 'the form is replaced, so there is no second send').toHaveCount(0);
+        await expect(quoteForm(page), 'the thank-you takes its place, so there is no second send').toHaveCount(0);
         await expect(continueButton(page)).toBeDisabled();
         expect(posts, 'one request however many presses').toBe(1);
 
@@ -769,7 +769,7 @@ test.describe('Quote requests: the screens', () => {
         expect({
             service_id: saved[0].service_id, customer_name: saved[0].customer_name, customer_phone: saved[0].customer_phone,
             address: saved[0].address, message: saved[0].message, user_id: saved[0].user_id,
-        }, 'the request holds what was typed').toEqual({
+        }, 'the request holds what the customer typed').toEqual({
             service_id: SERVICE_1.id, customer_name: mine.name, customer_phone: mine.phone, address: mine.address, message: mine.message, user_id: null,
         });
         expect(parsed(saved[0].answers).property_type, 'the answers on screen').toBe('commercial');
@@ -845,7 +845,7 @@ test.describe('Quote requests: the screens', () => {
 
         await sendButton(page).click();
         await expect(sentNotice(page)).toContainText(sentText(mine.email));
-        expect(posts, 'the retry was the fourth press').toBe(4);
+        expect(posts, 'the retry is the fourth press').toBe(4);
         expect(await count('SELECT COUNT(*) AS n FROM quote_requests WHERE customer_email = ?', [mine.email]), 'the retry saved one request').toBe(1);
     });
 

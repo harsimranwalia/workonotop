@@ -5,7 +5,7 @@
 -- The row keeps its own amount and minutes. A weekend is not a pick, so its row cannot carry one.
 -- quote_requests holds a customer's request for a job that cannot be priced from a few taps: who they are and where, what they say about
 -- the job, the answers the pricing rule accepted and the picks that sent it to a quote. It holds no money and is never a booking.
--- It inserts no row and changes no row, so every job prices as before until an item is given a quote_from.
+-- It inserts no row and changes no row, and a NULL quote_from never sends a job to a quote, so no job goes to a quote until an item is given a quote_from.
 --
 -- Applied to the dev database with: docker exec -i workontap-db mysql -uroot -proot123 workontap_db < 0005-quote-requests.up.sql
 -- (the fixture reset does not build the schema); database/schema.js carries the same column, checks and table for a fresh install.

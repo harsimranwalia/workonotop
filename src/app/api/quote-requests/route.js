@@ -8,7 +8,7 @@ import { execute, query } from '@/lib/db'
 import { loadPricing, priceJob, picksOf, refusalOf } from '@/lib/pricing-rules'
 
 // How many requests are saved in the last hour, per email and in all. Soft caps that guard the admin's queue, not a boundary: two requests at
-// once can both pass, and an attacker who varies the email is held by the overall cap, which can also shut real customers out for an hour.
+// once can both pass, and a sender who varies the email is held by the overall cap, which can also shut real customers out for an hour.
 const REQUESTS_PER_EMAIL_PER_HOUR = 3
 const REQUESTS_PER_HOUR = 30
 
@@ -39,10 +39,10 @@ function refusal(status, message, field) {
   return NextResponse.json({ success: false, message, ...(field ? { field } : {}) }, { status })
 }
 
-// A whole number from a query parameter, held to min..max; a missing or non-numeric value is the fallback. The job queue reads its page the same way.
-function pageNumber(raw, fallback, min, max) {
+// A whole number from a query parameter, held to min..max; a missing or non-numeric value is the default. The job queue reads its page the same way.
+function pageNumber(raw, defaultValue, min, max) {
   const n = parseInt(raw, 10)
-  return Number.isNaN(n) ? fallback : Math.min(Math.max(n, min), max)
+  return Number.isNaN(n) ? defaultValue : Math.min(Math.max(n, min), max)
 }
 
 // A JSON column as the driver hands it back, parsed or as text; text that does not parse is null, so one bad row cannot fail the whole list.
@@ -142,7 +142,7 @@ export async function POST(request) {
 }
 
 // Admin only: the requests, newest first, a page at a time. ?limit= (default 50, at most 200) and ?offset= as the job queue reads them. The answer
-// carries total (every request) and the limit and offset it used, so a client pages by what was applied.
+// carries total (every request) and the limit and offset it used, so a client pages by the values the server applied.
 export async function GET(request) {
   const auth = await requireCaller(request, ['admin']);
   if (!auth.ok) return auth.response;

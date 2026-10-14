@@ -148,7 +148,7 @@ export function quoteFlagsOf(items, answers) {
 // when the answers cannot be priced, or { ok: false, reason: 'too_large', field: 'answers' } when the price or the minutes are more than a
 // booking records, or { ok: false, reason: 'quote', field: 'quote', flags } when the answers pick an item as many times as its quote_from
 // (`flags`: [{ kind, code, label, quantity }], the picks that did): no price, minutes or lines come with it, so a caller that does not
-// know the reason still has nothing to charge. No answers price the catalog price and duration. By the hour, the hours asked for replace the base and the units.
+// know the reason has nothing to charge. No answers price the catalog price and duration. By the hour, the hours asked for replace the base and the units.
 // No frequency is a single visit. A frequency that takes a percent off adds a last line { kind: 'discount', code: <the frequency>, ... } whose
 // amount is the cut as a negative two-place string ('-13.50'); the price is the sum of the other lines less the cut, and the minutes are theirs.
 export function priceJob(service, items, answers, discounts = {}) {
@@ -211,7 +211,7 @@ export function priceJob(service, items, answers, discounts = {}) {
     }
   }
 
-  // The verdict comes after every answer is known to be valid, so a malformed answer is still its own refusal, and before any figure is
+  // The verdict comes after every answer is known to be valid, so a malformed answer is its own refusal, and before any figure is
   // worked out, so a job that needs a quote has no price, minutes or lines to leave with.
   const flags = quoteFlagsOf(items, given)
   if (flags.length > 0) return { ok: false, reason: 'quote', field: 'quote', flags }

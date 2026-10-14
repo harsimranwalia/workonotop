@@ -1,6 +1,6 @@
 // The form for a job the price rule will not price from a few taps (ENG-012): the customer's contact details and a few words about the job, sent
-// with the answers the quote was for to POST /api/quote-requests. It books nothing, takes no money and promises no time or e-mail. A request that
-// fails to send keeps what was typed, so the customer does not write it twice.
+// with the answers the quote is for to POST /api/quote-requests. It books nothing, takes no money and promises no time or e-mail. A request that
+// fails to send keeps what the customer typed, so they do not write it twice.
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
@@ -29,7 +29,7 @@ const REFUSABLE_FIELDS = [...FIELD_SPECS.map((spec) => spec.key), 'message'];
 
 const FIELD_CLASS = 'w-full p-3 border-2 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-200';
 
-// `answers` is the answers the quote was for (the live price's `answers`), sent as they are.
+// `answers` are the answers the quote is for (the live price's `answers`), sent as they are.
 export default function QuoteRequestForm({ serviceId, answers }) {
   const uid = useId();
   const idOf = (key) => `${uid}-${key}`;

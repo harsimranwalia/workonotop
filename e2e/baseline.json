@@ -3030,7 +3030,7 @@
     "quote-request.spec.js › Quote requests › a booking and create-intent refuse a job that needs a quote: 400, no booking row, no Stripe call": {
       "outcome": "PASS"
     },
-    "quote-request.spec.js › Quote requests › a flagged pick quotes with a frequency and as a series, and the same answers without the flag price as before": {
+    "quote-request.spec.js › Quote requests › a flagged pick quotes with a frequency and as a series, and the same answers without the flag are priced": {
       "outcome": "PASS"
     },
     "quote-request.spec.js › Quote requests › a job whose answers pick an item at its quote_from is not priced: the quote carries the picks and no figure": {
@@ -3039,7 +3039,7 @@
     "quote-request.spec.js › Quote requests › a request for a quote is saved with the picks that sent it, as a row of quote_requests and never a booking; only a customer sets user_id": {
       "outcome": "PASS"
     },
-    "quote-request.spec.js › Quote requests › an answer that cannot be priced next to a flagged pick is the refusal it is today, not a quote": {
+    "quote-request.spec.js › Quote requests › an answer that cannot be priced next to a flagged pick is refused, not a quote": {
       "outcome": "PASS"
     },
     "quote-request.spec.js › Quote requests › answers that can be priced, answers that cannot, a service that is not offered and an empty or unreadable body save nothing": {

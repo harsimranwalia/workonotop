@@ -36,7 +36,7 @@ function telOf(phone) {
   return digits ? `tel:${phone.startsWith('+') ? '+' : ''}${digits}` : null;
 }
 
-// When a request was sent, as a Date; null when the date is missing or cannot be read.
+// The send time of a request, as a Date; null when the date is missing or cannot be read.
 function sentAt(value) {
   if (!value) return null;
   const date = new Date(value);

@@ -11,7 +11,7 @@ const choicesOf = (items) => items.map((item) => ({ kind: item.kind, code: item.
 // items of its rule), or a 400 that names the answer that cannot be priced. Nothing is written. When the answers carry a frequency and a
 // date, the answer also holds `visits`: the date, price and lines of each visit of the series, the first visit being the one priced above.
 // A job that needs a quote is not a refusal: it is a 200 with `quote_required: true`, the `flags` (the picks that send it to a quote) and
-// the choices, and no price, minutes, lines or visits, so the booking screen can say so, offer the quote request and still change its answers.
+// the choices, and no price, minutes, lines or visits, so the booking screen can say so, offer the quote request and change its answers.
 export async function POST(request) {
   let body
   try {
