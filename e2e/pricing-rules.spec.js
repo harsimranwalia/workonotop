@@ -872,9 +872,11 @@ test.describe('Pricing rules', () => {
         expect(await intent.json(), 'create-intent refuses answers the service cannot price').toEqual({ success: false, message: 'These answers cannot be priced for this service', field: 'units' });
 
         // Source read: create-intent runs the rest of its amount after a Stripe call, so its line is read. The amount is the price priceJob gives,
+        // with the frequencies' discounts in it (a series' one hold is its first visit's discounted price, which the booking compares it with),
         // and the file holds no figure of the request.
         const source = fs.readFileSync(path.join(ROOT, 'src/app/api/payment/create-intent/route.js'), 'utf8');
         expect(source.includes('priceJob('), 'create-intent prices with priceJob').toBe(true);
+        expect(source.includes('priceJob(serviceRow, pricingItems, body.answers, discounts)'), "create-intent prices the hold with the frequencies' discounts").toBe(true);
         expect(source.includes('const basePrice = job.price'), "create-intent's amount is the rule's price").toBe(true);
         for (const text of ['service_price', 'body.price', 'body.total', 'body.amount', 'body.quoted_minutes']) {
             expect(source.includes(text), `create-intent does not hold ${JSON.stringify(text)}`).toBe(false);

@@ -88,6 +88,14 @@ function within(ms, promise) {
     return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
 }
 
+// Whether a WHERE that compares `left` with `right` by `operator` matches, as MySQL answers it: `<=>` matches two NULLs and not
+// one, and `=` matches nothing when either side is NULL (the comparison is NULL, not true).
+function matchesInMysql(operator, left, right) {
+    const empty = (value) => value === null || value === undefined;
+    if (empty(left) || empty(right)) return operator === '<=>' && empty(left) && empty(right);
+    return left === right;
+}
+
 // The pool. A SELECT answers with its rows and a write with { affectedRows }, as mysql2 does through execute().
 class FakeDatabase {
     constructor(size, rows) {
@@ -151,7 +159,10 @@ class FakeDatabase {
         }
         if (sql.startsWith('UPDATE bookings SET payment_intent_id = ?')) {
             const row = byId(params[1]);
-            const swapped = Boolean(row) && row.payment_intent_id === params[2];
+            // The old id is compared as the statement's own operator compares it in MySQL; a statement with neither has no answer.
+            const compare = /\sAND payment_intent_id\s*(<=>|=)\s*\?$/.exec(sql);
+            if (!compare) throw new Error(`the stand-in database has no answer for the compare in: ${sql}`);
+            const swapped = Boolean(row) && matchesInMysql(compare[1], row.payment_intent_id, params[2]);
             if (swapped) row.payment_intent_id = params[0];
             return { affectedRows: swapped ? 1 : 0 };
         }
@@ -1028,6 +1039,24 @@ test.describe('a series at completion', () => {
             // Only the second visit is paid; every other visit is unchanged.
             expect(db.rows.get(12)).toMatchObject({ status: 'completed', payment_status: 'paid', payment_intent_id: 'pi_new_1' });
             for (const row of rows.filter(({ id }) => id !== 12)) expect(db.rows.get(row.id), `visit ${row.series_visit}`).toEqual(row);
+        });
+
+        // A later visit whose series_id names another customer's booking has no card there: no payment call is made and no provider
+        // is paid, and the visit is recorded as a payment that could not be taken, not released.
+        const elsewhere = [
+            routeBooking({ id: 21, user_id: 8, status: 'confirmed', series_id: 21, series_visit: 1, series_frequency: 'weekly' }),
+            visit(2, { series_id: 21 }),
+        ];
+        await withRoutes({ poolSize: 1, rows: elsewhere, stripe: () => statefulStripe(false) }, async ({ db, stripe, autoRelease }) => {
+            const answer = await within(4000, autoRelease.GET({}));
+            expect(answer, 'the run answers').not.toBe(NO_ANSWER);
+            expect(answer.body.results).toEqual([{ booking_id: 12, status: 'payment_failed' }]);
+            expect(stripe.calls).toEqual([]);
+            expect(db.payouts).toEqual([]);
+            expect(db.credits).toEqual([]);
+            expect(db.rows.get(12)).toEqual({ ...elsewhere[1], payment_status: 'failed' });
+            expect(db.rows.get(21)).toEqual(elsewhere[0]);
+            expect(db.statements.some(([, sql]) => sql.startsWith('INSERT INTO booking_status_history') && sql.includes("'payment_failed'"))).toBe(true);
         });
     });
 
