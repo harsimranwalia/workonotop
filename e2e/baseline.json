@@ -1,5 +1,35 @@
 {
   "cases": {
+    "admin-job-queue.spec.js › Admin job queue › Push to marketplace puts a waiting booking on the marketplace: the server's message, the time under a disabled button, and the queue holds it on the marketplace": {
+      "outcome": "PASS"
+    },
+    "admin-job-queue.spec.js › Admin job queue › Push to marketplace shows the server's refusal when the booking got a provider after the page opened, and the booking is not pushed": {
+      "outcome": "PASS"
+    },
+    "admin-job-queue.spec.js › Admin job queue › in a browser west of Greenwich › the strip shows a booking date as it is stored, not the day before": {
+      "outcome": "PASS"
+    },
+    "admin-job-queue.spec.js › Admin job queue › the booking page offers the push only to a booking waiting for a provider, and says nothing of a commission making a job live or visible to providers": {
+      "outcome": "PASS"
+    },
+    "admin-job-queue.spec.js › Admin job queue › the strip lists a waiting booking, one on the marketplace and an assigned one in their own sections, each with a link to its booking": {
+      "outcome": "PASS"
+    },
+    "admin-job-queue.spec.js › Admin job queue › the strip reads again from offset 0 when the total of the queue moved between pages, so no row is skipped": {
+      "outcome": "PASS"
+    },
+    "admin-job-queue.spec.js › Admin job queue › the strip says how many of the queue it holds, does not claim that nothing is waiting while a page is unread, and loads the next page at the offset it reached": {
+      "outcome": "PASS"
+    },
+    "admin-job-queue.spec.js › Admin job queue › the strip says it is loading, then shows an error with a way to try again, whether the request is lost or refused, and the rows once it can be read": {
+      "outcome": "PASS"
+    },
+    "admin-job-queue.spec.js › Admin job queue › the strip says nothing is waiting for a provider when the whole queue is empty": {
+      "outcome": "PASS"
+    },
+    "admin-job-queue.spec.js › Admin job queue › the strip shows a booking once when the next page repeats one it already holds": {
+      "outcome": "PASS"
+    },
     "admin.spec.js › Admin Panel - Auth Protection › admin login page should have email and password fields": {
       "outcome": "PASS"
     },
