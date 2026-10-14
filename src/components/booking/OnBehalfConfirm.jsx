@@ -253,7 +253,7 @@ export default function OnBehalfConfirm({ flow, answers, live, onCreated }) {
         className={`w-full py-3 sm:py-4 rounded-lg sm:rounded-xl font-bold text-base sm:text-lg shadow-lg flex items-center justify-center motion-safe:transition-all motion-safe:duration-300
           focus:outline-none focus-visible:ring-4 focus-visible:ring-green-700/40
           ${canCreate
-            ? 'bg-gradient-to-r from-green-700 to-green-600 text-white hover:from-green-800 hover:to-green-700'
+            ? 'bg-green-700 text-white hover:bg-green-800'
             : 'bg-gray-300 text-gray-700 cursor-not-allowed'}`}
       >
         {submitting ? (
