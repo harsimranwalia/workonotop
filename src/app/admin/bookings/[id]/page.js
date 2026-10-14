@@ -20,6 +20,7 @@ export default function BookingDetailsPage({ params }) {
   const [showOverrideModal, setShowOverrideModal] = useState(false)
   const [overrideData, setOverrideData] = useState({ worker_count: 1, actual_duration_minutes: 0, reason: '' })
   const [overriding, setOverriding] = useState(false)
+  const [pushing, setPushing] = useState(false)
 
   const unwrappedParams = React.use(params)
   const bookingId = unwrappedParams.id
@@ -152,6 +153,25 @@ export default function BookingDetailsPage({ params }) {
     )
   }
 
+  // The toast is the server's own message, so a refusal (the job has a provider, or is no longer pending or matching) reads as the server wrote it.
+  const pushToMarketplace = async () => {
+    setPushing(true)
+    try {
+      const res = await fetch(`/api/admin/bookings/${booking.id}/push`, { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        notify('success', data.message)
+        fetchBooking()
+      } else {
+        notify('error', data.message || 'Failed to push to the marketplace')
+      }
+    } catch {
+      notify('error', 'Request failed')
+    } finally {
+      setPushing(false)
+    }
+  }
+
   // Restart: clears provider, resets all job fields, photos & timer via PUT
   const restartBooking = async () => {
     if (!confirm('Restart booking? This will remove the current provider and reset all job data.')) return
@@ -163,6 +183,9 @@ export default function BookingDetailsPage({ params }) {
 
   const fmt = (n) => parseFloat(n || 0).toFixed(2)
   const commissionSet = booking?.commission_percent != null
+  // The rule of OPEN_ON_MARKETPLACE in src/lib/marketplace.js, restated here because that module is server-only: no provider, status pending or matching, and an admin has pushed it.
+  const waitingForProvider = !booking?.provider_id && ['pending', 'matching'].includes(booking?.status)
+  const onMarketplace = waitingForProvider && !!booking.marketplace_pushed_at
 
   const getPhotoSrc = (url) => url?.startsWith('http') ? url : `${process.env.NEXT_PUBLIC_API_URL || ''}${url}`
 
@@ -517,11 +540,6 @@ export default function BookingDetailsPage({ params }) {
             <div className="flex items-center gap-2 mb-3">
               <span className="text-lg">💰</span>
               <h2 className={`text-base font-semibold ${val}`}>Commission</h2>
-              {commissionSet && !isEditingCommission && (
-                <span className="ml-auto flex items-center gap-1 text-xs text-green-600 font-medium">
-                  <span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> Live
-                </span>
-              )}
             </div>
 
             {commissionSet && !isEditingCommission ? (
@@ -546,7 +564,7 @@ export default function BookingDetailsPage({ params }) {
             ) : (
               <div>
                 <p className={`text-xs mb-3 ${lbl}`}>
-                  {isEditingCommission ? 'Update commission for this booking.' : 'Set commission to make this job visible to providers.'}
+                  {isEditingCommission ? 'Update commission for this booking.' : 'Set the commission for this booking.'}
                 </p>
                 <div className="flex gap-2 mb-3">
                   <div className="relative flex-1">
@@ -576,7 +594,7 @@ export default function BookingDetailsPage({ params }) {
                     <span className="text-amber-600 flex-shrink-0">⚠️</span>
                     <div>
                       <p className="text-xs font-semibold text-amber-800">Commission not set</p>
-                      <p className="text-xs text-amber-700 mt-0.5">Job is hidden from providers.</p>
+                      <p className="text-xs text-amber-700 mt-0.5">Set it before assigning a provider.</p>
                     </div>
                   </div>
                 )}
@@ -611,7 +629,7 @@ export default function BookingDetailsPage({ params }) {
               </div>
             ) : (
               <div className="space-y-3">
-                <p className={`text-xs ${lbl}`}>Providers can self-assign once commission is set, or assign manually.</p>
+                <p className={`text-xs ${lbl}`}>Assign a provider, or push this job to the marketplace so providers can claim it.</p>
                 {!commissionSet && (
                   <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
                     <p className="text-xs text-amber-700 flex items-center gap-1"><span>⚠️</span> Set commission first</p>
@@ -629,6 +647,19 @@ export default function BookingDetailsPage({ params }) {
                     ${!commissionSet ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-teal-600 text-white hover:bg-teal-700'}`}>
                   {!commissionSet ? 'Set Commission First' : (updating ? 'Assigning…' : 'Assign Provider')}
                 </button>
+                {waitingForProvider && (
+                  <div className={`pt-3 border-t space-y-2 ${divCls}`}>
+                    <button onClick={pushToMarketplace} disabled={pushing || onMarketplace}
+                      aria-describedby={onMarketplace ? 'marketplace-since' : undefined}
+                      className={`w-full py-2.5 rounded-xl border text-sm font-semibold transition disabled:opacity-60 disabled:cursor-not-allowed
+                        ${isDarkMode ? 'border-teal-500 text-teal-300 hover:bg-slate-800' : 'border-teal-600 text-teal-700 hover:bg-teal-50'}`}>
+                      {pushing ? 'Pushing…' : 'Push to marketplace'}
+                    </button>
+                    {onMarketplace && (
+                      <p id="marketplace-since" className={`text-xs ${lbl}`}>On the marketplace since {formatDateTime(booking.marketplace_pushed_at)}</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -662,7 +693,7 @@ export default function BookingDetailsPage({ params }) {
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
                   <p className="text-xs font-semibold text-red-800 mb-0.5">⚠️ Booking Disputed</p>
                   <p className="text-xs text-red-600">
-                    Restart to remove the current provider. The booking will return to pending and a new provider can accept it from Available Jobs.
+                    Restart to remove the current provider. The booking returns to the job queue, where you can assign it or push it to the marketplace.
                   </p>
                 </div>
 

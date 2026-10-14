@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAdminTheme } from '../layout'
 import { FiSearch, FiFilter, FiChevronDown, FiX, FiCheck, FiTrash2, FiFileText, FiDownload, FiEye, FiMapPin, FiClock } from 'react-icons/fi'
@@ -51,6 +52,37 @@ const STATUS_CONFIG = {
 
 const getStatusConfig = (status) => STATUS_CONFIG[status] || STATUS_CONFIG.pending
 
+// The three places a booking waits in the job queue, in the order an admin works them; `state` is the queue_state the server puts on each row.
+const QUEUE_SECTIONS = [
+  { state: 'waiting', label: 'Waiting for a provider', dot: 'bg-amber-400' },
+  { state: 'on_marketplace', label: 'On the marketplace', dot: 'bg-teal-400' },
+  { state: 'assigned', label: 'Assigned, not yet accepted', dot: 'bg-blue-400' },
+]
+
+// A job_date is one date or several joined by commas. A date-only string reads as UTC midnight, so it is shown in UTC; the viewer's own zone would show it a day early west of Greenwich.
+const formatQueueDates = (jobDate) => {
+  if (!jobDate) return '—'
+  return String(jobDate).split(',').map(part => {
+    const date = new Date(part.trim())
+    return isNaN(date.getTime()) ? part.trim() : date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', timeZone: 'UTC' })
+  }).join(', ')
+}
+
+function QueueRow({ row, isDarkMode }) {
+  return (
+    <li>
+      <Link href={`/admin/bookings/${row.id}`}
+        className={`flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 rounded-xl text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${isDarkMode ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-50'}`}>
+        <span className={`font-mono text-xs font-bold px-2 py-0.5 rounded-lg ${isDarkMode ? 'text-teal-400 bg-teal-900/30' : 'text-teal-700 bg-teal-50'}`}>{row.booking_number}</span>
+        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{row.service_name}</span>
+        <span>{formatQueueDates(row.job_date)}</span>
+        {row.city && <span>{row.city}</span>}
+        {row.queue_state === 'assigned' && row.provider_name && <span>Assigned to {row.provider_name}</span>}
+      </Link>
+    </li>
+  )
+}
+
 export default function JobRequests() {
   const router = useRouter()
   const { isDarkMode } = useAdminTheme()
@@ -74,6 +106,8 @@ export default function JobRequests() {
   const [invoicesList, setInvoicesList] = useState([])
   const [generatingInvoice, setGeneratingInvoice] = useState(null)
   const [downloadingInvoice, setDownloadingInvoice] = useState(null)
+  // The job queue strip reads GET /api/bookings?queue=1 on its own, a page at a time; `next` is the offset after the rows held.
+  const [queue, setQueue] = useState({ status: 'loading', rows: [], total: 0, next: 0, more: 'idle' })
 
   useEffect(() => {
     checkAuth()
@@ -92,8 +126,29 @@ export default function JobRequests() {
         return
       }
       loadJobs() // ✅ auth pass hone ke baad hi load karo
+      loadQueue()
     } catch {
       router.push('/admin/login')
+    }
+  }
+
+  // A page after the first is read at the offset already held. If the queue's total moved meanwhile, a row ahead of that offset may have left it and offset paging would skip one, so the screen reads again from offset 0.
+  const loadQueue = async (offset = 0) => {
+    setQueue(q => offset === 0 ? { ...q, status: 'loading' } : { ...q, more: 'loading' })
+    try {
+      const res = await fetch(`/api/bookings?queue=1&offset=${offset}`)
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error('The job queue was not returned')
+      if (offset > 0 && data.total !== queue.total) return loadQueue(0)
+      setQueue(q => ({
+        status: 'ready',
+        rows: offset === 0 ? data.data : [...q.rows, ...data.data.filter(row => !q.rows.some(held => held.id === row.id))],
+        total: data.total,
+        next: data.offset + data.data.length,
+        more: 'idle',
+      }))
+    } catch {
+      setQueue(q => offset === 0 ? { ...q, status: 'error' } : { ...q, more: 'error' })
     }
   }
   const loadJobs = async () => {
@@ -368,6 +423,66 @@ export default function JobRequests() {
             </div> */}
           </div>
         </div>
+
+        {/* Job queue: every booking waiting for a provider, on the marketplace, or assigned and not yet accepted */}
+        <section aria-labelledby="job-queue-heading" className={`p-4 sm:p-5 rounded-2xl border mb-6 shadow-sm ${
+          isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+        }`}>
+          <h2 id="job-queue-heading" className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Job queue</h2>
+
+          {queue.status === 'loading' && (
+            <p role="status" className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Loading the job queue…</p>
+          )}
+
+          {queue.status === 'error' && (
+            <div role="alert" className="flex items-center gap-3 flex-wrap">
+              <p className={`text-sm ${isDarkMode ? 'text-red-400' : 'text-red-700'}`}>Couldn’t load the job queue.</p>
+              <button type="button" onClick={() => loadQueue()}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${isDarkMode ? 'border-slate-700 text-slate-200 hover:bg-slate-800' : 'border-slate-300 text-slate-700 hover:bg-slate-50'}`}>
+                Try again
+              </button>
+            </div>
+          )}
+
+          {queue.status === 'ready' && (
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {QUEUE_SECTIONS.map(section => {
+                  const rows = queue.rows.filter(row => row.queue_state === section.state)
+                  return (
+                    <div key={section.state}>
+                      <h3 className={`flex items-center gap-2 text-sm font-semibold mb-2 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                        <span aria-hidden="true" className={`w-2 h-2 rounded-full ${section.dot}`}></span>
+                        {section.label}
+                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{rows.length}</span>
+                      </h3>
+                      {rows.length > 0 ? (
+                        <ul className="space-y-1">
+                          {rows.map(row => <QueueRow key={row.id} row={row} isDarkMode={isDarkMode} />)}
+                        </ul>
+                      ) : section.state === 'waiting' && queue.next >= queue.total && (
+                        <p className={`px-3 text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Nothing is waiting for a provider.</p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {queue.next < queue.total && (
+                <div className="flex items-center gap-3 flex-wrap mt-4">
+                  <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Showing {queue.rows.length} of {queue.total} in the queue.</p>
+                  <button type="button" onClick={() => loadQueue(queue.next)} disabled={queue.more === 'loading'}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${isDarkMode ? 'border-slate-700 text-slate-200 hover:bg-slate-800' : 'border-slate-300 text-slate-700 hover:bg-slate-50'}`}>
+                    {queue.more === 'loading' ? 'Loading…' : 'Load more'}
+                  </button>
+                  {queue.more === 'error' && (
+                    <p role="alert" className={`text-sm ${isDarkMode ? 'text-red-400' : 'text-red-700'}`}>Couldn’t load more of the queue.</p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </section>
 
         {/* Filters and Search Container */}
         <div className={`p-4 sm:p-5 rounded-2xl border mb-6 transition-all shadow-sm ${
