@@ -688,8 +688,9 @@ const tables = [
     CONSTRAINT chk_service_pricing_items_quote_weekend CHECK (kind <> 'weekend' OR quote_from IS NULL)
   )`,
 
-  // quote_requests: a customer's request for a job that cannot be priced from a few taps (database/migrations/0005-quote-requests.up.sql).
-  // No money in it and never a booking. The migration sets the engine and collation; this file leaves them to the server default.
+  // quote_requests: a customer's request for a job that cannot be priced from a few taps (database/migrations/0005-quote-requests.up.sql;
+  // booking_id, its index and its key are 0006's). No money in it and never a booking: booking_id names the booking an admin made from it.
+  // The migration sets the engine and collation; this file leaves them to the server default.
   `CREATE TABLE IF NOT EXISTS quote_requests (
     id INT NOT NULL AUTO_INCREMENT,
     user_id INT NULL,
@@ -702,12 +703,41 @@ const tables = [
     message VARCHAR(1000) NOT NULL,
     answers JSON NOT NULL,
     picks JSON NOT NULL,
+    booking_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     INDEX idx_customer_email_created (customer_email, created_at),
     INDEX idx_created (created_at),
+    INDEX idx_booking (booking_id),
     CONSTRAINT fk_quote_requests_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-    CONSTRAINT fk_quote_requests_service FOREIGN KEY (service_id) REFERENCES services(id)
+    CONSTRAINT fk_quote_requests_service FOREIGN KEY (service_id) REFERENCES services(id),
+    CONSTRAINT fk_quote_requests_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE SET NULL
+  )`,
+
+  // booking_card_links: one row for each booking an admin made on a customer's behalf (database/migrations/0006-booking-card-links.up.sql).
+  // The link the customer opens to add a card (the hash of its token, never the token) and, once one is added, the card's Stripe ids,
+  // brand and last four digits. It holds no personal details: the customer is the booking's, and the row goes with the booking.
+  // The migration sets the engine and collation; this file leaves them to the server default.
+  `CREATE TABLE IF NOT EXISTS booking_card_links (
+    id INT NOT NULL AUTO_INCREMENT,
+    booking_id INT NOT NULL,
+    token_hash CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    attempts INT NOT NULL DEFAULT 0,
+    used_at DATETIME NULL,
+    issued_by INT NULL,
+    stripe_customer_id VARCHAR(255) NULL,
+    setup_intent_id VARCHAR(255) NULL,
+    payment_method_id VARCHAR(255) NULL,
+    card_brand VARCHAR(30) NULL,
+    card_last4 CHAR(4) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_booking_card_links_booking (booking_id),
+    UNIQUE KEY uq_booking_card_links_token (token_hash),
+    CONSTRAINT fk_booking_card_links_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+    CONSTRAINT fk_booking_card_links_issued_by FOREIGN KEY (issued_by) REFERENCES users(id) ON DELETE SET NULL
   )`
 ];
 
@@ -823,6 +853,18 @@ const alterations = [
       ADD COLUMN quote_from INT NULL AFTER is_hourly,
       ADD CONSTRAINT chk_service_pricing_items_quote_from CHECK (quote_from IS NULL OR quote_from >= 1),
       ADD CONSTRAINT chk_service_pricing_items_quote_weekend CHECK (kind <> 'weekend' OR quote_from IS NULL)`
+  },
+
+  // quote_requests.booking_id (migration 0006): the booking an admin made from the request (NULL: nobody has booked it).
+  // The runner decides on the column alone, so the index and the key that name it ride in the same ALTER: a database gets all three or none.
+  // booking_card_links is a new table, so it needs only its tables entry.
+  {
+    table: 'quote_requests',
+    column: 'booking_id',
+    sql: `ALTER TABLE quote_requests
+      ADD COLUMN booking_id INT NULL AFTER picks,
+      ADD INDEX idx_booking (booking_id),
+      ADD CONSTRAINT fk_quote_requests_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE SET NULL`
   }
 ];
 
