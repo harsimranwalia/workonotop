@@ -1,6 +1,6 @@
-// The price of the answers on screen, from POST /api/pricing (or the endpoint given: an admin booking for a customer asks POST
-// /api/admin/pricing, which prices every job). A figure is shown only for the answers it was worked out for; a newer change hides it until
-// its own response arrives.
+// The price of the answers on screen, from POST /api/pricing. A figure is shown only for the answers it was worked out for; a newer
+// change hides it until its own response arrives.
+// The `endpoint` argument names another route: an admin booking for a customer asks POST /api/admin/pricing, which prices every job.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -17,7 +17,7 @@ const EMPTY_KEY = '{}';
 // `quote` is a job the rule will not price from taps: there is no price, and `flags` is the { kind, code, label, quantity } of the answers that
 // sent it to a quote ([] in every other status).
 // `quoteFlags` is the same list on a priced answer from the admin endpoint: the picks that make the job a quote for a customer, which the
-// admin still sees priced ([] when the answer carries none).
+// admin sees priced ([] when the answer carries none).
 export function useLivePrice(serviceId, answers, endpoint = DEFAULT_ENDPOINT) {
   const [choices, setChoices] = useState(null);
   const [settled, setSettled] = useState({ status: 'loading', key: null });

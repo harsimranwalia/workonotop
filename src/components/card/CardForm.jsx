@@ -4,7 +4,7 @@
 // card number, then names the SetupIntent to the server (POST .../confirm), which believes only Stripe's answer. The card number never reaches this server.
 // Nothing is charged here: the one charge is taken when the job is done. The token is read from the address once and kept in the page's props; it is not written
 // to storage, to the title or to the console. A return from a bank's own authentication page brings the SetupIntent id in the query; it is confirmed and the query is
-// removed from the address.
+// cleared from the address.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
