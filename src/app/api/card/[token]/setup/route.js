@@ -1,6 +1,6 @@
 // Starts one card entry for a card link (ENG-013). The page asks for a client secret and gives it to Stripe's own card field, so the card number
 // goes from the customer's browser to Stripe and never through this server. A SetupIntent saves a card for later and holds or charges nothing:
-// the one charge is taken when the job is done. Each call spends one of the link's ten tries, which is what stops a link from being used to test
+// the one charge is taken when the job is done. Each call spends one of the link's ten tries, which is what keeps a link from testing
 // stolen card numbers one after another. Every answer says no-store, the refusals and the errors too.
 
 import { NextResponse } from 'next/server'

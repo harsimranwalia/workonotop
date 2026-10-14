@@ -25,7 +25,7 @@ export async function GET(request) {
   // A booking an admin made on a customer's behalf (it has a row in booking_card_links) holds no payment either and is no visit of a
   // series: it is charged on the card its customer put on file from the link, held to its date as a later visit is, because the click
   // that marks it done can come weeks early. It is picked up even when no card was ever added: collectBookingPayment then answers
-  // no_payment_method, and the booking ends payment_status 'failed' with the admins emailed, instead of waiting for ever in
+  // no_payment_method, and the booking ends payment_status 'failed' with the admins emailed; it does not wait for ever in
   // awaiting_approval where nobody would see it. That is the third arm of the group below, which only a booking with a link row matches.
   const today = businessToday(Date.now())
   const expiredBookings = await execute(`

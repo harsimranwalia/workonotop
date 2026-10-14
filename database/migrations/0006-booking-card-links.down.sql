@@ -4,10 +4,10 @@
 -- two ALTERs then report that the foreign key does not exist, and the table, which was all there was to undo, is already gone.
 --
 -- THIS DISCARDS EVERY CARD REFERENCE: the Stripe customer, SetupIntent and payment method that each booking made on a customer's behalf
--- holds, and the link its customer was given to add one. Stripe keeps the cards, but this database no longer knows which card is whose,
--- so run it only on an empty booking_card_links, or after exporting the table. It also forgets which booking each quote request became.
--- The bookings stay, with no payment attached, and the code before this one can neither approve nor release them, so settle or cancel
--- them first. Put that code back before running this file: the auto-release sweep of this code reads the table on every run, so it fails
+-- holds, and the link its customer was given to add one. Stripe keeps the cards, but this database does not know which card is whose,
+-- so run it only on an empty booking_card_links, or after exporting the table. It also drops the record of which booking each quote request became.
+-- The bookings stay, with no payment attached, and code without the card links can neither approve nor release them, so settle or cancel
+-- them first. Deploy code without the card links before running this file: the auto-release sweep of this code reads the table on every run, so it fails
 -- for every booking once the table is gone.
 --
 -- Applied to the dev database with: docker exec -i workontap-db mysql -uroot -proot123 workontap_db < 0006-booking-card-links.down.sql

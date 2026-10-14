@@ -6,7 +6,7 @@
 -- method, and its brand and last four digits for display. It holds no name, email, phone or address, because the customer is the
 -- booking's, and it goes with its booking.
 -- quote_requests.booking_id is the booking a quote request was turned into: NULL, which every existing row keeps, is a request nobody has booked.
--- It changes no existing row, and a booking with no row in booking_card_links is charged as it always was, so no booking changes until an
+-- It changes no existing row, and a booking with no row in booking_card_links is charged by the path every booking takes, so no booking changes until an
 -- admin makes one on a customer's behalf.
 --
 -- Applied to the dev database with: docker exec -i workontap-db mysql -uroot -proot123 workontap_db < 0006-booking-card-links.up.sql

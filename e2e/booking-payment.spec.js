@@ -123,7 +123,7 @@ function comparesInMysql(operator, left, right) {
 // a date that stands to that day, given again (its second ?), as its operator says, and has a row in booking_card_links, which
 // is the booking an admin made on a customer's behalf. And a booking whose payment_status is 'failed' is not kept, so a payment
 // that could not be taken is not tried again by the next run. A statement without either condition, or one whose ?s and values
-// differ in number (MySQL refuses it), has no answer, so a sweep that lost a condition fails here instead of passing every
+// differ in number (MySQL refuses it), has no answer, so a sweep with a condition missing fails here and does not pass every
 // booking on.
 function sweepKeeps(sql, params, cardLinks) {
     // The blanks just inside a parenthesis carry no meaning, so a statement broken over lines in another place reads the same.
@@ -154,7 +154,7 @@ function asDriverRow(row) {
 // `ignoreVisitDate` makes the sweep's statement answer as if it had no date condition: a case for what the route does when
 // a visit that is not yet due reaches its payment call anyway. `cardLinks` are the rows of booking_card_links the pool holds
 // (booking_id, stripe_customer_id, payment_method_id): none by default, so a booking has no link and every case that gives none
-// is answered as it was before the table existed.
+// is answered by the path of a booking that has no link.
 class FakeDatabase {
     constructor(size, rows, { ignoreVisitDate = false, cardLinks = [] } = {}) {
         this.ignoreVisitDate = ignoreVisitDate;
@@ -1485,7 +1485,7 @@ test.describe("a booking made on a customer's behalf at completion", () => {
             const asked = stripe.calls.length;
             const settled = structuredClone(db.rows.get(8));
 
-            // The booking is completed, so it is no longer awaiting approval and the sweep does not select it: nothing more is
+            // The booking is completed, so it is not awaiting approval and the sweep does not select it: nothing more is
             // asked of Stripe, written or paid out.
             const second = await within(4000, autoRelease.GET({}));
             expect(second, 'the second run answers').not.toBe(NO_ANSWER);
