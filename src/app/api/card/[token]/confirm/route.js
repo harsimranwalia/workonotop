@@ -48,7 +48,7 @@ function announceCardOnFile(link) {
   execute("SELECT id FROM users WHERE role = 'admin'").then((admins) => {
     admins.forEach((admin) => {
       notifyUser(admin.id, 'Card on file', `Card added for booking #${link.booking_number}`, { bookingId: link.booking_id, type: 'card_on_file' }, execute, 'admin')
-        .catch(() => { })
+        .catch((error) => console.error('The card-added push could not be sent:', error?.code || error?.name))
     })
   }).catch((error) => {
     console.error('The card-added notice could not be sent:', error?.code || error?.name)

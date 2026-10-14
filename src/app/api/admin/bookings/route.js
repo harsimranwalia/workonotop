@@ -271,7 +271,7 @@ export async function POST(request) {
 
       await connection.query('COMMIT')
     } catch (err) {
-      await connection.query('ROLLBACK').catch(() => {})
+      await connection.query('ROLLBACK').catch((rollbackError) => console.error('The rollback failed:', rollbackError?.code ?? rollbackError?.name))
       throw err
     }
 
@@ -291,9 +291,9 @@ export async function POST(request) {
       execute("SELECT id FROM users WHERE role = 'admin'").then((admins) => {
         admins.forEach((admin) => {
           notifyUser(admin.id, 'New Booking Created', `New booking #${bookingNumber} for ${serviceName}`, { bookingId, type: 'booking_created' }, execute, 'admin')
-            .catch(() => { })
+            .catch((error) => console.error('The new-booking push could not be sent:', error?.code ?? error?.name))
         })
-      }).catch(() => { })
+      }).catch((error) => console.error('The new-booking notice could not be sent:', error?.code ?? error?.name))
     } catch (err) {
       console.error('A booking was made on a customer\'s behalf but its log entry or notice failed:', err?.code ?? err?.name)
     }
