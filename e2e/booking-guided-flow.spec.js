@@ -597,7 +597,7 @@ test.describe('Guided booking flow', () => {
             await expect(addOne(page, label)).toBeEnabled();
         }
         const types = page.getByRole('group', { name: 'Type of property', exact: true });
-        await expect(types.getByRole('radio')).toHaveCount(2);
+        await expect(types.getByRole('radio')).toHaveCount(4);
         await expect(radio(types, APARTMENT)).not.toBeChecked();
         await expect(radio(types, HOUSE)).not.toBeChecked();
         await expect(continueButton(page), 'a property type is required').toBeDisabled();

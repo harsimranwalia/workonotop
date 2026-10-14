@@ -61,6 +61,12 @@ const ITEMS_1 = [
     { kind: 'extra', code: 'oven', label: 'Oven (placeholder figure)', amount: '35.00', minutes: 30, is_hourly: 0 },
     { kind: 'extra', code: 'fridge', label: 'Fridge (placeholder figure)', amount: '30.00', minutes: 20, is_hourly: 0 },
 ];
+// The two property types of service 1 that send a job to a quote (quote_from 1 in database/fixtures/catalog.js). The module cases never pick
+// them, so ITEMS_1 does not hold them; the price route lists them among service 1's choices, after house and before the weekend.
+const QUOTE_TYPES_1 = [
+    { kind: 'property_type', code: 'commercial', label: 'Commercial (placeholder figure)', amount: '0.00', minutes: 0, is_hourly: 0 },
+    { kind: 'property_type', code: 'post_construction', label: 'Post-construction (placeholder figure)', amount: '0.00', minutes: 0, is_hourly: 0 },
+];
 // Service 2 (base 140.00 and 180 minutes): bedrooms 30.00 and 45 minutes each, the extra oven (35.00 and 30 minutes).
 const ITEMS_2 = [
     { kind: 'unit', code: 'bedrooms', label: 'Bedrooms (placeholder figure)', amount: '30.00', minutes: 45, is_hourly: 0 },
@@ -716,8 +722,8 @@ test.describe('Pricing rules', () => {
     test('the price route answers the price, the quoted minutes and the lines for the answers given', async ({ request }) => {
         const ask = (data) => request.post('/api/pricing', { data, maxRetries: RESET_RETRIES, timeout: 60_000 });
 
-        // Two bedrooms and one bathroom on a Wednesday: 135.00 and 200 minutes, a base line and two unit lines, and the ten choices of service 1
-        // (the rows of its rule, in the order a screen shows them).
+        // Two bedrooms and one bathroom on a Wednesday: 135.00 and 200 minutes, a base line and two unit lines, and the twelve choices of service 1
+        // (the rows of its rule, in the order a screen shows them: ITEMS_1 with the two property types of QUOTE_TYPES_1 after house).
         const small = await ask({ service_id: 1, answers: twoAndOne() });
         expect(small.status(), 'the price route answers service 1 with two bedrooms and one bathroom').toBe(200);
         const smallAnswer = await small.json();
@@ -727,7 +733,8 @@ test.describe('Pricing rules', () => {
         expect(smallAnswer.quoted_minutes, 'the quoted minutes of two bedrooms and one bathroom').toBe(200);
         expect(smallAnswer.lines.map((line) => line.code), 'the lines: a base line and two unit lines').toEqual(['base', 'bedrooms', 'bathrooms']);
         expect(smallAnswer.lines[1], 'the bedrooms line').toEqual({ kind: 'unit', code: 'bedrooms', label: 'Bedrooms (placeholder figure)', quantity: 2, amount: '40.00', minutes: 60 });
-        expect(smallAnswer.choices, 'the ten choices of service 1').toEqual(ITEMS_1);
+        const afterHouse = ITEMS_1.findIndex((item) => item.code === 'house') + 1;
+        expect(smallAnswer.choices, 'the twelve choices of service 1').toEqual([...ITEMS_1.slice(0, afterHouse), ...QUOTE_TYPES_1, ...ITEMS_1.slice(afterHouse)]);
 
         // Every kind of answer, on a Saturday: 350.00 and 370 minutes.
         const everything = await ask({ service_id: 1, answers: twoAndOne({ option: 'deep', property_type: 'house', date: SATURDAY, extras: [{ code: 'oven', quantity: 2 }, { code: 'fridge', quantity: 1 }] }) });
@@ -918,7 +925,7 @@ test.describe('Pricing rules', () => {
             checked.push(Number(service.id));
         }
         expect(checked.length, `at least three services were priced (services ${checked.join(', ')})`).toBeGreaterThanOrEqual(3);
-        expect(itemsOfService(1).length, 'fixture service 1 has ten pricing item rows').toBe(10);
+        expect(itemsOfService(1).length, 'fixture service 1 has twelve pricing item rows').toBe(12);
         expect(itemsOfService(2).length, 'fixture service 2 has two pricing item rows').toBe(2);
         expect(itemsOfService(3).length, 'fixture service 3 has no pricing item rows').toBe(0);
     });
@@ -926,17 +933,17 @@ test.describe('Pricing rules', () => {
     // Mutant that turns this case red: the booking route records the price in the body when the caller is a signed-in admin.
     test('a booking an admin makes is priced by the rule from its answers', async ({ request, baseURL }) => {
         const as = await headersFor(baseURL);
-        // Twelve bedrooms, six bathrooms, deep, a house and three ovens on a Wednesday, booked with the admin's credential and a price of 1 in the
-        // body: 80 + 12 x 20 + 6 x 15 + 60 + 25 + 3 x 35 = 600.00, and 120 + 12 x 30 + 6 x 20 + 60 + 30 + 3 x 30 = 780 minutes. With no payment key
-        // on the dev stack nothing is held.
-        const answers = { units: { bedrooms: 12, bathrooms: 6 }, option: 'deep', property_type: 'house', extras: [{ code: 'oven', quantity: 3 }] };
+        // Six bedrooms (seven would be a quote, not a price), six bathrooms, deep, a house and three ovens on a Wednesday, booked with the admin's
+        // credential and a price of 1 in the body: 80 + 6 x 20 + 6 x 15 + 60 + 25 + 3 x 35 = 480.00, and 120 + 6 x 30 + 6 x 20 + 60 + 30 + 3 x 30
+        // = 600 minutes. With no payment key on the dev stack nothing is held.
+        const answers = { units: { bedrooms: 6, bathrooms: 6 }, option: 'deep', property_type: 'house', extras: [{ code: 'oven', quantity: 3 }] };
         await withBooking(request, as, { job_date: WEDNESDAY, answers, service_price: 1 }, async (id, answer) => {
-            expect(answer.service_price, "the answer: the rule's price").toBe(600);
-            expect(answer.quoted_minutes, "the answer: the rule's quoted minutes").toBe(780);
+            expect(answer.service_price, "the answer: the rule's price").toBe(480);
+            expect(answer.quoted_minutes, "the answer: the rule's quoted minutes").toBe(600);
             expect(answer.authorized_amount, 'the answer: nothing is held without a payment key').toBeNull();
             const stored = await storedBooking(id);
-            expect(Number(stored.service_price), "the stored price is the rule's").toBe(600);
-            expect(Number(stored.standard_duration_minutes), "the stored quoted minutes are the rule's").toBe(780);
+            expect(Number(stored.service_price), "the stored price is the rule's").toBe(480);
+            expect(Number(stored.standard_duration_minutes), "the stored quoted minutes are the rule's").toBe(600);
         }, as.admin);
 
         // Source read: the booking route is the only route under src/app/api that inserts a booking, it records the price priceJob gives, and its

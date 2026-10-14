@@ -2,7 +2,8 @@
 // the service's catalog price and duration plus its rows in service_pricing_items: amounts per unit, options (a tier, or an amount an
 // hour), property types, the weekend and extras by quantity. Every part adds to the price in whole cents; only the hourly line is
 // rounded, once, to the cent. A booking that repeats takes a percent off the sum of each visit, by how often it repeats, as a line of its
-// own, rounded once, to the cent; the percents are settings in system_settings.
+// own, rounded once, to the cent; the percents are settings in system_settings. A job that picks an item as many times as the item's
+// quote_from is not priced at all: it is a job for a quote, and what comes back carries no figure for a caller to use.
 
 import { catalogPrice } from './booking-price.js'
 import { FREQUENCIES, visitDates } from './visit-series.js'
@@ -85,6 +86,59 @@ function discountCentsOf(cents, hundredths) {
   return (cents * BigInt(hundredths) + 5000n) / 10000n
 }
 
+// The service's items by kind and then by code, in the order given. A code is looked up here and nowhere else, so no answer reaches a query.
+function itemsByKind(items) {
+  const byKind = Object.fromEntries(KINDS.map((kind) => [kind, new Map()]))
+  for (const item of items || []) {
+    if (item && KINDS.includes(item.kind)) byKind[item.kind].set(item.code, item)
+  }
+  return byKind
+}
+
+// How many of an item send a job to a quote: a whole number from 1 up, or null when the item never does (a NULL quote_from). A value the
+// table's own check would have refused is a fault in the rule, not in the answers, so it stops the price rather than changing it.
+function quoteFromOf(item) {
+  if (!isGiven(item.quote_from)) return null
+  const from = Number(item.quote_from)
+  if (!Number.isSafeInteger(from) || from < 1) throw new Error(`pricing item ${item.kind}/${item.code} has a quote_from that is not a whole number from 1 up`)
+  return from
+}
+
+// Every pick that valid `answers` make from `items`, as { kind, code, label, quantity, flagged }: the units asked for, then the option, the
+// property type, and the extras asked for (a unit or an extra by its count, in the order of `items`; an option or a property type once). A
+// pick is flagged when its item has a quote_from and the quantity reaches it. The weekend is not a pick. Read for answers that priceJob has
+// accepted: it skips what it does not recognise rather than refusing it. Pure; no money in what it answers.
+export function picksOf(items, answers) {
+  const given = isPlainObject(answers) ? answers : {}
+  const byKind = itemsByKind(items)
+  const picks = []
+  const pick = (item, quantity) => {
+    const from = quoteFromOf(item)
+    picks.push({ kind: item.kind, code: item.code, label: item.label, quantity, flagged: from !== null && quantity >= from })
+  }
+
+  const units = isPlainObject(given.units) ? given.units : {}
+  for (const [code, item] of byKind.unit) {
+    if (isQuantity(units[code]) && units[code] > 0) pick(item, units[code])
+  }
+  if (typeof given.option === 'string' && byKind.option.has(given.option)) pick(byKind.option.get(given.option), 1)
+  if (typeof given.property_type === 'string' && byKind.property_type.has(given.property_type)) pick(byKind.property_type.get(given.property_type), 1)
+
+  const extras = new Map()
+  for (const extra of Array.isArray(given.extras) ? given.extras : []) {
+    if (isPlainObject(extra) && !extras.has(extra.code) && isQuantity(extra.quantity)) extras.set(extra.code, extra.quantity)
+  }
+  for (const [code, item] of byKind.extra) {
+    if (extras.get(code) > 0) pick(item, extras.get(code))
+  }
+  return picks
+}
+
+// The picks of `answers` that send the job to a quote, as { kind, code, label, quantity }: empty when it can be priced.
+export function quoteFlagsOf(items, answers) {
+  return picksOf(items, answers).filter((pick) => pick.flagged).map(({ kind, code, label, quantity }) => ({ kind, code, label, quantity }))
+}
+
 // `service` is a services row, `items` the service's rows of service_pricing_items, `answers` the optional answers of the request:
 //   { units: { <unit code>: <whole number> }, option: <option code>, hours: <number>, property_type: <property type code>,
 //     date: 'YYYY-MM-DD', extras: [ { code: <extra code>, quantity: <whole number> } ], frequency: <a key of FREQUENCIES> }
@@ -92,7 +146,9 @@ function discountCentsOf(cents, hundredths) {
 // Answers { ok: true, price, minutes, lines } with each line { kind, code, label, quantity, amount, minutes } (amount a two-place
 // string), or { ok: false, reason: 'service' } when the catalog does not offer the service, or { ok: false, reason: 'answers', field }
 // when the answers cannot be priced, or { ok: false, reason: 'too_large', field: 'answers' } when the price or the minutes are more than a
-// booking records. No answers price the catalog price and duration. By the hour, the hours asked for replace the base and the units.
+// booking records, or { ok: false, reason: 'quote', field: 'quote', flags } when the answers pick an item as many times as its quote_from
+// (`flags`: [{ kind, code, label, quantity }], the picks that did): no price, minutes or lines come with it, so a caller that does not
+// know the reason still has nothing to charge. No answers price the catalog price and duration. By the hour, the hours asked for replace the base and the units.
 // No frequency is a single visit. A frequency that takes a percent off adds a last line { kind: 'discount', code: <the frequency>, ... } whose
 // amount is the cut as a negative two-place string ('-13.50'); the price is the sum of the other lines less the cut, and the minutes are theirs.
 export function priceJob(service, items, answers, discounts = {}) {
@@ -105,11 +161,7 @@ export function priceJob(service, items, answers, discounts = {}) {
   if (frequency !== null && !Object.keys(FREQUENCIES).includes(frequency)) return refuse('frequency')
   const discountHundredths = frequency === null ? 0 : discountOf(discounts, frequency)
 
-  // The service's items by kind and code. A code is looked up here and nowhere else, so no answer reaches a query.
-  const byKind = Object.fromEntries(KINDS.map((kind) => [kind, new Map()]))
-  for (const item of items || []) {
-    if (item && KINDS.includes(item.kind)) byKind[item.kind].set(item.code, item)
-  }
+  const byKind = itemsByKind(items)
 
   const unitQuantities = new Map()
   if (isGiven(given.units)) {
@@ -158,6 +210,11 @@ export function priceJob(service, items, answers, discounts = {}) {
       extraQuantities.set(extra.code, BigInt(extra.quantity))
     }
   }
+
+  // The verdict comes after every answer is known to be valid, so a malformed answer is still its own refusal, and before any figure is
+  // worked out, so a job that needs a quote has no price, minutes or lines to leave with.
+  const flags = quoteFlagsOf(items, given)
+  if (flags.length > 0) return { ok: false, reason: 'quote', field: 'quote', flags }
 
   const lines = []
   let cents = 0n
@@ -237,6 +294,7 @@ export function priceVisits(service, items, answers, discounts) {
 export function refusalOf(job) {
   if (job.reason === 'service') return { success: false, message: 'This service is not available for booking' }
   if (job.reason === 'too_large') return { success: false, message: 'The price for these answers is larger than a booking can record', field: job.field }
+  if (job.reason === 'quote') return { success: false, message: 'This job needs a quote, not a price', field: job.field }
   return { success: false, message: 'These answers cannot be priced for this service', field: job.field }
 }
 
@@ -275,7 +333,7 @@ export async function loadPricing(execute, serviceId) {
   if (id === null) return { service: undefined, items: [], discounts: {} }
   const [service] = await execute('SELECT id, name, base_price, additional_price, duration_minutes, is_active FROM services WHERE id = ?', [id])
   if (!service) return { service: undefined, items: [], discounts: {} }
-  const items = await execute('SELECT kind, code, label, amount, minutes, is_hourly FROM service_pricing_items WHERE service_id = ? ORDER BY kind, sort_order, id', [id])
+  const items = await execute('SELECT kind, code, label, amount, minutes, is_hourly, quote_from FROM service_pricing_items WHERE service_id = ? ORDER BY kind, sort_order, id', [id])
   const keys = Object.keys(FREQUENCIES).map(discountKeyOf)
   const settings = await execute(`SELECT \`key\`, \`value\` FROM system_settings WHERE \`key\` IN (${keys.map(() => '?').join(', ')})`, keys)
   return { service, items, discounts: discountsOf(settings) }
