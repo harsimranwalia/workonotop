@@ -271,3 +271,63 @@ test.describe('The header fits', () => {
         }
     }
 });
+
+// ---- Which header each role gets at tablet width (BUG-008's fix) ----------------------------------------------------------------------------
+//
+// With Book now in it the desktop row is 763 px wide for a visitor and 848 px for a customer, and 768 px leaves it 720, so whoever can book keeps the
+// phone header (Book now and a menu button) until 1024 px (lg:). A provider or an admin has no Book now and keeps the desktop row from 768 px (md:),
+// exactly as before the ticket. These cases pin both halves, the edge of the band at 1024, and that the phone header still reaches every link the
+// desktop row has (a visitor on a tablet has nothing else to reach them with).
+
+/** The links the phone menu holds for someone who can book: everything the desktop row and its two dropdowns offer. */
+const MENU_LINKS = {
+    'signed-out': ['Explore Services', 'Help Center', 'Customer Login', 'Customer Sign Up', 'Provider Login', 'Become a Provider'],
+    customer1: ['Explore Services', 'Dashboard', 'Help Center'],
+};
+
+test.describe('The header by role at tablet width', () => {
+    for (const width of [768, 1000, 1023]) {
+        for (const who of /** @type {const} */ (['signed-out', 'customer1'])) {
+            test(`${who === 'signed-out' ? 'signed out' : 'as a customer'} at ${width} px: the phone header, and a menu that holds every link the desktop row has`, async ({ page }) => {
+                const errors = await openWithHeader(page, '/', width, who);
+                const header = headerOf(page);
+
+                await expect(header.getByRole('link', { name: 'Book now' })).toBeVisible();
+                // The desktop row is not drawn: its links are in the document, hidden, and a role query leaves hidden elements out.
+                await expect(header.getByRole('link', { name: 'Help Center' })).toHaveCount(0);
+                const menu = header.getByRole('button', { name: 'Open menu' });
+                await expect(menu).toBeVisible();
+
+                await menu.click();
+                await expect(header.getByRole('button', { name: 'Close menu' })).toBeVisible();
+                for (const name of MENU_LINKS[who]) await expect(header.getByRole('link', { name, exact: true }), name).toBeVisible();
+                expect(errors, 'page errors').toEqual([]);
+            });
+        }
+    }
+
+    for (const who of /** @type {const} */ (['signed-out', 'customer1'])) {
+        test(`${who === 'signed-out' ? 'signed out' : 'as a customer'} at 1024 px: the desktop row, with Book now in it and no menu button`, async ({ page }) => {
+            await openWithHeader(page, '/', 1024, who);
+            const header = headerOf(page);
+
+            await expect(header.getByRole('link', { name: 'Book now' })).toBeVisible();
+            await expect(header.getByRole('link', { name: 'Help Center' })).toBeVisible();
+            await expect(header.getByRole('button', { name: 'Open menu' })).toHaveCount(0);
+        });
+    }
+
+    for (const width of [768, 1000]) {
+        for (const who of /** @type {const} */ (['provider1', 'admin'])) {
+            test(`${who} at ${width} px: the desktop row as before the ticket, with no Book now and no menu button`, async ({ page }) => {
+                await openWithHeader(page, '/', width, who);
+                const header = headerOf(page);
+
+                await expect(header.getByText(ROLE_LABEL[who], { exact: true })).toBeVisible();
+                await expect(header.getByRole('link', { name: 'Help Center' })).toBeVisible();
+                await expect(header.getByRole('link', { name: 'Book now' })).toHaveCount(0);
+                await expect(header.getByRole('button', { name: 'Open menu' })).toHaveCount(0);
+            });
+        }
+    }
+});
