@@ -1,4 +1,4 @@
-// The route matrix: every route file and exported method under src/app/api, one row each, as data (209 rows).
+// The route matrix: every route file and exported method under src/app/api, one row each, as data (211 rows).
 //
 // SOURCE: Appendix A of agents/architect/designs/ENG-004-lock-down-unauthenticated-access-and-role-checks.md (the
 // design for ENG-004; ADR-003). This file was generated from that table, in the table's order and with its route
@@ -26,10 +26,10 @@
 //   note     the census note as in the appendix (cut to fit there), plus a line where this file adds something
 //   probe    what the role-by-route test sends:
 //              path      the route with each [param] replaced by PROBE_IDS.missing, an id no fixture row has
-//              body      undefined for GET and DELETE (104 rows) and for the four POST and PUT rows whose handler `await`s
+//              body      undefined for GET and DELETE (105 rows) and for the four POST and PUT rows whose handler `await`s
 //                        request.json() before its first side effect (a request with no body throws there, nothing is
 //                        written; the notes of the four cite the lines), and for POST /api/admin/bookings/[id]/push, whose
-//                        handler reads no body; {} for the other 100 POST, PUT and PATCH rows. {} is
+//                        handler reads no body; {} for the other 101 POST, PUT and PATCH rows. {} is
 //                        the convention, not a finding that the handler validates it: see "What a probe does" below.
 //              query     optional, e.g. '?id=999999999', for a handler that reads its id from the query (none set yet)
 //              anon      roles rows: 401, always (the contract). public and self rows: an array of the statuses a
@@ -51,7 +51,7 @@
 // roles: ['admin', 'provider'] with the split in its note.
 //
 // What a probe does. Every probe uses a fixture account only (@workontap.test), an id no fixture row has, and an empty body
-// or none: 209 of the 209 rows, by a script (the body is undefined or {}, the path is the route with each [param] replaced
+// or none: 211 of the 211 rows, by a script (the body is undefined or {}, the path is the route with each [param] replaced
 // by PROBE_IDS.missing, no row sets a query). That does not make a probe harmless by itself: a handler that needs no input
 // acts on {} and on nothing (ENG-020 review B1, QA F1). What the notes say about it, as counted by script:
 //   - Twelve rows carry a `Probe (B2, 2026-10-02` line (the rows whose note holds that text): GET and PATCH
@@ -62,11 +62,11 @@
 //     where the handler writes or sends, the first side effect it stops before (a write, a schema change, mail, a push, an
 //     outbound call, a payment, a file); GET /api/admin/deletion-requests carries only a cross-reference to the PATCH row, for
 //     the same fetch.
-//   - The other 197 rows have no such line: 118 are write rows (POST, PUT, PATCH, DELETE) and 79 are GET (script counts).
-//     49 of the 197 (36 public, 13 self) carry a `Probe measured on the dev app` line instead, which records the
+//   - The other 199 rows have no such line: 119 are write rows (POST, PUT, PATCH, DELETE) and 80 are GET (script counts).
+//     49 of the 199 (36 public, 13 self) carry a `Probe measured on the dev app` line instead, which records the
 //     status measured there for the request with no credential and no body. Code-review round 1 read the write handlers the
 //     probes reach (88: 31 admin, 57 other; agents/principal-engineer/notebook/2026-10-02-eng020-review.md; the matrix has
-//     95 routes with a write row, 32 admin and 63 other, and the difference was not traced). It did not read the GET
+//     96 routes with a write row, 32 admin and 64 other, and the difference was not traced). It did not read the GET
 //     handlers, nor the public, self and pending rows as such. The GET handlers were scanned in review round 2 (comments
 //     removed; the scan found two that reach a write) and again by this round's sweep of all 83 GET rows (next bullet). No
 //     field of the 195 rows that were there before ENG-007 added its row (POST /api/pricing, a public row with no `Probe measured`
@@ -1038,6 +1038,16 @@ export const matrix = [
         route: '/api/provider/verify-otp', method: 'POST', today: 'partial', kind: 'public', public: 'OTP check (see S1)', owner: '-',
         note: 'ENG-022 S1 (2026-10-03, 7a86bc2): before the query the handler refuses with 400 { success: false, message: \'Email and verification code required\' } an email or otp that is not a string (a missing one gets the 400 it always got) (src/app/api/provider/verify-otp/route.js:16-23). No non-string request value ever reached execute() in this route: a non-string email threw at .trim() (route.js:25), before the query, so it was a 500, and otp is stringified into cleanOtp (route.js:26) and bound as a string. The check turns that 500 into a 400 and stops a JSON-number otp being coerced into a string that could match a stored code; a string is handled as before. The exploitability probe of the unfixed code did NOT run (see 7a86bc2), so the finding below is from code reading and was not exercised; the cases that pin the 400 are in e2e/s1-reset-otp.spec.js. Census finding, line numbers moved to this file: 6-digit OTP, no rate limit or lockout, not consumed (so it also opens reset-password); expiry N… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and an empty JSON body: 400 \'Email and verification code required\'.',
         probe: { path: '/api/provider/verify-otp', body: {}, anon: [400] },
+    },
+    {
+        route: '/api/quote-requests', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
+        note: 'ENG-012: GET calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/quote-requests/route.js:147-148), before the database is read: no credential is 401, any other role 403, and the admin gets the quote requests, newest first.',
+        probe: { path: '/api/quote-requests', body: undefined, anon: 401 },
+    },
+    {
+        route: '/api/quote-requests', method: 'POST', today: 'none', kind: 'public', public: 'a request for a quote on a job that cannot be priced from its answers; saves one quote_requests row, and only for such a job', owner: '-',
+        note: 'ENG-012: a new route (src/app/api/quote-requests/route.js). It asks for no credential, as a guest\'s booking does not; a customer credential that comes with it only sets user_id (callerFrom at :125, never the body). It writes one quote_requests row (:127), and only when the pricing rule sends the answers to a quote: answers that can be priced are a 400, and a fourth request in an hour from one email, or a thirty-first in all, is a 429. The probe sends an empty JSON body, which has no name: 400 \'Enter your name (up to 120 characters)\' (:64), before the catalog or the table is read.',
+        probe: { path: '/api/quote-requests', body: {}, anon: [400] },
     },
     {
         route: '/api/reviews', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
