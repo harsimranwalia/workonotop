@@ -2223,6 +2223,24 @@
     "booking-payment.spec.js › Booking payment › without a payment key, production refuses a booking and other environments book it unverified": {
       "outcome": "PASS"
     },
+    "booking-payment.spec.js › a later visit of a series › a later visit is charged on the card of its series' first payment, for its own recorded price": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a later visit of a series › a later visit with no card to charge makes no payment call": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a later visit of a series › a retry after the charge is saved on the visit confirms that charge and creates none": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a series at completion › the customer's approval of a later visit charges that visit on the series' card": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a series at completion › the release sweep charges only the visit that is done": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a series at completion › the release sweep with no visit done makes no payment call": {
+      "outcome": "PASS"
+    },
     "cron-secret.spec.js › Cron /api/cron/auto-release › Cron /api/cron/auto-release: GET calls requireCronSecret first, imported from @/lib/api-auth": {
       "outcome": "PASS"
     },
@@ -2962,6 +2980,42 @@
       "outcome": "PASS"
     },
     "provider.spec.js › Provider Portal - Auth Protection › should redirect protected provider routes to /provider/login": {
+      "outcome": "PASS"
+    },
+    "recurring-visits.spec.js › booking repeating visits › a frequency outside the list is refused and nothing is saved": {
+      "outcome": "PASS"
+    },
+    "recurring-visits.spec.js › booking repeating visits › a monthly booking records each visit's price with the monthly discount": {
+      "outcome": "PASS"
+    },
+    "recurring-visits.spec.js › booking repeating visits › a series makes one notification for the customer and one activity entry": {
+      "outcome": "PASS"
+    },
+    "recurring-visits.spec.js › booking repeating visits › a weekly booking saves twelve jobs a week apart, numbered from the first": {
+      "outcome": "PASS"
+    },
+    "recurring-visits.spec.js › booking repeating visits › cancelling one visit leaves the other visits booked": {
+      "outcome": "PASS"
+    },
+    "recurring-visits.spec.js › booking repeating visits › each visit of a series is its own job in the admin queue": {
+      "outcome": "PASS"
+    },
+    "recurring-visits.spec.js › booking repeating visits › repeating visits need a signed-in customer": {
+      "outcome": "PASS"
+    },
+    "recurring-visits.spec.js › booking repeating visits › repeating visits take one start date and one set of times": {
+      "outcome": "PASS"
+    },
+    "recurring-visits.spec.js › the price of a visit › a frequency outside the list is refused, naming the frequency field; with no percent set there is no discount line": {
+      "outcome": "PASS"
+    },
+    "recurring-visits.spec.js › the price of a visit › the monthly percent is a price line of its own, rounded half-up to the cent": {
+      "outcome": "PASS"
+    },
+    "recurring-visits.spec.js › visit dates › monthly visits keep the start's day number and take the last day of a shorter month": {
+      "outcome": "PASS"
+    },
+    "recurring-visits.spec.js › visit dates › weekly visits are twelve dates seven days apart and every-2-weeks visits are six dates fourteen days apart": {
       "outcome": "PASS"
     },
     "role-checks.spec.js › Role check /api/admin/notifications › Role check GET /api/admin/notifications: only the signed-in admin's own rows, by cookie and by Bearer, and no query names another owner": {
