@@ -1,5 +1,5 @@
 // @ts-check
-// Prices and quoted minutes come from each service's pricing rule and the answers given. Twelve cases:
+// Prices and quoted minutes come from each service's pricing rule and the answers given. Fourteen cases:
 //   1  the price and the quoted minutes follow the service's rule for each set of answers;
 //   2  one more room or unit changes the price by that unit's amount;
 //   3  changing only the option, the property type or the date changes the price by exactly that adjustment;
@@ -11,7 +11,9 @@
 //   9  a figure in the request is not read: the price route, create-intent and a booking use the rule's price;
 //  10  every active service prices with no answers at its catalog price and minutes;
 //  11  a booking an admin makes is priced by the rule from its answers;
-//  12  time past the quote is measured from the booking's quoted minutes.
+//  12  time past the quote is measured from the booking's quoted minutes;
+//  13  priceJobPastQuote is imported by the two admin routes only, and each of them checks for an admin before it prices;
+//  14  no route file updates the service_price of a booking.
 // The module cases (1 to 6) call priceJob from src/lib/pricing-rules.js with the rule's rows passed as literals, written in this file (fixture
 // services 1 to 3 with their placeholder figures). Every expected figure is a literal worked by hand from those rows and a fixed date, never
 // computed by the code under test. Each case loads the module itself, so a missing module fails each case on its own.
@@ -24,8 +26,9 @@
 // its booking with the app's own routes: the admin's booking update and override, the provider's start and stop, the admin's invoice
 // generation. It plants the one closed job session that the finish measures. Each booking is deleted again as admin, with the
 // booking_audit_logs and job_sessions rows that belong to it (the answer of that delete is not checked). Case 9 and case 11 also read source
-// files: the lines that take an amount from the rule. A source read is a guard on the text; the behaviour is the figures the running app
-// answers and stores.
+// files: the lines that take an amount from the rule, in create-intent and in the two routes that insert a booking. Cases 13 and 14 read source
+// files and nothing else: they send no request and open no connection. A source read is a guard on the text; the behaviour is the figures the
+// running app answers and stores.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -230,6 +233,31 @@ function sourcesUnder(directory) {
         if (entry.isDirectory()) return sourcesUnder(found);
         return entry.name.endsWith('.js') ? [path.relative(ROOT, found).split(path.sep).join('/')] : [];
     });
+}
+
+// Every file under `directory` that is source (.js, .jsx, .mjs, .cjs, .ts, .tsx), as paths from the repository root with forward slashes.
+function sourceFilesUnder(directory) {
+    return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+        const found = path.join(directory, entry.name);
+        if (entry.isDirectory()) return sourceFilesUnder(found);
+        return /\.(?:[cm]?jsx?|tsx?)$/.test(entry.name) ? [path.relative(ROOT, found).split(path.sep).join('/')] : [];
+    });
+}
+
+// A source file's text with its comments taken out (block comments, whole-line comments, and a // comment that follows whitespace), so that a
+// word a comment mentions is not read as a use of it. A // that follows a colon, as in a URL, is not a comment and stays.
+function withoutComments(source) {
+    return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[ \t])\/\/.*$/gm, '$1');
+}
+
+// The body of the exported handler `method` in comment-free `code`: { at, text }, the offset where the body starts and its text up to the closing
+// brace that starts a line; null when the file exports no such handler.
+function handlerOf(code, method) {
+    const start = new RegExp(`^export\\s+async\\s+function\\s+${method}\\s*\\([^)]*\\)\\s*\\{`, 'm').exec(code);
+    if (!start) return null;
+    const at = start.index + start[0].length;
+    const end = code.indexOf('\n}', at);
+    return end === -1 ? null : { at, text: code.slice(at, end) };
 }
 
 // The admin confirms the booking for provider 1.
@@ -946,18 +974,26 @@ test.describe('Pricing rules', () => {
             expect(Number(stored.standard_duration_minutes), "the stored quoted minutes are the rule's").toBe(600);
         }, as.admin);
 
-        // Source read: the booking route is the only route under src/app/api that inserts a booking, it records the price priceJob gives, and its
-        // list of fields read from the body names no price, amount or minutes.
-        const inserting = sourcesUnder(path.join(ROOT, 'src/app/api')).filter((file) => /INSERT\s+INTO\s+`?bookings`?\b/i.test(fs.readFileSync(path.join(ROOT, file), 'utf8')));
-        expect(inserting, 'the routes that insert a booking').toEqual(['src/app/api/bookings/route.js']);
-        const route = fs.readFileSync(path.join(ROOT, 'src/app/api/bookings/route.js'), 'utf8');
-        expect(route.includes('const basePrice = job.price'), "the booking route records the rule's price").toBe(true);
-        const destructured = /let\s*\{([^}]*)\}\s*=\s*body/.exec(route);
-        expect(destructured, 'the booking route reads its fields from the body in one destructuring').not.toBeNull();
-        const fieldsRead = ((destructured && destructured[1]) || '').match(/[A-Za-z_]\w*/g) || [];
-        expect(fieldsRead, 'the booking route reads the service id from the body').toContain('service_id');
-        for (const figure of ['service_price', 'additional_price', 'price', 'total', 'amount', 'quoted_minutes', 'standard_duration', 'authorized_amount']) {
-            expect(fieldsRead, `the booking route does not read ${figure} from its body`).not.toContain(figure);
+        // Source read: two routes under src/app/api insert a booking, the public checkout and the admin's route for a customer who phoned in. Each
+        // records the price the rule gives, and the list of fields each reads from its body names no price, amount or minutes. The admin's route also
+        // reads no account, payment, commission or state from the body: those are the server's to set.
+        const inserting = sourcesUnder(path.join(ROOT, 'src/app/api')).filter((file) => /INSERT\s+INTO\s+`?bookings`?\b/i.test(fs.readFileSync(path.join(ROOT, file), 'utf8'))).sort();
+        expect(inserting, 'the routes that insert a booking').toEqual(['src/app/api/admin/bookings/route.js', 'src/app/api/bookings/route.js']);
+        for (const file of inserting) {
+            const route = fs.readFileSync(path.join(ROOT, file), 'utf8');
+            expect(route.includes('const basePrice = job.price'), `${file} records the rule's price`).toBe(true);
+            // Only the POST handler is read: the public route's PUT handler has a destructuring of its own, for the fields an admin may change.
+            const handler = handlerOf(withoutComments(route), 'POST');
+            expect(handler, `${file} exports a POST handler`).not.toBeNull();
+            const destructurings = handler.text.match(/(?:let|const)\s*\{[^}]*\}\s*=\s*body/g) || [];
+            expect(destructurings.length, `the POST handler of ${file} reads its fields from the body in one destructuring`).toBe(1);
+            const fieldsRead = (/(?:let|const)\s*\{([^}]*)\}\s*=\s*body/.exec(handler.text)?.[1] || '').match(/[A-Za-z_]\w*/g) || [];
+            expect(fieldsRead, `${file} reads the service id from the body`).toContain('service_id');
+            const notRead = ['service_price', 'additional_price', 'price', 'total', 'amount', 'quoted_minutes', 'standard_duration', 'authorized_amount'];
+            if (file === 'src/app/api/admin/bookings/route.js') notRead.push('user_id', 'payment_intent_id', 'commission_percent', 'provider_amount', 'status', 'payment_status');
+            for (const figure of notRead) {
+                expect(fieldsRead, `${file} does not read ${figure} from its body`).not.toContain(figure);
+            }
         }
     });
 
@@ -1001,5 +1037,46 @@ test.describe('Pricing rules', () => {
             expect(overridden.status(), `the admin overrides the hours and crew of booking ${id}`).toBe(200);
             await expectInvoices(id, { overtime_minutes: 400 }, 'after the override');
         }, as.customer);
+    });
+
+    test('priceJobPastQuote is imported by the two admin routes only, and each of them checks for an admin before it prices', () => {
+        // Source read: a price past the quote threshold is for an admin who books for a customer who phoned in, never for the public checkout, which
+        // sends such a job to a quote. So the function is imported by exactly two routes, and in each the first statement of the exported handler
+        // is the admin guard, which runs before the first use of the function. Comments are left out, so a remark that names the function is not
+        // read as a use of it.
+        const codeOf = (file) => withoutComments(fs.readFileSync(path.join(ROOT, file), 'utf8'));
+        const naming = sourceFilesUnder(path.join(ROOT, 'src')).filter((file) => /\bpriceJobPastQuote\b/.test(codeOf(file))).sort();
+        const importing = naming.filter((file) => /\bimport\s*\{[^}]*\bpriceJobPastQuote\b[^}]*\}\s*from\b/.test(codeOf(file)));
+        const admin = ['src/app/api/admin/bookings/route.js', 'src/app/api/admin/pricing/route.js'];
+        expect(importing, 'the files that import priceJobPastQuote').toEqual(admin);
+        expect(naming, 'the files that name priceJobPastQuote: the two routes and the file that defines it').toEqual([...admin, 'src/lib/pricing-rules.js']);
+
+        for (const file of admin) {
+            const code = codeOf(file);
+            const handler = handlerOf(code, 'POST');
+            expect(handler, `${file} exports a POST handler`).not.toBeNull();
+            const guard = /^\s*const\s+auth\s*=\s*await\s+requireCaller\(\s*request\s*,\s*\[\s*['"]admin['"]\s*\]\s*\)\s*;?\s*\n\s*if\s*\(\s*!auth\.ok\s*\)\s*return\s+auth\.response\s*;?/.exec(handler.text);
+            expect(guard, `the first statement of the POST handler in ${file} is the admin guard`).not.toBeNull();
+            const guardEnds = handler.at + guard[0].length;
+            const uses = [...code.matchAll(/\bpriceJobPastQuote\s*\(/g)].map((use) => use.index);
+            expect(uses.length, `${file} prices a job with priceJobPastQuote`).toBeGreaterThan(0);
+            for (const use of uses) {
+                expect(use, `priceJobPastQuote is used in ${file} after the admin guard`).toBeGreaterThan(guardEnds);
+            }
+        }
+    });
+
+    test('no route file updates the service_price of a booking', () => {
+        // Source read: the price on a booking is set when the booking is inserted and is not changed afterwards: what the customer was quoted is
+        // what the invoices, the authorization and the payout work from. So no route runs an UPDATE of the bookings table that sets service_price,
+        // whether as a fixed statement or as one element of the list a dynamic UPDATE builds. A JavaScript assignment such as booking.service_price
+        // = ... is not a database write and is not counted: the pattern wants the column name to stand alone in a string of SQL.
+        const updating = sourceFilesUnder(path.join(ROOT, 'src/app/api')).filter((file) => {
+            const code = withoutComments(fs.readFileSync(path.join(ROOT, file), 'utf8'));
+            const fixed = /UPDATE\s+`?bookings`?\b[^`'";]*?\bSET\b[^`'";]*?\bservice_price`?\s*=(?!=)/i.test(code);
+            const listed = /['"`]\s*`?service_price`?\s*=\s*\?/.test(code);
+            return fixed || listed;
+        });
+        expect(updating, 'the route files that update the service_price of a booking').toEqual([]);
     });
 });

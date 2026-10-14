@@ -628,13 +628,14 @@ test.describe('Quote requests', () => {
             expect(list.data.filter((row) => mine.includes(row.id)).map((row) => row.id), `${who}: newest first, the later id first when two are made at one moment`).toEqual(mine);
         }
 
-        // The fields are the contract's, with the JSON columns as data and an unset phone or address as null.
+        // The fields are the contract's, with the JSON columns as data and an unset phone or address as null. A request nobody has made a
+        // booking from (ENG-013) has no booking_id and no booking_number.
         const { data } = await (await get('?limit=200', as.admin)).json();
         const row = data.find((entry) => entry.id === recent);
-        expect(Object.keys(row).sort(), 'the fields of a request').toEqual(['address', 'answers', 'created_at', 'customer_email', 'customer_name', 'customer_phone', 'id', 'message', 'picks', 'service_id', 'service_name', 'user_id']);
+        expect(Object.keys(row).sort(), 'the fields of a request').toEqual(['address', 'answers', 'booking_id', 'booking_number', 'created_at', 'customer_email', 'customer_name', 'customer_phone', 'id', 'message', 'picks', 'service_id', 'service_name', 'user_id']);
         expect({ ...row, created_at: typeof row.created_at }, 'a request as the admin reads it').toEqual({
             id: recent, created_at: 'string', service_id: 1, service_name: SERVICE_1.name, customer_name: 'E2E Recent', customer_email: email, customer_phone: '+14035550100',
-            address: '2 Seed Street', message: 'Seeded by the e2e case.', picks: [{ ...COMMERCIAL_FLAG, flagged: true }], answers: COMMERCIAL, user_id: null,
+            address: '2 Seed Street', message: 'Seeded by the e2e case.', picks: [{ ...COMMERCIAL_FLAG, flagged: true }], answers: COMMERCIAL, user_id: null, booking_id: null, booking_number: null,
         });
         expect(Number.isNaN(Date.parse(row.created_at)), 'the time is a date').toBe(false);
         const bare = data.find((entry) => entry.id === oldest);
