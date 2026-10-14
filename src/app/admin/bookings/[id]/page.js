@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle } from 'lucide-react'
+import CardLinkPanel from '@/components/admin/CardLinkPanel'
 import { useAdminTheme } from '../../layout'
 
 export default function BookingDetailsPage({ params }) {
@@ -391,6 +392,8 @@ export default function BookingDetailsPage({ params }) {
               )}
             </div>
           </Card>
+
+          <CardLinkPanel bookingId={bookingId} isDarkMode={isDarkMode} />
 
           {/* Schedule */}
           <Card card={card} icon="📅" title="Schedule" val={val}>
