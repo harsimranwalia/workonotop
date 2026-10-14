@@ -1,7 +1,7 @@
 // @ts-check
 // A job that cannot be priced from a few taps becomes a short request for a quote (ENG-012). The server cases are here, B1 to B11; B12 (the
 // route coverage and the role-by-route specs pass with the two new rows) is e2e/auth-coverage.spec.js and e2e/auth-matrix.spec.js over the two
-// rows added to e2e/auth/route-matrix.js, so it has no case of its own. The screen cases F1 to F5 are added to this file by the frontend seat.
+// rows added to e2e/auth/route-matrix.js, so it has no case of its own. The screen cases F1 to F5 are the second block of this file.
 //   B1  a job whose answers pick an item at its quote_from is not priced: priceJob answers reason 'quote' and the picks, and no figure;
 //   B2  the threshold is the item's own: a unit or an extra by its count, an option or a property type once, a weekend never, no quote_from never;
 //   B3  an answer that cannot be priced next to a flagged pick is the refusal it is today, not a quote;
@@ -13,6 +13,11 @@
 //   B9  each contact field is checked and its refusal names the field; the limits themselves are accepted;
 //  B10  the fourth request from one email in an hour and the thirty-first in all are refused with 429;
 //  B11  the admin reads the requests, newest first, a page at a time; no credential is 401, a customer or a provider is 403.
+//   F1  Commercial: no price, the quote notice, Continue off and the form shown; sending the form shows the thank-you and saves one request;
+//   F2  a house or an apartment prices and shows no form; the price and the form swap as the answer changes;
+//   F3  a post that fails (a 500, a network failure, a 429) shows its error and keeps what was typed; the retry sends;
+//   F4  the admin page shows the request in "Quote requests" and not in the bookings list; none, no section; a failed load, the error and Retry;
+//   F5  every field has a label, the sending, error and thank-you text is in live regions, and the field the server refuses is marked.
 // B1 to B4 call priceJob, priceVisits, picksOf and quoteFlagsOf from src/lib/pricing-rules.js with the rule's rows passed as literals, written in
 // this file (fixture service 1 with its placeholder figures and the quote_from that database/fixtures/catalog.js gives them). Every expected
 // figure is a literal worked by hand from those rows and a fixed date, never computed by the code under test. Each case loads the module itself,
@@ -22,7 +27,7 @@
 import mysql from 'mysql2/promise';
 import { test, expect } from '@playwright/test';
 import { getCredentialHeaders } from './auth/credentials.js';
-import { RESET_RETRIES } from './support/auth.js';
+import { RESET_RETRIES, signInAs } from './support/auth.js';
 import { users } from '../database/fixtures/accounts.js';
 import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.js';
 
@@ -652,5 +657,312 @@ test.describe('Quote requests', () => {
             const empty = await past.json();
             expect([empty.data, empty.total, empty.offset], `offset ${offset}: an empty page, the total unchanged`).toEqual([[], total, offset]);
         }
+    });
+});
+
+// ---- the screens: the booking flow of fixture service 1 and the form that takes a job to be quoted ----
+// `next dev` compiles a route on its first visit.
+const FIRST_VISIT_MS = 45_000;
+const ADMIN_VISIT_MS = 90_000;
+
+const QUOTE_SENTENCE = "This one needs a quote. We can't price it from a few taps.";
+const SEND_ERROR = "We couldn't send your request. Please try again.";
+const BUSY_ERROR = "We've had a lot of requests just now. Please try again in a little while.";
+const sentText = (email) => `Thanks, we have your request. We'll be in touch at ${email}.`;
+
+const BEDROOMS = ITEMS_1.find((item) => item.code === 'bedrooms').label;
+const labelOf = (code) => ITEMS_1.find((item) => item.code === code).label;
+
+/** @typedef {import('@playwright/test').Page} Page */
+
+/** @param {Page} page */
+const priceBox = (page) => page.getByRole('region', { name: 'Your price', exact: true });
+/** @param {Page} page */
+const totalOf = (page) => priceBox(page).getByTestId('price-total');
+/** @param {Page} page */
+const quoteNotice = (page) => priceBox(page).getByTestId('price-quote');
+/** @param {Page} page */
+const priceAnnouncement = (page) => priceBox(page).locator('[role="status"][aria-live="polite"]');
+/** @param {Page} page */
+const continueButton = (page) => page.getByRole('button', { name: 'Continue', exact: true });
+/** @param {Page} page */
+const propertyType = (page, code) => page.getByRole('group', { name: 'Type of property', exact: true }).getByRole('radio', { name: labelOf(code) });
+/** @param {Page} page */
+const quoteForm = (page) => page.getByRole('region', { name: 'Ask for a quote', exact: true });
+/** @param {Page} page */
+const sentNotice = (page) => page.getByRole('region', { name: 'Request sent', exact: true });
+/** @param {Page} page */
+const sendButton = (page) => quoteForm(page).getByRole('button', { name: /^Send/ });
+/** @param {Page} page */
+const statusLine = (page) => quoteForm(page).getByTestId('quote-request-status');
+
+// The form's fields by their labels, in the order of the form, with the key of `contact()` each one takes.
+const FIELD_LABELS = [['name', 'Your name'], ['email', 'Email'], ['phone', 'Phone (optional)'], ['address', 'Where is the job? (optional)'], ['message', 'About the job']];
+
+/** @param {Page} page */
+async function fillForm(page, fields) {
+    for (const [key, label] of FIELD_LABELS) await quoteForm(page).getByLabel(label).fill(fields[key]);
+}
+
+/** @param {Page} page */
+async function expectFilled(page, fields) {
+    for (const [key, label] of FIELD_LABELS) await expect(quoteForm(page).getByLabel(label), `${label} keeps what was typed`).toHaveValue(fields[key]);
+}
+
+// The flow of service 1 on step 1, with its price shown and the four property types there.
+/** @param {Page} page */
+async function openFlow(page) {
+    await page.goto(`/booking/schedule?service=${SERVICE_1.id}`, { timeout: FIRST_VISIT_MS });
+    await expect(totalOf(page)).toBeVisible({ timeout: FIRST_VISIT_MS });
+    await expect(page.getByRole('group', { name: 'Type of property', exact: true }).getByRole('radio')).toHaveCount(4);
+}
+
+const jsonReply = (status, body) => ({ status, contentType: 'application/json', body: JSON.stringify(body) });
+
+test.describe('Quote requests: the screens', () => {
+    // Every case starts as a visitor who has not signed in or started a booking, as the booking-flow cases do.
+    test.use({ storageState: { cookies: [], origins: [] }, timezoneId: 'America/Vancouver' });
+
+    // Mutant that turns this case red: the hook does not take the quote answer (the box shows a price or nothing), the form is not rendered, Continue is on,
+    // the request carries other answers than the ones on screen, or a second press while it is sent saves a second request.
+    test('a job that needs a quote shows no price and the form, Continue stays off, and sending the form saves the request', async ({ page }) => {
+        test.setTimeout(120_000);
+        const mine = contact({ email: emailOf('f1') });
+        await openFlow(page);
+        await expect(quoteForm(page), 'a job with a price has no form').toHaveCount(0);
+
+        await propertyType(page, 'commercial').check();
+        await expect(quoteNotice(page)).toHaveText(QUOTE_SENTENCE);
+        await expect(priceAnnouncement(page), 'the live region says it too').toHaveText(QUOTE_SENTENCE);
+        await expect(totalOf(page), 'no total').toHaveCount(0);
+        await expect(priceBox(page).getByTestId('price-line'), 'no price line').toHaveCount(0);
+        await expect(priceBox(page), 'no figure, no charge or cancellation promise').not.toContainText(/\$\d|charged|cancellation/i);
+        await expect(continueButton(page), 'a job that needs a quote cannot go on to a booking').toBeDisabled();
+        await expect(quoteForm(page)).toBeVisible();
+        await expect(quoteForm(page).getByRole('heading', { name: 'Ask for a quote', level: 2 })).toBeVisible();
+        await expect(quoteForm(page)).toContainText("Tell us about the job and we'll come back to you with a price.");
+
+        // The post is held for a moment: the sending state shows, and a second press of Enter in a field sends nothing more.
+        let posts = 0;
+        await page.route('**/api/quote-requests', async (route) => {
+            if (route.request().method() !== 'POST') return route.continue();
+            posts += 1;
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+            return route.continue();
+        });
+        await fillForm(page, mine);
+        await sendButton(page).click();
+        await expect(sendButton(page)).toBeDisabled();
+        await expect(sendButton(page)).toHaveText('Sending…');
+        await expect(statusLine(page)).toHaveText('Sending your request…');
+        await quoteForm(page).getByLabel('Your name').press('Enter');
+
+        await expect(sentNotice(page)).toBeVisible();
+        await expect(sentNotice(page).getByRole('heading', { name: 'Request sent', level: 2 }), 'focus moves to the thank-you').toBeFocused();
+        await expect(sentNotice(page)).toContainText(sentText(mine.email));
+        await expect(quoteForm(page), 'the form is replaced, so there is no second send').toHaveCount(0);
+        await expect(continueButton(page)).toBeDisabled();
+        expect(posts, 'one request however many presses').toBe(1);
+
+        const saved = await rows('SELECT * FROM quote_requests WHERE customer_email = ?', [mine.email]);
+        expect(saved, 'one request saved').toHaveLength(1);
+        expect({
+            service_id: saved[0].service_id, customer_name: saved[0].customer_name, customer_phone: saved[0].customer_phone,
+            address: saved[0].address, message: saved[0].message, user_id: saved[0].user_id,
+        }, 'the request holds what was typed').toEqual({
+            service_id: SERVICE_1.id, customer_name: mine.name, customer_phone: mine.phone, address: mine.address, message: mine.message, user_id: null,
+        });
+        expect(parsed(saved[0].answers).property_type, 'the answers on screen').toBe('commercial');
+        expect(parsed(saved[0].picks), 'the pick that sent it to a quote').toContainEqual({ ...COMMERCIAL_FLAG, flagged: true });
+        expect(await count('SELECT COUNT(*) AS n FROM bookings WHERE customer_email = ?', [mine.email]), 'a request is not a booking').toBe(0);
+    });
+
+    // Mutant that turns this case red: the form shows for a job with a price, it stays after the answer is changed back, or the price does not return.
+    test('a job that can be priced shows its price and no form, and the price and the form swap as the answers change', async ({ page }) => {
+        test.setTimeout(120_000);
+        await openFlow(page);
+
+        // Base 80.00; the house adds 25.00 and the apartment nothing.
+        for (const [code, figure] of [['house', '$105.00'], ['apartment', '$80.00']]) {
+            await propertyType(page, code).check();
+            await expect(totalOf(page), `${code} has a price`).toHaveText(figure);
+            await expect(quoteNotice(page)).toHaveCount(0);
+            await expect(quoteForm(page), `${code} has no form`).toHaveCount(0);
+            await expect(continueButton(page)).toBeEnabled();
+        }
+
+        // Commercial and post-construction go to a quote; back to a house, the price and Continue return and the form goes.
+        for (const code of ['commercial', 'post_construction']) {
+            await propertyType(page, code).check();
+            await expect(quoteNotice(page), `${code} needs a quote`).toHaveText(QUOTE_SENTENCE);
+            await expect(totalOf(page)).toHaveCount(0);
+            await expect(quoteForm(page)).toBeVisible();
+            await expect(continueButton(page)).toBeDisabled();
+            await propertyType(page, 'house').check();
+            await expect(totalOf(page), 'the price returns').toHaveText('$105.00');
+            await expect(quoteNotice(page)).toHaveCount(0);
+            await expect(quoteForm(page), 'the form goes').toHaveCount(0);
+            await expect(continueButton(page)).toBeEnabled();
+        }
+
+        // A count crosses its threshold the same way: seven bedrooms are a quote, six are priced (80.00 + 25.00 + 6 x 20.00).
+        const bedrooms = page.getByRole('group', { name: BEDROOMS, exact: true }).getByRole('spinbutton');
+        await bedrooms.fill('7');
+        await expect(quoteNotice(page), 'seven bedrooms need a quote').toHaveText(QUOTE_SENTENCE);
+        await expect(quoteForm(page)).toBeVisible();
+        await bedrooms.fill('6');
+        await expect(totalOf(page)).toHaveText('$225.00');
+        await expect(quoteForm(page)).toHaveCount(0);
+    });
+
+    // Mutant that turns this case red: a failed post loses the typed values, shows the wrong text or no text, leaves the button off, or the retry does not send.
+    test('a post that fails shows the error and keeps what was typed, and the retry sends it', async ({ page }) => {
+        test.setTimeout(120_000);
+        const mine = contact({ email: emailOf('f3') });
+        // The first press meets a 500, the second a network failure, the third a 429, and the fourth reaches the server.
+        let posts = 0;
+        await page.route('**/api/quote-requests', (route) => {
+            if (route.request().method() !== 'POST') return route.continue();
+            posts += 1;
+            if (posts === 1) return route.fulfill(jsonReply(500, { success: false, message: 'Failed to send the request' }));
+            if (posts === 2) return route.abort('failed');
+            if (posts === 3) return route.fulfill(jsonReply(429, { success: false, message: TOO_MANY.message }));
+            return route.continue();
+        });
+        await openFlow(page);
+        await propertyType(page, 'commercial').check();
+        await fillForm(page, mine);
+
+        for (const [what, text] of [['a 500', SEND_ERROR], ['a network failure', SEND_ERROR], ['a 429', BUSY_ERROR]]) {
+            await sendButton(page).click();
+            await expect(statusLine(page), `${what}: the error`).toHaveText(text);
+            await expect(sendButton(page), `${what}: the button is back`).toBeEnabled();
+            await expect(sendButton(page)).toHaveText('Send request');
+            await expectFilled(page, mine);
+            await expect(sentNotice(page)).toHaveCount(0);
+        }
+        expect(await count('SELECT COUNT(*) AS n FROM quote_requests WHERE customer_email = ?', [mine.email]), 'the failures saved nothing').toBe(0);
+
+        await sendButton(page).click();
+        await expect(sentNotice(page)).toContainText(sentText(mine.email));
+        expect(posts, 'the retry was the fourth press').toBe(4);
+        expect(await count('SELECT COUNT(*) AS n FROM quote_requests WHERE customer_email = ?', [mine.email]), 'the retry saved one request').toBe(1);
+    });
+
+    // Mutant that turns this case red: the section is not mounted or shows a request without its name, contact, address, picks or message, the pick that sent it
+    // to a quote is not marked, the request also appears among the bookings, an empty list shows a section, or a failed load shows nothing or an empty section.
+    test('the admin page lists the requests in "Quote requests" and not among the bookings; with none there is no section; a failed load shows the error and Retry', async ({ page }) => {
+        test.setTimeout(240_000);
+        const email = emailOf('f4');
+        await seedRequest(email, 5, {
+            customer_name: 'E2E Admin Seen', customer_phone: '+1 (403) 555-0100', address: '12 Seed Street', message: 'Line one of the message\nLine two of the message',
+        });
+        const total = await count('SELECT COUNT(*) AS n FROM quote_requests');
+
+        await signInAs(page, 'admin');
+        const bookingsRead = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/bookings' && response.request().method() === 'GET', { timeout: ADMIN_VISIT_MS });
+        await page.goto('/admin/jobs', { timeout: ADMIN_VISIT_MS });
+        const section = page.getByTestId('quote-requests');
+        await expect(section).toBeVisible({ timeout: ADMIN_VISIT_MS });
+        await expect(section.getByRole('heading', { level: 2 })).toHaveText(`Quote requests (${total})`);
+
+        const row = section.getByTestId('quote-request-row').filter({ hasText: 'E2E Admin Seen' });
+        await expect(row).toHaveCount(1);
+        await expect(row.getByRole('heading', { level: 3 })).toHaveText('E2E Admin Seen');
+        await expect(row.getByRole('link', { name: email })).toHaveAttribute('href', `mailto:${email}`);
+        await expect(row.getByRole('link', { name: '+1 (403) 555-0100' })).toHaveAttribute('href', 'tel:+14035550100');
+        await expect(row).toContainText('12 Seed Street');
+        await expect(row).toContainText(SERVICE_1.name);
+        await expect(row.getByRole('listitem').filter({ hasText: labelOf('commercial') }), 'the pick that sent the job to a quote is marked in words').toContainText('Needs quote');
+        await expect(row).toContainText('Line one of the message');
+        await expect(row).toContainText('Line two of the message');
+
+        // The job list is read from the bookings, which do not hold a request: the name is on the page once, in the section.
+        await bookingsRead;
+        await expect(page.getByText('E2E Admin Seen')).toHaveCount(1);
+        await expect(page.getByText(email)).toHaveCount(1);
+
+        // A load that fails is shown with Retry, never as a missing or an empty section; Retry reads the list again.
+        await page.route('**/api/quote-requests?**', (route) => route.fulfill(jsonReply(500, { success: false, message: 'Failed to load quote requests' })));
+        await page.reload({ timeout: ADMIN_VISIT_MS });
+        await expect(section.getByRole('alert')).toHaveText("Couldn't load quote requests", { timeout: ADMIN_VISIT_MS });
+        await expect(section.getByTestId('quote-request-row'), 'no request is shown when the load failed').toHaveCount(0);
+        await expect(section.getByRole('button', { name: 'Retry', exact: true })).toBeEnabled();
+        await page.unroute('**/api/quote-requests?**');
+        await section.getByRole('button', { name: 'Retry', exact: true }).click();
+        await expect(section.getByTestId('quote-request-row').filter({ hasText: 'E2E Admin Seen' })).toHaveCount(1);
+        await expect(section.getByRole('alert')).toHaveCount(0);
+
+        // With no requests there is no section at all, once the list has been read.
+        await clearRequests();
+        const listRead = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/quote-requests' && response.request().method() === 'GET', { timeout: ADMIN_VISIT_MS });
+        await page.reload({ timeout: ADMIN_VISIT_MS });
+        expect((await listRead).status()).toBe(200);
+        // The admin shell names the page in its top bar too; the page's own heading is the last of the two.
+        await expect(page.getByRole('heading', { name: 'Job Requests', level: 1 }).last()).toBeVisible({ timeout: ADMIN_VISIT_MS });
+        await page.waitForTimeout(500); // let the answer be drawn: a section drawn for no requests would be on screen by now
+        await expect(section, 'no requests, no section').toHaveCount(0);
+    });
+
+    // Mutant that turns this case red: a field loses its label or its required mark, the status line is not a live region, a refused field is not marked
+    // or described, the thank-you is not announced, or an empty form is sent.
+    test('every field has a label, the status and thank-you text are in live regions, and the field the server refuses is marked', async ({ page }) => {
+        test.setTimeout(120_000);
+        const mine = contact({ email: emailOf('f5') });
+        let posts = 0;
+        await page.route('**/api/quote-requests', (route) => {
+            if (route.request().method() !== 'POST') return route.continue();
+            posts += 1;
+            if (posts === 1) return route.fulfill(jsonReply(400, { success: false, message: 'Enter a valid email address', field: 'email' }));
+            return route.continue();
+        });
+        await openFlow(page);
+        await propertyType(page, 'commercial').check();
+        const form = quoteForm(page);
+
+        // Each field is found by its label; the name, the e-mail and the message are required, the phone and the address are not.
+        const kinds = { name: ['text', true], email: ['email', true], phone: ['tel', false], address: ['text', false] };
+        for (const [key, label] of FIELD_LABELS.filter(([key]) => key !== 'message')) {
+            const [type, required] = kinds[key];
+            await expect(form.getByLabel(label), `${label} is a ${type} field`).toHaveAttribute('type', type);
+            await expect(form.getByLabel(label), `${label} is ${required ? '' : 'not '}required`).toHaveJSProperty('required', required);
+        }
+        await expect(form.getByLabel('About the job'), 'the message is required').toHaveJSProperty('required', true);
+        await expect(form.getByLabel('About the job')).toHaveJSProperty('tagName', 'TEXTAREA');
+
+        // The status line is a polite live region from the start, and an empty form is stopped by the browser at the first field.
+        await expect(statusLine(page)).toHaveAttribute('role', 'status');
+        await expect(statusLine(page)).toHaveAttribute('aria-live', 'polite');
+        await expect(statusLine(page)).toHaveText('');
+        await sendButton(page).click();
+        await expect(form.getByLabel('Your name'), 'the browser stops at the first required field').toBeFocused();
+        expect(posts, 'an empty form is not sent').toBe(0);
+
+        // The server refuses the e-mail: its message is under the field, the field is marked and described by it and has the focus; typing clears it.
+        await fillForm(page, mine);
+        await sendButton(page).click();
+        const email = form.getByLabel('Email');
+        const refusal = form.getByText('Enter a valid email address', { exact: true });
+        await expect(refusal).toBeVisible();
+        await expect(email).toHaveAttribute('aria-invalid', 'true');
+        await expect(email).toBeFocused();
+        const describedBy = await email.getAttribute('aria-describedby');
+        expect(describedBy, 'the field names its message').toBeTruthy();
+        await expect(page.locator(`[id="${describedBy}"]`)).toHaveText('Enter a valid email address');
+        await expectFilled(page, mine);
+        await email.pressSequentially('x');
+        await email.press('Backspace');
+        await expect(email).toHaveValue(mine.email);
+        await expect(refusal).toHaveCount(0);
+        await expect(email).not.toHaveAttribute('aria-invalid', 'true');
+        await expect(email).not.toHaveAttribute('aria-describedby', /./);
+
+        // The thank-you takes the focus and is described by the sentence it holds.
+        await sendButton(page).click();
+        const heading = sentNotice(page).getByRole('heading', { name: 'Request sent', level: 2 });
+        await expect(heading).toBeFocused();
+        const described = await heading.getAttribute('aria-describedby');
+        await expect(page.locator(`[id="${described}"]`)).toHaveText(sentText(mine.email));
+        expect(posts).toBe(2);
     });
 });
