@@ -16,13 +16,14 @@ export async function GET(request) {
 
   // Find all bookings awaiting_approval for more than 24 hours with no customer response. A booking whose payment could
   // not be taken is left to the admins and is not picked up again.
+  // A later visit of a series holds no payment of its own; it is charged on its series' card when it is done.
   const expiredBookings = await execute(`
     SELECT b.*, sp.stripe_account_id 
     FROM bookings b
     LEFT JOIN service_providers sp ON b.provider_id = sp.id
     WHERE b.status = 'awaiting_approval'
       AND b.updated_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)
-      AND b.payment_intent_id IS NOT NULL
+      AND (b.payment_intent_id IS NOT NULL OR b.series_visit > 1)
       AND (b.payment_status IS NULL OR b.payment_status <> 'failed')
       AND NOT EXISTS (
         SELECT 1 FROM disputes d WHERE d.booking_id = b.id AND d.status IN ('open', 'reviewing')
@@ -36,16 +37,28 @@ export async function GET(request) {
   for (const booking of expiredBookings) {
     let connection
     try {
+      // A later visit of a series holds no payment of its own: it is charged on the card of the payment its series' first
+      // visit holds, read from that visit only when it is the same customer's booking.
+      let cardIntentId = null
+      if (!booking.payment_intent_id && booking.series_visit > 1) {
+        const [first] = await execute(
+          'SELECT payment_intent_id FROM bookings WHERE id = ? AND user_id = ?',
+          [booking.series_id, booking.user_id]
+        )
+        cardIntentId = first ? first.payment_intent_id : null
+      }
+
       // The release takes the one charge for the booking's recorded price and pays the provider by the payout rule. The payment
       // is taken ahead of the booking's connection: the two callbacks take their own from the pool, so a connection held by this
       // run never waits for another.
       const collected = await collectBookingPayment(stripe, booking, {
         currency: process.env.STRIPE_CURRENCY || 'cad',
+        cardIntentId,
         // These two run on the pool and this run holds no connection while they do: a charge saved on the booking stays saved
-        // whatever this run does next.
+        // whatever this run does next. The save compares with <=>, which also matches a later visit's empty payment.
         saveIntentId: async (newId, oldId) => {
           const result = await execute(
-            'UPDATE bookings SET payment_intent_id = ? WHERE id = ? AND payment_intent_id = ?',
+            'UPDATE bookings SET payment_intent_id = ? WHERE id = ? AND payment_intent_id <=> ?',
             [newId, booking.id, oldId]
           )
           return result.affectedRows > 0

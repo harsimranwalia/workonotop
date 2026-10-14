@@ -57,8 +57,9 @@ export function checkHeldPayment(intent, { amountCents, currency, customerId, no
 }
 
 // collectBookingPayment(stripe, booking, opts) takes the one charge for a booking whose job is done, for the price recorded
-// on the booking. opts: { currency, saveIntentId(newId, oldId) -> saved?, readIntentId() -> the id on the booking }. The two
-// callbacks run outside the route's transaction, so a saved charge stays on the booking whatever the route does next.
+// on the booking. opts: { currency, saveIntentId(newId, oldId) -> saved?, readIntentId() -> the id on the booking, cardIntentId }.
+// The two callbacks run outside the route's transaction, so a saved charge stays on the booking whatever the route does next.
+// cardIntentId: for a booking with no payment of its own (a later visit of a series), the payment whose card it is charged on.
 // Never throws for an expected outcome.
 //   -> { ok: true, chargeId, amountCents, overCollected } | { ok: false, reason }
 // reason: 'mismatch' | 'declined' | 'action_required' | 'no_payment_method' | 'cancelled_by_person' | 'unavailable' | 'not_configured'
@@ -67,6 +68,19 @@ export async function collectBookingPayment(stripe, booking, opts = {}) {
   const currency = opts.currency || 'cad';
   const expected = Math.round(parseFloat(booking.service_price) * 100);
   if (!Number.isInteger(expected) || expected <= 0) return { ok: false, reason: 'mismatch' };
+
+  // A later visit of a series holds no payment of its own: it is charged, for its own recorded price, on the card of the
+  // payment its series' first visit holds (opts.cardIntentId), as a lapsed hold is.
+  if (!booking.payment_intent_id) {
+    if (!opts.cardIntentId) return { ok: false, reason: 'no_payment_method' };
+    let source;
+    try {
+      source = await stripe.paymentIntents.retrieve(opts.cardIntentId);
+    } catch (err) {
+      return { ok: false, reason: errorReason(err) };
+    }
+    return chargeSavedCard(stripe, booking, source, expected, currency, opts);
+  }
 
   let intent;
   try {

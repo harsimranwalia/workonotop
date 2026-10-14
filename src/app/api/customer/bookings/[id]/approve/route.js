@@ -196,17 +196,28 @@ export async function POST(request, { params }) {
     // ── The one charge, for the recorded price ───────────────────────
     let collected = null
     if (action === 'approve') {
-      if (!booking.payment_intent_id) {
+      // A later visit of a series holds no payment of its own: it is charged on the card of the payment its series' first
+      // visit holds, read from that visit only when it is this customer's booking.
+      let cardIntentId = null
+      if (!booking.payment_intent_id && booking.series_visit > 1) {
+        const [first] = await execute(
+          'SELECT payment_intent_id FROM bookings WHERE id = ? AND user_id = ?',
+          [booking.series_id, booking.user_id]
+        )
+        cardIntentId = first ? first.payment_intent_id : null
+      }
+      if (!booking.payment_intent_id && !cardIntentId) {
         return NextResponse.json({ success: false, message: 'No payment intent found' }, { status: 400 })
       }
 
       collected = await collectBookingPayment(stripe, booking, {
         currency: process.env.STRIPE_CURRENCY || 'cad',
+        cardIntentId,
         // These two run on the pool and this request holds no connection while they do: a charge saved on the booking stays
-        // saved whatever this request does next.
+        // saved whatever this request does next. The save compares with <=>, which also matches a later visit's empty payment.
         saveIntentId: async (newId, oldId) => {
           const result = await execute(
-            'UPDATE bookings SET payment_intent_id = ? WHERE id = ? AND payment_intent_id = ?',
+            'UPDATE bookings SET payment_intent_id = ? WHERE id = ? AND payment_intent_id <=> ?',
             [newId, id, oldId]
           )
           return result.affectedRows > 0
