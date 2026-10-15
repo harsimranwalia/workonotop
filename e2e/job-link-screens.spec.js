@@ -323,7 +323,8 @@ test.describe('Job link: the page', () => {
         const code = await signInCode(job, ann);
         await page.getByLabel('6-digit code').fill(otherThan(code));
         await page.getByRole('button', { name: 'Open the job' }).click();
-        await expect(alertSaying(page, CODE_FAILED), 'a wrong code is refused in the server\'s words').toBeVisible();
+        // The dev server compiles a route when it is first asked for, which can take longer than an assertion waits.
+        await expect(alertSaying(page, CODE_FAILED), 'a wrong code is refused in the server\'s words').toBeVisible({ timeout: FIRST_VISIT_MS });
         await expect(page.getByRole('heading', { name: 'Probe service' }), 'a wrong code opens nothing').toHaveCount(0);
 
         await page.getByLabel('6-digit code').fill(code);
@@ -392,7 +393,7 @@ test.describe('Job link: the page', () => {
         await crew.getByRole('checkbox', { name: 'Bea' }).check();
         await expect(button, 'two ticked').toHaveText('Check in 2');
         await button.click();
-        await expect(statusSaying(page, 'Checked in: Ann and Bea.'), 'the page says who is in').toBeVisible();
+        await expect(statusSaying(page, 'Checked in: Ann and Bea.'), 'the page says who is in').toBeVisible({ timeout: FIRST_VISIT_MS });
         await expect(crew.getByRole('listitem').filter({ hasText: 'Ann' }), 'Ann is listed as in').toContainText('checked in');
         await expect(crew.getByRole('checkbox', { name: 'Ann' }), 'and has no box any more').toHaveCount(0);
         await expect(crew.getByRole('checkbox', { name: 'Cat' }), 'Cat is yet to come').toBeVisible();
@@ -595,7 +596,7 @@ test.describe('Job link: the panels', () => {
 
         const check = row('Bea').getByRole('button', { name: "Check Bea's number" });
         await check.click();
-        await expect(alertSaying(page, "We couldn't send the text just now. Wait a minute, then try again."), 'a text that did not go opens no code field').toBeVisible();
+        await expect(alertSaying(page, "We couldn't send the text just now. Wait a minute, then try again."), 'a text that did not go opens no code field').toBeVisible({ timeout: FIRST_VISIT_MS });
         await expect(page.getByLabel(/^6-digit code from Bea/)).toHaveCount(0);
 
         await resetBudgets(budgetScope('check_ask', bea.id), budgetScope('number', bea.phone));
