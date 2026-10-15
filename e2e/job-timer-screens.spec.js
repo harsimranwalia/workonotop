@@ -783,8 +783,15 @@ test.describe('Job timer: the poll and the small screens', () => {
 
         for (const width of [320, 360, 375, 768, 1280]) {
             await page.setViewportSize({ width, height: 800 });
-            const widths = await page.evaluate(() => ({ page: document.documentElement.scrollWidth, window: window.innerWidth }));
-            expect(widths.page, `${width} px: the page is no wider than the window`).toBeLessThanOrEqual(widths.window);
+            const widths = await page.evaluate(() => ({
+                page: document.documentElement.scrollWidth,
+                window: window.innerWidth,
+                over: [...document.querySelectorAll('body *')]
+                    .filter((el) => el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).overflowX === 'visible')
+                    .map((el) => `${el.tagName.toLowerCase()}[${String(el.className).slice(0, 60)}] "${(el.textContent || '').trim().slice(0, 20)}" ${el.clientWidth}<${el.scrollWidth}`)
+                    .slice(-6),
+            }));
+            expect(widths.page, `${width} px: the page is no wider than the window${widths.over.length ? ` (content runs past: ${widths.over.join(' | ')})` : ''}`).toBeLessThanOrEqual(widths.window);
         }
 
         await page.setViewportSize({ width: 360, height: 800 });
@@ -827,7 +834,7 @@ async function panelJob(ctx, page, first) {
 }
 
 // What a manager's panel shows of such a job, then the figure after the rows are set back (Refresh), the quote used up, and a cleaner taken off the crew.
-async function checkBlock(page, ctx, panel, { ann, bea, job }, wait) {
+async function checkBlock(page, ctx, panel, { ann, bea, job }, wait, { activity }) {
     await expect(panel.getByRole('heading', { name: 'Job timer and photos', level: 3 }), 'the block').toBeVisible({ timeout: wait });
     await expect(panel.getByText('Running', { exact: true }).first(), 'the state as a word').toBeVisible();
     await expect(panel.getByRole('timer'), 'the clock').toHaveText(/^\d+:\d{2}:\d{2}$/);
@@ -851,8 +858,13 @@ async function checkBlock(page, ctx, panel, { ann, bea, job }, wait) {
     await expect(thumbnail).toHaveAttribute('target', '_blank');
     await expect(thumbnail).toHaveAttribute('rel', /noopener/);
     await expect(panel.getByRole('link', { name: /^After photo by Ann, / })).toBeVisible();
-    for (const sentence of ['Ann added a before photo', 'Ann added an after photo', 'Ann started the job', 'Ann paused the job', 'Ann resumed the job', 'Ann checked out Bea']) {
-        await expect(panel.getByText(sentence), `the activity says "${sentence}"`).toBeVisible();
+    if (activity) {
+        for (const sentence of ['Ann added a before photo', 'Ann added an after photo', 'Ann started the job', 'Ann paused the job', 'Ann resumed the job', 'Ann checked out Bea']) {
+            await expect(panel.getByText(sentence), `the activity says "${sentence}"`).toBeVisible();
+        }
+    } else {
+        await expect(panel.getByRole('heading', { name: 'Recent activity', level: 3 }), 'the provider has no activity list').toHaveCount(0);
+        await expect(panel.getByText('Ann started the job'), 'and none of its sentences').toHaveCount(0);
     }
 
     const figure = await annRow.innerText();
@@ -864,38 +876,44 @@ async function checkBlock(page, ctx, panel, { ann, bea, job }, wait) {
     await refresh.click();
     await expect(panel.getByText(/Over the quote since /), 'the chip').toBeVisible({ timeout: 30_000 });
     await expect(panel.getByRole('timer'), 'the clock says how far over').toHaveText(/Over by \d+:\d{2}:\d{2}/);
-    await expect(panel.getByText('The job went over its quoted time'), 'the activity says so').toBeVisible();
+    if (activity) await expect(panel.getByText('The job went over its quoted time'), 'the activity says so').toBeVisible();
 
     await dataOf(await writing(() => ctx.request.put(`/api/provider/jobs/${job.bookingId}/crew`, { headers: ctx.as.provider, data: { crew_ids: [bea.id] } })), 200, 'provider 1 takes Ann off the crew');
     await refresh.click();
-    await expect(panel.getByText(/Ann was taken off the crew while checked in; checked out when .+ looked/), 'the removal').toBeVisible({ timeout: 30_000 });
-    await expect(panel.getByText('The job paused when the last cleaner checked out'), 'the pause when the last one left').toBeVisible();
+    if (activity) {
+        await expect(panel.getByText(/Ann was taken off the crew while checked in; checked out when .+ looked/), 'the removal').toBeVisible({ timeout: 30_000 });
+        await expect(panel.getByText('The job paused when the last cleaner checked out'), 'the pause when the last one left').toBeVisible();
+    } else {
+        await expect(annRow, 'the cleaner taken off the crew is stamped out').not.toContainText('here now', { timeout: 30_000 });
+    }
     await expect(panel.getByText('Paused', { exact: true }).first(), 'the state as a word').toBeVisible();
 }
 
 test.describe('Job timer: the panels', () => {
     sweepAround();
 
-    // Mutant that turns this case red: the block is missing, shows another state, leaves out a column, a photo or a sentence of the activity, Refresh does not
-    // read again, the chip or the Over by clock is missing once the quote is used, or a cleaner taken off the crew is not stamped out.
-    test("Screens: the provider's panel shows the timer and the photos of a job, the sentences of what each phone did, and follows Refresh, the quote used up and a cleaner taken off the crew", async ({ page, request, baseURL, playwright }) => {
+    // The provider's panel carries no activity list (the audit trail is the admin's, ENG-015), so this case pins the block and the photos, and that the list is absent.
+    // Mutant that turns this case red: the block is missing, shows another state, leaves out a column or a photo, the provider is shown the activity, Refresh does
+    // not read again, the chip or the Over by clock is missing once the quote is used, or a cleaner taken off the crew is not stamped out.
+    test("Screens: the provider's panel shows the timer and the photos of a job with no activity list, and follows Refresh, the quote used up and a cleaner taken off the crew", async ({ page, request, baseURL, playwright }) => {
         test.setTimeout(420_000);
         const ctx = await setup(playwright, request, baseURL);
         const made = await panelJob(ctx, page, 196);
         await (await db()).execute('UPDATE service_providers SET stripe_onboarding_complete = 1 WHERE id = ?', [PROVIDER1.id]);
         await signInAs(page, 'provider1');
         await page.goto(`/provider/jobs/${made.job.bookingId}`, { timeout: FIRST_VISIT_MS });
-        await checkBlock(page, ctx, page.getByRole('region', { name: 'Job link for your crew', exact: true }), made, FIRST_VISIT_MS);
+        await checkBlock(page, ctx, page.getByRole('region', { name: 'Job link for your crew', exact: true }), made, FIRST_VISIT_MS, { activity: false });
     });
 
-    // Mutant that turns this case red: the admin's panel leaves the block out, or shows it differently from the provider's.
+    // Mutant that turns this case red: the admin's panel leaves the block out, shows it differently from the provider's, or leaves out a sentence of the activity
+    // that only the admin's panel carries.
     test("Screens: the admin's panel shows the same block and the same sentences, and follows Refresh, the quote used up and a cleaner taken off the crew", async ({ page, request, baseURL, playwright }) => {
         test.setTimeout(480_000);
         const ctx = await setup(playwright, request, baseURL);
         const made = await panelJob(ctx, page, 198);
         await signInAs(page, 'admin');
         await page.goto(`/admin/bookings/${made.job.bookingId}`, { timeout: ADMIN_FIRST_VISIT_MS });
-        await checkBlock(page, ctx, page.getByRole('region', { name: 'Job link', exact: true }), made, ADMIN_FIRST_VISIT_MS);
+        await checkBlock(page, ctx, page.getByRole('region', { name: 'Job link', exact: true }), made, ADMIN_FIRST_VISIT_MS, { activity: true });
     });
 });
 

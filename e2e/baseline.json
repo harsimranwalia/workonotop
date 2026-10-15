@@ -3339,10 +3339,25 @@
     "job-photo-routes.spec.js › Job photo route: the cap on the body › Photos: a multipart body of exactly the cap is kept (200), the file as long as the framing allows": {
       "outcome": "PASS"
     },
+    "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: a store that can not write is 503 \"Photos can not be saved right now. Try again in a minute.\" and keeps no row, no event and no file": {
+      "outcome": "PASS"
+    },
     "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 1 against rung 3, a body past the cap with no credential is 401 (access is judged before a byte of the body is read)": {
       "outcome": "PASS"
     },
+    "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 1, a live link with no credential is 401 \"Enter your code to continue.\" and writes nothing, also when the request breaks the body rules as well (JSON, no file, a wrong type, a GIF)": {
+      "outcome": "PASS"
+    },
     "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 10, the 21st photo of a type is 409 \"This job has all the photos it can hold.\" for a before photo on a confirmed job and for an after photo on a started one (20 rows planted by SQL, one sent); the other type is not affected": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 2, a JSON body is 400 \"Invalid request.\" and writes nothing; so is JSON past the cap (the type of the body is judged before it is read), and a multipart type with no form in it": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 3, a multipart body one byte past the cap is 413 \"That photo is too big. Take it again.\" and writes nothing, also with a wrong type or no type (the cap is judged before the form is read), and the framing counts: a file under the cap in a body over it is 413": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 4, a form with no file part and a form whose photo field is plain text are each 400 \"Invalid request.\"; with a wrong type as well it is the same 400 (the file is judged before the type)": {
       "outcome": "PASS"
     },
     "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 5, a type that is neither before nor after, and a missing type, are 400 \"Pick before or after.\"; with a cleaner who is not checked in, or bytes that are not a photo, it is the same 400 (the type is judged before the rest)": {
@@ -3492,6 +3507,9 @@
     "job-timer-page.spec.js › Job timer: the page › Screens: the job can not be started until a before photo is taken, the photo shows who took it, and then the clock starts": {
       "outcome": "PASS"
     },
+    "job-timer-page.spec.js › Job timer: the panels › Screens: the admin's and the provider's panels show the job's timer, who worked how long and the photos, and the admin's panel says who did what": {
+      "outcome": "PASS"
+    },
     "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: EVENT_KINDS is the fourteen names, in order": {
       "outcome": "PASS"
     },
@@ -3561,6 +3579,9 @@
     "job-timer-screens.spec.js › Job timer: the panels › Screens: the admin's panel shows the same block and the same sentences, and follows Refresh, the quote used up and a cleaner taken off the crew": {
       "outcome": "PASS"
     },
+    "job-timer-screens.spec.js › Job timer: the panels › Screens: the provider's panel shows the timer and the photos of a job with no activity list, and follows Refresh, the quote used up and a cleaner taken off the crew": {
+      "outcome": "PASS"
+    },
     "job-timer-screens.spec.js › Job timer: the photos › Screens: a checked-in cleaner adds a before photo and sees it with their name and the time, in a link that opens a new tab, and the row says a cleaner took it": {
       "outcome": "PASS"
     },
@@ -3574,6 +3595,9 @@
       "outcome": "PASS"
     },
     "job-timer-screens.spec.js › Job timer: the poll and the small screens › Screens: the page asks the timer again every 30 seconds, shows a crew that changed on another phone, says nothing is lost when the server is out of reach, and leaves for the invalid screen on a 404": {
+      "outcome": "PASS"
+    },
+    "job-timer-screens.spec.js › Job timer: the poll and the small screens › Screens: with a 104-letter name the page does not scroll sideways from 320 to 1280 px, and at 360 px every button and link of the Crew, Photos and Timer cards is a target of 44 px": {
       "outcome": "PASS"
     },
     "job-timer-screens.spec.js › Job timer: the sentences the page and the server share › Screens: the reasons under an off Start are the sentences the server refuses with, the photo limit is the server's, and the file inputs ask for the camera": {

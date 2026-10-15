@@ -118,12 +118,12 @@ async function rows(sql, params = []) {
 
 const countOf = async (sql, params = []) => Number((await rows(sql, params))[0].n);
 
-// The stored photo files of the directory, by name; [] when the directory is not there yet.
+// The stored photo files of the directory, by name; [] when the directory is not there yet, or is a plain file (the 503 case puts one there).
 async function photoFiles() {
     try {
         return (await fs.readdir(PHOTO_DIRECTORY)).filter((name) => STORED_NAME.test(name)).sort();
     } catch (error) {
-        if (/** @type {any} */ (error).code === 'ENOENT') return [];
+        if (['ENOENT', 'ENOTDIR'].includes(/** @type {any} */ (error).code)) return [];
         throw error;
     }
 }
@@ -706,6 +706,33 @@ test.describe('Job photo route: the refusals, in the order the route judges them
         expect(kept.status, `the 20th before photo is kept (${kept.body?.message ?? 'no message'})`).toBe(200);
         expect(kept.body.data.photos.length, 'the answer lists 20 photos').toBe(PHOTOS_MAX_PER_TYPE);
         await refused(job, 'the photo after the 20th', 409, PHOTO_MESSAGES.tooMany, () => postParts(request, job, cleaner, [typePart('before'), photoPart(TINY_JPEG)]));
+    });
+
+    // The store is the last thing the route reaches: a photo that passes every rung and can not be written is 503 and leaves no row, no event and no file. The app runs
+    // as root in its container, so no directory mode would stop it; a plain file where the directory should be does, because the store can not make a directory over
+    // a file. The directory goes back in the finally, with the files it held. Mutant that turns this case red: the route answers 500 or 200 for a failed write, or
+    // keeps a row or an event for a photo that was not stored.
+    test('Photos: a store that can not write is 503 "Photos can not be saved right now. Try again in a minute." and keeps no row, no event and no file', async ({ playwright, request, baseURL }) => {
+        test.setTimeout(180_000);
+        const ctx = await setup(playwright, request, baseURL);
+        const { job, cleaner } = await probeJob(ctx);
+        const aside = `${PHOTO_DIRECTORY}.aside-${tag()}`;
+        let moved = false;
+        try {
+            try {
+                await fs.rename(PHOTO_DIRECTORY, aside);
+                moved = true;
+            } catch (error) {
+                if (/** @type {any} */ (error).code !== 'ENOENT') throw error;
+            }
+            await fs.writeFile(PHOTO_DIRECTORY, 'a file where the photo directory should be');
+            await refused(job, 'a photo the store can not write', 503, PHOTO_MESSAGES.store, () => postParts(request, job, cleaner, [typePart('before'), photoPart(TINY_JPEG)]));
+        } finally {
+            if ((await fs.stat(PHOTO_DIRECTORY).catch(() => null))?.isFile()) await fs.rm(PHOTO_DIRECTORY, { force: true });
+            if (moved) await fs.rename(aside, PHOTO_DIRECTORY);
+        }
+        const kept = await postParts(request, job, cleaner, [typePart('before'), photoPart(TINY_JPEG)]);
+        expect(kept.status, `with the directory back the same photo is kept (${kept.body?.message ?? 'no message'})`).toBe(200);
     });
 });
 
