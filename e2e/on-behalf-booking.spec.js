@@ -283,10 +283,8 @@ test.describe('On-behalf booking: the screens', () => {
 
         // The steps in between are walked by the other cases; the flow they leave is written here, on top of what "Book this" opened.
         const answered = savedFlow({ answers: COMMERCIAL });
-        await page.evaluate((extra) => {
-            const flow = JSON.parse(sessionStorage.getItem('bookingFlow') || 'null');
-            sessionStorage.setItem('bookingFlow', JSON.stringify({ ...flow, ...extra }));
-        }, { whenAndWhere: answered.whenAndWhere, schedule: answered.schedule, details: answered.details, answers: answered.answers });
+        // Seeded ahead of the confirm screen's first script: the schedule screen that is open saves its own flow, with its own empty dates, over anything written into its session.
+        await seedFlow(page, { ...opened, whenAndWhere: answered.whenAndWhere, schedule: answered.schedule, details: answered.details, answers: answered.answers });
         await page.goto('/booking/confirm', { timeout: FIRST_VISIT_MS });
         await expect(page.getByLabel('First name')).toHaveValue('Quote', { timeout: FIRST_VISIT_MS });
         await expect(page.getByLabel('Last name')).toHaveValue('Caller');
