@@ -92,7 +92,7 @@ export function tickedView(crew, checkins) {
 }
 
 // Whether the caller is still who the route found them to be, judged inside the lock.
-function stillAllowed(access, booking, crew) {
+export function stillAllowed(access, booking, crew) {
   if (access.kind === 'admin') return true;
   if (access.kind === 'provider') return booking.provider_id === access.ref;
   if (access.kind === 'cleaner') return crew.some((member) => !member.removed && member.id === access.ref && member.assigned_epoch === access.epoch);
