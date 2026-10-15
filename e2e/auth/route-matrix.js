@@ -1,4 +1,4 @@
-// The route matrix: every route file and exported method under src/app/api, one row each, as data (218 rows).
+// The route matrix: every route file and exported method under src/app/api, one row each, as data (224 rows).
 //
 // SOURCE: Appendix A of agents/architect/designs/ENG-004-lock-down-unauthenticated-access-and-role-checks.md (the
 // design for ENG-004; ADR-003). This file was generated from that table, in the table's order and with its route
@@ -26,11 +26,11 @@
 //   note     the census note as in the appendix (cut to fit there), plus a line where this file adds something
 //   probe    what the role-by-route test sends:
 //              path      the route with each [param] replaced by PROBE_IDS.missing, an id no fixture row has
-//              body      undefined for GET and DELETE (107 rows) and for the four POST and PUT rows whose handler `await`s
+//              body      undefined for GET and DELETE (110 rows) and for the four POST and PUT rows whose handler `await`s
 //                        request.json() before its first side effect (a request with no body throws there, nothing is
 //                        written; the notes of the four cite the lines), and for POST /api/admin/bookings/[id]/push, POST
 //                        /api/admin/bookings/[id]/card-link and POST /api/card/[token]/setup, whose handlers read no body; {}
-//                        for the other 104 POST, PUT and PATCH rows. {} is the convention, not a finding that the handler
+//                        for the other 107 POST, PUT and PATCH rows. {} is the convention, not a finding that the handler
 //                        validates it: see "What a probe does" below.
 //              query     optional, e.g. '?id=999999999', for a handler that reads its id from the query (none set yet)
 //              anon      roles rows: 401, always (the contract). public and self rows: an array of the statuses a
@@ -53,7 +53,7 @@
 // roles: ['admin', 'provider'] with the split in its note.
 //
 // What a probe does. Every probe uses a fixture account only (@workontap.test), an id no fixture row has, and an empty body
-// or none: 218 of the 218 rows, by a script (the body is undefined or {}, the path is the route with each [param] replaced
+// or none: 224 of the 224 rows, by a script (the body is undefined or {}, the path is the route with each [param] replaced
 // by PROBE_IDS.missing, no row sets a query). That does not make a probe harmless by itself: a handler that needs no input
 // acts on {} and on nothing (ENG-020 review B1, QA F1). What the notes say about it, as counted by script:
 //   - Twelve rows carry a `Probe (B2, 2026-10-02` line (the rows whose note holds that text): GET and PATCH
@@ -64,11 +64,11 @@
 //     where the handler writes or sends, the first side effect it stops before (a write, a schema change, mail, a push, an
 //     outbound call, a payment, a file); GET /api/admin/deletion-requests carries only a cross-reference to the PATCH row, for
 //     the same fetch.
-//   - The other 206 rows have no such line: 124 are write rows (POST, PUT, PATCH, DELETE) and 82 are GET (script counts).
-//     49 of the 206 (36 public, 13 self) carry a `Probe measured on the dev app` line instead, which records the
+//   - The other 212 rows have no such line: 128 are write rows (POST, PUT, PATCH, DELETE) and 84 are GET (script counts).
+//     49 of the 212 (36 public, 13 self) carry a `Probe measured on the dev app` line instead, which records the
 //     status measured there for the request with no credential and no body. Code-review round 1 read the write handlers the
 //     probes reach (88: 31 admin, 57 other; agents/principal-engineer/notebook/2026-10-02-eng020-review.md; the matrix has
-//     101 routes with a write row, 35 admin and 66 other, and the difference was not traced). It did not read the GET
+//     104 routes with a write row, 35 admin and 69 other, and the difference was not traced). It did not read the GET
 //     handlers, nor the public, self and pending rows as such. The GET handlers were scanned in review round 2 (comments
 //     removed; the scan found two that reach a write) and again by this round's sweep of all 83 GET rows (next bullet). No
 //     field of the 195 rows that were there before ENG-007 added its row (POST /api/pricing, a public row with no `Probe measured`
@@ -927,6 +927,26 @@ export const matrix = [
         probe: { path: '/api/provider/check-verification', body: undefined, anon: [400] },
     },
     {
+        route: '/api/provider/crew', method: 'GET', today: 'none', kind: 'roles', roles: ['provider'], owner: 'own crew list',
+        note: 'ENG-014: a new route (src/app/api/provider/crew/route.js). GET calls requireCaller(request, [\'provider\']) as its first statement, before the body or the database is read: no credential is 401, any other role 403. Ownership (own crew list) comes from auth.caller.id and from nothing in the request: the answer is the caller\'s members that are not removed, by name, with the limit of 30; another provider\'s member and a removed member are never in it. The probe sends no body and a provider gets the list, so nothing is written. No \'Probe measured\' claim: the probe was not run on the dev app when this row was written.',
+        probe: { path: '/api/provider/crew', body: undefined, anon: 401 },
+    },
+    {
+        route: '/api/provider/crew', method: 'POST', today: 'none', kind: 'roles', roles: ['provider'], owner: 'own crew list',
+        note: 'ENG-014: a new route (src/app/api/provider/crew/route.js). POST calls requireCaller(request, [\'provider\']) as its first statement, before the body is read: no credential is 401, any other role 403, and nothing is written for either. For a provider it adds a cleaner (a name and a mobile number kept as E.164) to the caller\'s own crew, at most 30; a provider_id in the body is not read. The probe sends an empty JSON body: the answer to a provider is 400 "Enter the cleaner\'s name." (e2e/provider-crew.spec.js asserts it), so no crew row is written. No \'Probe measured\' claim: the probe was not run on the dev app when this row was written.',
+        probe: { path: '/api/provider/crew', body: {}, anon: 401 },
+    },
+    {
+        route: '/api/provider/crew/[id]', method: 'DELETE', today: 'none', kind: 'roles', roles: ['provider'], owner: 'own crew member',
+        note: 'ENG-014: a new route (src/app/api/provider/crew/[id]/route.js). DELETE calls requireCaller(request, [\'provider\']) as its first statement, before the id is read or the database is touched: no credential is 401, any other role 403. For a provider it removes one of the caller\'s own members (a soft delete: the row keeps its name and number) and takes that member off the caller\'s jobs that are not finished. A member that is not the caller\'s, is already removed or does not exist is the one 404 \'Crew member not found\'. The probe\'s id matches no member: 404, so nothing is written.',
+        probe: { path: '/api/provider/crew/999999999', body: undefined, anon: 401 },
+    },
+    {
+        route: '/api/provider/crew/[id]', method: 'PATCH', today: 'none', kind: 'roles', roles: ['provider'], owner: 'own crew member',
+        note: 'ENG-014: a new route (src/app/api/provider/crew/[id]/route.js). PATCH calls requireCaller(request, [\'provider\']) as its first statement, before the id or the body is read: no credential is 401, any other role 403, and nothing is written for either. For a provider it corrects the name or the number (read again by the same rule that stores it) of one of the caller\'s own active members. A member that is not the caller\'s, is removed or does not exist is the one 404 \'Crew member not found\', before the body is read. The probe sends an empty JSON body to an id that matches no member: 404, so nothing is written.',
+        probe: { path: '/api/provider/crew/999999999', body: {}, anon: 401 },
+    },
+    {
         route: '/api/provider/dashboard-stats', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own stats',
         note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/dashboard-stats/route.js:6-7, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own stats) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/dashboard-stats/route.js:10. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Sound gate and ownership; no provider status check.',
         probe: { path: '/api/provider/dashboard-stats', body: undefined, anon: 401 },
@@ -945,6 +965,16 @@ export const matrix = [
         route: '/api/provider/jobs/[id]', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own job, or an open-pool job; never another provider\'s',
         note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/jobs/[id]/route.js:7-8, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own job, or an open-pool job; never another providers) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/jobs/[id]/route.js:28. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): SELECT b.* (L31) returns the full booking row incl. customer contact and address for any unassi…',
         probe: { path: '/api/provider/jobs/999999999', body: undefined, anon: 401 },
+    },
+    {
+        route: '/api/provider/jobs/[id]/crew', method: 'GET', today: 'none', kind: 'roles', roles: ['provider'], owner: 'own job, given or claimed; own crew members',
+        note: 'ENG-014: a new route (src/app/api/provider/jobs/[id]/crew/route.js). GET calls requireCaller(request, [\'provider\']) as its first statement, before the id is read or the database is touched: no credential is 401, any other role 403. Ownership (own job, given or claimed) comes from auth.caller.id: the job must have provider_id = the caller, in any status. Another provider\'s job, an open-pool job, a job nobody holds, a missing id and an id that is not a number are one 404 \'Job not found\', and nothing about the job is read for them. The probe\'s id matches no booking: 404, so nothing is written.',
+        probe: { path: '/api/provider/jobs/999999999/crew', body: undefined, anon: 401 },
+    },
+    {
+        route: '/api/provider/jobs/[id]/crew', method: 'PUT', today: 'none', kind: 'roles', roles: ['provider'], owner: 'own job, given or claimed; own crew members',
+        note: 'ENG-014: a new route (src/app/api/provider/jobs/[id]/crew/route.js). PUT calls requireCaller(request, [\'provider\']) as its first statement, before the id or the body is read: no credential is 401, any other role 403, and nothing is written for either. For a provider it replaces the set of the caller\'s own members on one of the caller\'s own jobs (crew_ids in the body; a provider_id in the body or the query string is not read) and answers who was added and who was removed. A job that is finished is a 409 and an id that is not the caller\'s own active member is a 400, with nothing written. The probe sends an empty JSON body to an id that matches no booking: the answer is a 400 (crew_ids is not a list) or the 404 \'Job not found\', and either way nothing is written.',
+        probe: { path: '/api/provider/jobs/999999999/crew', body: {}, anon: 401 },
     },
     {
         route: '/api/provider/jobs/photos', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'photos of own assigned jobs',
