@@ -33,11 +33,20 @@
 //   function ENG-016 reads: its length is who is at the job. `crew` is assignedCrew(…, { withAssignedAt: true }), read once by a caller that has
 //   it; without it the function reads it.
 // tickedView(crew, checkins) -> [{ id, name, checked_in, checked_in_at }] for each member, names and ticks only: no number, no coordinates.
+// CHECKIN_MESSAGES, opensMessage(label) -> the sentences the check-in route sends for 'ids', 'location', 'not_on_crew' and 'window'.
 import { CREW_MAX, assignedCrew, inTransaction } from './booking-crew.js';
 import { JOB_LINK_OPEN_STATUSES, displayName, executeOn, recordEvent } from './job-link-base.js';
 import { awayFrom, readLocation, windowView } from './job-window.js';
 
 const DUPLICATE_KEY = 1062;
+
+export const CHECKIN_MESSAGES = {
+  ids: 'Pick who is here.',
+  location: "We need your phone's location to check in. Allow location for this page and try again.",
+  notOnCrew: "Pick cleaners from this job's crew.",
+};
+
+export const opensMessage = (label) => `Check-in opens at ${label}.`;
 
 export function readCrewIds(value) {
   if (!Array.isArray(value) || value.length < 1 || value.length > CREW_MAX) return { ok: false };
