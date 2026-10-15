@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withConnection } from '@/lib/db'
 import { requireCaller } from '@/lib/api-auth'
+import { clearBookingCrew } from '@/lib/booking-crew'
 
 export async function POST(request, { params }) {
   const auth = await requireCaller(request, ['admin']);
@@ -20,6 +21,9 @@ export async function POST(request, { params }) {
       await connection.beginTransaction()
 
       try {
+        // The job starts again, so the crew its old provider picked goes with the round (ENG-014).
+        await clearBookingCrew(connection, id)
+
         // Update booking - assign new provider and reset
         // Writing provider_id clears the push marker: a job reaches providers only through a push made while it has no provider.
         await connection.execute(

@@ -11,6 +11,7 @@ import { catalogPrice } from '@/lib/booking-price'
 import { loadPricing, priceJob, priceVisits, refusalOf } from '@/lib/pricing-rules'
 import { paymentAmountCents, paymentCheckMode, checkHeldPayment } from '@/lib/booking-payment'
 import { FREQUENCIES, visitSlot } from '@/lib/visit-series'
+import { clearBookingCrew } from '@/lib/booking-crew'
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-05-27.dahlia' }) : null
 
@@ -598,6 +599,7 @@ export async function PUT(request) {
           updateParams.push(current.current_provider || null, 'not_started');
           await connection.execute(`DELETE FROM job_photos WHERE booking_id = ?`, [id]);
           await connection.execute(`DELETE FROM booking_time_logs WHERE booking_id = ?`, [id]);
+          await clearBookingCrew(connection, id);
         } else {
           if (current.current_provider !== null && Number(current.current_provider) !== Number(body.provider_id)) {
             console.error(`[API PUT] Booking ${id} is held by provider ${current.current_provider}; assignment to ${body.provider_id} refused.`);
