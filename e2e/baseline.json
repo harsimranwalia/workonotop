@@ -3330,6 +3330,69 @@
     "job-photo-retention.spec.js › Job photo retention: the route source › Retention: the cron route calls requireCronSecret first and runs the retention with the pool's execute": {
       "outcome": "PASS"
     },
+    "job-photo-routes.spec.js › Job photo route: the cap on the body › Photos: a Content-Length smaller than the body that is sent never lets the surplus into a photo: the answer is a refusal (the route's 413 or 400, or the server's own 400) or a reset, nothing is written, and the app keeps answering": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: the cap on the body › Photos: a body with no length (chunked, no Content-Length) that runs far past the cap is stopped: 413 or a reset, nothing is written, and the app keeps answering": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: the cap on the body › Photos: a multipart body of exactly the cap is kept (200), the file as long as the framing allows": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 1 against rung 3, a body past the cap with no credential is 401 (access is judged before a byte of the body is read)": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 10, the 21st photo of a type is 409 \"This job has all the photos it can hold.\" for a before photo on a confirmed job and for an after photo on a started one (20 rows planted by SQL, one sent); the other type is not affected": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 5, a type that is neither before nor after, and a missing type, are 400 \"Pick before or after.\"; with a cleaner who is not checked in, or bytes that are not a photo, it is the same 400 (the type is judged before the rest)": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 6, bytes that are not a JPEG, PNG or WebP are 400 \"That file is not a photo we can use. Take it again.\" whatever name and type the client gave (a GIF, an SVG with and without an XML header, an HTML page, a PDF header, an empty file, two bytes, a truncated JPEG); a cleaner who is not checked in gets the same 400": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 7, a cleaner who is not checked in is 409 \"Check in first, then add a photo.\" for a before and for an after photo; the provider and the admin need no check-in and are not refused": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 8, a before photo once the job has started is 409 \"The job has started, so more before photos can not be added.\" (with 20 before photos already there it is this answer and not the limit)": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 9, an after photo before the job has started is 409 \"Start the job before adding after photos.\" (with 20 after photos already there it is this answer and not the limit)": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: the 20th photo of a type is kept (19 planted, one sent, 200) and the next one is refused": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: what is kept › AC1: a JPEG from a checked-in cleaner is 200 with { photo, photos }, stored as jpg from its bytes, with a photo_added event for the cleaner and no photo address in it": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: what is kept › AC1: a JPEG with an Exif segment that carries GPS is kept without it: the stored file has neither Exif nor GPS, starts FF D8 and ends FF D9": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: what is kept › AC1: a PNG sent as image/jpeg named x.jpg from a checked-in cleaner is 200 with { photo, photos }, stored as png from its bytes, with a photo_added event for the cleaner and no photo address in it": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: what is kept › AC1: a WebP sent as image/png named lounge.png from a checked-in cleaner is 200 with { photo, photos }, stored as webp from its bytes, with a photo_added event for the cleaner and no photo address in it": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: what is kept › AC1: the provider and the admin each add a photo with no check-in; the photo and the photo_added event name who took it": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › readCappedBody: the counter in front of the form parser › Photos: a Content-Length that is missing or false does not matter: the bytes that arrive are what is counted": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › readCappedBody: the counter in front of the form parser › Photos: a body of exactly the cap passes, in one chunk and in many": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › readCappedBody: the counter in front of the form parser › Photos: a body one byte over the cap is refused, reading stops there and the source is cancelled": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › readCappedBody: the counter in front of the form parser › Photos: a request with no body passes with no bytes": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › readCappedBody: the counter in front of the form parser › Photos: a stream that never ends is cut at the cap, its source is cancelled and it is not drained": {
+      "outcome": "PASS"
+    },
     "job-photos.spec.js › ENG-016 photos: pins › Pins: PHOTO_DIR is public/uploads/job-photos, and PHOTO_URL_BASE is the address the uploads route serves that directory at": {
       "outcome": "PASS"
     },
@@ -3423,6 +3486,12 @@
     "job-timer-access.spec.js › Job timer, photos and check-out: who gets in › Access: the provider and an admin get in, and nothing is written": {
       "outcome": "PASS"
     },
+    "job-timer-page.spec.js › Job timer: the page › Screens: the clock divides the quoted time among the cleaners here, divides it again when one checks out or another checks in, and a check-out is asked about first": {
+      "outcome": "PASS"
+    },
+    "job-timer-page.spec.js › Job timer: the page › Screens: the job can not be started until a before photo is taken, the photo shows who took it, and then the clock starts": {
+      "outcome": "PASS"
+    },
     "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: EVENT_KINDS is the fourteen names, in order": {
       "outcome": "PASS"
     },
@@ -3481,6 +3550,45 @@
       "outcome": "PASS"
     },
     "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: vercel.json runs /api/cron/job-photos at \"37 4 * * *\"": {
+      "outcome": "PASS"
+    },
+    "job-timer-screens.spec.js › Job timer: the crew card and the quote › Screens: Check out asks first, Stay writes nothing, and Check out leaves a Checked out row with no button and no tick box": {
+      "outcome": "PASS"
+    },
+    "job-timer-screens.spec.js › Job timer: the crew card and the quote › Screens: when the crew time used reaches the quote the page says so, the clock reads Over by, and nothing else is promised": {
+      "outcome": "PASS"
+    },
+    "job-timer-screens.spec.js › Job timer: the panels › Screens: the admin's panel shows the same block and the same sentences, and follows Refresh, the quote used up and a cleaner taken off the crew": {
+      "outcome": "PASS"
+    },
+    "job-timer-screens.spec.js › Job timer: the photos › Screens: a checked-in cleaner adds a before photo and sees it with their name and the time, in a link that opens a new tab, and the row says a cleaner took it": {
+      "outcome": "PASS"
+    },
+    "job-timer-screens.spec.js › Job timer: the photos › Screens: a file that is not a picture is refused with no retry, and a photo the server could not keep shows its sentence and Try again sends it once more": {
+      "outcome": "PASS"
+    },
+    "job-timer-screens.spec.js › Job timer: the photos › Screens: a refusal because the job has started shows the server's sentence with no Try again, and the before button turns off with the reason": {
+      "outcome": "PASS"
+    },
+    "job-timer-screens.spec.js › Job timer: the photos › Screens: before the cleaner checks in both add buttons are off with their reasons as text, and the card says a before photo is needed": {
+      "outcome": "PASS"
+    },
+    "job-timer-screens.spec.js › Job timer: the poll and the small screens › Screens: the page asks the timer again every 30 seconds, shows a crew that changed on another phone, says nothing is lost when the server is out of reach, and leaves for the invalid screen on a 404": {
+      "outcome": "PASS"
+    },
+    "job-timer-screens.spec.js › Job timer: the sentences the page and the server share › Screens: the reasons under an off Start are the sentences the server refuses with, the photo limit is the server's, and the file inputs ask for the camera": {
+      "outcome": "PASS"
+    },
+    "job-timer-screens.spec.js › Job timer: the timer card › Screens: Pause stops the clock and says Paused with no position needed, and Resume starts it again": {
+      "outcome": "PASS"
+    },
+    "job-timer-screens.spec.js › Job timer: the timer card › Screens: Start the job takes the phone's position and starts the clock at the time each of the two cleaners has, counting down, with Pause in its place": {
+      "outcome": "PASS"
+    },
+    "job-timer-screens.spec.js › Job timer: the timer card › Screens: when the phone will not give its position Start says why and starts nothing": {
+      "outcome": "PASS"
+    },
+    "job-timer-screens.spec.js › Job timer: the timer card › Screens: while the job has not started the Start button is off and says why for each reason the server gives, and the quoted time shows": {
       "outcome": "PASS"
     },
     "job-timer.spec.js › Job timer: a crew starts, pauses and leaves a job through the link › AC2: (hard gate) with no before photo the cleaner, the provider and the admin at the link and the provider at time-tracking are each refused a start and nothing is written; with one each starts a probe of its own; nobody checked in, a pending job and no position are refused too": {
