@@ -17,12 +17,6 @@ function refusal(status, message) {
   return reply({ success: false, message }, status)
 }
 
-// The refusal that requireCaller built, with the header the rest of this route's answers carry.
-function denied(auth) {
-  auth.response.headers.set('Cache-Control', 'no-store')
-  return auth.response
-}
-
 // The booking id of the path as a number, or null when it is not a positive whole number written as digits. Anything looser would reach SQL,
 // where MySQL reads '5abc' as 5 and '1e3' as 1000.
 function bookingIdOf(raw) {
@@ -50,7 +44,9 @@ const ACTIONS = { create: createJobLink, off: switchOffLink, reissue: reissueLin
 // former cleaner". No number and no code is in the answer.
 export async function GET(request, { params }) {
   const auth = await requireCaller(request, ['admin'])
-  if (!auth.ok) return denied(auth)
+  // The refusal says no-store as every answer here does. The header goes on before the check so that the check reads `if (!auth.ok) return auth.response`.
+  auth.response?.headers.set('Cache-Control', 'no-store')
+  if (!auth.ok) return auth.response
   const bookingId = bookingIdOf((await params).id)
   if (bookingId === null) return refusal(404, NOT_FOUND)
 
@@ -69,7 +65,9 @@ export async function GET(request, { params }) {
 // generation that is not current (reissue), or a save that lost a race; 400 for a body that is not one of those.
 export async function POST(request, { params }) {
   const auth = await requireCaller(request, ['admin'])
-  if (!auth.ok) return denied(auth)
+  // The refusal says no-store as every answer here does. The header goes on before the check so that the check reads `if (!auth.ok) return auth.response`.
+  auth.response?.headers.set('Cache-Control', 'no-store')
+  if (!auth.ok) return auth.response
   const bookingId = bookingIdOf((await params).id)
   if (bookingId === null) return refusal(404, NOT_FOUND)
 

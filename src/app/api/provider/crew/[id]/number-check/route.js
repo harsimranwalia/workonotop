@@ -26,10 +26,9 @@ function refusal(status, message) {
 // expired, been used up or was never asked for. 404 for a member that is not the caller's active one.
 export async function POST(request, { params }) {
   const auth = await requireCaller(request, ['provider']);
-  if (!auth.ok) {
-    auth.response.headers.set('Cache-Control', 'no-store');
-    return auth.response;
-  }
+  // The refusal says no-store as every answer here does. The header goes on before the check so that the check reads `if (!auth.ok) return auth.response`.
+  auth.response?.headers.set('Cache-Control', 'no-store');
+  if (!auth.ok) return auth.response;
   const memberId = idFromPath((await params).id);
   if (memberId === null) return refusal(404, CREW_MESSAGES.memberNotFound);
 

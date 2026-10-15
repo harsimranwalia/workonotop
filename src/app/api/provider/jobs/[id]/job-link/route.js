@@ -20,12 +20,6 @@ function refusal(status, message) {
   return reply({ success: false, message }, status);
 }
 
-// The refusal that requireCaller built, with the header the rest of this route's answers carry.
-function denied(auth) {
-  auth.response.headers.set('Cache-Control', 'no-store');
-  return auth.response;
-}
-
 // What the library's refusals mean to the caller.
 const REFUSALS = {
   not_found: [404, CREW_MESSAGES.jobNotFound],
@@ -42,7 +36,9 @@ const ACTIONS = { create: createJobLink, off: switchOffLink, reissue: reissueLin
 // page shows it. The path is never a URL: the client adds its own origin.
 export async function GET(request, { params }) {
   const auth = await requireCaller(request, ['provider']);
-  if (!auth.ok) return denied(auth);
+  // The refusal says no-store as every answer here does. The header goes on before the check so that the check reads `if (!auth.ok) return auth.response`.
+  auth.response?.headers.set('Cache-Control', 'no-store');
+  if (!auth.ok) return auth.response;
   const bookingId = idFromPath((await params).id);
   if (bookingId === null) return refusal(404, CREW_MESSAGES.jobNotFound);
 
@@ -64,7 +60,9 @@ export async function GET(request, { params }) {
 // a save that lost a race; 400 for a body that is not one of those.
 export async function POST(request, { params }) {
   const auth = await requireCaller(request, ['provider']);
-  if (!auth.ok) return denied(auth);
+  // The refusal says no-store as every answer here does. The header goes on before the check so that the check reads `if (!auth.ok) return auth.response`.
+  auth.response?.headers.set('Cache-Control', 'no-store');
+  if (!auth.ok) return auth.response;
   const bookingId = idFromPath((await params).id);
   if (bookingId === null) return refusal(404, CREW_MESSAGES.jobNotFound);
 

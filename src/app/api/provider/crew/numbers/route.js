@@ -18,10 +18,9 @@ function refusal(status, message) {
 // is 'unchecked' again; a proof is of one number.
 export async function GET(request) {
   const auth = await requireCaller(request, ['provider']);
-  if (!auth.ok) {
-    auth.response.headers.set('Cache-Control', 'no-store');
-    return auth.response;
-  }
+  // The refusal says no-store as every answer here does. The header goes on before the check so that the check reads `if (!auth.ok) return auth.response`.
+  auth.response?.headers.set('Cache-Control', 'no-store');
+  if (!auth.ok) return auth.response;
 
   try {
     const numbers = await numberStates(execute, await listCrew(execute, auth.caller.id));
