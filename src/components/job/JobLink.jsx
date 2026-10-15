@@ -456,9 +456,9 @@ function JobView({ view, base, onChanged, onPatch, onOut, onInvalid }) {
         {view.crew.length === 0 && <p className="mt-2 text-base text-gray-900">{NO_CREW_TEXT}</p>}
 
         {here.length > 0 && (
-          <ul className="mt-2 space-y-2">
+          <ul className="mt-2 divide-y divide-gray-200">
             {here.map((member) => (
-              <li key={member.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 text-base text-gray-900">
+              <li key={member.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 text-base text-gray-900">
                 <span className="min-w-0 flex-1 basis-40 break-words">
                   <span aria-hidden="true" className="mr-2 text-green-700">&#10003;</span>
                   {member.name}
@@ -485,9 +485,9 @@ function JobView({ view, base, onChanged, onPatch, onOut, onInvalid }) {
         )}
 
         {gone.length > 0 && (
-          <ul className="mt-2 space-y-2">
+          <ul className={`divide-y divide-gray-200 ${here.length > 0 ? 'border-t border-gray-200' : 'mt-2'}`}>
             {gone.map((member) => (
-              <li key={member.id} className="text-base text-gray-900 break-words">
+              <li key={member.id} className="py-2.5 text-base text-gray-900 break-words">
                 {member.name}
                 <span className="block text-sm text-gray-600">{clockOf(member.checkedOutAt) ? `Checked out at ${clockOf(member.checkedOutAt)}` : 'Checked out'}</span>
               </li>
@@ -555,7 +555,7 @@ export default function JobLink({ token }) {
     return () => { live.current = false; };
   }, [load]);
 
-  // A tab that comes back to the front asks again; the page does not poll.
+  // A tab that comes back to the front asks again. Between those reads only the timer is asked for (JobTimer's poll), and only while the tab is visible.
   useEffect(() => {
     const again = () => {
       if (document.visibilityState !== 'visible' || Date.now() - lastRead.current < REFRESH_GAP_MS) return;
