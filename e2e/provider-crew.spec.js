@@ -1,7 +1,7 @@
 // @ts-check
 // ENG-014: a provider keeps a crew list and picks which cleaners go on a job. The server cases and the pins of the design's table
-// (agents/architect/designs/ENG-014-provider-crew-list-and-assigning-cleaners.md, "Cases and baseline") are in this file; the screen cases of the
-// frontend seat are added to it later, in a describe of their own. Each title starts with the design's id for the case it settles, and the file's
+// (agents/architect/designs/ENG-014-provider-crew-list-and-assigning-cleaners.md, "Cases and baseline") are in this file, and the screen cases of
+// the frontend seat are its last describe. Each title starts with the design's id for the case it settles, and the file's
 // name, the describe and the title together are its baseline key:
 //   AC1  a provider adds, corrects, removes and re-adds a cleaner; src/lib/phone.js stores the number as E.164 and refuses what it could only
 //        read by guessing; at 30 members the next add is a 409; the phone and name rules, in plain Node and through the routes;
@@ -13,7 +13,9 @@
 //        with no credential every route is a 401 and a customer or an admin is a 403;
 //   Resets  the three admin writers that reset a job also clear its crew, so a job that goes A to B to A, is restarted or is unassigned starts with
 //        none; removing a member takes it off the jobs that can still change and not off a finished one;
-//   Pins  source checks: only the lib names booking_crew, the routes and the lib prepare every statement, and phone.js has no import.
+//   Pins  source checks: only the lib names booking_crew, the routes and the lib prepare every statement, and phone.js has no import;
+//   Screens  the My Crew entry, the crew page (add, correct, remove, the cap, its empty and failed states) and the "Crew on this job" panel, in a
+//        browser signed in as provider 1.
 // The database is the dev database the way e2e/on-behalf-booking.spec.js reaches it (mysql2/promise, assertDevTarget before it connects,
 // assertNoRealPeople once connected). The describes that use it sweep, before their first case, after every case and after their last, the crew
 // rows of the two fixture providers whose number starts +14035550 (a number of the fictional block 555-0100 to 0199; the rows that put a member on
@@ -28,7 +30,7 @@ import { fileURLToPath } from 'node:url';
 import mysql from 'mysql2/promise';
 import { test, expect } from '@playwright/test';
 import { getCredentialHeaders } from './auth/credentials.js';
-import { RESET_RETRIES } from './support/auth.js';
+import { RESET_RETRIES, signInAs } from './support/auth.js';
 import { providers, FIXTURE_LOGINS } from '../database/fixtures/accounts.js';
 import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.js';
 
@@ -238,10 +240,17 @@ async function setStatus(bookingId, status) {
     await (await db()).execute('UPDATE bookings SET status = ? WHERE id = ?', [status, bookingId]);
 }
 
+// The pages under /provider/jobs are shut to a provider whose Stripe account is not connected (the provider layout sends them to the dashboard) and
+// neither fixture provider has one connected, so a case that opens a job page connects provider 1 first. clearRows puts the flag back.
+async function connectStripe(providerId) {
+    await (await db()).execute('UPDATE service_providers SET stripe_onboarding_complete = 1 WHERE id = ?', [providerId]);
+}
+
 // Deletes what this file left: the crew rows of the two fixture providers with a fictional number (the job rows go with them) and the bookings of
-// this file's e-mail prefix (their crew rows go with them).
+// this file's e-mail prefix (their crew rows go with them), and sets their Stripe flag back to 0, as the fixtures have it.
 async function clearRows() {
     const open = await db();
+    await open.execute('UPDATE service_providers SET stripe_onboarding_complete = 0 WHERE id IN (?, ?)', [PROVIDER1.id, PROVIDER2.id]);
     await open.execute('DELETE FROM provider_crew_members WHERE provider_id IN (?, ?) AND phone LIKE ?', [PROVIDER1.id, PROVIDER2.id, `${STORED_PREFIX}%`]);
     await open.execute('DELETE FROM bookings WHERE customer_email LIKE ?', [`${EMAIL_PREFIX}%`]);
 }
@@ -870,5 +879,358 @@ test.describe('Provider crew: a job that changes hands', () => {
             expect([await crewRowsOn(given), await crewRowsOn(claimed), await crewRowsOn(finished)], 'the rows: one, none, and both on the finished job').toEqual([[bea.id], [], idsOf([ann, bea])]);
             expect(mine(await crewOf(request, as.provider, 'provider 1')), 'Ann is not on the crew list any more').toEqual([bea]);
         });
+    });
+});
+
+// ---- the screens (the frontend seat): the My Crew entry, /provider/crew and the "Crew on this job" panel, in a browser signed in as provider 1. The
+// crew and the jobs a case needs are made through the routes (the cap by SQL, as its server case does), and the case then does on the screen what a
+// person would do. The sweep of the describes above applies here too. ----
+
+// `next dev` compiles a page or a route on its first request, and again on the first after it has been idle for a minute (11 to 16 s here), so
+// the first assertion that waits on a request the page makes gets this budget and not the 10 s of the config.
+const FIRST_VISIT_MS = 45_000;
+
+const addForm = (page) => page.getByRole('form', { name: 'Add a cleaner' });
+const cleanerRow = (page, name) => page.getByRole('listitem').filter({ has: page.getByText(name, { exact: true }) });
+const countShown = (page, count) => page.getByText(`${count} of ${CREW_MAX}`, { exact: true });
+const crewListHeading = (page) => page.getByRole('heading', { name: 'Your cleaners', level: 2 });
+const crewPanel = (page) => page.getByRole('region', { name: 'Crew on this job' });
+const noticeSaying = (page, text) => page.getByRole('status').filter({ hasText: text });
+const alertSaying = (page, text) => page.getByRole('alert').filter({ hasText: text });
+
+async function openCrewPage(page) {
+    await page.goto('/provider/crew', { timeout: FIRST_VISIT_MS });
+    await expect(crewListHeading(page)).toBeVisible({ timeout: FIRST_VISIT_MS });
+}
+
+test.describe('Provider crew: the screens', () => {
+    test.use({ storageState: { cookies: [], origins: [] } });
+    sweepAround();
+
+    // Mutant that turns this case red: the entry is missing from navItems in src/app/provider/layout.js or points elsewhere, the empty list does not say
+    // so or shows a count that is not 0 of 30, or the page carries a sentence about texts or links (nobody is texted until ENG-015 ships).
+    test('Screens: My Crew is in the provider menu and opens the crew page, which with nobody on it says so, counts 0 of 30 and says nothing about texts or links', async ({ page }) => {
+        test.setTimeout(120_000);
+        await signInAs(page, 'provider1');
+        // An empty list whatever the dev database holds: the cases below read the real one.
+        await page.route('**/api/provider/crew', (route) =>
+            route.request().method() === 'GET' ? route.fulfill({ json: { success: true, data: { crew: [], limit: CREW_MAX } } }) : route.continue());
+        await page.goto('/provider/dashboard', { timeout: FIRST_VISIT_MS });
+        const entry = page.getByRole('link', { name: 'My Crew' });
+        await expect(entry, 'the menu has My Crew').toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(entry).toHaveAttribute('href', '/provider/crew');
+        await entry.click();
+        await expect(page, 'the entry opens the crew page').toHaveURL(/\/provider\/crew$/, { timeout: FIRST_VISIT_MS });
+        await expect(page.getByRole('heading', { name: 'My crew', level: 1 })).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(page.getByText('No cleaners yet. Add the people you send to jobs.'), 'an empty crew says so').toBeVisible();
+        await expect(countShown(page, 0), 'and counts 0 of 30').toBeVisible();
+        await expect(addForm(page), 'and offers the Add form').toBeVisible();
+        await expect(page.locator('main'), 'the page says nothing about texts or links').not.toContainText(/\b(?:texts?|texted|texting|sms|links?)\b/i);
+    });
+
+    // Mutant that turns this case red: the list or the notice shows the number as typed ('403.555.0123') and not as saved, the number is sent already
+    // changed (so the table holds something else), the count does not move, the form keeps its values or loses the focus, or Enter does not add.
+    test('Screens: a provider adds a cleaner with the number typed in any form, Enter in the number field adds it, the saved number is shown back as (403) 555-0123 and the table keeps +14035550123', async ({ page }) => {
+        test.setTimeout(120_000);
+        const others = await activeMembers(PROVIDER1.id);
+        await signInAs(page, 'provider1');
+        await openCrewPage(page);
+        const form = addForm(page);
+        const name = form.getByLabel('Name', { exact: true });
+        const phone = form.getByLabel('Mobile number');
+        await expect(phone, 'the hint asks for the country code').toHaveAccessibleDescription(/country code/i);
+
+        await name.fill('Sam');
+        await phone.fill('403.555.0123');
+        await phone.press('Enter');
+        await expect(cleanerRow(page, 'Sam'), 'Sam is listed').toContainText('(403) 555-0123');
+        await expect(countShown(page, others + 1), 'the count moved').toBeVisible();
+        await expect(noticeSaying(page, 'Added Sam, (403) 555-0123.'), 'the notice shows the saved number').toBeVisible();
+        await expect(name, 'the form is cleared').toHaveValue('');
+        await expect(phone, 'the form is cleared').toHaveValue('');
+        await expect(name, 'and ready for the next cleaner').toBeFocused();
+        const held = await rows('SELECT phone FROM provider_crew_members WHERE provider_id = ? AND name = ? AND removed_at IS NULL', [PROVIDER1.id, 'Sam']);
+        expect(held.map((row) => row.phone), 'the table keeps the number as E.164').toEqual([stored('123')]);
+
+        await page.reload();
+        await expect(crewListHeading(page)).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(cleanerRow(page, 'Sam'), 'a reload shows Sam from the table').toContainText('(403) 555-0123');
+    });
+
+    // Mutant that turns this case red: a refusal is not shown beside the field it is about (or not at all), the field is not marked invalid or does not
+    // take the focus, a number that cannot be read or an empty name is sent to the route, or the list gains someone from a refused add.
+    test('Screens: a number the crew already has is refused beside the number field, a number that cannot be read and an empty name are refused before any request, and nobody is added', async ({ page, request, baseURL }) => {
+        test.setTimeout(120_000);
+        const as = await credentials(baseURL);
+        const others = await activeMembers(PROVIDER1.id);
+        await addCrew(request, as.provider, 'Sam', typed('123'));
+        await signInAs(page, 'provider1');
+        let posts = 0;
+        page.on('request', (sent) => {
+            if (sent.method() === 'POST' && new URL(sent.url()).pathname === '/api/provider/crew') posts += 1;
+        });
+        await openCrewPage(page);
+        const form = addForm(page);
+        const name = form.getByLabel('Name', { exact: true });
+        const phone = form.getByLabel('Mobile number');
+        const add = form.getByRole('button', { name: 'Add cleaner' });
+
+        // Only the route knows the number is held, so this one is sent and its refusal is shown beside the number.
+        await name.fill('Dee');
+        await phone.fill('1-403-555-0123');
+        await add.click();
+        await expect(phone, 'the route refuses a number the crew holds, beside the number').toHaveAccessibleDescription(/That number is already in your crew\./);
+        await expect(phone).toHaveAttribute('aria-invalid', 'true');
+        await expect(phone).toBeFocused();
+        expect(posts, 'the held number was sent').toBe(1);
+
+        await phone.fill('403-555-CALL');
+        await add.click();
+        await expect(phone, 'a number with letters is refused beside the number').toHaveAccessibleDescription(/cannot have letters/);
+        expect(posts, 'a number that cannot be read is not sent').toBe(1);
+
+        await name.fill('');
+        await phone.fill('403-555-0124');
+        await add.click();
+        await expect(name, 'a missing name is refused beside the name').toHaveAccessibleDescription(/Enter the cleaner's name\./);
+        await expect(name).toBeFocused();
+        expect(posts, 'a missing name is not sent').toBe(1);
+
+        await expect(cleanerRow(page, 'Dee'), 'nobody was added to the list').toHaveCount(0);
+        expect(await activeMembers(PROVIDER1.id), 'nor to the table').toBe(others + 1);
+    });
+
+    // Mutant that turns this case red: Edit does not fill the fields with the name and the number as shown, Save is live with nothing changed, a saved
+    // number is not shown back in display form or the row keeps the number it had, focus is lost after Save, or Cancel keeps what was typed.
+    test('Screens: a provider corrects a name and a number on the row, the row shows the saved number back, Save waits for a change, and Cancel leaves the row as it was', async ({ page, request, baseURL }) => {
+        test.setTimeout(120_000);
+        const as = await credentials(baseURL);
+        const sam = await addCrew(request, as.provider, 'Sam', typed('110'));
+        await addCrew(request, as.provider, 'Kim', typed('112'));
+        await signInAs(page, 'provider1');
+        await openCrewPage(page);
+
+        await page.getByRole('button', { name: 'Edit Sam' }).click();
+        const edit = page.getByRole('form', { name: 'Edit Sam' });
+        const name = edit.getByLabel('Name', { exact: true });
+        const phone = edit.getByLabel('Mobile number');
+        await expect(name, 'Edit fills in the name').toHaveValue('Sam');
+        await expect(name, 'and starts in it').toBeFocused();
+        await expect(phone, 'and the number as it is shown').toHaveValue('(403) 555-0110');
+        await expect(edit.getByRole('button', { name: 'Save' }), 'Save waits for a change').toHaveAttribute('aria-disabled', 'true');
+
+        await name.fill('Samuel');
+        await phone.fill('403 555 0111');
+        await edit.getByRole('button', { name: 'Save' }).click();
+        await expect(cleanerRow(page, 'Samuel'), 'the row shows the corrected name and the saved number').toContainText('(403) 555-0111', { timeout: FIRST_VISIT_MS });
+        await expect(noticeSaying(page, 'Saved Samuel, (403) 555-0111.')).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Edit Samuel' }), 'focus returns to the row').toBeFocused();
+        const held = await rows('SELECT name, phone FROM provider_crew_members WHERE id = ?', [sam.id]);
+        expect(held, 'the table holds both corrections').toEqual([{ name: 'Samuel', phone: stored('111') }]);
+
+        await page.getByRole('button', { name: 'Edit Kim' }).click();
+        const kim = page.getByRole('form', { name: 'Edit Kim' });
+        await kim.getByLabel('Name', { exact: true }).fill('Kimberly');
+        await kim.getByRole('button', { name: 'Cancel' }).click();
+        await expect(page.getByRole('form', { name: 'Edit Kim' }), 'Cancel closes the editor').toHaveCount(0);
+        await expect(cleanerRow(page, 'Kim'), 'and leaves the row as it was').toContainText('(403) 555-0112');
+        await expect(page.getByText('Kimberly')).toHaveCount(0);
+    });
+
+    // Mutant that turns this case red: Remove removes at once without asking, the question does not name the person or the consequence, Keep removes
+    // anyway, Yes does not remove, the job keeps listing the cleaner, or the notice does not say how many jobs they were taken off.
+    test('Screens: Remove asks first, Keep leaves the cleaner, and confirming removes them, takes them off the job that is not finished and says so', async ({ page, request, baseURL }) => {
+        test.setTimeout(120_000);
+        const as = await credentials(baseURL);
+        const others = await activeMembers(PROVIDER1.id);
+        const ann = await addCrew(request, as.provider, 'Ann', typed('150'));
+        const bea = await addCrew(request, as.provider, 'Bea', typed('151'));
+        await withBookings(request, as, 1, async (id) => {
+            await give(request, as, id, PROVIDER1.id);
+            await saveCrew(request, as.provider, id, [ann.id, bea.id], 'provider 1');
+            await signInAs(page, 'provider1');
+            await openCrewPage(page);
+
+            await page.getByRole('button', { name: 'Remove Ann' }).click();
+            const question = page.getByRole('group', { name: /Remove Ann from your crew\?/ });
+            await expect(question, 'Remove asks first').toContainText('They are taken off any job that is not finished.');
+            expect(await activeMembers(PROVIDER1.id), 'nothing is removed by asking').toBe(others + 2);
+            await expect(question.getByRole('button', { name: 'Keep' }), 'the safe answer has the focus').toBeFocused();
+            await question.getByRole('button', { name: 'Keep' }).click();
+            await expect(question).toHaveCount(0);
+            await expect(cleanerRow(page, 'Ann'), 'Keep leaves Ann').toBeVisible();
+            expect(await activeMembers(PROVIDER1.id), 'Keep removes nobody').toBe(others + 2);
+
+            await page.getByRole('button', { name: 'Remove Ann' }).click();
+            await page.getByRole('button', { name: 'Yes, remove' }).click();
+            await expect(cleanerRow(page, 'Ann'), 'Yes removes Ann from the list').toHaveCount(0, { timeout: FIRST_VISIT_MS });
+            await expect(noticeSaying(page, 'Ann is no longer on your crew. Taken off 1 job.'), 'and says how many jobs she was taken off').toBeVisible();
+            await expect(countShown(page, others + 1)).toBeVisible();
+            expect(await activeMembers(PROVIDER1.id), 'the table has one fewer').toBe(others + 1);
+            expect(await crewRowsOn(id), 'the job keeps Bea only').toEqual([bea.id]);
+        });
+    });
+
+    // Mutant that turns this case red: the Add form stays live at the cap, the cap sentence is missing or says another number, the count is not 30 of 30,
+    // or removing one leaves the form off.
+    test('Screens: at 30 cleaners the Add form is off and says the crew is full, and removing one turns it back on', async ({ page }) => {
+        test.setTimeout(120_000);
+        const open = await db();
+        // As the server case fills it: the active members provider 1 has, plus rows with the fictional numbers +14035550100 and up.
+        const fill = CREW_MAX - (await activeMembers(PROVIDER1.id));
+        expect(fill, 'provider 1 starts below the cap').toBeGreaterThan(0);
+        const fillers = Array.from({ length: fill }, (_, index) => [PROVIDER1.id, `Filler ${index + 1}`, `${STORED_PREFIX}${100 + index}`]);
+        await open.execute(`INSERT INTO provider_crew_members (provider_id, name, phone) VALUES ${fillers.map(() => '(?, ?, ?)').join(', ')}`, fillers.flat());
+        await signInAs(page, 'provider1');
+        await openCrewPage(page);
+
+        const form = addForm(page);
+        const full = page.getByText('Your crew is full (30). Remove someone to add another.');
+        await expect(countShown(page, CREW_MAX)).toBeVisible();
+        await expect(full, 'the cap sentence').toBeVisible();
+        await expect(form.getByRole('button', { name: 'Add cleaner' }), 'Add is off').toBeDisabled();
+        await expect(form.getByLabel('Name', { exact: true })).toBeDisabled();
+        await expect(form.getByLabel('Mobile number')).toBeDisabled();
+
+        await page.getByRole('button', { name: 'Remove Filler 1', exact: true }).click();
+        await page.getByRole('button', { name: 'Yes, remove' }).click();
+        await expect(countShown(page, CREW_MAX - 1), 'one removed').toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(form.getByRole('button', { name: 'Add cleaner' }), 'the room turns Add back on').toBeEnabled();
+        await expect(full).toHaveCount(0);
+    });
+
+    // Mutant that turns this case red: the panel is missing from the job page of a job the provider holds, lists someone else's members, shows a box
+    // checked that is not on the job, Save is live with no change, a save adds to the crew without replacing it, or the saved crew is not what a
+    // reload shows.
+    test('Screens: the job page has Crew on this job, Save crew waits for a change, a save replaces the crew as a set, and a reload shows what was saved', async ({ page, request, baseURL }) => {
+        test.setTimeout(120_000);
+        const as = await credentials(baseURL);
+        const ann = await addCrew(request, as.provider, 'Ann', typed('153'));
+        const ben = await addCrew(request, as.provider, 'Ben', typed('154'));
+        const cy = await addCrew(request, as.provider, 'Cy', typed('155'));
+        await withBookings(request, as, 1, async (id) => {
+            await give(request, as, id, PROVIDER1.id);
+            await connectStripe(PROVIDER1.id);
+            await signInAs(page, 'provider1');
+            await page.goto(`/provider/jobs/${id}`, { timeout: FIRST_VISIT_MS });
+            const panel = crewPanel(page);
+            await expect(panel, 'the job page has the crew panel').toBeVisible({ timeout: FIRST_VISIT_MS });
+            const box = (member) => panel.getByRole('checkbox', { name: new RegExp(`^${member}\\b`) });
+            const save = panel.getByRole('button', { name: 'Save crew' });
+            await expect(box('Ann'), 'nobody is on the job yet').not.toBeChecked();
+            await expect(save, 'Save crew waits for a change').toHaveAttribute('aria-disabled', 'true');
+
+            await box('Ann').check();
+            await box('Cy').check();
+            await expect(save, 'a change turns Save crew on').not.toHaveAttribute('aria-disabled', 'true');
+            await save.click();
+            await expect(panel.getByText('Crew saved.')).toBeVisible({ timeout: FIRST_VISIT_MS });
+            await expect(save, 'saved, there is nothing to save').toHaveAttribute('aria-disabled', 'true');
+            expect(await crewRowsOn(id), 'the job has Ann and Cy').toEqual(idsOf([ann, cy]));
+
+            await box('Ann').uncheck();
+            await expect(panel.getByText('Crew saved.'), 'a changed selection does not read as saved').toHaveCount(0);
+            await box('Ben').check();
+            await save.click();
+            await expect(panel.getByText('Crew saved.')).toBeVisible();
+            expect(await crewRowsOn(id), 'a save replaces the set: Ben and Cy, not Ann').toEqual(idsOf([ben, cy]));
+
+            await page.reload();
+            await expect(panel).toBeVisible({ timeout: FIRST_VISIT_MS });
+            await expect(box('Ben'), 'a reload shows Ben on the job').toBeChecked();
+            await expect(box('Cy'), 'and Cy').toBeChecked();
+            await expect(box('Ann'), 'and not Ann').not.toBeChecked();
+        });
+    });
+
+    // Mutant that turns this case red: a finished job keeps live checkboxes or a Save button, a removed cleaner is shown without the mark or dropped, or the
+    // job page of a job in the open pool (no provider holds it) shows the crew panel.
+    test('Screens: a finished job shows its crew read-only with a removed cleaner marked, and a job in the open pool has no crew panel', async ({ page, request, baseURL }) => {
+        test.setTimeout(150_000);
+        const as = await credentials(baseURL);
+        const ann = await addCrew(request, as.provider, 'Ann', typed('184'));
+        const bea = await addCrew(request, as.provider, 'Bea', typed('185'));
+        await withBookings(request, as, 2, async (finished, pooled) => {
+            await give(request, as, finished, PROVIDER1.id);
+            await saveCrew(request, as.provider, finished, [ann.id, bea.id], 'provider 1');
+            await setStatus(finished, 'completed');
+            await removeCrew(request, as.provider, ann.id, 'provider 1');
+            await push(request, as, pooled);
+
+            await connectStripe(PROVIDER1.id);
+            await signInAs(page, 'provider1');
+            await page.goto(`/provider/jobs/${finished}`, { timeout: FIRST_VISIT_MS });
+            const panel = crewPanel(page);
+            await expect(panel, 'a finished job shows its crew').toBeVisible({ timeout: FIRST_VISIT_MS });
+            await expect(panel).toContainText('This job is finished, so its crew can no longer change.');
+            await expect(panel.getByRole('listitem').filter({ hasText: 'Ann' }), 'Ann is shown, marked').toContainText('(no longer on your crew)');
+            await expect(panel.getByRole('listitem').filter({ hasText: 'Bea' }), 'Bea is shown, unmarked').not.toContainText('(no longer on your crew)');
+            await expect(panel.getByRole('checkbox'), 'nothing can be ticked').toHaveCount(0);
+            await expect(panel.getByRole('button'), 'and there is nothing to save').toHaveCount(0);
+
+            await page.goto(`/provider/jobs/${pooled}`, { timeout: FIRST_VISIT_MS });
+            await expect(page.getByRole('heading', { name: 'Fixture Standard Clean', level: 1 }), 'the open-pool job page loads').toBeVisible({ timeout: FIRST_VISIT_MS });
+            await expect(page.getByText('Crew on this job'), 'and has no crew panel').toHaveCount(0);
+        });
+    });
+
+    // Mutant that turns this case red: a failed load shows nothing or a blank page, says the wrong thing for a connection that is down, has no Retry, or
+    // Retry does not read the list again.
+    test('Screens: when the crew cannot be loaded the page says so with a Retry that reads it again, and with the connection down it says that instead', async ({ page }) => {
+        test.setTimeout(120_000);
+        await signInAs(page, 'provider1');
+        // What the list read gets is set by the case and not counted: `next dev` runs the page's load effect twice, so the number of reads is not fixed.
+        let answer = 'fault';
+        await page.route('**/api/provider/crew', (route) => {
+            if (route.request().method() !== 'GET') return route.continue();
+            if (answer === 'fault') return route.fulfill({ status: 500, json: { success: false, message: 'Failed to load the crew' } });
+            if (answer === 'offline') return route.abort('internetdisconnected');
+            return route.continue();
+        });
+        await page.goto('/provider/crew', { timeout: FIRST_VISIT_MS });
+        const failed = alertSaying(page, "Couldn't load your crew. Try again.");
+        await expect(failed, 'a server fault is said in words').toBeVisible({ timeout: FIRST_VISIT_MS });
+        answer = 'offline';
+        await failed.getByRole('button', { name: 'Retry' }).click();
+        const offline = alertSaying(page, "Couldn't reach the server. Check your connection and try again.");
+        await expect(offline, 'a connection that is down is said as that').toBeVisible();
+        answer = 'live';
+        await offline.getByRole('button', { name: 'Retry' }).click();
+        await expect(crewListHeading(page), 'Retry reads the list again').toBeVisible({ timeout: FIRST_VISIT_MS });
+    });
+
+    // Mutant that turns this case red: a Remove the server refuses drops the cleaner from the list anyway or says nothing, or an Add the server refuses
+    // clears the typed name and number, says nothing, or shows a row that is not stored.
+    test('Screens: a Remove the server refuses keeps the cleaner on the list and says so, and an Add it refuses keeps what was typed and says so', async ({ page, request, baseURL }) => {
+        test.setTimeout(120_000);
+        const as = await credentials(baseURL);
+        const others = await activeMembers(PROVIDER1.id);
+        await addCrew(request, as.provider, 'Sam', typed('160'));
+        await signInAs(page, 'provider1');
+        await openCrewPage(page);
+        await page.route('**/api/provider/crew/*', (route) => (route.request().method() === 'DELETE'
+            ? route.fulfill({ status: 500, json: { success: false, message: 'Failed to remove the crew member' } })
+            : route.continue()));
+        await page.route('**/api/provider/crew', (route) => (route.request().method() === 'POST'
+            ? route.fulfill({ status: 500, json: { success: false, message: 'Failed to add the crew member' } })
+            : route.continue()));
+
+        await page.getByRole('button', { name: 'Remove Sam' }).click();
+        await page.getByRole('button', { name: 'Yes, remove' }).click();
+        await expect(alertSaying(page, "Couldn't save that. Try again."), 'a refused Remove is said in words').toBeVisible();
+        await expect(cleanerRow(page, 'Sam'), 'and Sam stays on the list').toBeVisible();
+        await expect(page.getByRole('group', { name: /Remove Sam from your crew\?/ }), 'with the question open to answer').toBeVisible();
+        expect(await activeMembers(PROVIDER1.id), 'and in the table').toBe(others + 1);
+        await page.getByRole('button', { name: 'Keep' }).click();
+
+        const add = addForm(page);
+        await add.getByLabel('Name', { exact: true }).fill('Dee');
+        await add.getByLabel('Mobile number').fill('403 555 0161');
+        await add.getByRole('button', { name: 'Add cleaner' }).click();
+        await expect(add.getByRole('alert'), 'a refused Add is said in the form').toContainText("Couldn't save that. Try again.");
+        await expect(add.getByLabel('Name', { exact: true }), 'the name stays').toHaveValue('Dee');
+        await expect(add.getByLabel('Mobile number'), 'and the number').toHaveValue('403 555 0161');
+        await expect(cleanerRow(page, 'Dee'), 'no row appears for it').toHaveCount(0);
+        expect(await activeMembers(PROVIDER1.id), 'and nothing is stored').toBe(others + 1);
     });
 });
