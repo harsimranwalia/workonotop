@@ -37,11 +37,11 @@ const REFUSALS = {
 
 const ACTIONS = { create: createJobLink, off: switchOffLink, reissue: reissueLink }
 
-// Admin only. 200 { success: true, data: { job_link, status_open, crew, window, checkins, events } }: the first four as the provider's GET answers
-// them; checkins is [{ crew_member_id, name, checked_in_at, by: { kind, name }, away, distance_m, accuracy_m }] for the ticks that count, with
-// away null when the booking has no position to compare; events is the last 50 things that happened on the link, newest first: [{ id, kind,
-// actor: { kind, name }, subject, detail, latitude, longitude, accuracy_m, created_at }], with names read now and an erased cleaner as "A
-// former cleaner". No number and no code is in the answer.
+// Admin only. 200 { success: true, data: { job_link, status_open, crew, window, timer, photos, checkins, events } }: the first six as the provider's
+// GET answers them; checkins is [{ crew_member_id, name, checked_in_at, checked_out_at, by: { kind, name }, away, distance_m, accuracy_m }] for the
+// ticks that count, with away null when the booking has no position to compare; events is the last 100 things that happened on the link
+// (EVENT_LIST_LIMIT in src/lib/job-link-base.js), newest first: [{ id, kind, actor: { kind, name }, subject, detail, latitude, longitude,
+// accuracy_m, created_at }], with names as of the read and an erased cleaner as "A former cleaner". No number and no code is in the answer.
 export async function GET(request, { params }) {
   const auth = await requireCaller(request, ['admin'])
   // The refusal says no-store as every answer here does. The header goes on before the check so that the check reads `if (!auth.ok) return auth.response`.

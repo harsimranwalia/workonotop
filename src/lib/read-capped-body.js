@@ -19,7 +19,7 @@ export async function readCappedBody(request, maxBytes) {
     if (done) return { ok: true, bytes: Buffer.concat(chunks, total) };
     total += value.byteLength;
     if (total > maxBytes) {
-      await reader.cancel().catch(() => {});
+      await reader.cancel().catch((failed) => console.error('Error cancelling a body past its cap:', failed?.code || failed?.name));
       return { ok: false };
     }
     chunks.push(value);

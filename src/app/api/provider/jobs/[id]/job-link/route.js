@@ -30,10 +30,10 @@ const REFUSALS = {
 
 const ACTIONS = { create: createJobLink, off: switchOffLink, reissue: reissueLink };
 
-// Provider only. 200 { success: true, data: { job_link, status_open, crew, window } }: job_link is null or { path: '/job/{token}' (null while the
-// link is off), on, generation, created_at, off_at }; status_open says whether the job can still change; crew is [{ id, name, number_state:
-// 'checked' | 'unchecked' | 'cannot_text', checked_in, checked_in_at }] for the cleaners on the job now; window is the check-in window as the
-// page shows it. The path is never a URL: the client adds its own origin.
+// Provider only. 200 { success: true, data: { job_link, status_open, crew, window, timer, photos } }: job_link is null or { path: '/job/{token}'
+// (null while the link is off), on, generation, created_at, off_at }; status_open says whether the job is open to change; crew is [{ id, name,
+// number_state: 'checked' | 'unchecked' | 'cannot_text', checked_in, checked_in_at, checked_out_at }] for the cleaners on the job; window is
+// the check-in window as the page shows it; timer and photos as src/lib/job-link.js has them. The path is never a URL: the client adds its origin.
 export async function GET(request, { params }) {
   const auth = await requireCaller(request, ['provider']);
   // The refusal says no-store as every answer here does. The header goes on before the check so that the check reads `if (!auth.ok) return auth.response`.

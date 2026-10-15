@@ -163,7 +163,7 @@ export const matrix = [
     },
     {
         route: '/api/admin/bookings/[id]/job-link', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'ENG-015: a new route (src/app/api/admin/bookings/[id]/job-link/route.js). GET calls requireCaller(request, [\'admin\']) as its first statements (:46-49), before the id is read or the database is touched: no credential is 401, any other role 403. For an admin it answers the booking\'s job link (its path while it is on, its generation), the crew on the job with whether each number has been checked and whether each cleaner ticked in, the check-in window, who ticked in and where, and the last 50 events on the link; no phone number and no code is in the answer. The probe\'s id matches no booking: 404 \'Booking not found\'. No \'Probe measured\' claim: the probe was not run on the dev app when this row was written.',
+        note: 'ENG-015: a new route (src/app/api/admin/bookings/[id]/job-link/route.js). GET calls requireCaller(request, [\'admin\']) as its first statements (:46-49), before the id is read or the database is touched: no credential is 401, any other role 403. For an admin it answers the booking\'s job link (its path while it is on, its generation), the crew on the job with whether each number has been checked and whether each cleaner ticked in, the check-in window, who ticked in and where, and the last 100 events on the link; no phone number and no code is in the answer. The probe\'s id matches no booking: 404 \'Booking not found\'. No \'Probe measured\' claim: the probe was not run on the dev app when this row was written.',
         probe: { path: '/api/admin/bookings/999999999/job-link', body: undefined, anon: 401 },
     },
     {

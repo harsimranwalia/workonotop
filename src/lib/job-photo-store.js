@@ -159,8 +159,13 @@ export async function savePhoto(input, ext) {
   try {
     await writeFile(file, bytes, { flag: 'wx' });
   } catch (error) {
-    // A name that exists is somebody else's file: leave it. Anything else may have left half of ours.
-    if (error?.code !== 'EEXIST') await unlink(file).catch(() => {});
+    // A name that exists is somebody else's file: leave it. Anything else may have left half of ours. A file that is not there (ENOENT) is the
+    // state we want; a cleanup that fails otherwise is logged by its code alone, since the half file would stay until the orphan sweep takes it.
+    if (error?.code !== 'EEXIST') {
+      await unlink(file).catch((failed) => {
+        if (failed?.code !== 'ENOENT') console.error('Error removing a half-written job photo:', failed?.code || failed?.name);
+      });
+    }
     throw error;
   }
   return { url: PHOTO_URL_BASE + name };

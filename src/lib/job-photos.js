@@ -148,7 +148,8 @@ export async function addPhoto({ withConnection, link, access, type, bytes, loca
     );
   } catch (error) {
     // The file was written and the transaction did not finish: the row it would have named is not there, so neither should the file be.
-    if (saved !== null) await removePhoto(saved.url).catch(() => {});
+    // A remove that fails leaves a file no row names, which the orphan sweep takes after 24 hours; its code alone is logged so that it is known.
+    if (saved !== null) await removePhoto(saved.url).catch((failed) => console.error('Error removing a job photo whose row was not saved:', failed?.code || failed?.name));
     throw error;
   }
 }
