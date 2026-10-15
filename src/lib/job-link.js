@@ -4,7 +4,7 @@
 // it, and what a provider and an admin can do to it. The token in the address is a locator and not a credential. It opens no field of the job by
 // itself: a cleaner gets in with a texted code (src/lib/job-link-code.js), the job's own signed-in provider and any signed-in admin get in with
 // their own session, and everyone else is told `access: 'none'` and nothing else. A link that does not exist, was switched off or reissued, or
-// belongs to a job that is finished answers the same way for every one of those reasons (findJobLink answers null; the routes send one 404).
+// belongs to a job that is finished or has no provider answers the same way for each (findJobLink answers null; the routes send one 404).
 //
 // This file is the only place the job page's fields are chosen. jobPage() builds the answer field by field from named columns, and a pin in
 // e2e/job-link.spec.js scans every SELECT in this file for the words that would put a customer's contact, a price or a payment on a crew's phone.
@@ -18,8 +18,8 @@
 // anything else. Nothing here logs a token, a name, a number or a coordinate.
 //
 // findJobLink(execute, token) -> { id, booking_id, generation, provider_id } | null
-//   null for a token that is not 43 characters of base64url, one that matches no link, a link that is switched off, and a job that is not in
-//   JOB_LINK_OPEN_STATUSES. The token is compared in the column's ascii_bin collation, so a token that differs only in case is another token.
+//   null for a token that is not 43 characters of base64url, one that matches no link, a link that is switched off, a job with no provider, and
+//   a job that is not in JOB_LINK_OPEN_STATUSES. The token is compared in the column's ascii_bin collation, so one that differs only in case is another.
 // resolveAccess(request, execute, link, crew) -> { kind: 'admin' | 'provider' | 'cleaner', ref, name, epoch? } | null
 //   In this order: a signed-in admin; a signed-in provider who is the job's CURRENT provider; a cleaner with a session for this link. (Two calls
 //   to callerFrom, not one with both roles: it stops at the first verified caller whose role is allowed, so a stranger's provider cookie would
@@ -77,7 +77,7 @@ export async function findJobLink(execute, token) {
     [token]
   );
   const row = rows[0];
-  if (!row || !isOpen(row.status)) return null;
+  if (!row || row.provider_id === null || !isOpen(row.status)) return null;
   return { id: row.id, booking_id: row.booking_id, generation: row.generation, provider_id: row.provider_id };
 }
 

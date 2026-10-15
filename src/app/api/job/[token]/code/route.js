@@ -1,7 +1,9 @@
 // A cleaner asks for a code to open a job link (ENG-015). The body is the mobile number the provider has for them. Whatever the number was, the
-// answer is the same, so the page can neither confirm nor deny that a number is on the crew: the difference between a number that is texted and
-// one that is not is only in the record of events. The only answers that differ are a link that has been asked too often and a value that is not
-// a number at all. The text goes through sendSMS, which refuses a number that is not Canadian. Every answer says no-store.
+// answer says the same, so what it says can neither confirm nor deny that a number is on the crew: the difference between a number that is
+// texted and one that is not is in the record of events and in how long the answer takes. A number that is texted waits for the carrier (up to
+// the 10 second timeout in sendSMS) and one that is not does not; the design accepts that residual (D10), because a link allows 20 asks an hour
+// and the holder can only confirm a number they already typed. The only answers that differ in what they say are a link that has been asked too
+// often and a value that is not a number at all. The text goes through sendSMS, which refuses a number that is not Canadian. Every answer says no-store.
 
 import { NextResponse } from 'next/server'
 import { execute } from '@/lib/db'

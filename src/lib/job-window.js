@@ -14,9 +14,12 @@
 //                              @/ alias and so cannot be imported here) so a changed slot cannot drift silently.
 //
 // zoneFor({ cluster, city }) -> 'America/Vancouver' | 'America/Toronto'
-//   A cluster key that starts VAN_ is Vancouver. Everything else, an unknown cluster included, is Toronto: the earlier instant, so a mistake
-//   opens the window early (the position flag still catches it) and never locks a crew out at the door. bookings.cluster is used when it is
-//   one of the keys in src/lib/location.js, else the city is looked up there.
+//   A cluster key that starts VAN_ is Vancouver. Everything else, an unknown cluster included, is Toronto. For every zone west of Toronto that is
+//   the earlier instant, so a mistake there opens the window early (the position flag still catches it) and does not lock a crew out at the door.
+//   For a city east of Toronto it would be the later instant: 07:00 in Toronto is 08:00 in Halifax and 08:30 in St. John's, so a crew there would
+//   find the window opening at the start of the first slot (Halifax) or 30 minutes after it (St. John's), and such a city needs a zone of its own
+//   here. src/lib/location.js has no cluster east of the GTA, so no input reaches that today. bookings.cluster is used when it is one of the keys
+//   in src/lib/location.js, else the city is looked up there.
 // zonedInstant(date, hour, minute, zone) -> epoch seconds of that wall time in that zone, worked out with Intl.DateTimeFormat and no library.
 //   date is 'YYYY-MM-DD'.
 // windowOpensEpoch({ job_date, job_time_slot, cluster, city }) -> epoch seconds, or null when the job_date cannot be read

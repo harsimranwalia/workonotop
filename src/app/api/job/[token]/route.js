@@ -12,8 +12,8 @@ function reply(body, status = 200) {
   return NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
 }
 
-// The one answer for a link that cannot be used, whatever the reason (malformed, unknown, switched off, job closed), so a stranger who tries
-// tokens learns nothing about which ones exist or why one failed.
+// The one answer for a link that cannot be used, whatever the reason (malformed, unknown, switched off, job closed, job with no provider), so a
+// stranger who tries tokens learns nothing about which ones exist or why one failed.
 function notValid() {
   return reply({ success: false, message: LINK_MESSAGES.notValid }, 404)
 }
