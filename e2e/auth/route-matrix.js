@@ -943,7 +943,7 @@ export const matrix = [
     },
     {
         route: '/api/provider/crew/[id]', method: 'PATCH', today: 'none', kind: 'roles', roles: ['provider'], owner: 'own crew member',
-        note: 'ENG-014: a new route (src/app/api/provider/crew/[id]/route.js). PATCH calls requireCaller(request, [\'provider\']) as its first statement, before the id or the body is read: no credential is 401, any other role 403, and nothing is written for either. For a provider it corrects the name or the number (read again by the same rule that stores it) of one of the caller\'s own active members. A member that is not the caller\'s, is removed or does not exist is the one 404 \'Crew member not found\', before the body is read. The probe sends an empty JSON body to an id that matches no member: 404, so nothing is written.',
+        note: 'ENG-014: a new route (src/app/api/provider/crew/[id]/route.js). PATCH calls requireCaller(request, [\'provider\']) as its first statement, before the id or the body is read: no credential is 401, any other role 403, and nothing is written for either. For a provider it corrects the name or the number (read again by the same rule that stores it) of one of the caller\'s own active members. A member that is not the caller\'s, is removed or does not exist is the one 404 \'Crew member not found\', and so is an id that is not a number (that one before the body is read). A body that breaks a rule, or has neither a name nor a number, is a 400 before the member is looked up. The probe sends an empty JSON body to an id that matches no member: the answer is that 400 (neither a name nor a number to change), so nothing is written.',
         probe: { path: '/api/provider/crew/999999999', body: {}, anon: 401 },
     },
     {
