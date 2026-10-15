@@ -2,26 +2,23 @@
 // the SetupIntent that puts the card on file, and the card the one completion charge is taken on. The Stripe client and the
 // database are passed in (the routes hand over theirs), so each branch runs with scripted ones in the suite. This module holds no
 // connection and logs no token, card or personal detail.
-import { createHash, randomBytes } from 'node:crypto';
+import { LINK_TOKEN_PATTERN, newLinkToken, sha256Hex } from './link-token.js';
 
 // How long an issued link lives, and how many times its page may start a card entry before the link dies. Neither is stored per
 // row, so changing one needs no migration.
 export const CARD_LINK_DAYS = 14;
 export const CARD_LINK_ATTEMPTS = 10;
 
-// 32 random bytes as base64url: 43 characters, no padding. Anything else is not a token and is refused before the database is read.
-export const CARD_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+// 32 random bytes as base64url: 43 characters, no padding (src/lib/link-token.js, which the job link shares). Anything else is not a token
+// and is refused before the database is read.
+export const CARD_TOKEN_PATTERN = LINK_TOKEN_PATTERN;
 
 const CLOSED_STATUSES = ['completed', 'cancelled', 'disputed'];
-
-function sha256Hex(text) {
-  return createHash('sha256').update(text).digest('hex');
-}
 
 // newCardToken() -> { token, hash }. The token goes to the one person who is sent the link and is never stored; the table keeps
 // the hash, so a copy of the table opens no link.
 export function newCardToken() {
-  const token = randomBytes(32).toString('base64url');
+  const token = newLinkToken();
   return { token, hash: sha256Hex(token) };
 }
 
