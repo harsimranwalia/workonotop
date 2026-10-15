@@ -427,7 +427,7 @@ function JobView({ view, base, onChanged, onPatch, onOut, onInvalid }) {
     <>
       <div>
         <h1 className="text-2xl font-bold text-gray-900 break-words">{view.service || 'Your job'}</h1>
-        <p className="mt-1 text-sm text-gray-700">Signed in as {view.name}{KIND_NOTE[view.access]}</p>
+        <p className="mt-1 text-sm text-gray-700 break-words">Signed in as {view.name}{KIND_NOTE[view.access]}</p>
       </div>
 
       <section className={CARD} aria-labelledby="when-heading">
