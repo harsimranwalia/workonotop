@@ -107,14 +107,20 @@ function sayEvent(event) {
   }
 }
 
+// The link of an answer in the shape the panel draws (null is no link), or undefined when it is not the shape the routes promise.
+function linkOf(link) {
+  if (link === null) return null;
+  if (!isObject(link) || typeof link.on !== 'boolean' || !Number.isInteger(link.generation)) return undefined;
+  return { path: typeof link.path === 'string' && link.path.startsWith('/') ? link.path : null, on: link.on, generation: link.generation };
+}
+
 // The managed view of an answer, or null when it is not the shape the routes promise.
 function managedOf(data) {
   const crew = crewOf(data.crew);
-  const link = data.job_link;
-  const linkOk = link === null || (isObject(link) && typeof link.on === 'boolean' && Number.isInteger(link.generation));
-  if (!crew || !linkOk) return null;
+  const link = linkOf(data.job_link);
+  if (!crew || link === undefined) return null;
   return {
-    link: link && { path: typeof link.path === 'string' && link.path.startsWith('/') ? link.path : null, on: link.on, generation: link.generation },
+    link,
     open: data.status_open === true,
     crew,
     window: windowOf(data.window),
@@ -187,7 +193,11 @@ export default function JobLinkManager({ path, kind, look: lookName, title }) {
     const result = await postJson(path, action === 'reissue' ? { action, generation: view.link?.generation } : { action });
     setBusy(false);
     if (!live.current) return;
-    if (dataOf(result)) {
+    const data = dataOf(result);
+    if (data) {
+      // The link the route answers with is drawn before the announcement, so the address on the screen is the one the announcement is about.
+      const changed = linkOf(data.job_link);
+      if (changed !== undefined) setView((held) => (held.status === 'ready' ? { ...held, link: changed } : held));
       setAsking(null);
       setNote({ kind: 'ok', text: done });
       await refresh();

@@ -512,15 +512,15 @@ test.describe('Job link: the panels', () => {
 
         await panel.getByRole('button', { name: 'Issue a new link' }).click();
         await expect(panel.getByText('New link issued.')).toBeVisible();
+        await expect(field, 'a new link, on the screen when the announcement is').not.toHaveValue(first);
         const second = await field.inputValue();
-        expect(second, 'a new link').not.toBe(first);
         await panel.getByRole('button', { name: 'Issue a new link' }).click();
         const question = panel.getByRole('group', { name: /^Issue a new link\? The current link stops working at once/ });
         await expect(question, 'a new link is asked about first').toBeVisible();
         await question.getByRole('button', { name: 'Issue a new link' }).click();
         await expect(panel.getByText('New link issued. Send it to your crew.')).toBeVisible();
+        await expect(field, 'another new link, on the screen when the announcement is').not.toHaveValue(second);
         const third = await field.inputValue();
-        expect(third, 'another new link').not.toBe(second);
         expect((await request.get(`/api/job/${second.slice(second.lastIndexOf('/') + 1)}`)).status(), 'the link it replaced is not valid').toBe(404);
         expect((await request.get(`/api/job/${third.slice(third.lastIndexOf('/') + 1)}`)).status(), 'the new one is').toBe(200);
     });
@@ -553,7 +553,7 @@ test.describe('Job link: the panels', () => {
         await page.goto(`/admin/bookings/${job.bookingId}`, { timeout: FIRST_VISIT_MS });
         const panel = page.getByRole('region', { name: 'Job link', exact: true });
         await expect(panel.getByRole('heading', { name: 'Check-ins', level: 3 })).toBeVisible({ timeout: FIRST_VISIT_MS });
-        const row = (name) => panel.getByRole('heading', { name: 'Check-ins', level: 3 }).locator('xpath=following-sibling::ul[1]/li').filter({ hasText: name });
+        const row = (name) => panel.getByRole('heading', { name: 'Check-ins', level: 3 }).locator('xpath=following-sibling::ul[1]/li').filter({ hasText: new RegExp(`^${name},`) });
         await expect(row('Ann'), 'Ann was at the address').toContainText('At the address');
         await expect(row('Bea'), 'Bea was not').toContainText(/Not at the address — about \d+(\.\d)? km away/);
         await expect(panel.getByRole('heading', { name: 'Recent activity', level: 3 })).toBeVisible();
