@@ -7,7 +7,7 @@
 // The reads (listCrew, assignedCrew) take `execute` from src/lib/db.js. The writes take a `connection`, inside the transaction the caller
 // has open (inTransaction below opens it), and none of them catches: a failure rolls the whole save back and reaches the route, which
 // answers a 409 for a lost race and a 500 for anything else. Every statement is prepared, with a `?` for every value a person typed, and the
-// only text ever put into one is a run of `?` marks counted from a list of ids.
+// only text ever put into one is a run of `?` marks counted from a list of ids and the number CREW_MAX, which bounds the two reads.
 //
 // Who is on a job is read through the booking's CURRENT provider: assignedCrew() joins provider_crew_members.provider_id to
 // bookings.provider_id. Six statements in five files write bookings.provider_id and booking_crew keeps no record of which round a row belongs
@@ -112,7 +112,7 @@ function marks(list) {
 // The provider's members who have not been removed: [{ id, name, phone }], by name then id.
 export async function listCrew(execute, providerId) {
   const rows = await execute(
-    'SELECT id, name, phone FROM provider_crew_members WHERE provider_id = ? AND removed_at IS NULL ORDER BY name, id',
+    `SELECT id, name, phone FROM provider_crew_members WHERE provider_id = ? AND removed_at IS NULL ORDER BY name, id LIMIT ${CREW_MAX}`,
     [providerId]
   );
   return rows.map(({ id, name, phone }) => ({ id, name, phone }));
@@ -128,7 +128,8 @@ export async function assignedCrew(execute, bookingId) {
      JOIN bookings b ON b.id = bc.booking_id
      JOIN provider_crew_members m ON m.id = bc.crew_member_id AND m.provider_id = b.provider_id
      WHERE bc.booking_id = ?
-     ORDER BY m.name, m.id`,
+     ORDER BY m.name, m.id
+     LIMIT ${CREW_MAX}`,
     [bookingId]
   );
   return rows
