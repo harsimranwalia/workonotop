@@ -10,9 +10,12 @@
 //        A's code with member B's number is 400 and each right pair still signs in; an UNCHECKED member's number, a removed member's and a
 //        number on no crew get the same 200, make no code row and spend nothing from the number's budget (no send);
 //   AC5  (hard gate) the token without the cookie is access 'none' with no job field in the body; the cookie of one link on another link, a
-//        random 43 character cookie and a malformed one are none; after a reissue the old cookie on the NEW token is none (and the old code
-//        does not sign in); after a member's number is corrected, after the member is removed, after the job is reassigned and after an admin
-//        restart the old cookie is none; a removed and re-added member needs a new code (ENG-014's routes make every crew change);
+//        random 43 character cookie and a malformed one are none; a session set back in SQL past its 12 hours is none on the page and the 401 on
+//        a check-in, and a new code makes a new session; after a reissue the old cookie on the NEW token is none (and the old code does not
+//        sign in); after a member's number is corrected, after the member is removed and after the job is reassigned the old cookie is none;
+//        after an admin restart the job has no provider and its link is the one 404 on all four public routes, for a visitor, the old cookie and
+//        an admin, and once the job is crewed again the old cookie is none; a removed and re-added member needs a new code (ENG-014's routes
+//        make every crew change);
 //   AC6  (hard gate) the job's provider (cookie and Bearer) is 'provider' and an admin (Bearer, cookie, both) is 'admin', with no code asked; a
 //        customer, provider 2, an anonymous caller and the previous provider after a reassign are none; a wrong provider's cookie PLUS an
 //        admin's Bearer is admin (the two-call order);
@@ -38,7 +41,7 @@ import { getCredentialHeaders } from './auth/credentials.js';
 import { RESET_RETRIES } from './support/auth.js';
 import { providers, FIXTURE_LOGINS } from '../database/fixtures/accounts.js';
 import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.js';
-import { LINK_TOKEN_PATTERN, sha256Hex } from '../src/lib/link-token.js';
+import { LINK_TOKEN_PATTERN, newLinkToken, sha256Hex } from '../src/lib/link-token.js';
 import { budgetScope } from '../src/lib/sms-budget.js';
 
 // Every request carries a fixture account's session header and a trace records request headers: tracing is off, as in e2e/provider-crew.spec.js.
@@ -60,6 +63,9 @@ const REQUESTED = { success: true, data: { requested: true } };
 const LIMITED = { success: false, message: 'Too many requests on this link. Try again in a while.' };
 const BLANK = 'Enter your mobile number.';
 const NONE = { success: true, data: { access: 'none' } };
+const NOT_VALID = { success: false, message: 'This link is not valid.' };
+const SIGN_IN = { success: false, message: 'Enter your code to continue.' };
+const HERE = { latitude: 51.0447, longitude: -114.0719, accuracy: 10 };
 const NO_MEMBER = { success: false, message: 'Crew member not found' };
 const NOT_RIGHT = { success: false, message: 'That code is not right.' };
 const USED_UP = { success: false, message: 'That code has expired or been used up. Ask for a new one.' };
@@ -422,6 +428,30 @@ async function expectAccess(w, job, headers, expected, who, token = job.token) {
     return res;
 }
 
+// A dead link is the one 404 on all four public routes, whoever asks and whatever made it dead (design, Approach: a probe learns nothing about
+// which dead link it hit). Each route is asked the same of a token nobody holds; the answer must match that one in status, body and cache header,
+// and set no cookie.
+async function expectNotValid(w, job, headers, who) {
+    const [member] = job.members;
+    const asks = (token) => [
+        ['GET', () => viewOf(w, job, headers, token)],
+        ['POST /code', () => w.api.post(`/api/job/${token}/code`, { phone: member.phone }, headers)],
+        ['POST /verify', () => w.api.post(`/api/job/${token}/verify`, { phone: member.phone, code: '123456' }, headers)],
+        ['POST /check-in', () => w.api.post(`/api/job/${token}/check-in`, { crew_ids: [member.id], location: HERE }, headers)],
+    ];
+    const mine = asks(job.token);
+    const nobody = asks(newLinkToken());
+    for (let at = 0; at < mine.length; at += 1) {
+        const [route, ask] = mine[at];
+        const res = await ask();
+        const control = await nobody[at][1]();
+        expectRes(control, `a token nobody holds, ${route}`).toEqual([404, NOT_VALID]);
+        expectRes(res, `${who}: ${route}`).toEqual([404, NOT_VALID]);
+        expect(res.header('cache-control'), `${who}: ${route} says what a token nobody holds says about caching`).toBe(control.header('cache-control'));
+        expect(res.cookies.length, `${who}: ${route} sets no cookie`).toBe(0);
+    }
+}
+
 const eventsOf = (job) => rows('SELECT kind, detail, crew_member_id FROM job_link_events WHERE link_id = ? ORDER BY id', [job.linkId]);
 
 // ---- the cases ----
@@ -623,6 +653,29 @@ test.describe('Job link access: the code and the cookie', () => {
         });
     });
 
+    test('AC5: a session past its 12 hours (set back in SQL) is access none on the page and the 401 on a check-in, and a new code makes a new session while the old cookie stays none', async ({ playwright, baseURL }) => {
+        test.setTimeout(120_000);
+        await inWorld(playwright, baseURL, async (w) => {
+            const job = await newJob(w, { crew: [['Ana', '132']] });
+            const [ana] = job.members;
+            const session = await signIn(w, job, ana);
+            await expectAccess(w, job, session.headers, 'cleaner', 'the cookie while its session has time left');
+
+            // The cookie's Max-Age is the browser's; the server ends a session by the time in the row, so the row is what is set back.
+            const hash = sha256Hex(String(session.cookie?.value));
+            const [ended] = /** @type {any[]} */ (await (await db()).execute('UPDATE job_link_codes SET session_expires_at = NOW() - INTERVAL 1 SECOND WHERE session_hash = ?', [hash]));
+            expect(ended.affectedRows, 'the one session row of the cookie is set back to a second ago').toBe(1);
+            await expectAccess(w, job, session.headers, 'none', 'the same cookie one second after its session ended');
+            const tick = await w.api.post(`/api/job/${job.token}/check-in`, { crew_ids: [ana.id], location: HERE }, session.headers);
+            expectRes(tick, 'a check-in with the cookie of the ended session').toEqual([401, SIGN_IN]);
+            expect(await countOf('SELECT COUNT(*) AS n FROM job_checkins WHERE booking_id = ?', [job.id]), 'nothing was ticked').toBe(0);
+
+            const renewed = await signIn(w, job, ana);
+            await expectAccess(w, job, renewed.headers, 'cleaner', 'a new code makes a new session');
+            await expectAccess(w, job, session.headers, 'none', 'the old cookie after the new sign-in');
+        });
+    });
+
     test('AC5: after a reissue the old cookie on the NEW token is none and a code asked before it does not sign in; a new code on the new token does', async ({ playwright, baseURL }) => {
         test.setTimeout(120_000);
         await inWorld(playwright, baseURL, async (w) => {
@@ -743,7 +796,11 @@ test.describe('Job link access: the code and the cookie', () => {
 
             const restart = await w.api.post(`/api/bookings/${job.id}/restart`, {}, w.as.adminCookie);
             expectRes(restart, 'the admin restarts the job').toEqual([200, { success: true, message: 'Booking restarted successfully' }]);
-            await expectAccess(w, job, second.headers, 'none', 'the cookie after the restart');
+            // The restart leaves the job with no provider, and a job with no provider is a dead link: the 404 for a visitor, the old cookie and an admin.
+            expect(await countOf('SELECT COUNT(*) AS n FROM bookings WHERE id = ? AND provider_id IS NULL', [job.id]), 'the restart leaves the job with no provider').toBe(1);
+            await expectNotValid(w, job, {}, 'a visitor after the restart');
+            await expectNotValid(w, job, second.headers, 'the cookie after the restart');
+            await expectNotValid(w, job, w.as.adminCookie, 'an admin after the restart');
             const given = await w.api.put(`/api/bookings?id=${job.id}`, { provider_id: PROVIDER1.id, status: 'matching' }, w.as.adminCookie);
             expect(given.status, 'the admin gives the restarted job to provider 1 again').toBe(200);
             await sleep(1200);

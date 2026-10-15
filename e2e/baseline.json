@@ -2991,6 +2991,9 @@
     "job-link-access.spec.js › Job link access: the code and the cookie › AC4: five wrong tries and then the right code is 400, an expired code (set back in SQL) is 400, and member A's code with member B's number is 400 while each right pair still signs in": {
       "outcome": "PASS"
     },
+    "job-link-access.spec.js › Job link access: the code and the cookie › AC5: a session past its 12 hours (set back in SQL) is access none on the page and the 401 on a check-in, and a new code makes a new session while the old cookie stays none": {
+      "outcome": "PASS"
+    },
     "job-link-access.spec.js › Job link access: the code and the cookie › AC5: after a member's number is corrected the old cookie is none and the code asked for the old number signs in on neither number; the corrected number is unchecked, so it gets no code until it is checked": {
       "outcome": "PASS"
     },
