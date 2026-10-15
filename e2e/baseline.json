@@ -3012,7 +3012,7 @@
     "job-checkin.spec.js › Job link check-in: a crew ticks in at the job › AC9: after three, one more id is added: the first three are already on a repeat, the PUT that adds the cleaner keeps their ticks, and the view shows four": {
       "outcome": "PASS"
     },
-    "job-clock.spec.js › ENG-016 clock: pins › Pins: QUOTE_FALLBACK_MINUTES is exported at 60, with overlapSeconds and clockView": {
+    "job-clock.spec.js › ENG-016 clock: pins › Pins: QUOTE_DEFAULT_MINUTES is exported at 60, with overlapSeconds and clockView": {
       "outcome": "PASS"
     },
     "job-clock.spec.js › ENG-016 clock: pins › Pins: src/lib/job-clock.js has no import statement or expression": {
@@ -3021,7 +3021,7 @@
     "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC3: V10: seven cleaners on a one-hour quote read 515 seconds each, because 3600 / 7 is rounded up": {
       "outcome": "PASS"
     },
-    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC3: V11: a quote that is null, 0 or negative is the fallback of 60 minutes, and a quote above zero is used as it is": {
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC3: V11: a quote that is null, 0 or negative is the default of 60 minutes, and a quote above zero is used as it is": {
       "outcome": "PASS"
     },
     "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC3: V1: three cleaners on a six-hour quote, the clock just started, read two hours each, and the view has the seven fields of the design": {
@@ -3036,7 +3036,7 @@
     "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC3: V7: a stretch that runs while nobody is on the job counts for nothing, and the clock is null (not 0, and not the quote)": {
       "outcome": "PASS"
     },
-    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC3: a list that is left out is empty, and a span with no `to` at all is still open, as one with a null is": {
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC3: a list that is left out is empty, and a span with no `to` at all is open, as one with a null is": {
       "outcome": "PASS"
     },
     "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC4: V3: a cleaner who arrives re-divides what is left on the spot, and when the four have used the last of it the clock reads 0": {
@@ -3534,7 +3534,7 @@
     "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: PHOTO_URL_BASE is /uploads/job-photos/ and is where PHOTO_DIR is served from": {
       "outcome": "PASS"
     },
-    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: QUOTE_FALLBACK_MINUTES is 60": {
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: QUOTE_DEFAULT_MINUTES is 60": {
       "outcome": "PASS"
     },
     "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: git ignores public/uploads/job-photos/x.jpg": {
@@ -3615,7 +3615,7 @@
     "job-timer-screens.spec.js › Job timer: the timer card › Screens: while the job has not started the Start button is off and says why for each reason the server gives, and the quoted time shows": {
       "outcome": "PASS"
     },
-    "job-timer.spec.js › Job timer: a crew starts, pauses and leaves a job through the link › AC2: (hard gate) with no before photo the cleaner, the provider and the admin at the link and the provider at time-tracking are each refused a start and nothing is written; with one each starts a probe of its own; nobody checked in, a pending job and no position are refused too": {
+    "job-timer.spec.js › Job timer: a crew starts, pauses and leaves a job through the link › AC2: (hard gate) with no before photo the cleaner, the provider and the admin at the link and the provider at time-tracking are each refused a start and nothing is written; with one each starts a probe of its own; nobody checked in, a pending job and no position are refused as well": {
       "outcome": "PASS"
     },
     "job-timer.spec.js › Job timer: a crew starts, pauses and leaves a job through the link › AC3: three cleaners checked in on a 360-minute job and started: crew_here 3, quote_minutes 360 and a clock of 7200 seconds for the cleaner, the provider and the admin, on the page, the poll and both panels; a quote of NULL (and of 0) reads 60 minutes": {
@@ -3630,7 +3630,7 @@
     "job-timer.spec.js › Job timer: a crew starts, pauses and leaves a job through the link › AC5: a job restarted while it ran leaves a stretch open: the next look reads a job that has not started with nothing used, and the new start closes the stale stretch so that no labour is counted twice": {
       "outcome": "PASS"
     },
-    "job-timer.spec.js › Job timer: a crew starts, pauses and leaves a job through the link › AC5: after a pause, a resume, a late arrival, an early leaver and a cleaner taken off the crew each cleaner's worked seconds are what the rows hold, they sum to the seconds used, and the removed cleaner's hours are still in the sum": {
+    "job-timer.spec.js › Job timer: a crew starts, pauses and leaves a job through the link › AC5: after a pause, a resume, a late arrival, an early leaver and a cleaner taken off the crew each cleaner's worked seconds are what the rows hold, they sum to the seconds used, and the removed cleaner's hours are in the sum": {
       "outcome": "PASS"
     },
     "job-timer.spec.js › Job timer: a crew starts, pauses and leaves a job through the link › AC6: the first look that finds the labour used sets over_quote_at and writes one over_quote event, ten at once write one and a later look changes nothing; the clock reads 0, the admin sees the flag, and no money column and no payment or invoice row changes": {

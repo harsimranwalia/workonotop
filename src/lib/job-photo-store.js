@@ -27,7 +27,7 @@
 // stripJpegMetadata(buffer) -> a Buffer | null
 //   A JPEG comes back without any APP1 segment whose payload starts 'Exif\0\0' (the camera's metadata, its GPS position included), found by
 //   walking the markers from the start of image to the start of scan. A JPEG that does not parse cleanly is refused with null and is not stored
-//   as it came: a marker that is not one a JPEG has before its scan, a segment whose length runs past the end or is under 2, a file with no start
+//   as it came: a marker that is not one a JPEG carries before its scan, a segment whose length runs past the end or is under 2, a file with no start
 //   of scan, a scan that does not end in FF D9 (a truncated file, or one with bytes after its end), so any non-null answer starts FF D8 and ends
 //   FF D9. A JPEG with no Exif segment comes back as the very buffer that came. A PNG or WebP comes back as it came (the page always sends a JPEG,
 //   so a client that sends another kind is not a person with the page), and so does nothing else: anything that is not one of the three is null.
@@ -46,8 +46,8 @@
 //   answer and is never touched. [] when the directory does not exist. It lists the whole directory (the retention sweep compares it with the
 //   rows once a day), so it is not for a request.
 // usePhotoDir(directory) -> the directory it replaced
-//   TEST-ONLY. A spec points the store at a scratch directory, or at one that cannot be created to prove the 'store' answer, and puts the old one
-//   back in a finally. Nothing in src/ calls it and a pin fails a PR that does. PHOTO_DIR is still the constant; this changes only where the
+//   TEST-ONLY. A spec points the store at a scratch directory, or at one that cannot be created to prove the 'store' answer, and puts the directory it replaced
+//   back in a finally. Nothing in src/ calls it and a pin fails a PR that does. PHOTO_DIR remains the constant; this changes only where the
 //   functions above look.
 import { mkdir, readdir, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';

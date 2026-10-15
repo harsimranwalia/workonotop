@@ -335,7 +335,7 @@ test.describe('Job photo retention: the route source', () => {
         expect(code, 'the first statements of GET are the guard call and its refusal').toMatch(
             /export\s+async\s+function\s+GET\s*\(\s*request\s*\)\s*\{\s*const\s+secret\s*=\s*requireCronSecret\(\s*request\s*\)\s*;?\s*if\s*\(\s*!secret\.ok\s*\)\s*return\s+secret\.response\s*;?/
         );
-        expect(code, 'the old checks are not back (a development skip, the secret read by hand)').not.toMatch(/NODE_ENV|process\.env\.CRON_SECRET|searchParams\.get\(\s*['"]secret['"]\s*\)/);
+        expect(code, 'there is no development skip and no secret read by hand').not.toMatch(/NODE_ENV|process\.env\.CRON_SECRET|searchParams\.get\(\s*['"]secret['"]\s*\)/);
         expect(callsOf(code, 'runJobPhotoRetention'), "the retention runs with the pool's execute").toEqual(['execute']);
     });
 });
@@ -353,7 +353,7 @@ test.describe('Job photo retention: the library', () => {
         test.setTimeout(120_000);
         const booking = await mkBooking();
         // Gone: more than a year old, taken at the link by each kind of taker. 366 days is the near side of the boundary and 364 below is the other.
-        const old = [
+        const aged = [
             await mkPhoto(booking, { days: 400, kind: 'cleaner' }),
             await mkPhoto(booking, { days: 366, kind: 'provider', type: 'after' }),
             await mkPhoto(booking, { days: 800, kind: 'admin' }),
@@ -365,8 +365,8 @@ test.describe('Job photo retention: the library', () => {
             await mkPhoto(booking, { days: 1, kind: 'provider' }),
             await mkPhoto(booking, { days: 400, kind: null }),
         ];
-        const mine = ascending([...old, ...kept].map((photo) => photo.id));
-        const goneIds = ascending(old.map((photo) => photo.id));
+        const mine = ascending([...aged, ...kept].map((photo) => photo.id));
+        const goneIds = ascending(aged.map((photo) => photo.id));
         const keptIds = ascending(kept.map((photo) => photo.id));
         expect(await filesNow(), 'seven files are in the scratch store before the run').toHaveLength(7);
 
@@ -405,7 +405,7 @@ test.describe('Job photo retention: the library', () => {
         const first = watching();
         await runJobPhotoRetention(first.run);
         expect(among(first.selected, mine), "the run found the old photo of the undisputed job and neither of the disputed job's").toEqual([control.id]);
-        expect(await rowIds(disputed, plain), "the disputed job's two rows are still there and the other job's is gone").toEqual(ascending(held.map((photo) => photo.id)));
+        expect(await rowIds(disputed, plain), "the disputed job's two rows are there and the other job's is gone").toEqual(ascending(held.map((photo) => photo.id)));
         expect(await filesNow(), "and so are the disputed job's two files").toEqual(urlsOf(held));
 
         // The dispute is settled: the booking moves on, and the next run takes the photos.
@@ -464,7 +464,7 @@ test.describe('Job photo retention: the library', () => {
         for (const name of strangers) expect(fs.existsSync(path.join(here().directory, name)), `a file the store did not make (${name}) is left alone`).toBe(true);
         const namedIds = ascending(named.map((photo) => photo.id));
         expect(among(first.deleted, [control.id, ...namedIds]), 'the first step deleted the control and none of the three rows that name a file here').toEqual([control.id]);
-        expect(await rowIds(booking, disputed), 'those three are still there and the control is gone').toEqual(namedIds);
+        expect(await rowIds(booking, disputed), 'those three are there and the control is gone').toEqual(namedIds);
 
         // A second run: no file is left without a row, and the files are as they were.
         const again = await runJobPhotoRetention(execute);
@@ -506,7 +506,7 @@ test.describe('Job photo retention: the library', () => {
         await expect(runJobPhotoRetention(dies), 'the crash reaches the caller').rejects.toThrow('simulated crash');
         expect(refused, 'the delete of the rows was the statement that failed').toBeGreaterThanOrEqual(1);
         expect(await filesNow(), 'the file was removed before the row').toEqual([]);
-        expect(await rowIds(booking), 'and the row is still there').toEqual([half.id]);
+        expect(await rowIds(booking), 'and the row remains').toEqual([half.id]);
 
         const next = watching();
         const finished = await runJobPhotoRetention(next.run);
@@ -561,7 +561,7 @@ test.describe('Job photo retention: the library', () => {
         expect(among(first.deleted, mine), 'and deleted the thirty good ones and none of the bad').toEqual(goodIds);
         expect(summary.skipped, 'and counted the 210 it would not remove').toBeGreaterThanOrEqual(210);
         expect(summary.deleted_photos, 'the count says at least the thirty good ones went').toBeGreaterThanOrEqual(30);
-        expect(await rowIds(booking), 'the 210 bad rows are still there and the thirty good ones are not').toEqual(badIds);
+        expect(await rowIds(booking), 'the 210 bad rows are there and the thirty good ones are not').toEqual(badIds);
         expect(await filesNow(), 'the thirty files are gone').toEqual([]);
         expect(fs.readFileSync(canary, 'utf8'), 'the file one level above the store was not deleted by an address with ../ in it').toBe('must stay');
         expect(fs.readFileSync(outside, 'utf8'), 'nor the file an absolute address named').toBe('must stay');
@@ -693,7 +693,7 @@ test.describe('Job photo retention: the cron route', () => {
             const everything = ascending([byBearer.id, byQuery.id]);
             const files = [byBearer.url, byQuery.url, strayOne, strayTwo].sort();
 
-            // Refused callers: 401 with the one body, and no work done (the rows and the files are all still there).
+            // Refused callers: 401 with the one body, and no work done (the rows and the files are all there).
             for (const [what, suffix, headers] of /** @type {[string, string, Record<string, string>][]} */ ([
                 ['no credential', '', {}],
                 ['a wrong Bearer', '', { authorization: 'Bearer not-the-cron-secret' }],
@@ -705,7 +705,7 @@ test.describe('Job photo retention: the cron route', () => {
                 expect(response.status, `${what}: status`).toBe(401);
                 expect(await response.json(), `${what}: body`).toEqual({ success: false, message: 'Unauthorized' });
             }
-            expect(await rowIds(booking), 'a refused caller ran nothing: both old rows are still there').toEqual(everything);
+            expect(await rowIds(booking), 'a refused caller ran nothing: both old rows are there').toEqual(everything);
             expect(await filesNow(), 'and all four files').toEqual(files);
 
             // The secret as a Bearer: the sweep runs and the answer is the counts.

@@ -6,14 +6,14 @@
 // settles, and the file's name, the describe and the title together are its baseline key:
 //   AC3  V1, V2, V3, V7, V10 and V11: three cleaners on a six-hour quote read two hours each, and a fourth who arrives an hour in makes it 45 minutes;
 //        nobody on the job reads null (not 0, and not the quote); seven cleaners on an hour read 515 seconds, rounded up; a quote that is NULL, 0 or
-//        negative reads 60 minutes; a list or an end that is left out is read as none and as still open;
+//        negative reads 60 minutes; a list or an end that is left out is read as none and as open;
 //   AC4  V3 and V4: a cleaner who arrives and one who leaves re-divide what is left on the spot, and the clock reads 0 at the second the labour is used;
 //   AC5  V5, V6, V12 and V13: the pause is not counted; each cleaner is counted from the second they arrived; a cleaner taken off the crew keeps their
 //        hour in used_seconds and per_member and is not counted as here; a stay ticked by mistake adds nothing; the per-cleaner seconds add up to the
 //        total. Also a cleaner who left and came back, a stay or a stretch that begins after `now`, and overlapSeconds itself;
 //   AC6  V8 and V9: past the quote the clock reads 0 and over_seconds says how far over each cleaner here is, and with nobody here it is the whole
 //        overrun; a sweep of quotes, crews and times finds clock_seconds never below zero and over_seconds set exactly when left_seconds is below zero;
-//   Pins  source checks: job-clock.js has no import statement or expression, and QUOTE_FALLBACK_MINUTES is exported at 60.
+//   Pins  source checks: job-clock.js has no import statement or expression, and QUOTE_DEFAULT_MINUTES is exported at 60.
 // V3 settles two rows (AC3 and AC4), so it has a case under each. The vectors count seconds from the start of the job and `now` is the second asked at,
 // as the design's table does. A cleaner is a member id, and A to D below are the design's names for the first four. Every expected figure was worked out
 // by hand from the table and never taken from a run of the library.
@@ -21,7 +21,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
-import { QUOTE_FALLBACK_MINUTES, overlapSeconds, clockView } from '../src/lib/job-clock.js';
+import { QUOTE_DEFAULT_MINUTES, overlapSeconds, clockView } from '../src/lib/job-clock.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
@@ -60,13 +60,13 @@ test.describe('ENG-016 clock: the rule in plain Node', () => {
         const view = clockView({ quote_minutes: 360, sessions: [ran(0)], presence: crewOf(3), now: HOUR });
         expect(view.used_seconds, 'three cleaners for 3600 seconds is 10800 labour-seconds').toBe(10800);
         expect(view.left_seconds, 'half of the 21600 is left').toBe(10800);
-        expect(view.crew_here, 'three are still here').toBe(3);
+        expect(view.crew_here, 'three are here').toBe(3);
         expect(view.clock_seconds, '10800 shared by three is 3600 each').toBe(3600);
         expect(view.per_member, 'each of the three has worked the hour').toEqual({ [A]: HOUR, [B]: HOUR, [C]: HOUR });
     });
 
     // Mutant that turns this case red: a presence that begins at `now` is not counted as here (< where <= belongs), so the fourth cleaner is on the
-    // job and the clock still divides by three.
+    // job and the clock divides by three.
     test('AC3: V3: a fourth cleaner who arrives an hour in is counted at once, so the 10800 left is shared by four and each reads 45 minutes', () => {
         const view = clockView({ quote_minutes: 360, sessions: [ran(0)], presence: [...crewOf(3), here(D, HOUR)], now: HOUR });
         expect(view.used_seconds, 'the three have done 10800 and the fourth nothing yet').toBe(10800);
@@ -95,10 +95,10 @@ test.describe('ENG-016 clock: the rule in plain Node', () => {
         expect(view.clock_seconds, 'ceil(3600 / 7) is ceil(514.28...), which is 515').toBe(515);
     });
 
-    // Mutant that turns this case red: the fallback changes, or a quote of 0 or below is used as it stands, so a booking with no quote reads a different
-    // time on the link than on the provider's own timer (whose `|| 60` the fallback is) or counts down from nothing.
-    test('AC3: V11: a quote that is null, 0 or negative is the fallback of 60 minutes, and a quote above zero is used as it is', () => {
-        expect(QUOTE_FALLBACK_MINUTES, "the fallback is the provider's timer route's `|| 60`").toBe(60);
+    // Mutant that turns this case red: the default changes, or a quote of 0 or below is used as it stands, so a booking with no quote reads a different
+    // time on the link than on the provider's own timer (whose `|| 60` the default is) or counts down from nothing.
+    test('AC3: V11: a quote that is null, 0 or negative is the default of 60 minutes, and a quote above zero is used as it is', () => {
+        expect(QUOTE_DEFAULT_MINUTES, "the default is the provider's timer route's `|| 60`").toBe(60);
         for (const quote_minutes of [null, 0, -5]) {
             const view = clockView({ quote_minutes, sessions: [ran(0)], presence: [here(A)], now: 0 });
             expect(view.quote_seconds, `a quote of ${quote_minutes} reads as 3600 seconds`).toBe(3600);
@@ -109,14 +109,14 @@ test.describe('ENG-016 clock: the rule in plain Node', () => {
         expect(clockView({ quote_minutes: 90, now: 0 }).quote_seconds, 'a quote of 90 minutes is 5400 seconds').toBe(5400);
     });
 
-    test('AC3: a list that is left out is empty, and a span with no `to` at all is still open, as one with a null is', () => {
+    test('AC3: a list that is left out is empty, and a span with no `to` at all is open, as one with a null is', () => {
         expect(clockView({ quote_minutes: 90, now: 100 }), 'no stretches and no presence: the whole quote is left and nobody is here').toEqual({
             quote_seconds: 5400, used_seconds: 0, left_seconds: 5400, crew_here: 0, clock_seconds: null, over_seconds: null, per_member: {},
         });
         const written = clockView({ quote_minutes: 360, sessions: [ran(0)], presence: [here(A)], now: HOUR });
         const omitted = clockView({ quote_minutes: 360, sessions: [{ from: 0 }], presence: [{ member: A, from: 0 }], now: HOUR });
         expect(written.crew_here, 'a cleaner with a null `to` is here').toBe(1);
-        expect(written.used_seconds, 'and has worked the hour of a stretch that is still running').toBe(HOUR);
+        expect(written.used_seconds, 'and has worked the hour of a stretch that is running').toBe(HOUR);
         expect(omitted, 'a `to` that is left out reads the same as the null the design uses').toEqual(written);
     });
 
@@ -134,12 +134,12 @@ test.describe('ENG-016 clock: the rule in plain Node', () => {
         expect(done.per_member, 'at 6300 the three have worked 6300 each and the fourth 2700').toEqual({ [A]: 6300, [B]: 6300, [C]: 6300, [D]: 2700 });
         expect(done.used_seconds, '3 x 6300 + 2700 is the whole quote').toBe(21600);
         expect(done.left_seconds, 'nothing is left').toBe(0);
-        expect(done.crew_here, 'all four are still here').toBe(4);
+        expect(done.crew_here, 'all four are here').toBe(4);
         expect(done.clock_seconds, 'the clock reads 0').toBe(0);
         expect(done.over_seconds, 'with nothing left the job is not over: over_seconds needs left_seconds below zero').toBeNull();
     });
 
-    // Mutant that turns this case red: crew_here counts a cleaner who has gone (the `to` is ignored), so the one who left is still handed a share of
+    // Mutant that turns this case red: crew_here counts a cleaner who has gone (the `to` is ignored), so the one who left is handed a share of
     // the labour that is left and the two who stay are told too much time.
     test('AC4: V4: a cleaner who leaves re-divides what is left on the spot, and when the two who stay have used the last of it the clock reads 0', () => {
         const presence = [here(A), here(B), here(C, 0, HOUR)];
@@ -152,7 +152,7 @@ test.describe('ENG-016 clock: the rule in plain Node', () => {
         const done = clockView({ quote_minutes: 360, sessions: [ran(0)], presence, now: 9000 });
         expect(done.used_seconds, 'at 9000 A and B have worked 9000 each and C 3600: the whole quote').toBe(21600);
         expect(done.left_seconds, 'nothing is left').toBe(0);
-        expect(done.crew_here, 'the two are still here').toBe(2);
+        expect(done.crew_here, 'the two are here').toBe(2);
         expect(done.clock_seconds, 'the clock reads 0').toBe(0);
     });
 
@@ -179,7 +179,7 @@ test.describe('ENG-016 clock: the rule in plain Node', () => {
     // Mutant that turns this case red: a presence that has ended is left out of the sum (or only the cleaners here are listed), so the hour a cleaner
     // worked before they were taken off the crew is lost from the labour done and from their own record.
     test('AC5: V12: a cleaner taken off the crew keeps the hour they worked in used_seconds and per_member, and is not counted as here', () => {
-        // B was on the job from 0 and was taken off at 3600; A is still here. The timer ran in three back-to-back stretches across B's hour and on past it.
+        // B was on the job from 0 and was taken off at 3600; A is here. The timer ran in three back-to-back stretches across B's hour and on past it.
         const sessions = [ran(0, 1200), ran(1200, 2400), ran(2400)];
         const view = clockView({ quote_minutes: 360, sessions, presence: [here(A), here(B, 0, HOUR)], now: 5400 });
         expect(view.per_member[B], "B's whole hour is in per_member").toBe(HOUR);
@@ -191,7 +191,7 @@ test.describe('ENG-016 clock: the rule in plain Node', () => {
     });
 
     // Mutant that turns this case red: an overlap that is below zero is not clamped, so a stay that ended before the timer began takes labour off the
-    // total instead of adding none.
+    // total, when it should add none.
     test('AC5: V13: a cleaner ticked in by mistake and checked out before the timer ran adds nothing', () => {
         const view = clockView({ quote_minutes: 60, sessions: [ran(200)], presence: [here(A, 0, 100), here(B)], now: 1200 });
         expect(view.per_member, 'A is listed at 0 and B has worked 1000').toEqual({ [A]: 0, [B]: 1000 });
@@ -201,8 +201,8 @@ test.describe('ENG-016 clock: the rule in plain Node', () => {
         expect(view.clock_seconds, "3600 less 1000 is 2600, all of it B's").toBe(2600);
     });
 
-    // Mutant that turns this case red: a second stay of the same cleaner replaces the first in per_member instead of adding to it, so the hours of the
-    // first stay vanish and the per-cleaner seconds no longer add up to the total.
+    // Mutant that turns this case red: a second stay of the same cleaner replaces the first in per_member without adding to it, so the hours of the
+    // first stay vanish and the per-cleaner seconds do not add up to the total.
     test('AC5: a cleaner who left and came back is one entry in per_member with both stays, and counts once as here', () => {
         const view = clockView({ quote_minutes: 360, sessions: [ran(0)], presence: [here(A, 0, 1000), here(A, 2000)], now: 3000 });
         expect(view.per_member, 'A worked 1000 seconds, then another 1000').toEqual({ [A]: 2000 });
@@ -254,7 +254,7 @@ test.describe('ENG-016 clock: the rule in plain Node', () => {
         const view = clockView({ quote_minutes: 60, sessions: [ran(0)], presence: crewOf(2), now: 2000 });
         expect(view.used_seconds, 'two cleaners for 2000 seconds is 4000 labour-seconds, past the 3600 quoted').toBe(4000);
         expect(view.left_seconds, 'left_seconds goes below zero and is not clamped: 3600 less 4000').toBe(-400);
-        expect(view.crew_here, 'both are still here').toBe(2);
+        expect(view.crew_here, 'both are here').toBe(2);
         expect(view.clock_seconds, 'the clock stops at 0 and does not go negative').toBe(0);
         expect(view.over_seconds, '400 labour-seconds over, shared by two, is 200 each').toBe(200);
         expect(view.per_member, 'each has worked the 2000').toEqual({ [A]: 2000, [B]: 2000 });
@@ -270,7 +270,7 @@ test.describe('ENG-016 clock: the rule in plain Node', () => {
         expect(unattended.clock_seconds, 'with nobody here the clock is null').toBeNull();
         expect(unattended.over_seconds, 'the job is not over the quote').toBeNull();
 
-        // Two cleaners worked 2400 seconds each (4800 against 3600 quoted) and both went at 2400; the stretch is still running at 3000.
+        // Two cleaners worked 2400 seconds each (4800 against 3600 quoted) and both went at 2400; the stretch is running at 3000.
         const gone = clockView({ quote_minutes: 60, sessions: [ran(0)], presence: [here(A, 0, 2400), here(B, 0, 2400)], now: 3000 });
         expect(gone.used_seconds, 'the two worked 2400 each').toBe(4800);
         expect(gone.left_seconds, '3600 less 4800').toBe(-1200);
@@ -324,7 +324,7 @@ function withoutComments(source) {
 const textOf = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 test.describe('ENG-016 clock: pins', () => {
-    // Mutant that turns this case red: job-clock.js imports something, so a spec and the timer can no longer load the rule in plain Node, and the
+    // Mutant that turns this case red: job-clock.js imports something, so a spec and the timer cannot load the rule in plain Node, and the
     // database or a date library gets between the rows and the number a cleaner reads.
     test('Pins: src/lib/job-clock.js has no import statement or expression', () => {
         const code = withoutComments(textOf('src/lib/job-clock.js'));
@@ -334,14 +334,14 @@ test.describe('ENG-016 clock: pins', () => {
         expect(/\brequire\s*\(/.test(code), 'a require call').toBe(false);
     });
 
-    // Mutant that turns this case red: the fallback quote is changed, or is no longer exported at its value, so a booking with no quote reads a
+    // Mutant that turns this case red: the default quote is changed, or is not exported at its value, so a booking with no quote reads a
     // different time on the link than on the provider's own timer, and nothing says so.
-    test('Pins: QUOTE_FALLBACK_MINUTES is exported at 60, with overlapSeconds and clockView', () => {
+    test('Pins: QUOTE_DEFAULT_MINUTES is exported at 60, with overlapSeconds and clockView', () => {
         const code = withoutComments(textOf('src/lib/job-clock.js'));
-        expect(/\bexport\s+const\s+QUOTE_FALLBACK_MINUTES\s*=\s*60\s*;/.test(code), 'the source declares and exports it at 60').toBe(true);
-        expect(QUOTE_FALLBACK_MINUTES, 'the value the library exports is 60').toBe(60);
+        expect(/\bexport\s+const\s+QUOTE_DEFAULT_MINUTES\s*=\s*60\s*;/.test(code), 'the source declares and exports it at 60').toBe(true);
+        expect(QUOTE_DEFAULT_MINUTES, 'the value the library exports is 60').toBe(60);
         const exported = [...code.matchAll(/\bexport\s+(?:const|function)\s+(\w+)/g)].map((match) => match[1]);
-        for (const name of ['QUOTE_FALLBACK_MINUTES', 'overlapSeconds', 'clockView']) {
+        for (const name of ['QUOTE_DEFAULT_MINUTES', 'overlapSeconds', 'clockView']) {
             expect(exported.includes(name), `${name} is exported`).toBe(true);
         }
     });

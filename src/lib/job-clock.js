@@ -15,7 +15,7 @@
 // A span that has not ended has `to` null and is read as ending at `now`.
 //
 // Constants (one-line changes, no migration):
-//   QUOTE_FALLBACK_MINUTES  60   the quote when bookings.standard_duration_minutes is NULL, 0 or below. It is the `|| 60` of the provider's own
+//   QUOTE_DEFAULT_MINUTES   60   the quote when bookings.standard_duration_minutes is NULL, 0 or below. It is the `|| 60` of the provider's own
 //                                timer route (src/app/api/provider/jobs/time-tracking/route.js), so the two agree on a booking with no quote.
 //
 // overlapSeconds(aFrom, aTo, bFrom, bTo) -> whole seconds that both spans cover, 0 when they do not meet (spans that only touch do not meet).
@@ -24,7 +24,7 @@
 //   sessions is [{ from, to }], the stretches the timer ran. presence is [{ member, from, to }], when each cleaner was on the job; the ones who have
 //   left or were taken off the crew stay in it, because their hours were worked, and a cleaner who came back is a second entry with the same
 //   member. A list that is left out is empty.
-//   quote_seconds  the quote in seconds: quote_minutes, or QUOTE_FALLBACK_MINUTES when that is not above zero, times 60.
+//   quote_seconds  the quote in seconds: quote_minutes, or QUOTE_DEFAULT_MINUTES when that is not above zero, times 60.
 //   used_seconds   the labour done: the sum, over sessions and presences, of the seconds they overlap.
 //   left_seconds   quote_seconds less used_seconds. It is below zero once the job runs over.
 //   crew_here      the presences that have not ended and began at or before `now`: the cleaners who share what is left.
@@ -34,7 +34,7 @@
 //                  nobody is here); else null.
 //   per_member     { [member]: seconds }, each cleaner's share of used_seconds. Every member given is listed, at 0 when the clock never ran while
 //                  they were there, and a cleaner with two stays has the sum of both. The values add up to used_seconds.
-export const QUOTE_FALLBACK_MINUTES = 60;
+export const QUOTE_DEFAULT_MINUTES = 60;
 
 const hasEnded = (to) => to !== null && to !== undefined;
 
@@ -44,7 +44,7 @@ export function overlapSeconds(aFrom, aTo, bFrom, bTo) {
 }
 
 export function clockView({ quote_minutes, sessions = [], presence = [], now } = {}) {
-  const quote_seconds = (quote_minutes > 0 ? quote_minutes : QUOTE_FALLBACK_MINUTES) * 60;
+  const quote_seconds = (quote_minutes > 0 ? quote_minutes : QUOTE_DEFAULT_MINUTES) * 60;
   const per_member = {};
   for (const stay of presence) {
     let seconds = per_member[stay.member] ?? 0;

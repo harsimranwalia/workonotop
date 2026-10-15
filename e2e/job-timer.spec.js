@@ -12,7 +12,7 @@
 //        (5400); a cleaner taken off the crew through ENG-014's route is stamped checked out by the next look, once, even when ten looks run at
 //        once, and the clock is divided again; the last one out of a running job pauses it (detail last_out);
 //   AC5  after a pause, a resume, a late arrival, an early leaver and a cleaner taken off the crew, each cleaner's worked_seconds is what the
-//        rows hold (worked out by hand here), they sum to used_seconds, and the removed cleaner's hours are still in it;
+//        rows hold (worked out by hand here), they sum to used_seconds, and the removed cleaner's hours are in it;
 //   AC6  the first look that finds the labour used sets over_quote_at and writes one over_quote event (ten at once write one, a later look
 //        changes nothing); the clock reads 0 and over_seconds above 0; the admin's panel shows over_quote_at; no money column and no payment
 //        or invoice row changes;
@@ -343,7 +343,7 @@ const TOLERANCE = 6;
 test.describe('Job timer: a crew starts, pauses and leaves a job through the link', () => {
     sweepAround();
 
-    test('AC2: (hard gate) with no before photo the cleaner, the provider and the admin at the link and the provider at time-tracking are each refused a start and nothing is written; with one each starts a probe of its own; nobody checked in, a pending job and no position are refused too', async ({ playwright, request, baseURL }) => {
+    test('AC2: (hard gate) with no before photo the cleaner, the provider and the admin at the link and the provider at time-tracking are each refused a start and nothing is written; with one each starts a probe of its own; nobody checked in, a pending job and no position are refused as well', async ({ playwright, request, baseURL }) => {
         test.setTimeout(240_000);
         const ctx = await setup(playwright, request, baseURL);
 
@@ -413,7 +413,7 @@ test.describe('Job timer: a crew starts, pauses and leaves a job through the lin
         expect([pending.status, pending.body?.message, pending.body?.reason], 'a pending job is not ready to start').toEqual([409, MESSAGES.notConfirmed, 'not_confirmed']);
         const w5After = await writesOf(w5.bookingId);
         expect({ ...w5After, status: 'confirmed' }, 'the refusals wrote no session, no log and no history row').toEqual(w5Before);
-        expect(w5After.status, 'and the job is still pending').toBe('pending');
+        expect(w5After.status, 'and the job is pending').toBe('pending');
     });
 
     test('AC3: three cleaners checked in on a 360-minute job and started: crew_here 3, quote_minutes 360 and a clock of 7200 seconds for the cleaner, the provider and the admin, on the page, the poll and both panels; a quote of NULL (and of 0) reads 60 minutes', async ({ playwright, request, baseURL }) => {
@@ -483,7 +483,7 @@ test.describe('Job timer: a crew starts, pauses and leaves a job through the lin
         const left = await outOk(request, second.job, second.cleaner, [second.members[2].id], 'the cleaner');
         expect(left.checked_out, 'the answer names the cleaner who left').toEqual([second.members[2].id]);
         const two = await timerOf(request, second.job, ctx.as.admin, 'the admin');
-        expect([two.state, two.crew_here], 'two are here and the job still runs').toEqual(['running', 2]);
+        expect([two.state, two.crew_here], 'two are here and the job runs').toEqual(['running', 2]);
         near(two.clock_seconds, 5400, 10, 'the clock among two (V4)');
         const gone = two.per_member.find((member) => member.id === second.members[2].id);
         expect(gone?.checked_out_at !== null && gone?.checked_out_at !== undefined, 'the one who left shows a time out').toBe(true);
@@ -497,7 +497,7 @@ test.describe('Job timer: a crew starts, pauses and leaves a job through the lin
 
         // The last two out: the first leaves the job running, the last one out pauses it.
         const one = await outOk(request, second.job, second.cleaner, [second.members[1].id], 'the cleaner');
-        expect(one.timer.state, 'with one still here the job runs').toBe('running');
+        expect(one.timer.state, 'with one here the job runs').toBe('running');
         const last = await outOk(request, second.job, second.cleaner, [second.members[0].id], 'the cleaner');
         expect(last.timer.state, 'the last one out pauses the job').toBe('paused');
         expect((await eventsOf(second.job.bookingId, 'timer_pause', 'last_out')).length, 'one timer_pause with the detail last_out').toBe(1);
@@ -516,7 +516,7 @@ test.describe('Job timer: a crew starts, pauses and leaves a job through the lin
 
         // ENG-014's route takes Cat off the crew: nothing in that route knows about the timer.
         await setCrew(ctx, job.bookingId, [members[0].id, members[1].id]);
-        expect(await countOf('SELECT COUNT(*) AS n FROM job_checkins WHERE booking_id = ? AND crew_member_id = ? AND checked_out_at IS NULL', [job.bookingId, members[2].id]), 'before anybody looks Cat is still ticked in').toBe(1);
+        expect(await countOf('SELECT COUNT(*) AS n FROM job_checkins WHERE booking_id = ? AND crew_member_id = ? AND checked_out_at IS NULL', [job.bookingId, members[2].id]), 'before anybody looks Cat is ticked in').toBe(1);
 
         const looks = await Promise.all(Array.from({ length: 10 }, () => readTimer(request, job, cleaner)));
         for (const [index, look] of looks.entries()) {
@@ -529,12 +529,12 @@ test.describe('Job timer: a crew starts, pauses and leaves a job through the lin
         expect(await countOf('SELECT COUNT(*) AS n FROM job_checkins WHERE booking_id = ? AND crew_member_id = ? AND checked_out_at IS NOT NULL', [job.bookingId, members[2].id]), 'Cat is stamped checked out').toBe(1);
 
         const now = await timerOf(request, job, ctx.as.provider, 'the provider');
-        expect([now.state, now.crew_here], 'the job still runs with two').toEqual(['running', 2]);
+        expect([now.state, now.crew_here], 'the job runs with two').toEqual(['running', 2]);
         near(now.clock_seconds, 5400, 10, 'the clock is divided again (V4)');
         const cat = now.per_member.find((member) => member.id === members[2].id);
         near(cat?.worked_seconds, 3600, TOLERANCE, "Cat's hour is kept");
         expect((await eventsOf(job.bookingId, 'check_out', 'removed')).length, 'looking again writes no second event').toBe(1);
-        expect((await eventsOf(job.bookingId, 'timer_pause')).length, 'two are still here, so nothing paused').toBe(0);
+        expect((await eventsOf(job.bookingId, 'timer_pause')).length, 'two are here, so nothing paused').toBe(0);
 
         // The last cleaners taken off the crew pause a running job at the next look.
         await setCrew(ctx, job.bookingId, [members[0].id]);
@@ -547,7 +547,7 @@ test.describe('Job timer: a crew starts, pauses and leaves a job through the lin
         expect((await eventsOf(job.bookingId, 'timer_pause', 'last_out')).length, 'one timer_pause with the detail last_out').toBe(1);
     });
 
-    test('AC5: after a pause, a resume, a late arrival, an early leaver and a cleaner taken off the crew each cleaner\'s worked seconds are what the rows hold, they sum to the seconds used, and the removed cleaner\'s hours are still in the sum', async ({ playwright, request, baseURL }) => {
+    test('AC5: after a pause, a resume, a late arrival, an early leaver and a cleaner taken off the crew each cleaner\'s worked seconds are what the rows hold, they sum to the seconds used, and the removed cleaner\'s hours are in the sum', async ({ playwright, request, baseURL }) => {
         test.setTimeout(240_000);
         const ctx = await setup(playwright, request, baseURL);
         const { members, job } = await runningJob(ctx, { names: ['Ann', 'Bea', 'Cat', 'Dee'], quote: 360 });

@@ -373,9 +373,9 @@ test.describe('ENG-016 photos: the store in plain Node', () => {
             expect(await storedPhotos(), 'the directory does not exist yet').toEqual([]);
             const { url } = await savePhoto(WEBP, 'webp');
             const agedName = `${'d'.repeat(32)}.jpg`;
-            const old = Math.floor(Date.now() / 1000) - 5 * 86400;
+            const agedEpoch = Math.floor(Date.now() / 1000) - 5 * 86400;
             fs.writeFileSync(path.join(directory, agedName), 'x');
-            fs.utimesSync(path.join(directory, agedName), old, old);
+            fs.utimesSync(path.join(directory, agedName), agedEpoch, agedEpoch);
             const strangers = ['notes.txt', '.gitkeep', `${'A'.repeat(32)}.jpg`, `${'b'.repeat(32)}.gif`, `${'e'.repeat(31)}.jpg`];
             for (const stranger of strangers) fs.writeFileSync(path.join(directory, stranger), 'x');
             const lookalike = `${'c'.repeat(32)}.png`;
@@ -386,8 +386,8 @@ test.describe('ENG-016 photos: the store in plain Node', () => {
             const fresh = found.find((photo) => photo.url === url);
             expect(Number.isInteger(fresh.modified_epoch), 'a whole second').toBe(true);
             expect(Math.abs(fresh.modified_epoch - Math.floor(Date.now() / 1000)) <= 5, 'the second it was written').toBe(true);
-            expect(found.find((photo) => photo.url.endsWith(agedName)).modified_epoch, 'a file written five days ago says so').toBe(old);
-            expect(fs.readdirSync(directory).sort(), 'every entry that was there is still there: listing them touched nothing').toEqual([...strangers, lookalike, agedName, url.slice(PHOTO_URL_BASE.length)].sort());
+            expect(found.find((photo) => photo.url.endsWith(agedName)).modified_epoch, 'a file written five days ago says so').toBe(agedEpoch);
+            expect(fs.readdirSync(directory).sort(), 'every entry that was there remains: listing them touched nothing').toEqual([...strangers, lookalike, agedName, url.slice(PHOTO_URL_BASE.length)].sort());
 
             await removePhoto(url);
             await removePhoto(`${PHOTO_URL_BASE}${agedName}`);
@@ -395,7 +395,7 @@ test.describe('ENG-016 photos: the store in plain Node', () => {
     });
 
     // Mutant that turns this case red: savePhoto swallows a disk that refuses, or storedPhotos reads a directory it cannot open as an empty one, so
-    // addPhoto would write a row for a file that is not there instead of answering that photos can not be saved right now.
+    // addPhoto would write a row for a file that is not there without answering that photos can not be saved right now.
     test('Photos: a PHOTO_DIR that cannot be written, a path beneath a regular file, makes savePhoto throw and leaves no file', async () => {
         await inScratch(async ({ root, directory }) => {
             const blocker = path.join(root, 'a-regular-file');
@@ -532,7 +532,7 @@ const importsFs = (text) => FS_MODULE.test(scanSource(text).code);
 
 test.describe('ENG-016 photos: pins', () => {
     // Mutant that turns this case red: a route or another library imports node:fs (in any of its spellings) and reads or writes a photo itself, so
-    // the disk is touched in more than one place and moving the photos to object storage is no longer a rewrite of one file.
+    // the disk is touched in more than one place and moving the photos to object storage is not a rewrite of one file.
     test('Pins: node:fs is imported by no new file but src/lib/job-photo-store.js, whatever the spelling or the form', () => {
         const spellings = ['fs', 'node:fs', 'fs/promises', 'node:fs/promises'];
         const forms = [
@@ -592,7 +592,7 @@ test.describe('ENG-016 photos: pins', () => {
     });
 
     // Mutant that turns this case red: one of the three values is changed without the case that depends on it noticing (a bigger body than Vercel's own
-    // limit lets through, a base that no longer matches the route, a cap per job that is not the design's).
+    // limit lets through, a base that does not match the route, a cap per job that is not the design's).
     test('Pins: PHOTO_URL_BASE, PHOTO_MAX_BYTES and PHOTOS_MAX_PER_TYPE are exported at their values', async () => {
         const { PHOTOS_MAX_PER_TYPE } = await import('../src/lib/job-photos.js');
         const named = [

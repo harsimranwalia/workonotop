@@ -11,7 +11,7 @@
 //        payment, stripe or booking_number word.
 //   Pure     src/lib/job-clock.js has no import.
 //   Self     the four self routes (photos POST, timer GET and POST, check-out POST) call findJobLink( before any body reader.
-//   Named    EVENT_KINDS is its fourteen names in order; PHOTOS_MAX_PER_TYPE, PHOTO_MAX_BYTES, QUOTE_FALLBACK_MINUTES, EVENT_LIST_LIMIT, EVENT_DETAILS,
+//   Named    EVENT_KINDS is its fourteen names in order; PHOTOS_MAX_PER_TYPE, PHOTO_MAX_BYTES, QUOTE_DEFAULT_MINUTES, EVENT_LIST_LIMIT, EVENT_DETAILS,
 //        PHOTO_DAYS, ORPHAN_GRACE_HOURS, PHOTO_URL_BASE and LOCATION_REQUIRED are at their values; vercel.json runs /api/cron/job-photos at 37 4 * * *.
 //        The three constants the page owns (PHOTO_LONG_EDGE_PX, PHOTO_JPEG_QUALITY, TIMER_POLL_SECONDS in src/components/job/jobLinkKit.js) are not pinned here.
 //   Schema   the 0009 migration pair exists and database/schema.js carries its columns and its index.
@@ -270,7 +270,7 @@ test.describe('Job timer and photos: the pins', () => {
     });
 
     // Mutant that turns this case red: a route or another library imports node:fs and writes or reads a photo itself, so the one place that knows the
-    // photos are on a disk (and that a move to object storage rewrites) is no longer the only one.
+    // photos are on a disk (and that a move to object storage rewrites) is not the only one.
     test('Pins: node:fs is imported by no new file but job-photo-store.js', () => {
         const OWNER = 'src/lib/job-photo-store.js';
         const DISK = /^(?:node:)?(?:fs|graceful-fs|fs-extra)(?:\/.*)?$/;
@@ -321,7 +321,7 @@ test.describe('Job timer and photos: the pins', () => {
     });
 
     // Mutant that turns this case red: job-clock.js imports something (a database helper, a clock, a library of the repo), so the rule that divides the
-    // quote among the cleaners can no longer be loaded and tried in plain Node with a made-up set of rows.
+    // quote among the cleaners cannot be loaded and tried in plain Node with a made-up set of rows.
     test('Pins: job-clock.js has no import', () => {
         const FILE = 'src/lib/job-clock.js';
         expect(fs.existsSync(path.join(ROOT, FILE)), `${FILE} is in the tree`).toBe(true);
@@ -332,8 +332,8 @@ test.describe('Job timer and photos: the pins', () => {
         expect(linesWith(FILE, code, /\bexport\s+(?:\*|\{[^}]*\})\s*(?:as\s+[\w$]+\s*)?from\b/), 'lines that re-export from another file, comments aside').toEqual([]);
     });
 
-    // Mutant that turns this case red: the photo directory is moved out from under public/uploads/job-photos (or made absolute), so the files are no
-    // longer where .gitignore keeps a commit from taking them, and the uploads route no longer serves them under their address.
+    // Mutant that turns this case red: the photo directory is moved out from under public/uploads/job-photos (or made absolute), so the files are not
+    // where .gitignore keeps a commit from taking them, and the uploads route does not serve them under their address.
     test('Pins: PHOTO_DIR is under public/uploads/job-photos', async () => {
         const WHERE = 'public/uploads/job-photos';
         const { PHOTO_DIR } = await loaded('src/lib/job-photo-store.js', () => import('../src/lib/job-photo-store.js'));
@@ -438,17 +438,17 @@ test.describe('Job timer and photos: the pins', () => {
     });
 
     // Mutant that turns this case red: the cap on one photo is raised past what a function body can carry on Vercel (4.5 MB), so a big photo fails
-    // there without our message, or it is cut so far that a phone's shrunken photo no longer fits.
+    // there without our message, or it is cut so far that a phone's shrunken photo does not fit.
     test("Pins: PHOTO_MAX_BYTES, the cap on one photo's bytes, is 4000000", async () => {
         const { PHOTO_MAX_BYTES } = await loaded('src/lib/job-photo-store.js', () => import('../src/lib/job-photo-store.js'));
         expect(PHOTO_MAX_BYTES, 'PHOTO_MAX_BYTES exported by src/lib/job-photo-store.js, the most bytes one photo may have').toBe(4000000);
     });
 
-    // Mutant that turns this case red: the fallback differs from the provider's own timer route (its `|| 60`), so a booking with no quote reads one
+    // Mutant that turns this case red: the default differs from the provider's own timer route (its `|| 60`), so a booking with no quote reads one
     // quote on the provider's page and another on the link.
-    test('Pins: QUOTE_FALLBACK_MINUTES is 60', async () => {
-        const { QUOTE_FALLBACK_MINUTES } = await loaded('src/lib/job-clock.js', () => import('../src/lib/job-clock.js'));
-        expect(QUOTE_FALLBACK_MINUTES, 'QUOTE_FALLBACK_MINUTES exported by src/lib/job-clock.js, the quote in minutes of a booking that has none').toBe(60);
+    test('Pins: QUOTE_DEFAULT_MINUTES is 60', async () => {
+        const { QUOTE_DEFAULT_MINUTES } = await loaded('src/lib/job-clock.js', () => import('../src/lib/job-clock.js'));
+        expect(QUOTE_DEFAULT_MINUTES, 'QUOTE_DEFAULT_MINUTES exported by src/lib/job-clock.js, the quote in minutes of a booking that has none').toBe(60);
     });
 
     // Mutant that turns this case red: the list is cut back to 50 (a busy job's first events fall out of the list) or a detail is renamed or dropped.

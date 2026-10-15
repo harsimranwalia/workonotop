@@ -32,7 +32,7 @@
 //   image      bytes is not a JPEG, PNG or WebP by its first bytes, or is a JPEG that does not parse cleanly (src/lib/job-photo-store.js)
 //              The three above are judged before a connection is taken. The rest are judged inside the lock, in this order:
 //   closed     the booking is gone or has no provider, its status is not one of JOB_LINK_OPEN_STATUSES, or the link was switched off or reissued
-//   access     the caller is no longer who the route found (a cleaner off the job, a provider it was taken from), by stillAllowed()
+//   access     the caller is not the one the route found (a cleaner off the job, a provider it was taken from), by stillAllowed()
 //   not_here   a cleaner who is not checked in now: a photo of a house by someone who is not there is not evidence. A provider and an admin need
 //              not be checked in
 //   started    a 'before' photo on a job whose status is not 'confirmed': it has started (in_progress) or is not yet one a crew is at

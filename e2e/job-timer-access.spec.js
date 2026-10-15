@@ -3,7 +3,7 @@
 // /api/job/{token}/check-out. The "Access (the negatives)" case of the design's table
 // (agents/architect/designs/ENG-016-photos-and-countdown-timer-on-the-job-link.md, "Cases and baseline") is in this file, as three cases. Each title
 // starts with "Access:", and the file's name, the describe and the title together are its baseline key:
-//   a dead link   a token that is malformed, unknown, switched off, replaced (the OLD token), for a closed job (completed, cancelled) or for a job with
+//   a dead link   a token that is malformed, unknown, switched off, replaced (the token a reissue replaced), for a closed job (completed, cancelled) or for a job with
 //                 no provider is the one 404 { success: false, message: 'This link is not valid.' } with no-store on every route, whether the caller has
 //                 nothing, is the job's own provider or is an admin, and the bodies are byte-identical across the causes, the routes and the callers;
 //   no way in     a live link answers 401 CODE_MESSAGES.signIn with no-store, on every route, to a caller with no credential, a cleaner's cookie for
@@ -15,7 +15,7 @@
 //                 check-out of a cleaner who is not checked in is a 409 and a photo with a type and no file is a 400.
 // In every case the calls write nothing: the rows of job_photos, job_sessions, job_checkins, booking_time_logs and job_link_events of the job (and the
 // job's status and timer columns), and the files under public/uploads/job-photos (listed from the working directory of the run; a directory that is not
-// there is a list of nothing), are the same after the calls as before them. The routes are asked in a table (ROUTES) by one function (ask), once for
+// there is a list of nothing), are the same before and after the calls. The routes are asked in a table (ROUTES) by one function (ask), once for
 // every cause and every caller, so a fifth cause or caller is one line. The photo that is sent is a real file for the photo route (its first bytes
 // are a PNG's), so a refused call that was let in would be stored and would show.
 // The rows of a job are made the way e2e/job-checkin.spec.js makes them (the crew through ENG-014's routes, the link through the provider's route, the
@@ -200,7 +200,7 @@ async function watched(bookingId) {
 async function writesNothing(label, bookingId, run) {
     const before = await watched(bookingId);
     const result = await run();
-    expect(await watched(bookingId), `${label}: the rows and the files are the same after the calls as before them`).toEqual(before);
+    expect(await watched(bookingId), `${label}: the rows and the files are the same before and after the calls`).toEqual(before);
     return result;
 }
 
@@ -469,7 +469,7 @@ test.describe('Job timer, photos and check-out: who gets in', () => {
             { name: 'unknown (well formed, nobody holds it)', token: newLinkToken(), bookingId: null },
             { name: 'unknown (a live token with its case flipped)', token: flipped, bookingId: live.bookingId },
             { name: 'switched off', token: off.token, bookingId: off.bookingId },
-            { name: 'replaced (the old token)', token: replaced.token, bookingId: replaced.bookingId },
+            { name: 'replaced (the token a reissue replaced)', token: replaced.token, bookingId: replaced.bookingId },
             { name: 'closed (completed)', token: closed.token, bookingId: closed.bookingId, status: 'completed' },
             { name: 'closed (cancelled)', token: closed.token, bookingId: closed.bookingId, status: 'cancelled' },
             { name: 'no provider', token: orphan.token, bookingId: orphan.bookingId },

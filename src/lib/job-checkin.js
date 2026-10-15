@@ -30,7 +30,7 @@
 //   { ok: false, reason: 'window', opens_at, opens_label }
 //   { ok: false, reason: 'location' }  the position is missing or not usable
 //   { ok: false, reason: 'not_on_crew' }  an id is not on the crew now; nobody is ticked
-//   { ok: false, reason: 'checked_out' }  an id is a cleaner who has checked out of this job; nobody is ticked (a repeat tick of one who is still here
+//   { ok: false, reason: 'checked_out' }  an id is a cleaner who has checked out of this job; nobody is ticked (a repeat tick of one who is here
 //     is "already", but a check-out is final for the assignment)
 //   `link` is { id, booking_id, generation }. `access` is { kind: 'cleaner' | 'provider' | 'admin', ref, epoch? }: ref is the member's id, the
 //   provider's id or the admin's users.id and, for a cleaner, epoch is the second they were put on the job, as sessionFromRequest answers it.
@@ -43,14 +43,14 @@
 // checkinsFor(execute, bookingId, crew, { withOut }) -> [{ crew_member_id, assignment_epoch, checked_in_at (ISO), checked_out_at (ISO or null),
 //   by_kind, by_ref, latitude, longitude, accuracy_m, distance_m, away }] of the ticks that count: those whose member and assignment are on the crew
 //   now and who have not checked out. A cleaner who was taken off the job and put back is a new assignment and is not ticked; a tick made under the
-//   old one does not count and is kept as history. Its length is who is at the job. With `withOut` the ticks of cleaners who have checked out are
+//   earlier one does not count and is kept as history. Its length is who is at the job. With `withOut` the ticks of cleaners who have checked out are
 //   in the list too (the page shows when they left). `crew` is assignedCrew(…, { withAssignedAt: true }), read once by a caller that has it;
 //   without it the function reads it.
 // tickedView(crew, checkins) -> [{ id, name, checked_in, checked_in_at, checked_out_at }] for each member, names and ticks only: no number, no
 //   coordinates. A member whose tick has a checked_out_at is not checked_in.
 // presenceFor(execute, bookingId) -> [{ crew_member_id, assignment_epoch, from, to }] in epoch seconds for EVERY row of the job, a member since
-//   removed included (the clock must not forget an hour a removed cleaner worked); `to` is null while the member is here.
-// reconcileRemoved(execute, link, crew, actor) -> [crew member ids] it stamped. Every open check-in whose member and assignment are no longer on the
+//   removed included (the clock must not lose an hour a removed cleaner worked); `to` is null while the member is here.
+// reconcileRemoved(execute, link, crew, actor) -> [crew member ids] it stamped. Every open check-in whose member and assignment are off the
 //   crew gets checked_out_at = NOW() and an event check_out with detail removed, written only for a row this call changed (`actor` is whoever
 //   looked), so looks at the same moment do it once. `link` is { id, booking_id }.
 // CHECKIN_MESSAGES, opensMessage(label) -> the sentences the check-in and check-out routes send for 'ids', 'location', 'not_on_crew', 'window',

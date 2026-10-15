@@ -31,8 +31,8 @@
 //   last_out); then, when the labour left is below zero, bookings.over_quote_at is set where it is NULL and the over_quote event is written only
 //   if this look changed the row. `link` is { id, booking_id }; `actor` is { kind, ref }.
 // startJob, pauseJob, resumeJob({ withConnection, link, access, location }) -> { ok: true, timer } | { ok: false, reason }, reason one of closed,
-//   access, not_here, already_started, not_confirmed, no_before_photos, nobody_here, location, not_running, not_paused. `closed` is a job that is no
-//   longer open or a link that was switched off; `access` is a caller who is no longer who they were. A cleaner must be checked in to do any of the
+//   access, not_here, already_started, not_confirmed, no_before_photos, nobody_here, location, not_running, not_paused. `closed` is a job that is not
+//   open or a link that was switched off; `access` is a caller the lock does not allow, though the route found them. A cleaner must be checked in to do any of the
 //   three; a provider and an admin need not be, but a start and a resume need somebody here. A start needs the job confirmed and a before photo
 //   (beforePhotoCount, the same function the provider's start calls) and the phone's position. The customer's "your professional has started" text
 //   is NOT sent from the link: messages are ENG-018's.
