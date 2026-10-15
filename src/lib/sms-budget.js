@@ -20,6 +20,10 @@
 //   MySQL evaluates the assignments left to right and the second would otherwise see the window the first just restarted. InnoDB takes the row
 //   lock in the UPDATE, so a burst is serialised there and cannot pass the cap. The pool counts matched rows (mysql2's default FOUND_ROWS flag),
 //   which is what `affectedRows` is read as.
+// reserveText(execute, phone, providerId) -> null when a text to that number may go out, else 'number_cap' or 'provider_cap': the daily caps that
+//   every text to a number takes together, whichever code or message it carries (a sign-in code, a number-check code, and the link text of ENG-018).
+//   The scopes are made here so that no caller can spell them differently. A text refused by the provider's cap has already used one of the
+//   number's, which errs towards sending less.
 // pruneBudget(execute) -> the number of rows deleted: those whose window began more than two days ago, long past every window used here.
 import { sha256Hex } from './link-token.js';
 
@@ -45,6 +49,12 @@ export async function reserve(execute, scope, cap, windowSeconds) {
     [windowSeconds, windowSeconds, scope, windowSeconds, cap]
   );
   return result.affectedRows === 1;
+}
+
+export async function reserveText(execute, phone, providerId) {
+  if (!(await reserve(execute, budgetScope('number', phone), TEXTS_PER_NUMBER_DAY, DAY_SECONDS))) return 'number_cap';
+  if (!(await reserve(execute, budgetScope('provider', providerId), TEXTS_PER_PROVIDER_DAY, DAY_SECONDS))) return 'provider_cap';
+  return null;
 }
 
 export async function pruneBudget(execute) {
