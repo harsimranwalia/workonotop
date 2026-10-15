@@ -522,10 +522,11 @@ test.describe('Job timer and photos: the pins', () => {
     });
 });
 
-/** The text of an .sql file with its comments blanked: block comments, `-- ` to the end of a line (MySQL wants a space after the dashes), and `#` lines. */
+/**
+ * The text of an .sql file with its comments blanked: a block comment, `-- ` to the end of the line (MySQL wants a space after the dashes) and `#` to
+ * the end of the line. One pass from left to right, so whichever starts first wins, and quoted text is kept as it is (a `--` in a string is not a comment).
+ */
 function codeOfSql(/** @type {string} */ file) {
-    return textOf(file)
-        .replace(/\/\*[\s\S]*?\*\//g, (comment) => blank(comment))
-        .replace(/--(?=\s|$).*$/gm, (comment) => blank(comment))
-        .replace(/^[ \t]*#.*$/gm, (comment) => blank(comment));
+    const token = /'(?:[^'\\]|\\[\s\S]|'')*'|"(?:[^"\\]|\\[\s\S]|"")*"|`[^`]*`|\/\*[\s\S]*?\*\/|--(?=\s|$).*|#.*/g;
+    return textOf(file).replace(token, (found) => (/^['"`]/.test(found) ? found : blank(found)));
 }

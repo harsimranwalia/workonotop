@@ -587,8 +587,8 @@ test.describe('ENG-016 photos: pins', () => {
         expect(PHOTO_DIR).toBe('public/uploads/job-photos');
         expect(PHOTO_URL_BASE, 'the directory under public/, with a slash on each side').toBe(`/${PHOTO_DIR.slice('public/'.length)}/`);
         const code = codeOf(STORE);
-        expect(code, 'the store declares and exports PHOTO_DIR').toMatch(/\bexport\s+const\s+PHOTO_DIR\s*=/);
-        expect(code, 'and it is where the functions look until usePhotoDir says otherwise').toMatch(/\blet\s+\w+\s*=\s*PHOTO_DIR\s*;/);
+        expect(/\bexport\s+const\s+PHOTO_DIR\s*=/.test(code), `${STORE} declares and exports PHOTO_DIR`).toBe(true);
+        expect(/\blet\s+\w+\s*=\s*PHOTO_DIR\s*;/.test(code), 'and PHOTO_DIR is where its functions look until usePhotoDir says otherwise').toBe(true);
     });
 
     // Mutant that turns this case red: one of the three values is changed without the case that depends on it noticing (a bigger body than Vercel's own
