@@ -172,6 +172,8 @@ async function providerRead(request, as, id) {
 // case itself takes.
 async function runJob(request, as, id, { commission, start = {}, finish = {}, measured }) {
     await confirm(request, as, id, commission);
+    // A job does not start without a before photo (ENG-016, AC2), whoever starts it: this case is about the price, so the photo is planted.
+    await (await db()).query("INSERT INTO job_photos (booking_id, photo_url, photo_type, uploaded_by) VALUES (?, '/uploads/job-photos/00000000000000000000000000000000.jpg', 'before', ?)", [id, PROVIDER1.id]);
     const started = await act(request, as, { booking_id: id, action: 'start', ...start });
     expect(started.status(), `the provider starts booking ${id}`).toBe(200);
     if (measured) {

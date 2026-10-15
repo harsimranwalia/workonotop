@@ -298,7 +298,7 @@ const checkinRows = (bookingId) =>
         [bookingId]
     );
 
-const CREW_KEYS = ['checked_in', 'checked_in_at', 'id', 'name'];
+const CREW_KEYS = ['checked_in', 'checked_in_at', 'checked_out_at', 'id', 'name'];
 
 test.describe('Job link check-in: a crew ticks in at the job', () => {
     sweepAround();
@@ -592,7 +592,7 @@ test.describe('Job link check-in: a crew ticks in at the job', () => {
 
         const start = await publicView(request, job, cleaner, 'the cleaner');
         expect(listed(start), 'the view lists all four assigned members').toEqual(idsOf([ann, bea, cat, dee]));
-        expect(start.crew.every((member) => JSON.stringify(Object.keys(member).sort()) === JSON.stringify(CREW_KEYS)), 'each is {id, name, checked_in, checked_in_at}: no number').toBe(true);
+        expect(start.crew.every((member) => JSON.stringify(Object.keys(member).sort()) === JSON.stringify(CREW_KEYS)), 'each is {id, name, checked_in, checked_in_at, checked_out_at}: no number').toBe(true);
         expect(start.crew.every((member) => member.checked_in === false && member.checked_in_at === null), 'nobody is ticked at the start').toBe(true);
 
         await tickOk(request, job, cleaner, [ann.id, bea.id, cat.id, dee.id], 'the cleaner');
