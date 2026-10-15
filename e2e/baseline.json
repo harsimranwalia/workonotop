@@ -3348,7 +3348,7 @@
     "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 1, a live link with no credential is 401 \"Enter your code to continue.\" and writes nothing, also when the request breaks the body rules as well (JSON, no file, a wrong type, a GIF)": {
       "outcome": "PASS"
     },
-    "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 10, the 21st photo of a type is 409 \"This job has all the photos it can hold.\" for a before photo on a confirmed job and for an after photo on a started one (20 rows planted by SQL, one sent); the other type is not affected": {
+    "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 10, the 21st photo of a type is 409 \"This job has all the photos it can hold.\" for a before photo on a confirmed job and for an after photo on a started one (20 rows planted by SQL, one sent)": {
       "outcome": "PASS"
     },
     "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: rung 2, a JSON body is 400 \"Invalid request.\" and writes nothing; so is JSON past the cap (the type of the body is judged before it is read), and a multipart type with no form in it": {
@@ -3376,6 +3376,9 @@
       "outcome": "PASS"
     },
     "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: the 20th photo of a type is kept (19 planted, one sent, 200) and the next one is refused": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: the refusals, in the order the route judges them › Photos: the limit is per type: a started job that holds 20 before photos takes its first after photo (200), and with 19 more after photos the 21st is refused": {
       "outcome": "PASS"
     },
     "job-photo-routes.spec.js › Job photo route: what is kept › AC1: a JPEG from a checked-in cleaner is 200 with { photo, photos }, stored as jpg from its bytes, with a photo_added event for the cleaner and no photo address in it": {

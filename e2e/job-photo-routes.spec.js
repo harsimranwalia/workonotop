@@ -683,7 +683,7 @@ test.describe('Job photo route: the refusals, in the order the route judges them
         await refused(job, 'an after photo from the admin before the start', 409, PHOTO_MESSAGES.notStarted, () => postParts(request, job, ctx.as.admin, [typePart('after'), photoPart(TINY_JPEG)]));
     });
 
-    test('Photos: rung 10, the 21st photo of a type is 409 "This job has all the photos it can hold." for a before photo on a confirmed job and for an after photo on a started one (20 rows planted by SQL, one sent); the other type is not affected', async ({ playwright, request, baseURL }) => {
+    test('Photos: rung 10, the 21st photo of a type is 409 "This job has all the photos it can hold." for a before photo on a confirmed job and for an after photo on a started one (20 rows planted by SQL, one sent)', async ({ playwright, request, baseURL }) => {
         test.setTimeout(180_000);
         const ctx = await setup(playwright, request, baseURL);
         const { job, cleaner } = await probeJob(ctx);
@@ -706,6 +706,23 @@ test.describe('Job photo route: the refusals, in the order the route judges them
         expect(kept.status, `the 20th before photo is kept (${kept.body?.message ?? 'no message'})`).toBe(200);
         expect(kept.body.data.photos.length, 'the answer lists 20 photos').toBe(PHOTOS_MAX_PER_TYPE);
         await refused(job, 'the photo after the 20th', 409, PHOTO_MESSAGES.tooMany, () => postParts(request, job, cleaner, [typePart('before'), photoPart(TINY_JPEG)]));
+    });
+
+    // The two types meet at the start of the job: a cleaner who took 20 before photos must be able to add the first after photo, which a count of both
+    // types together refuses. The other way round (a job that holds after photos and has not started) is a state no route makes, so it is not a case.
+    test('Photos: the limit is per type: a started job that holds 20 before photos takes its first after photo (200), and with 19 more after photos the 21st is refused', async ({ playwright, request, baseURL }) => {
+        test.setTimeout(180_000);
+        const ctx = await setup(playwright, request, baseURL);
+        const { job, cleaner } = await probeJob(ctx);
+        const countOfType = (type) => countOf('SELECT COUNT(*) AS n FROM job_photos WHERE booking_id = ? AND photo_type = ?', [job.bookingId, type]);
+        await plantPhotos(job.bookingId, 'before', PHOTOS_MAX_PER_TYPE);
+        await setStatus(job.bookingId, 'in_progress');
+        const first = await postParts(request, job, cleaner, [typePart('after'), photoPart(TINY_JPEG)]);
+        expect(first.status, `the first after photo of a job with 20 before photos is kept (${first.body?.message ?? 'no message'})`).toBe(200);
+        expect([await countOfType('before'), await countOfType('after')], 'the before photos are as they were and the photo is the first after photo').toEqual([PHOTOS_MAX_PER_TYPE, 1]);
+        await plantPhotos(job.bookingId, 'after', PHOTOS_MAX_PER_TYPE - 1);
+        await refused(job, 'the 21st after photo', 409, PHOTO_MESSAGES.tooMany, () => postParts(request, job, cleaner, [typePart('after'), photoPart(TINY_JPEG)]));
+        expect([await countOfType('before'), await countOfType('after')], 'both types stay at 20').toEqual([PHOTOS_MAX_PER_TYPE, PHOTOS_MAX_PER_TYPE]);
     });
 
     // The store is the last thing the route reaches: a photo that passes every rung and can not be written is 503 and leaves no row, no event and no file. The app runs

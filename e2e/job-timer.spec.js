@@ -233,7 +233,8 @@ async function findCode(linkId, memberId) {
 }
 
 // A cleaner opens the link: the number is checked, a code is asked for through the route, found from its hash and given back. The cookie comes
-// from a context of its own so that no jar carries it into the next request; it is returned as a `cookie` header value and never printed.
+// from a context of its own so that no jar carries it into the next request; it is returned as a `cookie` header value and never printed, with the
+// code that was typed, which a case can look for in what the app lists.
 async function signInWith(ctx, job, member) {
     await markChecked(member);
     const asked = await ctx.request.post(`/api/job/${job.token}/code`, { data: { phone: typed(member.number) } });
@@ -245,13 +246,14 @@ async function signInWith(ctx, job, member) {
         expect(verified.status(), `${member.name} gives the code back`).toBe(200);
         const line = verified.headersArray().filter((header) => header.name.toLowerCase() === 'set-cookie').map((header) => header.value).find((value) => value.startsWith(`jls_${job.linkId}=`));
         expect(line !== undefined, `the answer sets the session cookie of link ${job.linkId}`).toBe(true);
-        return String(line).split(';')[0];
+        return { cookie: String(line).split(';')[0], code };
     } finally {
         await fresh.dispose();
     }
 }
 
-// A probe job of provider 1 with its crew, a link made by the provider's route and, with `signIn`, that member signed in (job.cookie).
+// A probe job of provider 1 with its crew, a link made by the provider's route and, with `signIn`, that member signed in (job.cookie and the code
+// that was typed, job.code).
 async function makeJob(ctx, { members, quote = 360, signIn = null }) {
     const bookingId = await insertBooking({ quote });
     await setCrew(ctx, bookingId, members.map((member) => member.id));
@@ -259,9 +261,13 @@ async function makeJob(ctx, { members, quote = 360, signIn = null }) {
     const linkPath = created.job_link?.path;
     expect(typeof linkPath === 'string' && /^\/job\/[A-Za-z0-9_-]{43}$/.test(linkPath), 'the link has a path of 43 base64url characters').toBe(true);
     const [link] = await rows('SELECT id FROM job_links WHERE booking_id = ?', [bookingId]);
-    /** @type {{ bookingId: number, token: string, linkId: number, cookie: string | null }} */
-    const job = { bookingId, token: String(linkPath).slice('/job/'.length), linkId: link.id, cookie: null };
-    if (signIn) job.cookie = await signInWith(ctx, job, signIn);
+    /** @type {{ bookingId: number, token: string, linkId: number, cookie: string | null, code: string | null }} */
+    const job = { bookingId, token: String(linkPath).slice('/job/'.length), linkId: link.id, cookie: null, code: null };
+    if (signIn) {
+        const session = await signInWith(ctx, job, signIn);
+        job.cookie = session.cookie;
+        job.code = session.code;
+    }
     return job;
 }
 
@@ -586,13 +592,22 @@ test.describe('Job timer: a crew starts, pauses and leaves a job through the lin
         test.setTimeout(240_000);
         const ctx = await setup(playwright, request, baseURL);
         const { job, cleaner } = await runningJob(ctx, { names: ['Ann'], quote: 60 });
-        const money = () => rows('SELECT service_price, additional_price, commission_percent, provider_amount, final_provider_amount, authorized_amount, payment_status, payment_method, payment_intent_id FROM bookings WHERE id = ?', [job.bookingId]);
+        // The whole row of the booking but the two columns the flag moves (over_quote_at, and updated_at, which follows any change to the row). A bill
+        // for the overrun would be written to a price, a payment or an overtime column, and one of a column added later is read here without a change.
+        const money = async () => {
+            const [booking] = await rows('SELECT * FROM bookings WHERE id = ?', [job.bookingId]);
+            delete booking.over_quote_at;
+            delete booking.updated_at;
+            return booking;
+        };
+        // Counted for this booking only, so that a row another run writes to the shared database between the two counts is not this case's red.
         const tables = async () => ({
-            invoices: await countOf('SELECT COUNT(*) AS n FROM invoices'),
-            payouts: await countOf('SELECT COUNT(*) AS n FROM provider_payouts'),
+            invoices: await countOf('SELECT COUNT(*) AS n FROM invoices WHERE booking_id = ?', [job.bookingId]),
+            payouts: await countOf('SELECT COUNT(*) AS n FROM provider_payouts WHERE booking_id = ?', [job.bookingId]),
         });
         const moneyBefore = await money();
         const tablesBefore = await tables();
+        expect(Object.keys(moneyBefore), 'the row read holds the columns that bill an overrun').toEqual(expect.arrayContaining(['overtime_minutes', 'overtime_earnings', 'additional_price', 'final_provider_amount']));
 
         const early = await timerOf(request, job, cleaner, 'the cleaner');
         expect([early.over_quote_at, early.over_seconds], 'inside the quote nothing is flagged').toEqual([null, null]);
@@ -659,12 +674,18 @@ test.describe('Job timer: a crew starts, pauses and leaves a job through the lin
         const lastOut = pauses.find((event) => event.detail === 'last_out');
         expect([byHand !== undefined, lastOut !== undefined], 'one pause is the cleaner\'s and one is last_out').toEqual([true, true]);
         expect([byHand?.latitude, byHand?.longitude, byHand?.accuracy_m], 'the pause sent no position, so it is recorded with none').toEqual([null, null, null]);
-        for (const kind of ['timer_start', 'timer_resume', 'check_out']) {
+        for (const kind of ['photo_added', 'timer_start', 'timer_resume', 'check_out']) {
             expect([ofKind(kind)[0].latitude, ofKind(kind)[0].longitude], `${kind}: the phone's position`).toEqual([ADDRESS.latitude, ADDRESS.longitude]);
         }
         const text = JSON.stringify(events);
         expect(/\/uploads\/|job-photos|\.jpg/.test(text), 'no event holds a photo address').toBe(false);
         expect(/403[\s().-]*555[\s.-]*02\d\d/.test(text), 'no event holds a fixture number').toBe(false);
+        // The code that was typed is looked for in the text of the events, numbers left out so that no id or coordinate can hold six digits by chance;
+        // a code that is not six digits, or a search that finds no text at all, would find nothing for the wrong reason.
+        expect(job.code, 'the code that was typed is six digits').toMatch(/^\d{6}$/);
+        const words = JSON.stringify(events, (_key, value) => (typeof value === 'number' ? undefined : value));
+        expect(words.includes('Ann'), 'the text searched holds the strings of the events, the cleaner\'s name among them').toBe(true);
+        expect(words.includes(String(job.code)), 'no event holds the sign-in code').toBe(false);
         expect(
             await countOf("SELECT COUNT(*) AS n FROM job_link_events WHERE booking_id = ? AND kind IN ('photo_added','check_out','timer_start','timer_pause','timer_resume','over_quote') AND detail IS NOT NULL AND detail NOT IN ('before','after','last_out','removed')", [job.bookingId]),
             'the detail of a photo, a timer or a check-out event is one of the fixed codes'
