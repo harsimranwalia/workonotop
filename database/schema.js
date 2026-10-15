@@ -768,6 +768,119 @@ const tables = [
     KEY idx_booking_crew_member (crew_member_id),
     CONSTRAINT fk_booking_crew_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
     CONSTRAINT fk_booking_crew_member FOREIGN KEY (crew_member_id) REFERENCES provider_crew_members(id) ON DELETE CASCADE
+  )`,
+
+  // job_links: one row per booking that has a job link, /job/{token} (database/migrations/0008-job-links.up.sql). The token is a locator, not a
+  // credential, and it is ascii_bin because base64url is case-sensitive and the default collation is not.
+  // The migration sets the engine and collation; this file leaves them to the server default.
+  `CREATE TABLE IF NOT EXISTS job_links (
+    id INT NOT NULL AUTO_INCREMENT,
+    booking_id INT NOT NULL,
+    token CHAR(43) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    generation INT NOT NULL DEFAULT 1,
+    off_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_job_links_booking (booking_id),
+    UNIQUE KEY uq_job_links_token (token),
+    CONSTRAINT fk_job_links_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
+  )`,
+
+  // job_link_codes: a sign-in code and, once used, the session it bought. Only the SHA-256 of the code and of the cookie is kept.
+  `CREATE TABLE IF NOT EXISTS job_link_codes (
+    id INT NOT NULL AUTO_INCREMENT,
+    link_id INT NOT NULL,
+    generation INT NOT NULL,
+    crew_member_id INT NOT NULL,
+    assignment_epoch BIGINT NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    code_hash CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    attempts INT NOT NULL DEFAULT 0,
+    used_at DATETIME NULL,
+    session_hash CHAR(64) NULL,
+    session_expires_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_job_link_codes_session (session_hash),
+    KEY idx_job_link_codes_live (link_id, crew_member_id, created_at),
+    KEY idx_job_link_codes_member (crew_member_id),
+    KEY idx_job_link_codes_expires (expires_at),
+    CONSTRAINT fk_job_link_codes_link FOREIGN KEY (link_id) REFERENCES job_links(id) ON DELETE CASCADE,
+    CONSTRAINT fk_job_link_codes_member FOREIGN KEY (crew_member_id) REFERENCES provider_crew_members(id) ON DELETE CASCADE
+  )`,
+
+  // job_checkins: one row per cleaner per assignment, with the position the phone reported (nulled after a year by src/lib/crew-retention.js).
+  `CREATE TABLE IF NOT EXISTS job_checkins (
+    id INT NOT NULL AUTO_INCREMENT,
+    booking_id INT NOT NULL,
+    crew_member_id INT NOT NULL,
+    assignment_epoch BIGINT NOT NULL,
+    checked_in_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    by_kind ENUM('cleaner','provider','admin') NOT NULL,
+    by_ref INT NOT NULL,
+    latitude DECIMAL(10,8) NULL,
+    longitude DECIMAL(11,8) NULL,
+    accuracy_m INT NULL,
+    distance_m INT NULL,
+    away TINYINT(1) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_job_checkins_assignment (booking_id, crew_member_id, assignment_epoch),
+    KEY idx_job_checkins_member (crew_member_id),
+    KEY idx_job_checkins_at (checked_in_at),
+    CONSTRAINT fk_job_checkins_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+    CONSTRAINT fk_job_checkins_member FOREIGN KEY (crew_member_id) REFERENCES provider_crew_members(id) ON DELETE CASCADE
+  )`,
+
+  // job_link_events: who did what at a link. It holds ids and never a name or a number.
+  `CREATE TABLE IF NOT EXISTS job_link_events (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    link_id INT NOT NULL,
+    booking_id INT NOT NULL,
+    kind VARCHAR(24) NOT NULL,
+    actor_kind ENUM('cleaner','provider','admin','visitor') NOT NULL,
+    actor_ref INT NULL,
+    crew_member_id INT NULL,
+    latitude DECIMAL(10,8) NULL,
+    longitude DECIMAL(11,8) NULL,
+    accuracy_m INT NULL,
+    detail VARCHAR(40) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_job_link_events_link (link_id, created_at),
+    KEY idx_job_link_events_booking (booking_id, created_at),
+    KEY idx_job_link_events_created (created_at),
+    KEY idx_job_link_events_member (crew_member_id),
+    CONSTRAINT fk_job_link_events_link FOREIGN KEY (link_id) REFERENCES job_links(id) ON DELETE CASCADE,
+    CONSTRAINT fk_job_link_events_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+    CONSTRAINT fk_job_link_events_member FOREIGN KEY (crew_member_id) REFERENCES provider_crew_members(id) ON DELETE SET NULL
+  )`,
+
+  // sms_budget: counters keyed by the SHA-256 of what is counted, so no number is stored.
+  `CREATE TABLE IF NOT EXISTS sms_budget (
+    scope CHAR(64) NOT NULL,
+    window_started_at DATETIME NOT NULL,
+    used INT NOT NULL,
+    PRIMARY KEY (scope),
+    KEY idx_sms_budget_window (window_started_at)
+  )`,
+
+  // crew_number_checks: a code the provider asks for to prove a number is the cleaner's and, once used_at is set, the proof. A number is checked
+  // while a used row exists for the member and the member's current phone.
+  `CREATE TABLE IF NOT EXISTS crew_number_checks (
+    id INT NOT NULL AUTO_INCREMENT,
+    crew_member_id INT NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    code_hash CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    attempts INT NOT NULL DEFAULT 0,
+    used_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_crew_number_checks_member (crew_member_id, phone),
+    KEY idx_crew_number_checks_expires (expires_at),
+    CONSTRAINT fk_crew_number_checks_member FOREIGN KEY (crew_member_id) REFERENCES provider_crew_members(id) ON DELETE CASCADE
   )`
 ];
 
