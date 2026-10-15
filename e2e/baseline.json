@@ -309,6 +309,9 @@
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/cron/crew-retention is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/cron/job-photos is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/cron/notifications is in the matrix": {
       "outcome": "PASS"
     },
@@ -334,6 +337,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/job/[token] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/job/[token]/timer is in the matrix": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/locations is in the matrix": {
@@ -624,7 +630,16 @@
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/job/[token]/check-in is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/job/[token]/check-out is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/job/[token]/code is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/job/[token]/photos is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/job/[token]/timer is in the matrix": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/job/[token]/verify is in the matrix": {
@@ -1014,6 +1029,9 @@
     "auth-coverage.spec.js › Auth wiring › GET /api/cron/crew-retention uses the guard": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth wiring › GET /api/cron/job-photos uses the guard": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth wiring › GET /api/cron/notifications uses the guard": {
       "outcome": "PASS"
     },
@@ -1036,6 +1054,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/job/[token] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/job/[token]/timer uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider uses the guard": {
@@ -1245,7 +1266,16 @@
     "auth-coverage.spec.js › Auth wiring › POST /api/job/[token]/check-in uses the guard": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth wiring › POST /api/job/[token]/check-out uses the guard": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth wiring › POST /api/job/[token]/code uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/job/[token]/photos uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/job/[token]/timer uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/job/[token]/verify uses the guard": {
@@ -1761,6 +1791,9 @@
     "auth-matrix.spec.js › Role by route › GET /api/cron/crew-retention": {
       "outcome": "PASS"
     },
+    "auth-matrix.spec.js › Role by route › GET /api/cron/job-photos": {
+      "outcome": "PASS"
+    },
     "auth-matrix.spec.js › Role by route › GET /api/cron/notifications": {
       "outcome": "PASS"
     },
@@ -1786,6 +1819,9 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/job/[token]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/job/[token]/timer": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/locations": {
@@ -2076,7 +2112,16 @@
     "auth-matrix.spec.js › Role by route › POST /api/job/[token]/check-in": {
       "outcome": "PASS"
     },
+    "auth-matrix.spec.js › Role by route › POST /api/job/[token]/check-out": {
+      "outcome": "PASS"
+    },
     "auth-matrix.spec.js › Role by route › POST /api/job/[token]/code": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/job/[token]/photos": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/job/[token]/timer": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/job/[token]/verify": {
@@ -2967,6 +3012,69 @@
     "job-checkin.spec.js › Job link check-in: a crew ticks in at the job › AC9: after three, one more id is added: the first three are already on a repeat, the PUT that adds the cleaner keeps their ticks, and the view shows four": {
       "outcome": "PASS"
     },
+    "job-clock.spec.js › ENG-016 clock: pins › Pins: QUOTE_FALLBACK_MINUTES is exported at 60, with overlapSeconds and clockView": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: pins › Pins: src/lib/job-clock.js has no import statement or expression": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC3: V10: seven cleaners on a one-hour quote read 515 seconds each, because 3600 / 7 is rounded up": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC3: V11: a quote that is null, 0 or negative is the fallback of 60 minutes, and a quote above zero is used as it is": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC3: V1: three cleaners on a six-hour quote, the clock just started, read two hours each, and the view has the seven fields of the design": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC3: V2: an hour in, the same three cleaners have done three labour-hours and each reads one hour": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC3: V3: a fourth cleaner who arrives an hour in is counted at once, so the 10800 left is shared by four and each reads 45 minutes": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC3: V7: a stretch that runs while nobody is on the job counts for nothing, and the clock is null (not 0, and not the quote)": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC3: a list that is left out is empty, and a span with no `to` at all is still open, as one with a null is": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC4: V3: a cleaner who arrives re-divides what is left on the spot, and when the four have used the last of it the clock reads 0": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC4: V4: a cleaner who leaves re-divides what is left on the spot, and when the two who stay have used the last of it the clock reads 0": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC5: V12: a cleaner taken off the crew keeps the hour they worked in used_seconds and per_member, and is not counted as here": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC5: V13: a cleaner ticked in by mistake and checked out before the timer ran adds nothing": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC5: V5: a pause is not counted: stretches [0, 1800] and [3600, open] with three cleaners here throughout": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC5: V6: each cleaner is counted from the second they arrived: A from 0 and B from 600 on a stretch that began at 0": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC5: a cleaner who left and came back is one entry in per_member with both stays, and counts once as here": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC5: a stay or a stretch that begins after `now` is not here, has run for no time and adds no negative time": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC5: overlapSeconds is the whole seconds both spans cover, 0 when they do not meet, whichever is named first": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC6: V8: two cleaners who have worked past a one-hour quote: left_seconds is negative, the clock reads 0 and over_seconds says how far over each is": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC6: V9: with nobody here the clock is null, and over_seconds is null unless the labour was used up, and then the whole overrun": {
+      "outcome": "PASS"
+    },
+    "job-clock.spec.js › ENG-016 clock: the rule in plain Node › AC6: clock_seconds is never below zero and over_seconds is set exactly when left_seconds is, over a sweep of quotes, crews and times": {
+      "outcome": "PASS"
+    },
     "job-completed-email.spec.js › the job-completed e-mail keeps unicode and long text whole and shows the default line for an empty summary": {
       "outcome": "PASS"
     },
@@ -3190,6 +3298,213 @@
       "outcome": "PASS"
     },
     "job-link.spec.js › Job link: the token, the dead link, the views, the managed routes and the record › AC3: a signed-in provider's view has exactly the allow-listed keys, and no response (visitor, cleaner, provider, admin, managed views, check-in) holds a value planted in customer_*, service_price, booking_number, user_id or the Stripe id": {
+      "outcome": "PASS"
+    },
+    "job-photo-retention.spec.js › Job photo retention: everything logged › Retention: no fixture address, e-mail, number or secret appears in anything the file logged, and every line is the one fixed line of the route": {
+      "outcome": "PASS"
+    },
+    "job-photo-retention.spec.js › Job photo retention: the cron route › Retention: GET /api/cron/job-photos is 401 on the running app without the secret, with a wrong one, with Bearer undefined and with an empty ?secret=": {
+      "outcome": "PASS"
+    },
+    "job-photo-retention.spec.js › Job photo retention: the cron route › Retention: the cron handler, run in plain Node with a secret set, is 401 until the secret is given as a Bearer or as ?secret=, then it trims and answers the counts; a failure logs the error code only": {
+      "outcome": "PASS"
+    },
+    "job-photo-retention.spec.js › Job photo retention: the library › Retention: a file with no row is deleted after a day and stays before it; a file with a row of any kind stays; a file left by a deleted booking goes; a file the store did not make is never touched": {
+      "outcome": "PASS"
+    },
+    "job-photo-retention.spec.js › Job photo retention: the library › Retention: a link photo older than a year is gone, row and file, whoever took it; one of 364 or 300 days stays; a legacy photo of the provider's own page stays; a second run deletes nothing": {
+      "outcome": "PASS"
+    },
+    "job-photo-retention.spec.js › Job photo retention: the library › Retention: a link photo on a disputed booking stays, row and file, however old, until the booking moves on": {
+      "outcome": "PASS"
+    },
+    "job-photo-retention.spec.js › Job photo retention: the library › Retention: a row with an address the store did not give out stays, is counted in skipped and costs no other path its file, and 210 of them in front of the rest do not hold the run back": {
+      "outcome": "PASS"
+    },
+    "job-photo-retention.spec.js › Job photo retention: the library › Retention: an old row whose file is already gone does not stop the run, and a run that stopped between the file and the row is finished by the next": {
+      "outcome": "PASS"
+    },
+    "job-photo-retention.spec.js › Job photo retention: the library › Retention: every statement is prepared and carries no value from the data, the run logs nothing and a failing statement reaches the caller": {
+      "outcome": "PASS"
+    },
+    "job-photo-retention.spec.js › Job photo retention: the route source › Retention: the cron route calls requireCronSecret first and runs the retention with the pool's execute": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: pins › Pins: PHOTO_DIR is public/uploads/job-photos, and PHOTO_URL_BASE is the address the uploads route serves that directory at": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: pins › Pins: PHOTO_URL_BASE, PHOTO_MAX_BYTES and PHOTOS_MAX_PER_TYPE are exported at their values": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: pins › Pins: git check-ignore public/uploads/job-photos/x.jpg succeeds (where git cannot answer, .gitignore is read for the rule)": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: pins › Pins: job_photos is named in code by no new file but src/lib/job-photos.js and src/lib/job-photo-retention.js": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: pins › Pins: no new file of the photo half contains a query( call, only prepared execute": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: pins › Pins: node:fs is imported by no new file but src/lib/job-photo-store.js, whatever the spelling or the form": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: pins › Pins: the store draws an address from crypto.randomBytes(16) and writes it with the exclusive flag wx": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: pins › Pins: usePhotoDir is named in code under src/ by no file but the store": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › AC1: a photo saved through the store holds the bytes less the metadata, and its address is 32 random hex characters and the extension of the bytes": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: PNG bytes are stored as .png and WebP bytes as .webp whatever the sender called them, and savePhoto takes no extension but the three": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: a JPEG that does not parse cleanly to its scan is refused, not stored as it came": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: a PHOTO_DIR that cannot be written, a path beneath a regular file, makes savePhoto throw and leaves no file": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: forty saves at once are forty files, each holding its own bytes": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: removePhoto of a file that is already gone is a success, with the directory there or not": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: removePhoto throws on /uploads/../x, /uploads/job-photos/../../x, an upper-case name and a name with no extension, and deletes nothing": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: savePhoto x1000 gives a thousand distinct addresses of 32 lowercase hex characters and an extension, spread over every hex digit": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: sniffImage accepts a JPEG, a PNG and a WebP by their first bytes and names the extension to store": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: sniffImage needs the whole signature: a PNG cut inside it, RIFF that is not WEBP, a WebP cut inside its tag and FF D8 without the third byte are refused": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: sniffImage refuses a GIF, an SVG with and without an XML header, an HTML page, a PDF, a WAV, an empty file, a two-byte file and anything that is not bytes": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: storedPhotos lists the files savePhoto made with the second each was written, and nothing else; an absent directory is an empty list": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: stripJpegMetadata cleans a file made of twenty thousand tiny segments in one pass": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: stripJpegMetadata gives a JPEG with no Exif back as it came, and a PNG and a WebP as they came": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: stripJpegMetadata refuses what is not a JPEG, a PNG or a WebP": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: stripJpegMetadata returns the Exif JPEG without Exif and GPS, starting FF D8 and ending FF D9, and equal to the JPEG the segment was put into": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: stripJpegMetadata takes out every Exif segment wherever it sits before the scan, with the fill bytes before it, and leaves XMP and a short APP1 alone": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: the truncated JPEG is refused, wherever it is cut": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: usePhotoDir gives back the directory it replaced and refuses what is not a directory name": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: with no directory injected the files go under public/uploads/job-photos of the working directory, where the uploads route reads": {
+      "outcome": "PASS"
+    },
+    "job-timer-access.spec.js › Job timer, photos and check-out: who gets in › Access: every dead link is the one 404, and nothing is written": {
+      "outcome": "PASS"
+    },
+    "job-timer-access.spec.js › Job timer, photos and check-out: who gets in › Access: no way in is the one 401, and nothing is written": {
+      "outcome": "PASS"
+    },
+    "job-timer-access.spec.js › Job timer, photos and check-out: who gets in › Access: the provider and an admin get in, and nothing is written": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: EVENT_KINDS is the fourteen names, in order": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: EVENT_LIST_LIMIT is 100 and EVENT_DETAILS is the twelve names": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: LOCATION_REQUIRED is [\"start\"]": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: PHOTOS_MAX_PER_TYPE is 20": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: PHOTO_DAYS is 365 and ORPHAN_GRACE_HOURS is 24": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: PHOTO_DIR is under public/uploads/job-photos": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: PHOTO_MAX_BYTES, the cap on one photo's bytes, is 4000000": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: PHOTO_URL_BASE is /uploads/job-photos/ and is where PHOTO_DIR is served from": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: QUOTE_FALLBACK_MINUTES is 60": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: git ignores public/uploads/job-photos/x.jpg": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: job-clock.js has no import": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: job_checkins is named in no new file, and in src/ only by job-checkin.js and crew-retention.js": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: job_photos is named in no new file but job-photos.js and job-photo-retention.js": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: job_sessions is named in no new file but job-timer.js": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: no new file contains a query( call": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: node:fs is imported by no new file but job-photo-store.js": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: the 0009 migration pair exists and database/schema.js carries its columns and index": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: the four self routes call findJobLink( before any body reader": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: the new libraries' SELECTs name no customer_, user_id, price, amount, commission, payment, stripe or booking_number": {
+      "outcome": "PASS"
+    },
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: vercel.json runs /api/cron/job-photos at \"37 4 * * *\"": {
+      "outcome": "PASS"
+    },
+    "job-timer.spec.js › Job timer: a crew starts, pauses and leaves a job through the link › AC2: (hard gate) with no before photo the cleaner, the provider and the admin at the link and the provider at time-tracking are each refused a start and nothing is written; with one each starts a probe of its own; nobody checked in, a pending job and no position are refused too": {
+      "outcome": "PASS"
+    },
+    "job-timer.spec.js › Job timer: a crew starts, pauses and leaves a job through the link › AC3: three cleaners checked in on a 360-minute job and started: crew_here 3, quote_minutes 360 and a clock of 7200 seconds for the cleaner, the provider and the admin, on the page, the poll and both panels; a quote of NULL (and of 0) reads 60 minutes": {
+      "outcome": "PASS"
+    },
+    "job-timer.spec.js › Job timer: a crew starts, pauses and leaves a job through the link › AC4: a cleaner taken off the crew is stamped checked out by the next look, once, even when ten looks run at once, and the clock is divided again": {
+      "outcome": "PASS"
+    },
+    "job-timer.spec.js › Job timer: a crew starts, pauses and leaves a job through the link › AC4: an hour on, a fourth cleaner checking in makes the next poll read 2700 and a check-out reads per V4 (5400); the last one out of a running job pauses it": {
+      "outcome": "PASS"
+    },
+    "job-timer.spec.js › Job timer: a crew starts, pauses and leaves a job through the link › AC5: a job restarted while it ran leaves a stretch open: the next look reads a job that has not started with nothing used, and the new start closes the stale stretch so that no labour is counted twice": {
+      "outcome": "PASS"
+    },
+    "job-timer.spec.js › Job timer: a crew starts, pauses and leaves a job through the link › AC5: after a pause, a resume, a late arrival, an early leaver and a cleaner taken off the crew each cleaner's worked seconds are what the rows hold, they sum to the seconds used, and the removed cleaner's hours are still in the sum": {
+      "outcome": "PASS"
+    },
+    "job-timer.spec.js › Job timer: a crew starts, pauses and leaves a job through the link › AC6: the first look that finds the labour used sets over_quote_at and writes one over_quote event, ten at once write one and a later look changes nothing; the clock reads 0, the admin sees the flag, and no money column and no payment or invoice row changes": {
+      "outcome": "PASS"
+    },
+    "job-timer.spec.js › Job timer: a crew starts, pauses and leaves a job through the link › AC7: a whole flow (check-in, photo, start, pause with no position, resume, check-out): the admin's panel lists each event with the actor and a time, and the phone's position where it sent one; none holds a photo address or a number": {
       "outcome": "PASS"
     },
     "marketplace.spec.js › Marketplace › a booking no admin has pushed is not in providers' available jobs, and both claim routes and both job reads refuse it": {
