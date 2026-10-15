@@ -759,6 +759,34 @@ test.describe('Job timer: the poll and the small screens', () => {
         await expect(page.getByRole('timer'), 'with no clock').toHaveCount(0);
     });
 
+    // Mutant that turns this case red: a poll answered 401 does not send the page back to the sign-in step, so the Timer card goes on counting for a cleaner
+    // whose session has ended, with the job on the page.
+    test('Screens: when the session ends in the middle of a countdown the next poll is answered 401 and the page goes back to the sign-in step, with no clock and nothing of the job on it', async ({ page, request, baseURL, playwright, context }) => {
+        test.setTimeout(180_000);
+        const ctx = await setup(playwright, request, baseURL);
+        const ann = await addMember(ctx, 'Ann', '192');
+        const bea = await addMember(ctx, 'Bea', '193');
+        const job = await makeJob(ctx, { members: [ann, bea], quote: 360 });
+        const cookie = await signCleanerIn(ctx, job, ann, page);
+        await checkIn(ctx, job, cookie, [ann, bea], 'Ann checks in with Bea');
+        await addPhoto(ctx, job, cookie, 'before', await jpegBytes(page), 'Ann adds the before photo');
+        await timerAct(ctx, job, cookie, 'start', 'Ann starts the job');
+        await context.clearPermissions();
+        await page.clock.install();
+        await openJob(page, job);
+        await expect(card(page, 'Job timer').getByText('left for each of the 2 cleaners here', { exact: true })).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(page.getByRole('timer'), 'the clock counts').toHaveText(/^\d:\d{2}:\d{2}$/);
+        await expect(page.getByRole('heading', { name: 'Probe service', level: 1 }), 'with the job on the page').toBeVisible();
+
+        // The browser keeps no session for the link (it ran out, or it was cleared), so the server answers the next poll 401.
+        await context.clearCookies();
+        await page.clock.fastForward(31_000);
+        await expect(page.getByRole('heading', { name: 'Open your job.', level: 1 }), 'a poll answered 401 sends the page back to the sign-in step').toBeVisible();
+        await expect(page.getByLabel('Mobile number'), 'with the field to sign in again').toBeVisible();
+        await expect(page.getByRole('timer'), 'the clock goes with the card').toHaveCount(0);
+        await expect(page.getByRole('heading', { name: 'Probe service', level: 1 }), 'and nothing of the job stays on the page').toHaveCount(0);
+    });
+
     // Mutant that turns this case red: a long name or a card makes the page scroll sideways at a phone's width, a button or link in the three cards is
     // smaller than 44 px at 360 px, or a thumbnail is not 96 px.
     test('Screens: with a 104-letter name the page does not scroll sideways from 320 to 1280 px, and at 360 px every button and link of the Crew, Photos and Timer cards is a target of 44 px', async ({ page, request, baseURL, playwright, context }) => {

@@ -3600,6 +3600,9 @@
     "job-timer-screens.spec.js › Job timer: the poll and the small screens › Screens: the page asks the timer again every 30 seconds, shows a crew that changed on another phone, says nothing is lost when the server is out of reach, and leaves for the invalid screen on a 404": {
       "outcome": "PASS"
     },
+    "job-timer-screens.spec.js › Job timer: the poll and the small screens › Screens: when the session ends in the middle of a countdown the next poll is answered 401 and the page goes back to the sign-in step, with no clock and nothing of the job on it": {
+      "outcome": "PASS"
+    },
     "job-timer-screens.spec.js › Job timer: the poll and the small screens › Screens: with a 104-letter name the page does not scroll sideways from 320 to 1280 px, and at 360 px every button and link of the Crew, Photos and Timer cards is a target of 44 px": {
       "outcome": "PASS"
     },
