@@ -21,7 +21,7 @@
 // ERASE means ANONYMISE, so that history survives and no foreign key cascades it away: the name becomes ERASED_NAME, the number becomes 'x{id}'
 // (not a number a text can go to, and unique, so the key on the provider and the number holds), removed_at is set if it was not, the member's
 // number checks and sign-in codes are deleted, and the member is taken out of the job-link events that were about them (they read "a former
-// cleaner" from then on). booking_crew is left alone: an anonymous row says only how many people were on a job. A check-in keeps its row and,
+// cleaner" from then on). The job assignments are left alone: an anonymous row says only how many people were on a job. A check-in keeps its row and,
 // until LOCATION_DAYS, its position. The member row is updated LAST, and its WHERE says it has not been erased, so a run that stops half way is
 // finished by the next one, and a member who is put back on a crew (ENG-014's add revives a removed row) between two statements is left a member
 // and loses only a proof they would have to give again.
