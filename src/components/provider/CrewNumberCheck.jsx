@@ -6,7 +6,8 @@
 //   useNumberStates()   reads GET /api/provider/crew/numbers into { status, states: Map(id -> state), reload }
 //   NumberChip          the state as a word on a coloured chip, for any list of cleaners
 //   CheckNumber         the "Check this number" control for a number that is 'unchecked': ask for the code, then confirm it
-// The number and the code are typed into this component's state and sent in a request body; neither is kept in the address or in storage.
+// The code is typed into this component's state and sent in a request body; the number is the one stored for the cleaner and is never sent from
+// here. Neither is kept in the address or in storage.
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { formatPhone } from '@/lib/phone';

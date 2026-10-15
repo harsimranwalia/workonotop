@@ -5,9 +5,9 @@
 //   invalid      the link is switched off, replaced, finished or was never a link: one sentence, the same for every cause
 //   not in       a mobile number, then the six-digit code texted to it; the page cannot tell whether the number was on the job
 //   signed in    the days, the address, the details, the crew with who is checked in, and the tick list that checks people in
-// A cleaner's session is a cookie the server sets and the page never reads: after every action and when the tab comes back to the front the page asks again,
-// so a person taken off the crew, or a link switched off, is seen at once. The number typed here lives in this component's state only (never in storage or
-// the address), and the page shows nothing the server did not send.
+// A cleaner's session is a cookie the server sets and the page never reads: after every action and when the tab comes back to the front the page asks again
+// (it does not poll), so a person taken off the crew, or a link switched off, is seen at the next of those. The number typed here lives in this
+// component's state only (never in storage or the address), and the page shows nothing the server did not send.
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { PHONE_HINT } from '@/lib/phone';
@@ -253,7 +253,7 @@ function SignIn({ base, onSignedIn, onInvalid }) {
         </div>
       </form>
       <button type="button" onClick={() => { setStep('number'); setProblem(''); setTimeout(() => phoneRef.current?.focus(), 0); }}
-        className={`mt-4 text-sm font-semibold text-green-800 underline rounded ${RING}`}>Use a different number</button>
+        className={`mt-4 inline-flex items-center min-h-[48px] text-sm font-semibold text-green-800 underline rounded ${RING}`}>Use a different number</button>
       <p className="mt-4 text-xs text-gray-600">{NO_CODE_TEXT}</p>
     </section>
   );

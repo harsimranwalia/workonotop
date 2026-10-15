@@ -3135,6 +3135,9 @@
     "job-link-rules.spec.js › ENG-015 rules: window and location in plain Node › AC11: readLocation takes a finite fix and refuses strings, NaN, Infinity, 91 degrees and {0,0}": {
       "outcome": "PASS"
     },
+    "job-link-screens.spec.js › Job link: the colours of the panels › Colours: every text colour in the manager panel's looks is 4.5 to 1 or better on its ground, and the border and the focus ring of a control are 3 to 1": {
+      "outcome": "PASS"
+    },
     "job-link-screens.spec.js › Job link: the page › Screens: a link that is not valid says so in one sentence, asks for nothing, and asks search engines to skip the page": {
       "outcome": "PASS"
     },

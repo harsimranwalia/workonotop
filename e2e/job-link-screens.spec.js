@@ -9,9 +9,16 @@
 // page's context, so the cases that are not about signing in start signed in. Every case uses the numbers +1 604 555 0160 to 0179 and the e-mail prefix
 // below; the sweep before the first case, after every case and after the last removes the bookings of that prefix (their links, codes, check-ins, events
 // and crew rows go with them), the crew members of that block and the sms_budget counters of those links, members and numbers.
+// One case needs no browser and no database: it measures the colour pairs of the manager panel's three looks against the project's palette.
 // Failure messages name the case, never a token, a code or a cookie.
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
 import mysql from 'mysql2/promise';
+import resolveConfig from 'tailwindcss/resolveConfig.js';
 import { test, expect } from '@playwright/test';
+import tailwindConfig from '../tailwind.config.js';
 import { getCredentialHeaders } from './auth/credentials.js';
 import { signInAs } from './support/auth.js';
 import { providers } from '../database/fixtures/accounts.js';
@@ -31,6 +38,9 @@ const stored = (last3) => `+16045550${last3}`;
 const typed = (last3) => `+1 604 555 0${last3}`;
 const US_NUMBER = '+12125550170';
 const FIRST_VISIT_MS = 45_000;
+// The admin's booking page asks for the person signed in, then the booking, then the job link, one after another, and on a cold dev server each step
+// is a compile: 75 seconds to the panel at a load average of 8 (2026-10-15, three steps of 20 to 30 seconds), where a page with one new route needs one.
+const ADMIN_FIRST_VISIT_MS = 120_000;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const ADDRESS = { latitude: 51.04473, longitude: -114.07192 };
 const AT_THE_ADDRESS = { latitude: ADDRESS.latitude, longitude: ADDRESS.longitude, accuracy: 12 };
@@ -308,7 +318,9 @@ test.describe('Job link: the page', () => {
         await page.getByRole('button', { name: 'Text me a code' }).click();
         await expect(sent, 'a number nobody has gets the same words').toBeVisible({ timeout: FIRST_VISIT_MS });
         const strangerText = await page.getByRole('status').filter({ hasText: 'a code is on its way' }).innerText();
-        await page.getByRole('button', { name: 'Use a different number' }).click();
+        const another = page.getByRole('button', { name: 'Use a different number' });
+        expect((await another.boundingBox()).height, 'the way back to the number step is a target 48 px high').toBeGreaterThanOrEqual(48);
+        await another.click();
 
         await page.getByLabel('Mobile number').fill(typed('161'));
         await page.getByRole('button', { name: 'Text me a code' }).click();
@@ -491,7 +503,9 @@ test.describe('Job link: the panels', () => {
         await expect(panel.getByRole('listitem').filter({ hasText: 'Ann' }), "Ann's number is checked").toContainText('Number checked');
         const beaRow = panel.getByRole('listitem').filter({ hasText: 'Bea' });
         await expect(beaRow, "Bea's is not, and the panel says so").toContainText("Number not checked — we can't text them yet");
-        await expect(beaRow.getByRole('link', { name: 'Check this number in My Crew' })).toHaveAttribute('href', '/provider/crew');
+        const crewLink = beaRow.getByRole('link', { name: 'Check this number in My Crew' });
+        await expect(crewLink).toHaveAttribute('href', '/provider/crew');
+        expect((await crewLink.boundingBox()).height, 'the link to My Crew is a target 44 px high').toBeGreaterThanOrEqual(44);
         await expect(beaRow, 'nobody has checked in').toContainText('Not checked in');
 
         await panel.getByRole('button', { name: 'Copy link' }).click();
@@ -551,9 +565,9 @@ test.describe('Job link: the panels', () => {
             await session.dispose();
         }
         await signInAs(page, 'admin');
-        await page.goto(`/admin/bookings/${job.bookingId}`, { timeout: FIRST_VISIT_MS });
+        await page.goto(`/admin/bookings/${job.bookingId}`, { timeout: ADMIN_FIRST_VISIT_MS });
         const panel = page.getByRole('region', { name: 'Job link', exact: true });
-        await expect(panel.getByRole('heading', { name: 'Check-ins', level: 3 })).toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(panel.getByRole('heading', { name: 'Check-ins', level: 3 })).toBeVisible({ timeout: ADMIN_FIRST_VISIT_MS });
         const row = (name) => panel.getByRole('heading', { name: 'Check-ins', level: 3 }).locator('xpath=following-sibling::ul[1]/li').filter({ hasText: new RegExp(`^${name},`) });
         await expect(row('Ann'), 'Ann was at the address').toContainText('At the address');
         await expect(row('Bea'), 'Bea was not').toContainText(/Not at the address — about \d+(\.\d)? km away/);
@@ -615,5 +629,82 @@ test.describe('Job link: the panels', () => {
         await expect(statusSaying(page, 'Checked Bea, (604) 555-0177.'), 'the right code is announced').toBeVisible();
         await expect(row('Bea'), "Bea's chip turns").toContainText('Number checked');
         await expect(row('Bea').getByRole('button', { name: /^Check / }), 'and the check goes').toHaveCount(0);
+    });
+});
+
+// The manager panel (src/components/job/JobLinkManager.jsx) draws the provider's page and the admin's light and dark panels from one table of Tailwind
+// class strings, LOOKS, and says in a comment that every colour pair in it is AA on its ground. Nothing else holds that sentence up, so this reads the
+// table out of the source and measures each pair against the project's own palette: text 4.5 to 1, the border of a control and its focus ring 3 to 1.
+const MANAGER_FILE = 'src/components/job/JobLinkManager.jsx';
+const TEXT_RATIO = 4.5;
+const PART_RATIO = 3;
+const LOOK_ROLES = ['strong', 'muted', 'ok', 'bad', 'warn', 'anchor'];
+
+// The part of a class string after `prefix`, in the first class that starts with it and not with `except`; null when there is none.
+function classAfter(classes, prefix, except) {
+    const found = classes.split(/\s+/).find((name) => name.startsWith(prefix) && !(except && name.startsWith(except)));
+    return found ? found.slice(prefix.length) : null;
+}
+
+function paletteColour(palette, name) {
+    const [family, shade] = name.split('-');
+    const value = shade === undefined ? palette[family] : palette[family]?.[shade];
+    if (typeof value !== 'string') throw new Error(`the palette has no colour called ${name}`);
+    return value;
+}
+
+// WCAG 2.x: relative luminance of an sRGB colour, and the ratio of two of them (the lighter over the darker, each plus 0.05).
+function luminanceOf(hex) {
+    const full = hex.length === 4 ? `#${[...hex.slice(1)].map((digit) => digit + digit).join('')}` : hex;
+    const [red, green, blue] = [1, 3, 5].map((at) => parseInt(full.slice(at, at + 2), 16) / 255).map((value) => (value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+}
+function ratioOf(one, other) {
+    const [lighter, darker] = [luminanceOf(one), luminanceOf(other)].sort((a, b) => b - a);
+    return (lighter + 0.05) / (darker + 0.05);
+}
+
+test.describe('Job link: the colours of the panels', () => {
+    // Mutant that turns this case red: a class in LOOKS puts text on a ground it cannot be read on (a filled button of the dark look in white on teal-600
+    // is 3.74 to 1, and on teal-500 under the pointer 2.49 to 1), a border or ring fades into the card, or a role is dropped from a look.
+    test("Colours: every text colour in the manager panel's looks is 4.5 to 1 or better on its ground, and the border and the focus ring of a control are 3 to 1", async () => {
+        const palette = resolveConfig(tailwindConfig).theme.colors;
+        expect(ratioOf(paletteColour(palette, 'black'), paletteColour(palette, 'white')), 'the measure: black on white is 21 to 1').toBeCloseTo(21, 5);
+        expect(ratioOf(paletteColour(palette, 'white'), paletteColour(palette, 'teal-600')), 'the measure: white on teal-600 is 3.74 to 1').toBeCloseTo(3.74, 2);
+        expect(ratioOf(paletteColour(palette, 'white'), paletteColour(palette, 'teal-500')), 'and on teal-500 it is 2.49 to 1').toBeCloseTo(2.49, 2);
+
+        const source = fs.readFileSync(path.join(fileURLToPath(new URL('..', import.meta.url)), MANAGER_FILE), 'utf8');
+        const from = source.indexOf('const LOOKS = {');
+        const to = source.indexOf('\n};', from);
+        expect(from, 'the LOOKS table is in the component').toBeGreaterThan(-1);
+        expect(to, 'and ends with a line that is only };').toBeGreaterThan(from);
+        const looks = vm.runInNewContext(`(${source.slice(from + 'const LOOKS = '.length, to + 2)})`);
+        expect(Object.keys(looks), 'the table has the three looks').toEqual(expect.arrayContaining(['provider', 'light', 'dark']));
+
+        const pairs = [];
+        for (const [look, set] of Object.entries(looks)) {
+            const card = classAfter(set.card, 'bg-');
+            const well = classAfter(set.well, 'bg-');
+            for (const role of LOOK_ROLES) {
+                pairs.push([look, `${role} text on the card`, classAfter(set[role], 'text-'), card, TEXT_RATIO]);
+                pairs.push([look, `${role} text on the well`, classAfter(set[role], 'text-'), well, TEXT_RATIO]);
+            }
+            pairs.push([look, 'outline button text', classAfter(set.button, 'text-'), card, TEXT_RATIO]);
+            pairs.push([look, 'outline button text under the pointer', classAfter(set.button, 'text-'), classAfter(set.button, 'hover:bg-'), TEXT_RATIO]);
+            pairs.push([look, 'field text', classAfter(set.field, 'text-'), classAfter(set.field, 'bg-'), TEXT_RATIO]);
+            pairs.push([look, 'filled button text', classAfter(set.primary, 'text-'), classAfter(set.primary, 'bg-'), TEXT_RATIO]);
+            pairs.push([look, 'filled button text under the pointer', classAfter(set.primary, 'text-'), classAfter(set.primary, 'hover:bg-'), TEXT_RATIO]);
+            pairs.push([look, 'field border on the card', classAfter(set.field, 'border-'), card, PART_RATIO]);
+            pairs.push([look, 'outline button border on the card', classAfter(set.button, 'border-'), card, PART_RATIO]);
+            pairs.push([look, 'focus ring on its offset', classAfter(set.ring, 'focus-visible:ring-', 'focus-visible:ring-offset-'), classAfter(set.ring, 'focus-visible:ring-offset-'), PART_RATIO]);
+        }
+
+        const failing = pairs.flatMap(([look, what, foreground, ground, needs]) => {
+            if (!foreground || !ground) return [`${look}: ${what} has no colour class to measure`];
+            const ratio = ratioOf(paletteColour(palette, foreground), paletteColour(palette, ground));
+            return ratio >= needs ? [] : [`${look}: ${what}, ${foreground} on ${ground}, is ${ratio.toFixed(2)} to 1 and needs ${needs}`];
+        });
+        expect(pairs.length, 'twenty pairs in each look were measured').toBe(Object.keys(looks).length * 20);
+        expect(failing, 'every pair meets its ratio').toEqual([]);
     });
 });

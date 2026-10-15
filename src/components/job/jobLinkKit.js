@@ -61,7 +61,7 @@ export function namesOf(names) {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
-// A crew member of an answer, or null when it is not the shape the route promises. `extra` adds the fields a route puts beside these.
+// A crew member of an answer, or null when it is not the shape the route promises.
 export function crewMemberOf(value) {
   if (!isObject(value) || !Number.isInteger(value.id)) return null;
   return {

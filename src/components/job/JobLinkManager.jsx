@@ -7,8 +7,8 @@
 //   link off      "This link is switched off." and a button that brings it back as a new link
 //   job finished  a sentence, and the crew as it was
 // The link is a locator, not a credential: showing it to the person who manages the job is the point. What the panel shows is what the route answers;
-// switching off and issuing a new link are asked about first, and a new link is sent with the generation this panel last saw so that two people acting at
-// once do not each end up holding a link the other has ended.
+// switching off, and issuing a new link to replace one that works, are asked about first (a link that is off comes back with no question), and a new link is
+// sent with the generation this panel last saw so that two people acting at once do not each end up holding a link the other has ended.
 
 import Link from 'next/link';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
@@ -47,7 +47,7 @@ const LOOKS = {
   dark: {
     card: 'bg-slate-900 border-slate-800', strong: 'text-white', muted: 'text-slate-400', well: 'bg-slate-800 border-slate-700', divider: 'divide-slate-800',
     ring: 'focus-visible:ring-teal-400 focus-visible:ring-offset-slate-900', field: 'bg-slate-900 text-white border-slate-500',
-    button: 'border border-slate-500 text-slate-200 hover:bg-slate-800', primary: 'bg-teal-600 hover:bg-teal-500 text-white',
+    button: 'border border-slate-500 text-slate-200 hover:bg-slate-800', primary: 'bg-teal-700 hover:bg-teal-800 text-white',
     ok: 'text-green-300', bad: 'text-red-300', warn: 'text-amber-300', anchor: 'text-teal-300',
   },
 };
@@ -322,7 +322,7 @@ export default function JobLinkManager({ path, kind, look: lookName, title }) {
                   </p>
                   {kind === 'provider' && member.numberState === 'unchecked' && (
                     <p className="mt-1 text-xs">
-                      <Link href="/provider/crew" className={`font-semibold underline rounded ${look.anchor}`}>Check this number in My Crew</Link>
+                      <Link href="/provider/crew" className={`inline-flex items-center min-h-[44px] font-semibold underline rounded ${look.anchor}`}>Check this number in My Crew</Link>
                     </p>
                   )}
                 </li>
