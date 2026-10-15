@@ -147,6 +147,9 @@
     "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/provider is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/provider/crew/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › DELETE /api/reviews is in the matrix": {
       "outcome": "PASS"
     },
@@ -345,6 +348,9 @@
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/check-verification is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/crew is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/dashboard-stats is in the matrix": {
       "outcome": "PASS"
     },
@@ -352,6 +358,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/jobs/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/jobs/[id]/crew is in the matrix": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/jobs/photos is in the matrix": {
@@ -439,6 +448,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › PATCH /api/ai-gateway/v1/services is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › PATCH /api/provider/crew/[id] is in the matrix": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/blogs is in the matrix": {
@@ -609,6 +621,9 @@
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/available-jobs/[id] is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/crew is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/forgot-password is in the matrix": {
       "outcome": "PASS"
     },
@@ -741,6 +756,9 @@
     "auth-coverage.spec.js › Auth coverage - routes › PUT /api/provider/availability is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › PUT /api/provider/jobs/[id]/crew is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › PUT /api/provider/profile is in the matrix": {
       "outcome": "PASS"
     },
@@ -805,6 +823,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/provider uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › DELETE /api/provider/crew/[id] uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › DELETE /api/reviews uses the guard": {
@@ -990,6 +1011,9 @@
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/bookings uses the guard": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/crew uses the guard": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/dashboard-stats uses the guard": {
       "outcome": "PASS"
     },
@@ -997,6 +1021,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs/[id] uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs/[id]/crew uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs/photos uses the guard": {
@@ -1060,6 +1087,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PATCH /api/ai-gateway/v1/services uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PATCH /api/provider/crew/[id] uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/blogs uses the guard": {
@@ -1176,6 +1206,9 @@
     "auth-coverage.spec.js › Auth wiring › POST /api/provider/available-jobs/[id] uses the guard": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/crew uses the guard": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth wiring › POST /api/provider/jobs/photos uses the guard": {
       "outcome": "PASS"
     },
@@ -1285,6 +1318,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/provider/availability uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › PUT /api/provider/jobs/[id]/crew uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › PUT /api/provider/profile uses the guard": {
@@ -1497,6 +1533,9 @@
     "auth-matrix.spec.js › Role by route › DELETE /api/provider": {
       "outcome": "PASS"
     },
+    "auth-matrix.spec.js › Role by route › DELETE /api/provider/crew/[id]": {
+      "outcome": "PASS"
+    },
     "auth-matrix.spec.js › Role by route › DELETE /api/reviews": {
       "outcome": "PASS"
     },
@@ -1695,6 +1734,9 @@
     "auth-matrix.spec.js › Role by route › GET /api/provider/check-verification": {
       "outcome": "PASS"
     },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/crew": {
+      "outcome": "PASS"
+    },
     "auth-matrix.spec.js › Role by route › GET /api/provider/dashboard-stats": {
       "outcome": "PASS"
     },
@@ -1702,6 +1744,9 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/[id]": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/[id]/crew": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/photos": {
@@ -1789,6 +1834,9 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PATCH /api/ai-gateway/v1/services": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PATCH /api/provider/crew/[id]": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/blogs": {
@@ -1959,6 +2007,9 @@
     "auth-matrix.spec.js › Role by route › POST /api/provider/available-jobs/[id]": {
       "outcome": "PASS"
     },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/crew": {
+      "outcome": "PASS"
+    },
     "auth-matrix.spec.js › Role by route › POST /api/provider/forgot-password": {
       "outcome": "PASS"
     },
@@ -2089,6 +2140,9 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/provider/availability": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › PUT /api/provider/jobs/[id]/crew": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › PUT /api/provider/profile": {
@@ -3208,6 +3262,84 @@
       "outcome": "PASS"
     },
     "pricing-rules.spec.js › Pricing rules › time past the quote is measured from the booking's quoted minutes": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: a job is the provider's own (hard gate) › AC3 (hard gate): PUT and GET on a job given to provider 2, one provider 2 claimed, an open-pool job, a job nobody holds, a missing id and ids that are not numbers are all 404 Job not found, and nothing is written": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: a job is the provider's own (hard gate) › AC3 (hard gate): a provider_id in the body or the query string names no one, so it opens no other provider's job and moves no job": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: a job that changes hands › Resets: an admin reassign to provider 2 and back clears the crew on each step, so provider 2 sees none and provider 1's old picks do not come back": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: a job that changes hands › Resets: an admin restart leaves the job with no crew, and giving it to the same provider again starts with nobody": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: a job that changes hands › Resets: removing a member takes it off the jobs that can still change and not off a finished one, whose crew still names it, marked as removed": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: a job that changes hands › Resets: unassigning a job through PUT /api/bookings leaves it with no crew, and giving it to the same provider again starts with nobody": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: a member is the provider's own (hard gate) › AC4 (hard gate): PATCH and DELETE on provider 1's member are 404 Crew member not found for provider 2, the same answer as a missing, a removed or a malformed id, and the member is unchanged and still on its job": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: a member is the provider's own (hard gate) › AC4 (hard gate): a PUT on a job naming another provider's member is the same 400 as a removed member and a missing id, in either direction, and writes nothing": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: a member is the provider's own (hard gate) › AC4 (hard gate): provider 2's crew list holds none of provider 1's members, and the same number can sit on both lists as two members": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: a member is the provider's own (hard gate) › AC4 (hard gate): with no credential every crew route is a 401 and a customer or an admin session is a 403, with real ids, and nothing is written": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: pins › Pins: booking_crew is named in no file under src/ except src/lib/booking-crew.js": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: pins › Pins: src/lib/phone.js has no import statement or expression": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: pins › Pins: the three crew routes and the booking-crew lib make no query( call, only prepared execute": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the crew list › AC1: a missing or blank name, a name over 120 characters or with a line break, and a number that cannot be read are 400s that add nobody, and a name with spaces round it is saved trimmed": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the crew list › AC1: a provider adds Sam with (403) 555-0123 and it is listed as +14035550123, the same number typed as 1-403-555-0123 is a 409, and the list is ordered by name then id": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the crew list › AC1: a provider corrects a name, then a number that is read again by the same rule, and a number another entry holds, removed or not, is a 409": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the crew list › AC1: at 30 members a 31st is a 409 with the cap message, a removed number cannot be brought back past the cap either, nothing is added, and a removal makes room": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the crew list › AC1: removing a member drops it from the list but keeps its row, a second removal is a 404, and adding the same number again revives the same row under the new name": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the crew on a job › AC2: a PUT body that is not a list of at most 30 positive whole-number ids is a 400 that names crew_ids, and nothing is written": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the crew on a job › AC2: a finished job is a 409 on PUT and a 200 on GET with editable false, and its crew does not change": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the crew on a job › AC2: a job claimed from the marketplace takes a crew, a PUT of one kept and one new member reports exactly the difference, and an empty list clears it": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the crew on a job › AC2: a job the admin gave to the provider takes two members, GET shows them, the same PUT again adds and removes nobody, and a repeated id counts once": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the crew on a job › AC2: the crew can change while a job is pending, matching, confirmed or in progress and not once it is awaiting approval, completed, cancelled or disputed, and GET says which": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the phone and name rules in plain Node › AC1: normaliseName trims, refuses an empty name with the cleaner message, more than 120 characters and any control character, and the constants are 30, 120 and the four open statuses": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the phone and name rules in plain Node › AC1: normalisePhone gives E.164 for every North American form and for another country with a +, formatPhone shows it back, and PHONE_HINT asks for a country code": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the phone and name rules in plain Node › AC1: normalisePhone refuses letters, extensions, a + in the middle, a bare number of another length, an exchange starting 1, +0, 16 digits and over 40 characters, each with a message, and a bare 9 or 12 digit number asks for the country code": {
       "outcome": "PASS"
     },
     "provider-signup-page.spec.js › Provider sign-up page › the provider sign-up page sends its form in the first response": {
