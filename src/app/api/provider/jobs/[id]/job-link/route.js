@@ -43,7 +43,7 @@ export async function GET(request, { params }) {
   if (bookingId === null) return refusal(404, CREW_MESSAGES.jobNotFound);
 
   try {
-    const view = await managedView(execute, { bookingId, providerId: auth.caller.id });
+    const view = await managedView(execute, { bookingId, providerId: auth.caller.id, actor: { kind: 'provider', ref: auth.caller.id } });
     if (!view) return refusal(404, CREW_MESSAGES.jobNotFound);
     return reply({ success: true, data: view });
   } catch (error) {

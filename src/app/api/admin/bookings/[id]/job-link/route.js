@@ -51,7 +51,7 @@ export async function GET(request, { params }) {
   if (bookingId === null) return refusal(404, NOT_FOUND)
 
   try {
-    const view = await managedView(execute, { bookingId, audit: true })
+    const view = await managedView(execute, { bookingId, audit: true, actor: { kind: 'admin', ref: auth.caller.id } })
     if (!view) return refusal(404, NOT_FOUND)
     return reply({ success: true, data: view })
   } catch (error) {
