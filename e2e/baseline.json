@@ -3342,6 +3342,36 @@
     "provider-crew.spec.js › Provider crew: the phone and name rules in plain Node › AC1: normalisePhone refuses letters, extensions, a + in the middle, a bare number of another length, an exchange starting 1, +0, 16 digits and over 40 characters, each with a message, and a bare 9 or 12 digit number asks for the country code": {
       "outcome": "PASS"
     },
+    "provider-crew.spec.js › Provider crew: the screens › Screens: My Crew is in the provider menu and opens the crew page, which with nobody on it says so, counts 0 of 30 and says nothing about texts or links": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the screens › Screens: Remove asks first, Keep leaves the cleaner, and confirming removes them, takes them off the job that is not finished and says so": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the screens › Screens: a Remove the server refuses keeps the cleaner on the list and says so, and an Add it refuses keeps what was typed and says so": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the screens › Screens: a finished job shows its crew read-only with a removed cleaner marked, and a job in the open pool has no crew panel": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the screens › Screens: a number the crew already has is refused beside the number field, a number that cannot be read and an empty name are refused before any request, and nobody is added": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the screens › Screens: a provider adds a cleaner with the number typed in any form, Enter in the number field adds it, the saved number is shown back as (403) 555-0123 and the table keeps +14035550123": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the screens › Screens: a provider corrects a name and a number on the row, the row shows the saved number back, Save waits for a change, and Cancel leaves the row as it was": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the screens › Screens: at 30 cleaners the Add form is off and says the crew is full, and removing one turns it back on": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the screens › Screens: the job page has Crew on this job, Save crew waits for a change, a save replaces the crew as a set, and a reload shows what was saved": {
+      "outcome": "PASS"
+    },
+    "provider-crew.spec.js › Provider crew: the screens › Screens: when the crew cannot be loaded the page says so with a Retry that reads it again, and with the connection down it says that instead": {
+      "outcome": "PASS"
+    },
     "provider-signup-page.spec.js › Provider sign-up page › the provider sign-up page sends its form in the first response": {
       "outcome": "PASS"
     },
