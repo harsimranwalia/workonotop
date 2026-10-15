@@ -3132,6 +3132,42 @@
     "job-link-rules.spec.js › ENG-015 rules: window and location in plain Node › AC11: readLocation takes a finite fix and refuses strings, NaN, Infinity, 91 degrees and {0,0}": {
       "outcome": "PASS"
     },
+    "job-link-screens.spec.js › Job link: the page › Screens: a link that is not valid says so in one sentence, asks for nothing, and asks search engines to skip the page": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the page › Screens: a signed-in cleaner sees the days, the address, the details and the whole crew, and not the customer, the price or a phone number": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the page › Screens: a visitor with no way in is asked for a mobile number, a blank number is refused beside the field, and no part of the job is on the page": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the page › Screens: at the address a tick checks in the people ticked, with the phone's position, and the page says who is in": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the page › Screens: before the window the tick list is shut and the page says when check-in opens": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the page › Screens: the check-in goes through two kilometres from the address and the page says how far, so the office can see it": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the page › Screens: the code step says the same words for a number on the job and a number that is not, asks for a new code only after a wait, refuses a wrong code and opens the job for the right one": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the page › Screens: the job's provider and an admin open the link signed in as themselves, with no code": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the page › Screens: when the phone will not give its position the page says why and checks nobody in": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the panels › Screens: My Crew shows the state of each number, and \"Check this number\" takes a code from the cleaner and turns the number to checked": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the panels › Screens: the admin's panel lists each check-in and says when one was not at the address, and how far away it was": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the panels › Screens: the provider's panel makes the link, copies it, asks before it switches off or issues a new one, ends the link it replaces, and shows each cleaner's number": {
+      "outcome": "PASS"
+    },
     "job-link.spec.js › Job link: the token, the dead link, the views, the managed routes and the record › AC12: switch-off ends a link and its sessions at once and twice is 200; reissue needs the current generation (409 otherwise) and kills the old path and sessions; create after off reissues; another provider's job is \"Job not found\"; an admin can do each": {
       "outcome": "PASS"
     },
