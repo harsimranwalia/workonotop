@@ -91,6 +91,19 @@ export function windowOf(value) {
   return { open: value.open === true, opensLabel: textOf(value.opens_label) };
 }
 
+// ---- the look the cards of the page share ----
+
+export const RING = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2';
+// A button that is busy or has nothing to do is marked aria-disabled, not disabled, so keyboard focus stays on it while it is.
+export const BUTTON = `w-full sm:w-auto px-5 py-3 min-h-[48px] rounded-xl text-base font-semibold transition-colors aria-disabled:opacity-50 aria-disabled:cursor-not-allowed ${RING}`;
+export const PRIMARY = `${BUTTON} bg-green-700 hover:bg-green-800 text-white`;
+export const OUTLINE = `${BUTTON} border border-gray-500 text-gray-800 hover:bg-gray-50`;
+export const CARD = 'rounded-2xl border border-gray-200 bg-white p-5 shadow-sm';
+export const CARD_HEADING = 'text-sm font-bold uppercase tracking-wide text-gray-700';
+export const NOTICE = 'rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm font-medium text-amber-900';
+
+export const POSITION_TEXT = 'We could not get your location. Try again somewhere with a clearer view of the sky.';
+
 // ---- the photos and the timer (ENG-016) ----
 
 // PHOTOS_MAX_PER_TYPE is the server's limit (src/lib/job-photos.js) as the "3 of 20" shows it, and BLOCKED_TEXT the sentences of TIMER_MESSAGES
