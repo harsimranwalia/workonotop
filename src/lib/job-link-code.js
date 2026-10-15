@@ -30,9 +30,10 @@
 //   to fail is the same `failed`. `session` is the cookie's value and `member` is { id, name }.
 // sessionCookie(link, session) -> the cookie to set, in the shape response.cookies.set takes: jls_{link id}, HttpOnly, SameSite=Lax, Secure in
 //   production, Path=/, and SESSION_HOURS of Max-Age. The name carries a row id and no secret.
-// sessionFromRequest(request, execute, link, crew) -> { id, name } of the cleaner this request is, or null. `crew` is assignedCrew(…,
-//   { withAssignedAt: true }) of the job, read once by the caller. Reads the link's own cookie with a small parser of its own, so
-//   src/lib/api-auth.js is not touched, and never reads a cookie of any other name.
+// sessionFromRequest(request, execute, link, crew) -> { id, name, epoch } of the cleaner this request is, or null; `epoch` is the second they were
+//   put on the job, which a check-in judges again inside its lock. `crew` is assignedCrew(…, { withAssignedAt: true }) of the job, read once by
+//   the caller. Reads the link's own cookie with a small parser of its own, so src/lib/api-auth.js is not touched, and never reads a cookie of
+//   any other name.
 import { assignedCrew } from './booking-crew.js';
 import { isNumberChecked } from './crew-number-check.js';
 import { recordEvent } from './job-link-base.js';
@@ -227,5 +228,5 @@ export async function sessionFromRequest(request, execute, link, crew) {
       candidate.assigned_epoch === Number(row.assignment_epoch) &&
       candidate.phone === row.phone
   );
-  return member ? { id: member.id, name: member.name } : null;
+  return member ? { id: member.id, name: member.name, epoch: member.assigned_epoch } : null;
 }

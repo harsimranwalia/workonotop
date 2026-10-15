@@ -18,7 +18,8 @@
 //   The record holds ids and never a name or a number: a name is read through its id when shown.
 // eventsFor(execute, bookingId) -> the last EVENT_LIST_LIMIT events of a job, newest first, with names resolved at read:
 //   [{ id, kind, actor: { kind, name }, subject, detail, latitude, longitude, accuracy_m, created_at }]. `subject` is the name of the person the
-//   event is about. A cleaner who has been erased (src/lib/crew-retention.js) shows as 'A former cleaner'.
+//   event is about. A cleaner who has been erased (src/lib/crew-retention.js) shows as 'A former cleaner'. `created_at` is an ISO string, read as
+//   UNIX_TIMESTAMP so that it does not depend on the zone of the server, the pool and the database agreeing.
 // namesFor(execute, { providers, admins, cleaners }) -> { provider, admin, cleaner }, each a Map of id to name, and nameOf(names, kind, ref) ->
 //   the name or null. displayName(name) is the rule for a cleaner: a name that was erased, or whose row is gone, shows as 'A former cleaner'.
 import { CREW_CHANGE_STATUSES } from './booking-crew.js';
@@ -105,7 +106,7 @@ const number = (value) => (value === null || value === undefined ? null : Number
 
 export async function eventsFor(execute, bookingId) {
   const rows = await execute(
-    `SELECT id, kind, actor_kind, actor_ref, crew_member_id, latitude, longitude, accuracy_m, detail, created_at
+    `SELECT id, kind, actor_kind, actor_ref, crew_member_id, latitude, longitude, accuracy_m, detail, UNIX_TIMESTAMP(created_at) AS created_epoch
      FROM job_link_events WHERE booking_id = ? ORDER BY id DESC LIMIT ${EVENT_LIST_LIMIT}`,
     [bookingId]
   );
@@ -124,6 +125,6 @@ export async function eventsFor(execute, bookingId) {
     latitude: number(row.latitude),
     longitude: number(row.longitude),
     accuracy_m: number(row.accuracy_m),
-    created_at: row.created_at,
+    created_at: new Date(Number(row.created_epoch) * 1000).toISOString(),
   }));
 }
