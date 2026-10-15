@@ -29,7 +29,7 @@ const OUTLINE = `${BUTTON} border border-gray-500 text-gray-800 hover:bg-gray-50
 
 const CHIPS = {
   checked: { text: 'Number checked', tone: 'bg-green-50 border-green-300 text-green-900' },
-  unchecked: { text: 'Number not checked yet', tone: 'bg-amber-50 border-amber-300 text-amber-900' },
+  unchecked: { text: "Number not checked \u2014 we can't text them yet", tone: 'bg-amber-50 border-amber-300 text-amber-900' },
   cannot_text: { text: "Can't text this number", tone: 'bg-gray-100 border-gray-400 text-gray-900' },
 };
 

@@ -403,7 +403,9 @@ export default function ProviderCrewPage() {
                       </div>
                     )}
                     {editingId !== member.id && numbers.states.get(member.id) === 'cannot_text' && (
-                      <p className="mt-2 text-xs text-gray-700">Only Canadian numbers can be texted. Use Edit to correct this number.</p>
+                      <p className="mt-2 text-xs text-gray-700">
+                        We can&apos;t text this number, so it can&apos;t be checked. You can check {member.name} in yourself from the job link. If the number is wrong, use Edit.
+                      </p>
                     )}
                     {editingId !== member.id && numbers.states.get(member.id) === 'unchecked' && (
                       <CheckNumber member={member} onChecked={checked} onGone={gone} />
