@@ -99,6 +99,8 @@ function linesOf(stored) {
     const parsed = JSON.parse(stored);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
+    // The column is written only by this library, so a value that does not parse is damage: the desk shows no lines and says so in the log.
+    console.error('Error reading the approved lines of a report');
     return [];
   }
 }

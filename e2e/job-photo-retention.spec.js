@@ -30,6 +30,7 @@
 // The retention works on the whole table, so a case never asserts a count another spec's rows could move: it looks for ITS OWN ids in what a run
 // selected and deleted (watching() reads the two statements back as the ids they matched) and asserts counts only where the scratch directory makes
 // them exact, as the files are. The customer number of the probe bookings is +1 403 555 0299, the last of this ticket's block.
+import { randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -390,6 +391,47 @@ test.describe('Job photo retention: the library', () => {
         expect(again.orphan_files, 'and finds no file without a row').toBe(0);
         expect(await rowIds(booking), 'the rows are as they were').toEqual(keptIds);
         expect(await filesNow(), 'and so are the files').toEqual(urlsOf(kept));
+    });
+
+    // Mutant that turns this case red (ENG-017): the report photos are not swept; the report row goes with its photo (the report must outlive the file); a
+    // photo of a report under a year, or of a disputed booking, is taken; a file only a report names is taken for an orphan and deleted; or a second run
+    // finds work.
+    test('Retention: a report photo over a year old loses its file and its address and the report stays; a younger one, a disputed booking\'s and a file only a report names stay', async () => {
+        test.setTimeout(120_000);
+        const booking = await mkBooking();
+        const disputed = await mkBooking('disputed');
+        const linkOf = async (bookingId) => {
+            const made = await execute('INSERT INTO job_links (booking_id, token, generation) VALUES (?, ?, 1)', [bookingId, randomBytes(32).toString('base64url').slice(0, 43)]);
+            return Number(made.insertId);
+        };
+        const [link, disputedLink] = [await linkOf(booking), await linkOf(disputed)];
+        // The file is three days old, so that the orphan step would delete it were it no row's.
+        const mkReport = async (bookingId, linkId, days) => {
+            const url = await mkFile(72);
+            const made = await execute(
+                "INSERT INTO job_reports (booking_id, link_id, report_type, note, photo_url, reporter_kind, reporter_ref, created_at) VALUES (?, ?, 'unhygienic', 'retention probe', ?, 'cleaner', 1, NOW() - INTERVAL ? DAY)",
+                [bookingId, linkId, url, days]
+            );
+            return { id: Number(made.insertId), url };
+        };
+        const old = await mkReport(booking, link, 400);
+        const young = await mkReport(booking, link, 300);
+        const held = await mkReport(disputed, disputedLink, 400);
+        const addressOf = async (report) => (await rows('SELECT photo_url FROM job_reports WHERE id = ?', [report.id]))[0]?.photo_url;
+        expect(await filesNow(), 'three files are in the scratch store before the run').toHaveLength(3);
+
+        const summary = await runJobPhotoRetention(execute);
+        expect(summary.deleted_report_photos, 'the count says at least the one report photo went').toBeGreaterThanOrEqual(1);
+        expect(await filesNow(), 'only the file of the old report went: the young one and the disputed one stay, and a file a report names is no orphan').toEqual(urlsOf([young, held]));
+        expect(await countOf('SELECT COUNT(*) AS n FROM job_reports WHERE id = ?', [old.id]), 'the old report stays, so the office keeps what it was told').toBe(1);
+        expect(await addressOf(old), 'its address is cleared').toBeNull();
+        expect(await addressOf(young), 'a report under a year keeps its address').toBe(young.url);
+        expect(await addressOf(held), 'so does a report on a disputed booking, however old').toBe(held.url);
+
+        const again = await runJobPhotoRetention(execute);
+        expect(again.orphan_files, 'a second run finds no file without a row').toBe(0);
+        expect(await filesNow(), 'and takes nothing more of the case').toEqual(urlsOf([young, held]));
+        expect([await addressOf(old), await addressOf(young), await addressOf(held)], 'and the addresses are as they were').toEqual([null, young.url, held.url]);
     });
 
     // Mutant that turns this case red: the disputed check is dropped (or looks at the wrong booking or the wrong status), or it is kept for ever, so a
