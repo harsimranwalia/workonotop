@@ -20,6 +20,7 @@ import mysql from 'mysql2/promise';
 import { test, expect } from '@playwright/test';
 import { getCredentialHeaders } from './auth/credentials.js';
 import { signInAs } from './support/auth.js';
+import { resendingOnReset } from './support/reset-retries.js';
 import { providers } from '../database/fixtures/accounts.js';
 import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.js';
 import { sha256Hex } from '../src/lib/link-token.js';
@@ -268,7 +269,7 @@ async function signCleanerIn(ctx, job, member, page = null) {
     const asked = await ctx.request.post(`/api/job/${job.token}/code`, { data: { phone: member.phone } });
     expect(asked.status(), `${member.name} asks for a code`).toBe(200);
     const code = await signInCode(job, member);
-    const fresh = await ctx.playwright.request.newContext({ baseURL: ctx.baseURL });
+    const fresh = resendingOnReset(await ctx.playwright.request.newContext({ baseURL: ctx.baseURL }));
     try {
         const verified = await fresh.post(`/api/job/${job.token}/verify`, { data: { phone: member.phone, code } });
         expect(verified.status(), `${member.name} gives the code back`).toBe(200);
@@ -283,8 +284,10 @@ async function signCleanerIn(ctx, job, member, page = null) {
     }
 }
 
+// The case's `request` sends a call again when the connection it was written to is closed before any answer: the first call of a case can be written to
+// a connection the previous case left unused for about six seconds (e2e/support/reset-retries.js; BUG-019).
 async function setup(playwright, request, baseURL) {
-    return { playwright, request, baseURL: String(baseURL), as: await credentials(baseURL) };
+    return { playwright, request: resendingOnReset(request), baseURL: String(baseURL), as: await credentials(baseURL) };
 }
 
 async function openJob(page, job) {
