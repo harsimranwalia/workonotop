@@ -1,4 +1,4 @@
-// The route matrix: every route file and exported method under src/app/api, one row each, as data (240 rows).
+// The route matrix: every route file and exported method under src/app/api, one row each, as data (244 rows).
 //
 // SOURCE: Appendix A of agents/architect/designs/ENG-004-lock-down-unauthenticated-access-and-role-checks.md (the
 // design for ENG-004; ADR-003). This file was generated from that table, in the table's order and with its route
@@ -53,7 +53,7 @@
 // roles: ['admin', 'provider'] with the split in its note.
 //
 // What a probe does. Every probe uses a fixture account only (@workontap.test), an id no fixture row has, and an empty body
-// or none: 240 of the 240 rows, by a script (the body is undefined or {}, the path is the route with each [param] replaced
+// or none: 244 of the 244 rows, by a script (the body is undefined or {}, the path is the route with each [param] replaced
 // by PROBE_IDS.missing, no row sets a query). That does not make a probe harmless by itself: a handler that needs no input
 // acts on {} and on nothing (ENG-020 review B1, QA F1). What the notes say about it, as counted by script:
 //   - Twelve rows carry a `Probe (B2, 2026-10-02` line (the rows whose note holds that text): GET and PATCH
@@ -64,8 +64,8 @@
 //     where the handler writes or sends, the first side effect it stops before (a write, a schema change, mail, a push, an
 //     outbound call, a payment, a file); GET /api/admin/deletion-requests carries only a cross-reference to the PATCH row, for
 //     the same fetch.
-//   - The other 228 rows have no such line: 137 are write rows (POST, PUT, PATCH, DELETE) and 91 are GET (script counts).
-//     49 of the 228 (36 public, 13 self) carry a `Probe measured on the dev app` line instead, which records the
+//   - The other 232 rows have no such line: 139 are write rows (POST, PUT, PATCH, DELETE) and 93 are GET (script counts).
+//     49 of the 232 (36 public, 13 self) carry a `Probe measured on the dev app` line instead, which records the
 //     status measured there for the request with no credential and no body. Code-review round 1 read the write handlers the
 //     probes reach (88: 31 admin, 57 other; agents/principal-engineer/notebook/2026-10-02-eng020-review.md; the matrix has
 //     110 routes with a write row, 36 admin and 74 other, and the difference was not traced). It did not read the GET
@@ -365,6 +365,21 @@ export const matrix = [
         route: '/api/admin/providers/approve', method: 'PUT', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
         note: 'ENG-022: PUT calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/providers/approve/route.js:135-136), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: No auth: approve also forces email_verified=1 and clears the verification token; suspend/reacti…',
         probe: { path: '/api/admin/providers/approve', body: {}, anon: 401 },
+    },
+    {
+        route: '/api/admin/reports', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
+        note: 'ENG-017: a new route (src/app/api/admin/reports/route.js). GET calls requireCaller(request, [\'admin\']) as its first statements (:25-26), before the query string is read or the database is touched: no credential is 401, any other role 403. For an admin it answers the queue of on-site reports waiting on the office (newest first, a page at a time) with the count of them and the booking each is about (the customer\'s name only: no phone, e-mail or address). It writes nothing and sends nothing. No \'Probe measured\' claim: the probe was not run on the dev app when this row was written.',
+        probe: { path: '/api/admin/reports', body: undefined, anon: 401 },
+    },
+    {
+        route: '/api/admin/reports/[id]', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
+        note: 'ENG-017: a new route (src/app/api/admin/reports/[id]/route.js). GET calls requireCaller(request, [\'admin\']) as its first statements (:35-36), before the id is read or the database is touched: no credential is 401, any other role 403. For an admin it answers one report with its booking and the extra items of the booking\'s service. The probe\'s id matches no report: 404 \'Report not found.\'. No \'Probe measured\' claim: the probe was not run on the dev app when this row was written.',
+        probe: { path: '/api/admin/reports/999999999', body: undefined, anon: 401 },
+    },
+    {
+        route: '/api/admin/reports/[id]', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
+        note: 'ENG-017: a new route (src/app/api/admin/reports/[id]/route.js). POST calls requireCaller(request, [\'admin\']) as its first statements (:79-80), before the id or the body is read (:86): no credential is 401, any other role 403, and nothing is written for either. For an admin it handles, declines or approves a report, or retries the charge of an approved one; approving prices the extra items on the server and charges the customer\'s card on file only for the sum the admin was shown. The probe sends an empty JSON body to an id that matches no report: the 400 \'Invalid request.\', because the body names no action, before the database is touched and with nothing sent to Stripe. No \'Probe measured\' claim: the probe was not run on the dev app when this row was written.',
+        probe: { path: '/api/admin/reports/999999999', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/seo', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
@@ -890,6 +905,11 @@ export const matrix = [
         route: '/api/job/[token]/photos', method: 'POST', today: 'none', kind: 'self', self: 'the job link token, a 256-bit random locator in the path (src/lib/job-link.js); a dead link is a 404, a live one opens only for a cleaner with a texted code, the job\'s provider or an admin', owner: '-',
         note: 'ENG-016: a new route (src/app/api/job/[token]/photos/route.js). It asks for no session to find the job: the token is looked up before anything else (findJobLink), so a token nobody holds is the one 404 \'This link is not valid.\' whatever the body holds, and the body is read after it, capped in size. For a live link a caller with no access is a 401, and one with access adds a before photo (while the job is confirmed) or an after photo (while it is in progress): the type is worked out from the file\'s bytes, never from what the caller says, location data is stripped, and the file is stored under a name nobody can guess. The probe\'s token, 999999999, is not a token. It writes nothing.',
         probe: { path: '/api/job/999999999/photos', body: {}, anon: [404] },
+    },
+    {
+        route: '/api/job/[token]/reports', method: 'POST', today: 'none', kind: 'self', self: 'the job link token, a 256-bit random locator in the path (src/lib/job-link.js); a dead link is a 404, a live one opens only for a cleaner with a texted code, the job\'s provider or an admin', owner: '-',
+        note: 'ENG-017: a new route (src/app/api/job/[token]/reports/route.js). It asks for no session to find the job: the token is looked up before anything else (findJobLink, :52), so a token nobody holds is the one 404 \'This link is not valid.\' whatever the body holds, and the body is read after it (:62), capped in size. For a live link a caller with no access is a 401, and one with access sends one of five reports with a note and a photo (a cleaner only while checked in, while the job is confirmed or in progress): the file is judged from its bytes, location data is stripped, and it is stored under a name nobody can guess. The route reads and writes no money: a report waits on the office and nothing is charged or sent from here. The probe\'s token, 999999999, is not a token. It writes nothing.',
+        probe: { path: '/api/job/999999999/reports', body: {}, anon: [404] },
     },
     {
         route: '/api/job/[token]/timer', method: 'GET', today: 'none', kind: 'self', self: 'the job link token, a 256-bit random locator in the path (src/lib/job-link.js); a dead link is a 404, a live one opens only for a cleaner with a texted code, the job\'s provider or an admin', owner: '-',
