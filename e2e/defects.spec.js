@@ -117,7 +117,7 @@ async function withProbeBooking(request, as, run, { headers = {}, fields = {} } 
             await deleteProbeBooking(request, as, id);
         } catch (error) {
             if (!failed) throw error;
-            console.error(`probe booking ${id} was not removed after the case failed: ${error?.message}`);
+            console.error(`probe booking ${id} was not removed after the case failed: ${String(error?.message).split('\n', 1)[0]}`);
         }
     }
 }
