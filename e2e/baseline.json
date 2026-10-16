@@ -3828,6 +3828,12 @@
     "job-record-reports-screens.spec.js › Reports in the job record › Screens: the provider's panel lists the reports with who, when, the note and the photo, says which the office has seen, and shows neither the position nor the decision": {
       "outcome": "PASS"
     },
+    "job-reports-pins.spec.js › Pins: nothing is sent › Pins: the sender names are real ones, each named by files of src/ outside the files checked": {
+      "outcome": "PASS"
+    },
+    "job-reports-pins.spec.js › Pins: nothing is sent › Pins: the three routes, the library, the desk and the money library name no e-mail, SMS or push sender and import none of their modules": {
+      "outcome": "PASS"
+    },
     "job-reports-pins.spec.js › Pins: the 0010 migration › Pins: the pair exists and database/schema.js carries the migration's columns and keys": {
       "outcome": "PASS"
     },
@@ -3921,10 +3927,16 @@
     "job-reports.spec.js › POST /api/job/{token}/reports: the cleaner's one-tap report › the page, the provider's panel and the admin's view carry the report, the first two without the sender's position": {
       "outcome": "PASS"
     },
+    "job-reports.spec.js › POST /api/job/{token}/reports: the cleaner's one-tap report › two sends made at the same moment with one client_token save one report, one event and one file, and the other is answered as saved": {
+      "outcome": "PASS"
+    },
     "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › Stripe out of reach leaves the charge pending, and a retry is safe; a failed charge can be declined": {
       "outcome": "PASS"
     },
     "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a booking that can not be charged and a report that was already decided are refused, and the second admin's approval writes nothing": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a booking with no payment of its own is charged on the card its customer put on file from the link": {
       "outcome": "PASS"
     },
     "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a customer with no card on file is no_payment_method, recorded as failed, and nothing is created": {
@@ -3933,10 +3945,28 @@
     "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a declined card leaves the report failed with its reason, and a retry continues the saved intent and never creates a second": {
       "outcome": "PASS"
     },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a series visit is never charged on the card of a first visit that belongs to another customer": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a series visit with no payment of its own is charged on the card of the same customer's first visit": {
+      "outcome": "PASS"
+    },
     "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a sum that is not the one the admin was shown, extras that are not the service's and a quote are refused before anything is recorded": {
       "outcome": "PASS"
     },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a sum under the payment minimum and a sum over its ceiling are refused with their own reasons, before anything is recorded or charged": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › an approval and a decline made at the same moment, in either order: the report is what the one that got in first made it, and the other is refused as decided": {
+      "outcome": "PASS"
+    },
     "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › an approval is priced here, recorded, then charged for exactly those cents on a PaymentIntent of its own": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › declining an add-items report and handling an information report call no Stripe and change no booking field, payout or invoice": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › ten approvals made at the same moment: one is recorded and charged, with one intent and one confirm, and nine are refused as decided": {
       "outcome": "PASS"
     },
     "job-reports.spec.js › the admin's queue and decisions over HTTP › a decision is for an admin, names a known action and a known report, and one report is read with its catalogue": {
