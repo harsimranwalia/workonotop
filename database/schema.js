@@ -862,6 +862,40 @@ const tables = [
     CONSTRAINT fk_job_link_events_member FOREIGN KEY (crew_member_id) REFERENCES provider_crew_members(id) ON DELETE SET NULL
   )`,
 
+  // job_reports: one on-site report from the job link (ENG-017), the office's decision on it and, for "Add more items", the charge that pays for the
+  // approved lines. The charge is a PaymentIntent of its own and never part of bookings.service_price. photo_url is NULL once retention removed the file.
+  `CREATE TABLE IF NOT EXISTS job_reports (
+    id INT NOT NULL AUTO_INCREMENT,
+    booking_id INT NOT NULL,
+    link_id INT NOT NULL,
+    report_type ENUM('no_answer','details_wrong','unhygienic','add_items','cannot_complete') NOT NULL,
+    note VARCHAR(1000) NOT NULL,
+    photo_url VARCHAR(500) NULL,
+    client_token VARCHAR(64) NULL,
+    reporter_kind ENUM('cleaner','provider','admin') NOT NULL,
+    reporter_ref INT NOT NULL,
+    distance_m INT NULL,
+    away TINYINT(1) NULL,
+    status ENUM('open','handled','approved','declined') NOT NULL DEFAULT 'open',
+    decided_by INT NULL,
+    decided_at TIMESTAMP NULL,
+    decision_note VARCHAR(500) NULL,
+    approved_lines TEXT NULL,
+    approved_cents INT NULL,
+    charge_status ENUM('none','pending','paid','failed') NOT NULL DEFAULT 'none',
+    charge_intent_id VARCHAR(255) NULL,
+    charge_id VARCHAR(255) NULL,
+    charge_reason VARCHAR(24) NULL,
+    charged_at TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_job_reports_client (booking_id, client_token),
+    KEY idx_job_reports_status (status, id),
+    KEY idx_job_reports_booking (booking_id, id),
+    CONSTRAINT fk_job_reports_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+    CONSTRAINT fk_job_reports_link FOREIGN KEY (link_id) REFERENCES job_links(id) ON DELETE CASCADE
+  )`,
+
   // sms_budget: counters keyed by the SHA-256 of what is counted, so no number is stored.
   `CREATE TABLE IF NOT EXISTS sms_budget (
     scope CHAR(64) NOT NULL,
