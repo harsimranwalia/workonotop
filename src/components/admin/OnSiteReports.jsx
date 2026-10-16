@@ -7,7 +7,7 @@
 // that is not the one shown (price_changed), so the sum drawn here is for the admin to read and the server's is the one that decides. With nothing waiting
 // the section shows nothing, but a load that fails is always shown, because a quiet failure would hide a report from the team.
 
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { OFFLINE_TEXT, SEND_TIMEOUT_MS, callApi, dataOf, isObject, postJson, reportOf, reportPlaceOf, stampOf, textOf } from '@/components/job/jobLinkKit';
 
@@ -221,6 +221,12 @@ function ItemsDialog({ report, dark, onClose, onUpdate, onSay }) {
     });
     return () => controller.abort();
   }, [report.id, attempt]);
+
+  // The Close a keyboard user may be standing on while the list loads is not the one that stays when it lands (the list brings its own), and the focus would fall to
+  // the page behind the dialog; it goes back to the heading, where the dialog put it when it opened. A layout effect, so that nothing runs between the swap and the move.
+  useLayoutEffect(() => {
+    if (!dialog.current?.contains(document.activeElement)) titleRef.current?.focus();
+  }, [detail.status]);
 
   const ready = detail.status === 'ready';
   const catalogue = ready ? detail.catalogue : [];

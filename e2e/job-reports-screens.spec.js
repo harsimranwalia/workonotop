@@ -235,7 +235,7 @@ const paidItems = (cents = 6000) => ({
   provider_share_cents: 4800,
 });
 
-/** What the desk says: `state.reports` is what a read of the queue returns, `state.opened` counts them, and `onDecide(route, state, body)` answers a decision. */
+/** What the desk says: `state.reports` is what a read of the queue returns, `state.opened` counts them, `state.holdDetail` (a promise) holds the answer to the read of one report until it settles, and `onDecide(route, state, body)` answers a decision. */
 async function scriptDesk(page, state, onDecide) {
   await page.route((url) => url.pathname.startsWith('/api/admin/reports'), async (route) => {
     const request = route.request();
@@ -248,7 +248,10 @@ async function scriptDesk(page, state, onDecide) {
     }
     const id = Number(url.pathname.split('/').pop());
     const report = state.reports.find((one) => one.id === id);
-    if (request.method() === 'GET') return route.fulfill({ status: 200, json: { success: true, data: { report, catalogue: CATALOGUE } } });
+    if (request.method() === 'GET') {
+      await state.holdDetail;
+      return route.fulfill({ status: 200, json: { success: true, data: { report, catalogue: CATALOGUE } } });
+    }
     return onDecide(route, state, request.postDataJSON(), report);
   });
   await page.route('**/uploads/job-photos/**', (route) => route.fulfill({ status: 200, contentType: 'image/png', body: PNG }));
@@ -430,7 +433,8 @@ test.describe('Reports: the office queue', () => {
   });
 
   test('the keyboard reaches a card in reading order and the dialog keeps the focus inside', async ({ page }) => {
-    const state = { reports: [itemsReport()] };
+    let listArrives;
+    const state = { reports: [itemsReport()], holdDetail: new Promise((resolve) => { listArrives = resolve; }) };
     await scriptDesk(page, state, (route) => route.abort());
     await openDesk(page, state);
     const card = cardOf(page, 502);
@@ -441,7 +445,16 @@ test.describe('Reports: the office queue', () => {
     await expect(card.getByRole('button', { name: 'Review the items' })).toBeFocused();
     await page.keyboard.press('Enter');
     const dialog = page.getByRole('dialog', { name: 'Add more items' });
-    await expect(dialog.getByRole('heading', { name: 'Add more items' })).toBeFocused();
+    const heading = dialog.getByRole('heading', { name: 'Add more items' });
+    await expect(heading).toBeFocused();
+    // The price list is held on its way and the keyboard reaches the one Close there is while it loads. The list brings a Close of its own, so the one under the
+    // focus goes, and the focus has to come back to the heading rather than fall to the page behind the dialog (it fell when the list landed between two Tabs).
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+    await expect(dialog.getByRole('button', { name: 'Close' })).toBeFocused();
+    listArrives();
+    await expect(dialog.getByRole('button', { name: 'Decline' })).toBeVisible();
+    await expect(heading).toBeFocused();
     for (let step = 0; step < 5; step += 1) await page.keyboard.press('Tab');
     expect(await page.evaluate(() => document.activeElement?.closest('dialog') !== null)).toBe(true);
     await page.keyboard.press('Escape');
