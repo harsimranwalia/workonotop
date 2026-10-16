@@ -411,6 +411,9 @@
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/verify-email is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/quote-requests is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/reviews is in the matrix": {
       "outcome": "PASS"
     },
@@ -658,6 +661,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/verify-otp is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/quote-requests is in the matrix": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/reviews is in the matrix": {
@@ -1021,6 +1027,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/status uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/quote-requests uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/reviews uses the guard": {
@@ -1710,6 +1719,9 @@
     "auth-matrix.spec.js › Role by route › GET /api/provider/verify-email": {
       "outcome": "PASS"
     },
+    "auth-matrix.spec.js › Role by route › GET /api/quote-requests": {
+      "outcome": "PASS"
+    },
     "auth-matrix.spec.js › Role by route › GET /api/reviews": {
       "outcome": "PASS"
     },
@@ -1957,6 +1969,9 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/verify-otp": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/quote-requests": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/reviews": {
@@ -3283,6 +3298,54 @@
       "outcome": "PASS"
     },
     "provider.spec.js › Provider Portal - Auth Protection › should redirect protected provider routes to /provider/login": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests › a booking and create-intent refuse a job that needs a quote: 400, no booking row, no Stripe call": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests › a flagged pick quotes with a frequency and as a series, and the same answers without the flag are priced": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests › a job whose answers pick an item at its quote_from is not priced: the quote carries the picks and no figure": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests › a request for a quote is saved with the picks that sent it, as a row of quote_requests and never a booking; only a customer sets user_id": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests › an answer that cannot be priced next to a flagged pick is refused, not a quote": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests › answers that can be priced, answers that cannot, a service that is not offered and an empty or unreadable body save nothing": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests › each contact field is checked and its refusal names the field; the limits themselves are accepted": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests › the admin reads the requests, newest first, a page at a time; no credential is 401 and a customer or a provider is 403": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests › the fourth request from one email in an hour and the thirty-first in all are refused with 429 and save nothing": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests › the price route answers a quote with 200, the picks and the choices and no figure, and a job that can be priced with its price": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests › the threshold is the item's own: a unit or an extra by its count, an option or a property type once, a weekend never, no quote_from never": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests: the screens › a job that can be priced shows its price and no form, and the price and the form swap as the answers change": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests: the screens › a job that needs a quote shows no price and the form, Continue stays off, and sending the form saves the request": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests: the screens › a post that fails shows the error and keeps what was typed, and the retry sends it": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests: the screens › every field has a label, the status and thank-you text are in live regions, and the field the server refuses is marked": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests: the screens › the admin page lists the requests in \"Quote requests\" and not among the bookings; with none there is no section; a failed load shows the error and Retry": {
       "outcome": "PASS"
     },
     "recurring-visits.spec.js › booking repeating visits › a frequency outside the list is refused and nothing is saved": {

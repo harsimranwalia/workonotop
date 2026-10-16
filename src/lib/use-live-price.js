@@ -9,9 +9,11 @@ const CHOICE_FIELDS = ['units', 'option', 'property_type', 'extras'];
 const EMPTY_KEY = '{}';
 
 // `answers` is the answers object, or a function from the latest `choices` (null before the first price) to it.
-// Returns { status, price, lines, visits, quotedMinutes, field, message, choices, choicesChanged, answers, retry }; status is one of
-// loading, updating, priced, refused, too_large, stale_choices, unavailable, failed. A null serviceId waits in loading.
+// Returns { status, price, lines, visits, quotedMinutes, flags, field, message, choices, choicesChanged, answers, retry }; status is one of
+// loading, updating, priced, quote, refused, too_large, stale_choices, unavailable, failed. A null serviceId waits in loading.
 // `visits` is the { date, price, lines } of each visit of a booking that repeats, the first visit first; it is [] when the answer has none.
+// `quote` is a job the rule will not price from taps: there is no price, and `flags` is the { kind, code, label, quantity } of the answers that
+// sent it to a quote ([] in every other status).
 export function useLivePrice(serviceId, answers) {
   const [choices, setChoices] = useState(null);
   const [settled, setSettled] = useState({ status: 'loading', key: null });
@@ -43,6 +45,16 @@ export function useLivePrice(serviceId, answers) {
     }
 
     const apply = (status, body) => {
+      if (status === 200 && body && body.success && body.quote_required === true && Array.isArray(body.choices)) {
+        setChoices(body.choices);
+        if (purpose === 'reload' && requestKey !== EMPTY_KEY) {
+          setNonce((n) => n + 1);
+          return;
+        }
+        staleOnce.current = false;
+        setSettled({ status: 'quote', key: requestKey, flags: Array.isArray(body.flags) ? body.flags : [] });
+        return;
+      }
       if (status === 200 && body && body.success && Array.isArray(body.choices) && Array.isArray(body.lines) && body.price != null) {
         setChoices(body.choices);
         if (purpose === 'reload' && requestKey !== EMPTY_KEY) {
@@ -138,6 +150,7 @@ export function useLivePrice(serviceId, answers) {
     lines: priced ? settled.lines : [],
     visits: priced ? settled.visits : [],
     quotedMinutes: priced ? settled.quotedMinutes : null,
+    flags: status === 'quote' ? settled.flags : [],
     field: status === 'refused' ? settled.field : null,
     message: status === 'refused' ? settled.message : '',
     choices,

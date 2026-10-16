@@ -20,10 +20,12 @@ const HOURS_SENTENCE = 'Enter the number of hours (for example 2 or 2.5) to see 
 const TOO_LARGE_SENTENCE = "That's more than we can book online. Please lower a quantity.";
 const UNAVAILABLE_SENTENCE = "This service isn't available for booking right now.";
 const FAILED_SENTENCE = "We couldn't update the price. Check your connection and try again.";
+const QUOTE_SENTENCE = "This one needs a quote. We can't price it from a few taps.";
 
 // What a screen reader is told when the price settles: the figure, or the sentence that says why there is none. Nothing while it is worked out.
 function announcementOf(live) {
   if (live.status === 'priced') return `Price ${formatMoney(live.price)}`;
+  if (live.status === 'quote') return QUOTE_SENTENCE;
   if (live.status === 'refused') return live.field === 'hours' ? HOURS_SENTENCE : live.message;
   if (live.status === 'too_large') return TOO_LARGE_SENTENCE;
   if (live.status === 'unavailable') return UNAVAILABLE_SENTENCE;
@@ -40,6 +42,9 @@ function StateText({ live }) {
         {status === 'loading' ? 'Working out your price…' : 'Updating price…'}
       </p>
     );
+  }
+  if (status === 'quote') {
+    return <p data-testid="price-quote" className="text-green-900 font-semibold">{QUOTE_SENTENCE}</p>;
   }
   if (status === 'refused') {
     return live.field === 'hours'
@@ -76,11 +81,13 @@ function StateText({ live }) {
   return null;
 }
 
-// `live` is what useLivePrice returns. The other props are labels and notes: none of them is added to the price.
+// `live` is what useLivePrice returns. The other props are labels and notes: none of them is added to the price. A job that needs a quote has no
+// price and is not booked, so the notes about a price, a charge, a cancellation or a pro are left out while it is on screen.
 export default function PriceBox({ live, serviceName, overtimeRate, weekendAmount = null, firstDate = null, dates = [], times = {}, proNote = false }) {
   const priced = live.status === 'priced';
+  const quote = live.status === 'quote';
   const busy = live.status === 'loading' || live.status === 'updating' || live.status === 'stale_choices';
-  const showRate = Number(overtimeRate) > 0;
+  const showRate = !quote && Number(overtimeRate) > 0;
 
   return (
     <section aria-label="Your price" aria-busy={busy} className="bg-white lg:rounded-2xl lg:border-2 lg:border-green-100 overflow-hidden lg:shadow-xl">
@@ -150,19 +157,21 @@ export default function PriceBox({ live, serviceName, overtimeRate, weekendAmoun
         {live.choicesChanged && (
           <p className="mt-3 text-sm text-amber-800 bg-amber-50 rounded-lg p-3">Some choices for this service have changed. Please check your answers.</p>
         )}
-        {weekendAmount != null && (
+        {!quote && weekendAmount != null && (
           <p className="mt-3 text-sm text-gray-700">Weekend dates add {formatMoney(weekendAmount)}. Your price updates when you pick a date.</p>
         )}
-        {firstDate && (
+        {!quote && firstDate && (
           <p className="mt-3 text-sm text-gray-700">Your price is for your first date, {dayLabel(firstDate, 'weekday')}.</p>
         )}
 
-        <div className="hidden lg:block mt-5 text-xs text-gray-600 space-y-2">
-          <p>You won&apos;t be charged until the job is complete</p>
-          <p>Free cancellation up to 24 hours before</p>
-        </div>
+        {!quote && (
+          <div className="hidden lg:block mt-5 text-xs text-gray-600 space-y-2">
+            <p>You won&apos;t be charged until the job is complete</p>
+            <p>Free cancellation up to 24 hours before</p>
+          </div>
+        )}
 
-        {proNote && (
+        {proNote && !quote && (
           <div className="hidden lg:block mt-5 pt-5 border-t border-gray-200">
             <div className="bg-gradient-to-br from-green-50 to-white rounded-xl p-4 border border-green-100">
               <h4 className="font-semibold text-gray-800 mb-2 flex items-center">
