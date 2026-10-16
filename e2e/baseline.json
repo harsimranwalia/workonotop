@@ -261,6 +261,12 @@
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/providers/[providerId]/documents is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/reports is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/reports/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/seo is in the matrix": {
       "outcome": "PASS"
     },
@@ -540,6 +546,9 @@
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/providers/[providerId]/documents is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/reports/[id] is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/seo is in the matrix": {
       "outcome": "PASS"
     },
@@ -667,6 +676,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/job/[token]/photos is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/job/[token]/reports is in the matrix": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/job/[token]/timer is in the matrix": {
@@ -987,6 +999,12 @@
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/providers/[providerId]/documents uses the guard": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/reports uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/reports/[id] uses the guard": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/seo uses the guard": {
       "outcome": "PASS"
     },
@@ -1221,6 +1239,9 @@
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/providers/[providerId]/documents uses the guard": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/reports/[id] uses the guard": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/seo uses the guard": {
       "outcome": "PASS"
     },
@@ -1303,6 +1324,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/job/[token]/photos uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/job/[token]/reports uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/job/[token]/timer uses the guard": {
@@ -1743,6 +1767,12 @@
     "auth-matrix.spec.js › Role by route › GET /api/admin/providers/[providerId]/documents": {
       "outcome": "PASS"
     },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/reports": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/reports/[id]": {
+      "outcome": "PASS"
+    },
     "auth-matrix.spec.js › Role by route › GET /api/admin/seo": {
       "outcome": "PASS"
     },
@@ -2022,6 +2052,9 @@
     "auth-matrix.spec.js › Role by route › POST /api/admin/providers/[providerId]/documents": {
       "outcome": "PASS"
     },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/reports/[id]": {
+      "outcome": "PASS"
+    },
     "auth-matrix.spec.js › Role by route › POST /api/admin/seo": {
       "outcome": "PASS"
     },
@@ -2149,6 +2182,9 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/job/[token]/photos": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/job/[token]/reports": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/job/[token]/timer": {
@@ -3591,6 +3627,9 @@
     "job-photo-retention.spec.js › Job photo retention: the library › Retention: a link photo on a disputed booking stays, row and file, however old, until the booking moves on": {
       "outcome": "PASS"
     },
+    "job-photo-retention.spec.js › Job photo retention: the library › Retention: a report photo over a year old loses its file and its address and the report stays; a younger one, a disputed booking's and a file only a report names stay": {
+      "outcome": "PASS"
+    },
     "job-photo-retention.spec.js › Job photo retention: the library › Retention: a row with an address the store did not give out stays, is counted in skipped and costs no other path its file, and 210 of them in front of the rest do not hold the run back": {
       "outcome": "PASS"
     },
@@ -3780,6 +3819,141 @@
     "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: with no directory injected the files go under public/uploads/job-photos of the working directory, where the uploads route reads": {
       "outcome": "PASS"
     },
+    "job-record-reports-screens.spec.js › Reports in the job record › Screens: a job with no reports says so, and an answer that holds none says that it could not show them and keeps the timer on the page": {
+      "outcome": "PASS"
+    },
+    "job-record-reports-screens.spec.js › Reports in the job record › Screens: the admin's booking page lists the same reports with where the phone was, links to Job Requests, and the activity says who sent which": {
+      "outcome": "PASS"
+    },
+    "job-record-reports-screens.spec.js › Reports in the job record › Screens: the provider's panel lists the reports with who, when, the note and the photo, says which the office has seen, and shows neither the position nor the decision": {
+      "outcome": "PASS"
+    },
+    "job-reports-pins.spec.js › Pins: the 0010 migration › Pins: the pair exists and database/schema.js carries the migration's columns and keys": {
+      "outcome": "PASS"
+    },
+    "job-reports-pins.spec.js › Pins: the money path › Pins: booking-payment.js imports nothing, and the library imports neither it nor the desk": {
+      "outcome": "PASS"
+    },
+    "job-reports-pins.spec.js › Pins: the money path › Pins: collectAddedItems is imported by the desk and by no other file under src/": {
+      "outcome": "PASS"
+    },
+    "job-reports-pins.spec.js › Pins: the named values › Pins: the five report types are the same five in the library, the migration, schema.js and the event details": {
+      "outcome": "PASS"
+    },
+    "job-reports-pins.spec.js › Pins: the named values › Pins: the limits and the chargeable statuses are at their values": {
+      "outcome": "PASS"
+    },
+    "job-reports-pins.spec.js › Pins: the routes › Pins: every console call in the new files is a fixed string, or a fixed string and error?.code || error?.name": {
+      "outcome": "PASS"
+    },
+    "job-reports-pins.spec.js › Pins: the routes › Pins: every handler of the admin report routes calls requireCaller(request, ['admin']) first": {
+      "outcome": "PASS"
+    },
+    "job-reports-pins.spec.js › Pins: the routes › Pins: the report route calls findJobLink( before resolveAccess( and before any body reader": {
+      "outcome": "PASS"
+    },
+    "job-reports-pins.spec.js › Pins: where job_reports, the disk and the SQL words may appear › Pins: job_reports is named under src/ only by the library, the desk and the retention sweep": {
+      "outcome": "PASS"
+    },
+    "job-reports-pins.spec.js › Pins: where job_reports, the disk and the SQL words may appear › Pins: no new file calls query( and the SELECTs of the library hold no money word": {
+      "outcome": "PASS"
+    },
+    "job-reports-pins.spec.js › Pins: where job_reports, the disk and the SQL words may appear › Pins: no new file imports node:fs": {
+      "outcome": "PASS"
+    },
+    "job-reports-screens.spec.js › Reports: the job link › Add more items needs a note and a photo, then sends and the list says Sent": {
+      "outcome": "PASS"
+    },
+    "job-reports-screens.spec.js › Reports: the job link › a 409 shows the server sentence and offers no retry": {
+      "outcome": "PASS"
+    },
+    "job-reports-screens.spec.js › Reports: the job link › a 500 is sent again with the same client_token and the list holds one report": {
+      "outcome": "PASS"
+    },
+    "job-reports-screens.spec.js › Reports: the job link › a cleaner who is not checked in sees the buttons off and the reason as text": {
+      "outcome": "PASS"
+    },
+    "job-reports-screens.spec.js › Reports: the job link › five buttons in the contract order and words, each at least 44 px tall": {
+      "outcome": "PASS"
+    },
+    "job-reports-screens.spec.js › Reports: the job link › with the location off the line says so and the send works": {
+      "outcome": "PASS"
+    },
+    "job-reports-screens.spec.js › Reports: the office queue › Mark as handled sends the note and the card then reads who handled it": {
+      "outcome": "PASS"
+    },
+    "job-reports-screens.spec.js › Reports: the office queue › a changed price shows the new total and the next charge sends it": {
+      "outcome": "PASS"
+    },
+    "job-reports-screens.spec.js › Reports: the office queue › a charge that goes through shows the amount on the card and sends the total it showed": {
+      "outcome": "PASS"
+    },
+    "job-reports-screens.spec.js › Reports: the office queue › a declined card reads the reason on the card and Try the charge again continues it": {
+      "outcome": "PASS"
+    },
+    "job-reports-screens.spec.js › Reports: the office queue › a report arrives with the next poll": {
+      "outcome": "PASS"
+    },
+    "job-reports-screens.spec.js › Reports: the office queue › at 360 px wide nothing scrolls sideways, with a card and with the dialog open": {
+      "outcome": "PASS"
+    },
+    "job-reports-screens.spec.js › Reports: the office queue › the dialog: steppers, the total, the $0.50 floor, the quote limit and the share line": {
+      "outcome": "PASS"
+    },
+    "job-reports-screens.spec.js › Reports: the office queue › the keyboard reaches a card in reading order and the dialog keeps the focus inside": {
+      "outcome": "PASS"
+    },
+    "job-reports-screens.spec.js › Reports: the office queue › with nothing waiting the section is not there": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › POST /api/job/{token}/reports: the cleaner's one-tap report › a cleaner who is not checked in, a job that is not under way and a full job are each the 409 of their own": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › POST /api/job/{token}/reports: the cleaner's one-tap report › a send made again with the same client_token is answered with the saved report and writes nothing": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › POST /api/job/{token}/reports: the cleaner's one-tap report › each of the five reports is kept with its photo, its event and no money in the answer": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › POST /api/job/{token}/reports: the cleaner's one-tap report › every refusal says no-store, names its message and writes nothing": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › POST /api/job/{token}/reports: the cleaner's one-tap report › the page, the provider's panel and the admin's view carry the report, the first two without the sender's position": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › Stripe out of reach leaves the charge pending, and a retry is safe; a failed charge can be declined": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a booking that can not be charged and a report that was already decided are refused, and the second admin's approval writes nothing": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a customer with no card on file is no_payment_method, recorded as failed, and nothing is created": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a declined card leaves the report failed with its reason, and a retry continues the saved intent and never creates a second": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a sum that is not the one the admin was shown, extras that are not the service's and a quote are refused before anything is recorded": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › an approval is priced here, recorded, then charged for exactly those cents on a PaymentIntent of its own": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › the admin's queue and decisions over HTTP › a decision is for an admin, names a known action and a known report, and one report is read with its catalogue": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › the admin's queue and decisions over HTTP › approving on a server with no payment key is a 503 that records nothing": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › the admin's queue and decisions over HTTP › decline closes any open report, sends nothing to Stripe and keeps the lines empty": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › the admin's queue and decisions over HTTP › handle closes an information report once, a second admin is told it was decided, and an add-items report can not be handled": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › the admin's queue and decisions over HTTP › the queue lists the report with its job and the customer's name only, and refuses a caller who is not an admin": {
+      "outcome": "PASS"
+    },
     "job-timer-access.spec.js › Job timer, photos and check-out: who gets in › Access: every dead link is the one 404, and nothing is written": {
       "outcome": "PASS"
     },
@@ -3798,10 +3972,10 @@
     "job-timer-page.spec.js › Job timer: the panels › Screens: the admin's and the provider's panels show the job's timer, who worked how long and the photos, and the admin's panel says who did what": {
       "outcome": "PASS"
     },
-    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: EVENT_KINDS is the fourteen names, in order": {
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: EVENT_KINDS is the fifteen names, in order": {
       "outcome": "PASS"
     },
-    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: EVENT_LIST_LIMIT is 100 and EVENT_DETAILS is the twelve names": {
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: EVENT_LIST_LIMIT is 100 and EVENT_DETAILS is the seventeen names": {
       "outcome": "PASS"
     },
     "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: LOCATION_REQUIRED is [\"start\"]": {
@@ -4579,6 +4753,93 @@
       "outcome": "PASS"
     },
     "recurring-visits.spec.js › visit dates › weekly visits are twelve dates seven days apart and every-2-weeks visits are six dates fourteen days apart": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › a booking's own completion charge is made with the booking's own key and the booking's own metadata": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › a charge that took less than the approved sum is a mismatch with nothing to pay from, and one that took more is carried on": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › a checkout payment a person cancelled is not a card to charge": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › a crash between the save and the confirm leaves the intent on the report, and the retry continues that one": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › a customer with no card to charge is no_payment_method and nothing is created or confirmed": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › a declined card is declined, one that needs the customer is action required, and both leave the intent to retry": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › a retry finds the intent saved on the report and confirms it again without creating another": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › a sum that is not whole cents inside the payment bounds is a mismatch and nothing is called": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › an approved sum is charged on the card on file in an intent of its own, saved on the report before it is confirmed": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › an error that is not the card's is a mismatch, and Stripe out of reach leaves the report to a later try": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › an intent cancelled elsewhere is a mismatch and nothing is created over it": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › only an intent made for this report is confirmed: another report's, or one that names none, is a mismatch": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › the card link is used before the checkout payment, and is not read back from Stripe": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › the currency the route passes is the currency charged, and cad when none is passed": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › the key is the report's own and is not the booking's": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › when another try saved its intent first, this one continues that one and confirms none of its own": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › with no card link the card of the customer's checkout payment is used, and a lapsed hold is a card all the same": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › collectAddedItems › with no payment client nothing is called and the answer is not configured": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › priceExtras › a frequency or a discount handed in is ignored: the function has no parameter for either": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › priceExtras › a quantity at or above an item's quote_from is a quote and carries no cents": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › priceExtras › a quantity of 0 is valid and adds no line and no cents": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › priceExtras › a service the catalogue does not offer, or one with no price, is refused as service": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › priceExtras › amounts that float arithmetic adds inexactly are summed as cents: 0.10 and 0.20 make 30": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › priceExtras › an extra worth 0.25 is priced: the payment bound is the payment module's, not this function's": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › priceExtras › an unknown code, a code twice, a quantity that is not a count, and only zeros are each refused as extras": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › priceExtras › no extras at all is refused as extras: empty, missing, null, an object, a bare string": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › priceExtras › one fridge is priced at its own amount, in cents, with no base line": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › priceExtras › the catalogue's own ceiling is too_large; a sum under it that a card could not take is priced": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › priceExtras › two items are summed in whole cents, and the minutes with them": {
       "outcome": "PASS"
     },
     "role-checks.spec.js › Role check /api/admin/notifications › Role check GET /api/admin/notifications: only the signed-in admin's own rows, by cookie and by Bearer, and no query names another owner": {
