@@ -21,7 +21,8 @@
 //    [the row's roles])`, then `if (!auth.ok) return auth.response` (guardCallProblems' doc names the row of each piece). A
 //    `self` row's file uses its named check: requireCronSecret (rows g8, g9, r1cron), the Stripe signature check (rows g10,
 //    g11, r1stripe) or the card link's token lookup, findCardLink imported from '@/lib/booking-card' and called in the method before
-//    the method reads a body (rows g19 to g24); for verifyAiGatewayAuth a call anywhere in the file counts (row g13, a false pass). The checks are looked for by name,
+//    the method reads a body (rows g19 to g24), or the job link's, findJobLink imported from '@/lib/job-link' and called in the method
+//    before the method reads a body (rows g25 to g30, ENG-015); for verifyAiGatewayAuth a call anywhere in the file counts (row g13, a false pass). The checks are looked for by name,
 //    not by binding: a call to another function that has the same name reads as the check (row t3, a false pass). A `public` row needs
 //    nothing and has no case. A `pending` row (there is none now) counts as classified for coverage, is annotated, and its wiring case is
 //    skipped with the reason so every run prints it: nothing passes it silently, and AC5 does not hold while one `pending`
@@ -249,6 +250,14 @@ function wiringProblems(row, source) {
             const bodyRead = methodCode.search(/\brequest\.(?:json|text|formData|arrayBuffer|blob)\s*\(/);
             if (lookedUp < 0) problems.push(`${row.method} does not look the link up with findCardLink(`);
             else if (bodyRead >= 0 && bodyRead < lookedUp) problems.push(`${row.method} reads the body before it looks the link up`);
+        } else if (/job link token/i.test(text)) {
+            // The same rule for the job link (ENG-015): the four /api/job/[token] methods find the link by its token before they read a body, so a
+            // token nobody holds is the one 404 whatever the body carries (AC2).
+            if (!importsName(code, 'findJobLink', '@/lib/job-link')) problems.push("does not import findJobLink from '@/lib/job-link'");
+            const lookedUp = methodCode.search(/\bfindJobLink\s*\(/);
+            const bodyRead = methodCode.search(/\brequest\.(?:json|text|formData|arrayBuffer|blob)\s*\(/);
+            if (lookedUp < 0) problems.push(`${row.method} does not look the link up with findJobLink(`);
+            else if (bodyRead >= 0 && bodyRead < lookedUp) problems.push(`${row.method} reads the body before it looks the link up`);
         } else {
             problems.push(`no wiring rule for the self-authenticating check "${text}": add one to e2e/auth-coverage.spec.js`);
         }
@@ -287,6 +296,10 @@ const cardImp = "import { findCardLink } from '@/lib/booking-card';\n";
 const cardCall = "  const link = await findCardLink(execute, token);\n  if (!link) return notValid();\n";
 const cardRow = { kind: 'self', method: 'GET', self: 'the card link token, a SHA-256-hashed 256-bit secret in the path (src/lib/booking-card.js); anything else is a 404' };
 const cardPostRow = { ...cardRow, method: 'POST' };
+const jobImp = "import { findJobLink } from '@/lib/job-link';\n";
+const jobCall = "  const link = await findJobLink(execute, token);\n  if (!link) return notValid();\n";
+const jobRow = { kind: 'self', method: 'GET', self: 'the job link token, a 256-bit secret in the path (src/lib/job-link.js); anything else is a 404' };
+const jobPostRow = { ...jobRow, method: 'POST' };
 const oneLine = (name) => `export async function ${name}(request) { return Response.json({ ok: true }); }\n\n`;
 
 const wiringShapes = [
@@ -352,6 +365,12 @@ const wiringShapes = [
     { id: 'g22', label: 'card link row: POST reads the body, then looks the link up: must be reported', row: cardPostRow, source: cardImp + handler('POST', '  const body = await request.json();\n' + cardCall), verdict: 'REPORTED', says: 'POST reads the body before it looks the link up' },
     { id: 'g23', label: 'card link row: POST looks the link up, then reads the body: must read as guarded', row: cardPostRow, source: cardImp + handler('POST', cardCall + '  const body = await request.json();\n'), verdict: 'clean' },
     { id: 'g24', label: 'card link row: GET holds the call only in a line comment: must be reported', row: cardRow, source: cardImp + handler('GET', '  // const link = await findCardLink(execute, token);\n'), verdict: 'REPORTED', says: 'GET does not look the link up' },
+    { id: 'g25', label: 'job link row: GET imports findJobLink and calls it: must read as guarded', row: jobRow, source: jobImp + handler('GET', jobCall), verdict: 'clean' },
+    { id: 'g26', label: 'job link row: GET has no call, the POST below it has one: must be reported', row: jobRow, source: jobImp + handler('GET') + '\n' + handler('POST', jobCall), verdict: 'REPORTED', says: 'GET does not look the link up with findJobLink(' },
+    { id: 'g27', label: "job link row: GET calls findJobLink and does not import it from '@/lib/job-link': must be reported", row: jobRow, source: handler('GET', jobCall), verdict: 'REPORTED', says: "does not import findJobLink from '@/lib/job-link'" },
+    { id: 'g28', label: 'job link row: POST reads the body, then looks the link up: must be reported', row: jobPostRow, source: jobImp + handler('POST', '  const body = await request.json();\n' + jobCall), verdict: 'REPORTED', says: 'POST reads the body before it looks the link up' },
+    { id: 'g29', label: 'job link row: POST looks the link up, then reads the body: must read as guarded', row: jobPostRow, source: jobImp + handler('POST', jobCall + '  const body = await request.json();\n'), verdict: 'clean' },
+    { id: 'g30', label: 'job link row: GET holds the call only in a line comment: must be reported', row: jobRow, source: jobImp + handler('GET', '  // const link = await findJobLink(execute, token);\n'), verdict: 'REPORTED', says: 'GET does not look the link up with findJobLink(' },
     { id: 'p1cron', label: 'cron row: a `GET$` helper that calls requireCronSecret, exported above the real GET, which has no call: must be reported', row: cronRow, source: cronImp + handler('GET$', cronCall) + '\n' + handler('GET'), verdict: 'REPORTED' },
     { id: 'p1stripe', label: 'Stripe row: a `POST$` helper that calls webhooks.constructEvent, exported above the real POST, which has no check: must be reported', row: stripeRow, source: handler('POST$', stripeCall) + '\n' + handler('POST'), verdict: 'REPORTED' },
     { id: 'p1roles', label: 'a guarded `GET$` helper exported above the real GET, which has no guard: must be reported', row: getRow, source: imp + handler('GET$', guard) + '\n' + handler('GET'), verdict: 'REPORTED', says: 'does not have `const auth = await requireCaller(' },

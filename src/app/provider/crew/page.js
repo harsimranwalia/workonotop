@@ -1,11 +1,13 @@
 // "My crew" (ENG-014): the provider's list of cleaners, a name and a mobile number each, with add, correct and remove. A number is stored and sent as
 // E.164 by src/lib/phone.js; this page shows it the way a person reads it (formatPhone) and checks what is typed with the same normalisePhone the
 // route uses, so a number the route would refuse is refused beside its field without a request. The route stays the authority: whatever it refuses
-// is shown in its own words. The page says nothing about texts or links, because nobody is texted until ENG-015 and ENG-018 ship.
+// is shown in its own words. A job link texts a sign-in code only to a number its owner has proved is theirs (ENG-015), so each cleaner shows the state of
+// their number and a number that has not been checked can be checked from here. Nobody is texted when a cleaner is added, corrected or put on a job.
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
 import { formatPhone, normalisePhone, PHONE_HINT } from '@/lib/phone';
+import { CheckNumber, NumberChip, useNumberStates } from '@/components/provider/CrewNumberCheck';
 
 const CREW_PATH = '/api/provider/crew';
 const DEFAULT_LIMIT = 30;
@@ -258,6 +260,7 @@ export default function ProviderCrewPage() {
   const [refocusEdit, setRefocusEdit] = useState(null);
   const headingRef = useRef(null);
   const listHeadingId = useId();
+  const numbers = useNumberStates();
 
   useEffect(() => {
     let current = true;
@@ -285,11 +288,13 @@ export default function ProviderCrewPage() {
 
   const added = (member, revived) => {
     withMembers((held) => [...held, member]);
+    numbers.reload();
     setNotice({ kind: 'ok', text: `Added ${describe(member)}.${revived ? ' This number was on your crew before.' : ''}` });
   };
 
   const saved = (member) => {
     withMembers((held) => held.map((entry) => (entry.id === member.id ? member : entry)));
+    numbers.reload();
     setNotice({ kind: 'ok', text: `Saved ${describe(member)}.` });
     setEditingId(null);
     setRefocusEdit(member.id);
@@ -301,6 +306,13 @@ export default function ProviderCrewPage() {
     setRemovingId(null);
     setNotice({ kind: 'error', text: message });
     reload();
+  };
+
+  // The code was right: the number is checked, so the chip is read again, and focus goes to the row's Edit button because the control it was on is gone.
+  const checked = (member) => {
+    numbers.reload();
+    setNotice({ kind: 'ok', text: `Checked ${describe(member)}.` });
+    setRefocusEdit(member.id);
   };
 
   const remove = async (member) => {
@@ -361,6 +373,12 @@ export default function ProviderCrewPage() {
               <h2 id={listHeadingId} className="font-bold text-gray-900">Your cleaners</h2>
               <p className="text-sm text-gray-600">{crew.length} of {limit}</p>
             </div>
+            {numbers.status === 'failed' && (
+              <p role="status" className="mt-3 text-sm text-gray-700">
+                Couldn&apos;t load which numbers are checked.{' '}
+                <button type="button" onClick={numbers.reload} className={`font-semibold text-green-800 underline rounded ${RING}`}>Try again</button>
+              </p>
+            )}
             {crew.length === 0 ? (
               <p className="mt-3 text-sm text-gray-700">No cleaners yet. Add the people you send to jobs.</p>
             ) : (
@@ -374,6 +392,7 @@ export default function ProviderCrewPage() {
                         <div className="min-w-0">
                           <p className="font-semibold text-gray-900 break-words">{member.name}</p>
                           <p className="text-sm text-gray-600">{formatPhone(member.phone)}</p>
+                          {numbers.states.has(member.id) && <p className="mt-1"><NumberChip state={numbers.states.get(member.id)} /></p>}
                         </div>
                         <div className="flex gap-2">
                           <button type="button" id={`edit-${member.id}`} aria-label={`Edit ${member.name}`} className={OUTLINE}
@@ -382,6 +401,14 @@ export default function ProviderCrewPage() {
                             onClick={() => { setNotice(null); setEditingId(null); setRemovingId(member.id); }}>Remove</button>
                         </div>
                       </div>
+                    )}
+                    {editingId !== member.id && numbers.states.get(member.id) === 'cannot_text' && (
+                      <p className="mt-2 text-xs text-gray-700">
+                        We can&apos;t text this number, so it can&apos;t be checked. You can check {member.name} in yourself from the job link. If the number is wrong, use Edit.
+                      </p>
+                    )}
+                    {editingId !== member.id && numbers.states.get(member.id) === 'unchecked' && (
+                      <CheckNumber member={member} onChecked={checked} onGone={gone} />
                     )}
                     {removingId === member.id && (
                       <RemoveQuestion member={member} busy={removeBusy} onConfirm={() => remove(member)} onKeep={() => setRemovingId(null)} />

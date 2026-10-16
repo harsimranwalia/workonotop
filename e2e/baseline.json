@@ -204,6 +204,9 @@
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/bookings/[id]/card-link is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/bookings/[id]/job-link is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/cities is in the matrix": {
       "outcome": "PASS"
     },
@@ -333,6 +336,9 @@
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/cron/auto-release is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/cron/crew-retention is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/cron/notifications is in the matrix": {
       "outcome": "PASS"
     },
@@ -355,6 +361,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/directory is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/job/[token] is in the matrix": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/locations is in the matrix": {
@@ -381,6 +390,9 @@
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/crew is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/crew/numbers is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/dashboard-stats is in the matrix": {
       "outcome": "PASS"
     },
@@ -391,6 +403,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/jobs/[id]/crew is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/jobs/[id]/job-link is in the matrix": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/provider/jobs/photos is in the matrix": {
@@ -490,6 +505,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/bookings/[id]/card-link is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/bookings/[id]/job-link is in the matrix": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/bookings/[id]/push is in the matrix": {
@@ -633,6 +651,15 @@
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/customers is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/job/[token]/check-in is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/job/[token]/code is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/job/[token]/verify is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/mobile/push-token is in the matrix": {
       "outcome": "PASS"
     },
@@ -654,7 +681,13 @@
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/crew is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/crew/[id]/number-check is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/forgot-password is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/jobs/[id]/job-link is in the matrix": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/provider/jobs/photos is in the matrix": {
@@ -882,6 +915,9 @@
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/bookings/[id]/card-link uses the guard": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/bookings/[id]/job-link uses the guard": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/cities uses the guard": {
       "outcome": "PASS"
     },
@@ -1005,6 +1041,9 @@
     "auth-coverage.spec.js › Auth wiring › GET /api/cron/auto-release uses the guard": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth wiring › GET /api/cron/crew-retention uses the guard": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth wiring › GET /api/cron/notifications uses the guard": {
       "outcome": "PASS"
     },
@@ -1026,6 +1065,9 @@
     "auth-coverage.spec.js › Auth wiring › GET /api/customers/[id] uses the guard": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth wiring › GET /api/job/[token] uses the guard": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider uses the guard": {
       "outcome": "PASS"
     },
@@ -1044,6 +1086,9 @@
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/crew uses the guard": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/crew/numbers uses the guard": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/dashboard-stats uses the guard": {
       "outcome": "PASS"
     },
@@ -1054,6 +1099,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs/[id]/crew uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs/[id]/job-link uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/provider/jobs/photos uses the guard": {
@@ -1129,6 +1177,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/bookings/[id]/card-link uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/bookings/[id]/job-link uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/bookings/[id]/push uses the guard": {
@@ -1221,6 +1272,15 @@
     "auth-coverage.spec.js › Auth wiring › POST /api/customers uses the guard": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth wiring › POST /api/job/[token]/check-in uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/job/[token]/code uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/job/[token]/verify uses the guard": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth wiring › POST /api/mobile/push-token uses the guard": {
       "outcome": "PASS"
     },
@@ -1237,6 +1297,12 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/provider/crew uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/crew/[id]/number-check uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/provider/jobs/[id]/job-link uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/provider/jobs/photos uses the guard": {
@@ -1590,6 +1656,9 @@
     "auth-matrix.spec.js › Role by route › GET /api/admin/bookings/[id]/card-link": {
       "outcome": "PASS"
     },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/bookings/[id]/job-link": {
+      "outcome": "PASS"
+    },
     "auth-matrix.spec.js › Role by route › GET /api/admin/cities": {
       "outcome": "PASS"
     },
@@ -1719,6 +1788,9 @@
     "auth-matrix.spec.js › Role by route › GET /api/cron/auto-release": {
       "outcome": "PASS"
     },
+    "auth-matrix.spec.js › Role by route › GET /api/cron/crew-retention": {
+      "outcome": "PASS"
+    },
     "auth-matrix.spec.js › Role by route › GET /api/cron/notifications": {
       "outcome": "PASS"
     },
@@ -1741,6 +1813,9 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/directory": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/job/[token]": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/locations": {
@@ -1767,6 +1842,9 @@
     "auth-matrix.spec.js › Role by route › GET /api/provider/crew": {
       "outcome": "PASS"
     },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/crew/numbers": {
+      "outcome": "PASS"
+    },
     "auth-matrix.spec.js › Role by route › GET /api/provider/dashboard-stats": {
       "outcome": "PASS"
     },
@@ -1777,6 +1855,9 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/[id]/crew": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/[id]/job-link": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/provider/jobs/photos": {
@@ -1876,6 +1957,9 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/bookings/[id]/card-link": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/bookings/[id]/job-link": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/bookings/[id]/push": {
@@ -2019,6 +2103,15 @@
     "auth-matrix.spec.js › Role by route › POST /api/customers": {
       "outcome": "PASS"
     },
+    "auth-matrix.spec.js › Role by route › POST /api/job/[token]/check-in": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/job/[token]/code": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/job/[token]/verify": {
+      "outcome": "PASS"
+    },
     "auth-matrix.spec.js › Role by route › POST /api/mobile/push-token": {
       "outcome": "PASS"
     },
@@ -2040,7 +2133,13 @@
     "auth-matrix.spec.js › Role by route › POST /api/provider/crew": {
       "outcome": "PASS"
     },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/crew/[id]/number-check": {
+      "outcome": "PASS"
+    },
     "auth-matrix.spec.js › Role by route › POST /api/provider/forgot-password": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/provider/jobs/[id]/job-link": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/provider/jobs/photos": {
@@ -3108,6 +3207,39 @@
     "invoice-download.spec.js › Invoice download: GET /api/bookings/[id]/invoice/download › Invoice download GET /api/bookings/[id]/invoice/download: the owner is the booking's user_id, not its id or its provider's id": {
       "outcome": "PASS"
     },
+    "job-checkin-refusals.spec.js › Job link check-in refusals: what the route turns away, and in which order › Refusal 1: crew_ids missing, empty, not a list, 31 ids, or holding 0, a negative, a float, a numeric string, a nested list, null, true or 2^53 is the 400 \"Pick who is here.\" for a cleaner, the provider and an admin; no row, no event; a good body still ticks": {
+      "outcome": "PASS"
+    },
+    "job-checkin-refusals.spec.js › Job link check-in refusals: what the route turns away, and in which order › Refusal 2: ALL-OR-NOTHING: an id not on this job's crew (the provider's other job's cleaner, another provider's cleaner, one taken off this job, one that does not exist) is the 400 \"Pick cleaners from this job's crew.\" for the whole body; the good id in a mixed body is not ticked and nothing is written for it": {
+      "outcome": "PASS"
+    },
+    "job-checkin-refusals.spec.js › Job link check-in refusals: what the route turns away, and in which order › Refusal 3: the order of the refusals is the sign-in (401), crew_ids (400), the window (409), the position (400), then the crew (400)": {
+      "outcome": "PASS"
+    },
+    "job-checkin.spec.js › Job link check-in: a crew ticks in at the job › AC10: a job dated today after its window opened takes a check-in from a cleaner, the provider and an admin (200 each)": {
+      "outcome": "PASS"
+    },
+    "job-checkin.spec.js › Job link check-in: a crew ticks in at the job › AC10: a job dated tomorrow is the 409 with opens_at and opens_label for a cleaner, the provider and an admin, and writes no row (a job dated today before its window opens is the same)": {
+      "outcome": "PASS"
+    },
+    "job-checkin.spec.js › Job link check-in: a crew ticks in at the job › AC11: a booking with coordinates: a check-in at the address has away 0, one 2 km off has away 1, and the admin GET shows away: true with distance_m": {
+      "outcome": "PASS"
+    },
+    "job-checkin.spec.js › Job link check-in: a crew ticks in at the job › AC11: a booking without coordinates records away NULL, which the admin sees as no position to compare (null, never false)": {
+      "outcome": "PASS"
+    },
+    "job-checkin.spec.js › Job link check-in: a crew ticks in at the job › AC11: no location, {0,0}, strings, NaN, 91 degrees and the like are each a 400 and write no row (a cleaner, the provider and an admin alike)": {
+      "outcome": "PASS"
+    },
+    "job-checkin.spec.js › Job link check-in: a crew ticks in at the job › AC15: the view lists every assigned member with checked_in; taking one off the job through ENG-014 drops them from it, and putting them back shows them unchecked": {
+      "outcome": "PASS"
+    },
+    "job-checkin.spec.js › Job link check-in: a crew ticks in at the job › AC8: a cleaner session ticks three members: three rows, three events, checked_in of three, and the two others never opened the link (no code and no session row for them)": {
+      "outcome": "PASS"
+    },
+    "job-checkin.spec.js › Job link check-in: a crew ticks in at the job › AC9: after three, one more id is added: the first three are already on a repeat, the PUT that adds the cleaner keeps their ticks, and the view shows four": {
+      "outcome": "PASS"
+    },
     "job-completed-email.spec.js › the job-completed e-mail keeps unicode and long text whole and shows the default line for an empty summary": {
       "outcome": "PASS"
     },
@@ -3118,6 +3250,219 @@
       "outcome": "PASS"
     },
     "job-completed-email.spec.js › the job-finish route composes the customer's e-mail with src/lib/job-completed-email.js": {
+      "outcome": "PASS"
+    },
+    "job-link-access.spec.js › Job link access: the code and the cookie › AC4: a checked cleaner asks for a code with the number typed as 10 digits, as 1 and 10 digits, as +1 and 10 digits and with punctuation: 200 each, one live code bound to the stored number, the code found from the hash signs in with the same typing, and the other cleaner gets no code": {
+      "outcome": "PASS"
+    },
+    "job-link-access.spec.js › Job link access: the code and the cookie › AC4: a wrong code is 400 with no cookie, no code or a malformed one is 400, the right code is 200 with an HttpOnly, SameSite=Lax, Path=/, Max-Age=43200 cookie and the view says cleaner, and the same code again is 400": {
+      "outcome": "PASS"
+    },
+    "job-link-access.spec.js › Job link access: the code and the cookie › AC4: an unchecked member's number, a removed member's and a number on no crew get the same 200 as a checked one, make no code row and spend nothing from the number's budget (no send); an unreadable or missing number is a 400 and a body that is not JSON is a 400": {
+      "outcome": "PASS"
+    },
+    "job-link-access.spec.js › Job link access: the code and the cookie › AC4: five wrong tries and then the right code is 400, an expired code (set back in SQL) is 400, and member A's code with member B's number is 400 while each right pair still signs in": {
+      "outcome": "PASS"
+    },
+    "job-link-access.spec.js › Job link access: the code and the cookie › AC5: a session past its 12 hours (set back in SQL) is access none on the page and the 401 on a check-in, and a new code makes a new session while the old cookie stays none": {
+      "outcome": "PASS"
+    },
+    "job-link-access.spec.js › Job link access: the code and the cookie › AC5: after a member's number is corrected the old cookie is none and the code asked for the old number signs in on neither number; the corrected number is unchecked, so it gets no code until it is checked": {
+      "outcome": "PASS"
+    },
+    "job-link-access.spec.js › Job link access: the code and the cookie › AC5: after a reissue the old cookie on the NEW token is none and a code asked before it does not sign in; a new code on the new token does": {
+      "outcome": "PASS"
+    },
+    "job-link-access.spec.js › Job link access: the code and the cookie › AC5: after the job is reassigned to provider 2 and back, and after an admin restart, the old cookie is none each time and a new code is needed": {
+      "outcome": "PASS"
+    },
+    "job-link-access.spec.js › Job link access: the code and the cookie › AC5: after the member is removed the old cookie is none, and a removed and re-added member needs a new code (the code asked before is dead, the old cookie stays none)": {
+      "outcome": "PASS"
+    },
+    "job-link-access.spec.js › Job link access: the code and the cookie › AC5: the token without the cookie is access none with no job field anywhere in the body; the cookie of one link on another link, a random 43 character cookie and a malformed one are none": {
+      "outcome": "PASS"
+    },
+    "job-link-access.spec.js › Job link access: the code and the cookie › AC6: the job's provider (cookie and Bearer) is provider and an admin (Bearer, cookie, both) is admin, with no code asked; a customer, provider 2, an anonymous caller and the previous provider after a reassign are none; a wrong provider's cookie plus an admin's Bearer is admin": {
+      "outcome": "PASS"
+    },
+    "job-link-access.spec.js › Job link access: the number check and the burst › Condition 3: a number check with the right code makes /numbers say checked, a wrong or malformed code is 400, an expired or used-up one is 409, and correcting the number through the PATCH makes it unchecked again": {
+      "outcome": "PASS"
+    },
+    "job-link-access.spec.js › Job link access: the number check and the burst › Condition 3: another provider's member, a removed member, a missing id and an id that is not a number are the 404 of its kind on both actions, and provider 2's number list does not hold provider 1's members": {
+      "outcome": "PASS"
+    },
+    "job-link-access.spec.js › Job link access: the number check and the burst › Condition 4: 30 parallel asks for one checked member on one link leave exactly one code row and spend exactly one from the number's budget": {
+      "outcome": "PASS"
+    },
+    "job-link-access.spec.js › Job link access: the number check and the burst › Condition 4: the per-link ask cap answers 429 at the 21st ask, counts numbers that match nobody and unreadable ones too, and is not the try cap of the verify route": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: everything logged › Condition 6: no fixture number, name, token, code or cookie value appears in anything the file logged, and every line is one of the fixed ones": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: logs › Condition 6: a code asked for, texted through sendSMS and entered logs one fixed line, and the code, the number, the name and the session appear in no log line": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: logs › Condition 6: sendSMS logs fixed lines only; a refused number makes no call; the Twilio failure line carries the status and the Twilio code and never the body or a number": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: pins › Condition 1: the cron route calls requireCronSecret first and runs the retention with the pool's execute, and vercel.json schedules it daily": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: pins › Condition 6: every console call in the new files and in sms.js is a fixed line, with at most an error code, a Twilio status or a Twilio code in it": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: pins › Pins: booking_crew is named in no code under src/ except src/lib/booking-crew.js (comments are not code)": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: pins › Pins: job_link_codes, job_checkins, job_link_events, crew_number_checks and sms_budget are named only in their own library and crew-retention.js": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: pins › Pins: no new file of ENG-015 contains a query( call, only prepared execute": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: pins › Pins: src/lib/job-link.js has no customer_, user_id, price, amount, commission, payment, stripe or booking_number inside a SELECT": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: pins › Pins: src/lib/link-token.js imports only node:crypto": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: runCrewRetention › Condition 1: a check-in and an event older than a year lose their position and keep the distance and the flag; younger ones are untouched; a second run counts nothing": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: runCrewRetention › Condition 1: a deleted provider's crew is anonymised when information_schema has the status and the column, and the answer is provider_deletion not_in_schema when it does not": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: runCrewRetention › Condition 1: a member removed 400 days ago is anonymised with their checks and codes gone and their events keeping no member; a younger removal and a current member are untouched; a second run erases nobody": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: runCrewRetention › Condition 1: a run that stops half way is finished by the next one, and a member put back on a crew mid-run stays a member": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: runCrewRetention › Condition 1: every statement the retention runs is prepared and carries no value from the data, and a failing statement reaches the caller": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: runCrewRetention › Condition 1: expired codes, sessions and unused number-check codes are deleted a week after they expire; a proof of the member's own number stays; a running session stays; old budget counters go": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: the cron route › Condition 1: GET /api/cron/crew-retention is 401 on the running app without the secret, with a wrong one, with Bearer undefined and with an empty ?secret=": {
+      "outcome": "PASS"
+    },
+    "job-link-retention.spec.js › Job link retention: the cron route › Condition 1: the cron handler, run in plain Node with a secret set, is 401 until the secret is given as a Bearer or as ?secret=, then it runs the retention and answers the summary; a failure logs the error code only": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: names, numbers and the SMS sender in plain Node › AC7: sendSMS with a stubbed fetch and the three Twilio variables sends To +14035550164 for a bare ten digits, and to no +91 number": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: names, numbers and the SMS sender in plain Node › Condition 2: the normaliseName table: invisible characters are stripped, Unicode spaces become plain, runs collapse, and 120 characters pass while 121 do not": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: names, numbers and the SMS sender in plain Node › Condition 5: sendSMS with a stubbed fetch makes NO call for any number canText refuses, and a fixed log line says why": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: names, numbers and the SMS sender in plain Node › Condition 5: the canText table: Canadian numbers are accepted; toll, premium, Caribbean, US and foreign numbers are refused": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: send budgets and code asks over the dev database › AC10: a real bookings row (job_date as stored, no cluster, city Calgary) opens at 07:00 Toronto time, and the window view reads it": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: send budgets and code asks over the dev database › AC11: a booking's DECIMAL position comes back from mysql2 as strings and awayFrom reads them; a booking with no position gives null and null": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: send budgets and code asks over the dev database › AC7: requestCode with an injected sendText records one send each for 4035550160, 14035550160, +14035550160 and (403) 555-0160, to +14035550160 and never a +91 number": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: send budgets and code asks over the dev database › Condition 4: 30 parallel code asks for one member and link send exactly once": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: send budgets and code asks over the dev database › Condition 4: a full budget grants again once its window is over, the new window starts at 1, and a refusal does not spend the provider's budget": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: send budgets and code asks over the dev database › Condition 4: one number across ten links gets at most 8 texts in a day": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: send budgets and code asks over the dev database › Condition 4: reserve() x50 in parallel with a cap of 5 grants exactly 5": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: send budgets and code asks over the dev database › Condition 4: reserveText caps a number at 8 and a provider at 200 a day (made-up provider ids, so no real budget is touched)": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: send budgets and code asks over the dev database › Condition 4: the per-link ask cap limits the 21st ask, counts numbers that match nobody, blanks and bad numbers as asks, and is a count of its own for each link": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: window and location in plain Node › AC10: SLOT_STARTS matches TIME_SLOTS in src/lib/when-and-where.js": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: window and location in plain Node › AC10: a label naming no slot opens at 07:00, the earliest named slot of the first day sets the hour, and an unknown cluster is Toronto": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: window and location in plain Node › AC10: the zone vectors: 17 Oct, 8 Mar and 10 Nov 2026 in Vancouver and Toronto (British Columbia's clocks from 1 Nov 2026 follow the runtime's tz data)": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: window and location in plain Node › AC10: windowState is closed at opens - 1 and open at opens, in a Toronto booking and a Vancouver booking": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: window and location in plain Node › AC11: haversine vectors: distanceMetres and awayFrom at the address, 2 km off, the 500 m edge, with no position, and with string DECIMALs from mysql2": {
+      "outcome": "PASS"
+    },
+    "job-link-rules.spec.js › ENG-015 rules: window and location in plain Node › AC11: readLocation takes a finite fix and refuses strings, NaN, Infinity, 91 degrees and {0,0}": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the colours of the panels › Colours: every text colour in the manager panel's looks is 4.5 to 1 or better on its ground, and the border and the focus ring of a control are 3 to 1": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the page › Screens: a link that is not valid says so in one sentence, asks for nothing, and asks search engines to skip the page": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the page › Screens: a signed-in cleaner sees the days, the address, the details and the whole crew, and not the customer, the price or a phone number": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the page › Screens: a visitor with no way in is asked for a mobile number, a blank number is refused beside the field, and no part of the job is on the page": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the page › Screens: at the address a tick checks in the people ticked, with the phone's position, and the page says who is in": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the page › Screens: before the window the tick list is shut and the page says when check-in opens": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the page › Screens: the check-in goes through two kilometres from the address and the page says how far, so the office can see it": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the page › Screens: the code step says the same words for a number on the job and a number that is not, asks for a new code only after a wait, refuses a wrong code and opens the job for the right one": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the page › Screens: the job's provider and an admin open the link signed in as themselves, with no code": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the page › Screens: when the phone will not give its position the page says why and checks nobody in": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the panels › Screens: My Crew shows the state of each number, and \"Check this number\" takes a code from the cleaner and turns the number to checked": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the panels › Screens: the admin's panel lists each check-in and says when one was not at the address, and how far away it was": {
+      "outcome": "PASS"
+    },
+    "job-link-screens.spec.js › Job link: the panels › Screens: the provider's panel makes the link, copies it, asks before it switches off or issues a new one, ends the link it replaces, and shows each cleaner's number": {
+      "outcome": "PASS"
+    },
+    "job-link.spec.js › Job link: the token, the dead link, the views, the managed routes and the record › AC12: switch-off ends a link and its sessions at once and twice is 200; reissue needs the current generation (409 otherwise) and kills the old path and sessions; create after off reissues; another provider's job is \"Job not found\"; an admin can do each": {
+      "outcome": "PASS"
+    },
+    "job-link.spec.js › Job link: the token, the dead link, the views, the managed routes and the record › AC13: awaiting_approval, completed, cancelled and disputed make the four public routes the 404 and create/reissue a 409; pending, matching, confirmed and in_progress let everything work": {
+      "outcome": "PASS"
+    },
+    "job-link.spec.js › Job link: the token, the dead link, the views, the managed routes and the record › AC14: after a full flow the admin GET lists link_created, code_asked, code_failed, signed_in, check_in, link_off and link_reissued with the actor kind and resolved name, the time and the check-in coordinates, and holds no fixture number and no code": {
+      "outcome": "PASS"
+    },
+    "job-link.spec.js › Job link: the token, the dead link, the views, the managed routes and the record › AC1: provider create on a job with two cleaners gives /job/ and 43 base64url characters, a second create gives the same path, a second job_links row (or token) is a duplicate-key error, two bookings get different tokens, 1000 newLinkToken() are distinct, and no token holds the booking number, e-mail or phone": {
+      "outcome": "PASS"
+    },
+    "job-link.spec.js › Job link: the token, the dead link, the views, the managed routes and the record › AC2: a booking id, a booking number, a customer e-mail, a customer phone, a token nobody holds, a reissued, a switched-off and a finished job's token and malformed ones are one 404 with one status, one header set and one body on all four public routes": {
+      "outcome": "PASS"
+    },
+    "job-link.spec.js › Job link: the token, the dead link, the views, the managed routes and the record › AC3: a signed-in provider's view has exactly the allow-listed keys, and no response (visitor, cleaner, provider, admin, managed views, check-in) holds a value planted in customer_*, service_price, booking_number, user_id or the Stripe id": {
       "outcome": "PASS"
     },
     "marketplace.spec.js › Marketplace › a booking no admin has pushed is not in providers' available jobs, and both claim routes and both job reads refuse it": {

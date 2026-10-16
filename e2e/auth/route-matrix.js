@@ -1,4 +1,4 @@
-// The route matrix: every route file and exported method under src/app/api, one row each, as data (224 rows).
+// The route matrix: every route file and exported method under src/app/api, one row each, as data (235 rows).
 //
 // SOURCE: Appendix A of agents/architect/designs/ENG-004-lock-down-unauthenticated-access-and-role-checks.md (the
 // design for ENG-004; ADR-003). This file was generated from that table, in the table's order and with its route
@@ -53,7 +53,7 @@
 // roles: ['admin', 'provider'] with the split in its note.
 //
 // What a probe does. Every probe uses a fixture account only (@workontap.test), an id no fixture row has, and an empty body
-// or none: 224 of the 224 rows, by a script (the body is undefined or {}, the path is the route with each [param] replaced
+// or none: 235 of the 235 rows, by a script (the body is undefined or {}, the path is the route with each [param] replaced
 // by PROBE_IDS.missing, no row sets a query). That does not make a probe harmless by itself: a handler that needs no input
 // acts on {} and on nothing (ENG-020 review B1, QA F1). What the notes say about it, as counted by script:
 //   - Twelve rows carry a `Probe (B2, 2026-10-02` line (the rows whose note holds that text): GET and PATCH
@@ -64,11 +64,11 @@
 //     where the handler writes or sends, the first side effect it stops before (a write, a schema change, mail, a push, an
 //     outbound call, a payment, a file); GET /api/admin/deletion-requests carries only a cross-reference to the PATCH row, for
 //     the same fetch.
-//   - The other 212 rows have no such line: 128 are write rows (POST, PUT, PATCH, DELETE) and 84 are GET (script counts).
-//     49 of the 212 (36 public, 13 self) carry a `Probe measured on the dev app` line instead, which records the
+//   - The other 223 rows have no such line: 134 are write rows (POST, PUT, PATCH, DELETE) and 89 are GET (script counts).
+//     49 of the 223 (36 public, 13 self) carry a `Probe measured on the dev app` line instead, which records the
 //     status measured there for the request with no credential and no body. Code-review round 1 read the write handlers the
 //     probes reach (88: 31 admin, 57 other; agents/principal-engineer/notebook/2026-10-02-eng020-review.md; the matrix has
-//     104 routes with a write row, 35 admin and 69 other, and the difference was not traced). It did not read the GET
+//     110 routes with a write row, 36 admin and 74 other, and the difference was not traced). It did not read the GET
 //     handlers, nor the public, self and pending rows as such. The GET handlers were scanned in review round 2 (comments
 //     removed; the scan found two that reach a write) and again by this round's sweep of all 83 GET rows (next bullet). No
 //     field of the 195 rows that were there before ENG-007 added its row (POST /api/pricing, a public row with no `Probe measured`
@@ -160,6 +160,16 @@ export const matrix = [
         route: '/api/admin/bookings/[id]/card-link', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
         note: 'ENG-013: a new route (src/app/api/admin/bookings/[id]/card-link/route.js). POST calls requireCaller(request, [\'admin\']) as its first statements (:62-63), before the id is read or the database is touched: no credential is 401, any other role 403. For an admin it reissues the booking\'s link (a new token, shown once) and keeps a card already on file. The handler never reads the body, so the probe sends none. The probe\'s id matches no booking: 404 \'This booking has no card link\' (:69), before the UPDATE at :77-82, so nothing is written.',
         probe: { path: '/api/admin/bookings/999999999/card-link', body: undefined, anon: 401 },
+    },
+    {
+        route: '/api/admin/bookings/[id]/job-link', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
+        note: 'ENG-015: a new route (src/app/api/admin/bookings/[id]/job-link/route.js). GET calls requireCaller(request, [\'admin\']) as its first statements (:46-49), before the id is read or the database is touched: no credential is 401, any other role 403. For an admin it answers the booking\'s job link (its path while it is on, its generation), the crew on the job with whether each number has been checked and whether each cleaner ticked in, the check-in window, who ticked in and where, and the last 50 events on the link; no phone number and no code is in the answer. The probe\'s id matches no booking: 404 \'Booking not found\'. No \'Probe measured\' claim: the probe was not run on the dev app when this row was written.',
+        probe: { path: '/api/admin/bookings/999999999/job-link', body: undefined, anon: 401 },
+    },
+    {
+        route: '/api/admin/bookings/[id]/job-link', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
+        note: 'ENG-015: a new route (src/app/api/admin/bookings/[id]/job-link/route.js). POST calls requireCaller(request, [\'admin\']) as its first statements (:67-70), before the id or the body is read: no credential is 401, any other role 403, and nothing is written for either. For an admin it creates, switches off or reissues the booking\'s job link, whoever the provider is (action in the body; any other body is a 400). The probe sends an empty JSON body to an id that matches no booking: the 400 \'Invalid request.\', because the body names no action, and nothing is written. No \'Probe measured\' claim: the probe was not run on the dev app when this row was written.',
+        probe: { path: '/api/admin/bookings/999999999/job-link', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/bookings/[id]/override', method: 'PUT', today: 'full', kind: 'roles', roles: ['admin'], owner: '-',
@@ -767,6 +777,11 @@ export const matrix = [
         probe: { path: '/api/cron/auto-release', body: undefined, anon: [401] },
     },
     {
+        route: '/api/cron/crew-retention', method: 'GET', today: 'none', kind: 'self', self: 'CRON_SECRET, made fail-closed', owner: '-',
+        note: 'ENG-015: a new route (src/app/api/cron/crew-retention/route.js). requireCronSecret(request) is the first statement of GET (:11-12), as in the two cron routes before it. With CRON_SECRET unset, as on the dev app (it must stay unset there), every request is 401, `Bearer undefined` and `?secret=undefined` included; with it set, the secret is accepted as `Authorization: Bearer` or `?secret=` and anything else is 401. Behind the guard the job erases what the job link keeps about cleaners removed more than 365 days ago and about a deleted provider\'s crew, empties coordinates older than a year, and deletes spent codes and old budget rows (src/lib/crew-retention.js); vercel.json runs it once a day. The probe stops at the guard: 401 for every credential style, and nothing is read or written.',
+        probe: { path: '/api/cron/crew-retention', body: undefined, anon: [401] },
+    },
+    {
         route: '/api/cron/notifications', method: 'GET', today: 'partial', kind: 'self', self: 'CRON_SECRET, made fail-closed', owner: '-',
         note: 'ENG-022: requireCronSecret(request) is the first statement of GET (src/app/api/cron/notifications/route.js:10-11). With CRON_SECRET unset, as on the dev app (it must stay unset there), every request is 401, `Bearer undefined` and `?secret=undefined` included; with it set, the secret is accepted as `Authorization: Bearer` or `?secret=` and anything else is 401. The check that was skipped when CRON_SECRET was unset or empty (route.js:14 at 1d67c30) is gone. Census finding before the guard: MEDIUM: fail-open, no check at all when CRON_SECRET is unset or empty (14 at 1d67c30); anonymous caller ca… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body, before the change: 500 \'Internal Server Error\' (the route did not refuse the anonymous caller). Probe (B2, 2026-10-02): hold, removed by ENG-022 on 2026-10-03: the row is not held now; it sends all seven credential styles and expects 401 from each (anon [401]). The first job sits behind the guard: it selects the providers with stripe_onboarding_complete = 0 (:21-26) and for each sends an email (:41) and a push (:47) and updates onboarding_reminder_stage (:49-52). Today it stops only because that column is not in the dev schema (absent at 07:04 on 2026-10-02), so the SELECT throws and the answer is 500: an accident, not a guard before the change; now every request is 401 before the SELECT. Probe (round 3, 2026-10-02): the handler holds a second job in the same try (:57-106) that runs when the server hour is 19 or later (:61-64): it selects the confirmed bookings of tomorrow not yet reminded (:67-75) and for each emails and pushes the customer (:82-89) and, when a provider is assigned, the provider (:92-100), then updates bookings (:103). It is not reached today: the first SELECT throws first (:21-26, to the catch at :110-113), and if it were reached it would select nothing: it takes only confirmed bookings of tomorrow (:67-75) and both fixture bookings are completed, with job date 2026-01-15 (database/fixtures hold six files, whose sets insert into users, service_providers, service_categories, services, system_settings, bookings, invoices, provider_payouts and provider_reviews).',
         probe: { path: '/api/cron/notifications', body: undefined, anon: [401] },
@@ -845,6 +860,26 @@ export const matrix = [
         route: '/api/directory', method: 'GET', today: 'none', kind: 'public', public: 'public catalogue (SEO directory)', owner: '-',
         note: 'Error body returns error.message (L48), leaking DB error text; otherwise only active catalogue … Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body: 200.',
         probe: { path: '/api/directory', body: undefined, anon: [200] },
+    },
+    {
+        route: '/api/job/[token]', method: 'GET', today: 'none', kind: 'self', self: 'the job link token, a 256-bit random locator in the path (src/lib/job-link.js); a dead link is a 404, a live one opens only for a cleaner with a texted code, the job\'s provider or an admin', owner: '-',
+        note: 'ENG-015: a new route (src/app/api/job/[token]/route.js). It asks for no session to find the job: the token in the path is looked up first (findJobLink, :29). A token that is not 43 characters of [A-Za-z0-9_-], an unknown one, one that is switched off, one for a job that is closed and one for a job with no provider are all the one 404 \'This link is not valid.\' with Cache-Control no-store, so every credential style gets the same 404 and a cookie decides nothing. The probe\'s token, 999999999, is not a token. For a live link the token locates the job and opens nothing: the answer is access none unless the caller is a cleaner on the job with a session made by a texted code, the job\'s own provider or an admin, which resolveAccess (:33) judges again on every request. It writes nothing.',
+        probe: { path: '/api/job/999999999', body: undefined, anon: [404] },
+    },
+    {
+        route: '/api/job/[token]/check-in', method: 'POST', today: 'none', kind: 'self', self: 'the job link token, a 256-bit random locator in the path (src/lib/job-link.js); a dead link is a 404, a live one opens only for a cleaner with a texted code, the job\'s provider or an admin', owner: '-',
+        note: 'ENG-015: a new route (src/app/api/job/[token]/check-in/route.js). It asks for no session to find the job: the token is looked up before anything else (findJobLink, :34), so a token nobody holds is the one 404 \'This link is not valid.\' whatever the body holds, and the body is read after it (:43). For a live link a caller with no access is a 401, and one with access ticks in the crew members they name (checkIn, in one transaction), once the check-in window has opened (a 409 with the opening time before), with the phone\'s position. The probe\'s token, 999999999, is not a token. It writes nothing.',
+        probe: { path: '/api/job/999999999/check-in', body: {}, anon: [404] },
+    },
+    {
+        route: '/api/job/[token]/code', method: 'POST', today: 'none', kind: 'self', self: 'the job link token, a 256-bit random locator in the path (src/lib/job-link.js); a dead link is a 404, a live one opens only for a cleaner with a texted code, the job\'s provider or an admin', owner: '-',
+        note: 'ENG-015: a new route (src/app/api/job/[token]/code/route.js). It asks for no session: the token is looked up before anything else (findJobLink, :29), so a token nobody holds is the one 404 \'This link is not valid.\' whatever the body holds, and the body is read after it (:34). For a live link it answers the same 200 for every number that is typed, and texts a six-digit code only to a number a provider has checked and that is on the job\'s crew (a Canadian number, inside the caps); the answer never says which. The probe\'s token, 999999999, is not a token. It writes nothing.',
+        probe: { path: '/api/job/999999999/code', body: {}, anon: [404] },
+    },
+    {
+        route: '/api/job/[token]/verify', method: 'POST', today: 'none', kind: 'self', self: 'the job link token, a 256-bit random locator in the path (src/lib/job-link.js); a dead link is a 404, a live one opens only for a cleaner with a texted code, the job\'s provider or an admin', owner: '-',
+        note: 'ENG-015: a new route (src/app/api/job/[token]/verify/route.js). It asks for no session: the token is looked up before anything else (findJobLink, :25), so a token nobody holds is the one 404 \'This link is not valid.\' whatever the body holds, and the body is read after it (:30). For a live link the right code for the number typed makes a session (a cookie that the database holds only as a hash) and any other answer is the one 400 \'That code didn\'t work…\'. The probe\'s token, 999999999, is not a token. It writes nothing.',
+        probe: { path: '/api/job/999999999/verify', body: {}, anon: [404] },
     },
     {
         route: '/api/locations', method: 'GET', today: 'none', kind: 'public', public: 'public picklists', owner: '-',
@@ -947,6 +982,16 @@ export const matrix = [
         probe: { path: '/api/provider/crew/999999999', body: {}, anon: 401 },
     },
     {
+        route: '/api/provider/crew/[id]/number-check', method: 'POST', today: 'none', kind: 'roles', roles: ['provider'], owner: 'own crew member',
+        note: 'ENG-015: a new route (src/app/api/provider/crew/[id]/number-check/route.js). POST calls requireCaller(request, [\'provider\']) as its first statement (:28), before the id or the body is read: no credential is 401, any other role 403, and nothing is written for either. For a provider it texts a six-digit code to the number of one of the caller\'s own active members (action ask) or takes the code the cleaner read out (action confirm), which makes the number one a job link may text a sign-in code to. A member that is another provider\'s, one that was removed and one that does not exist are the same 404, and the member comes from auth.caller.id and the path, never from the body. The probe sends an empty JSON body to an id that matches no member: the 400 \'Invalid request.\', because the body names no action, and nothing is written. No \'Probe measured\' claim: the probe was not run on the dev app when this row was written.',
+        probe: { path: '/api/provider/crew/999999999/number-check', body: {}, anon: 401 },
+    },
+    {
+        route: '/api/provider/crew/numbers', method: 'GET', today: 'none', kind: 'roles', roles: ['provider'], owner: 'own crew members',
+        note: 'ENG-015: a new route (src/app/api/provider/crew/numbers/route.js). GET calls requireCaller(request, [\'provider\']) as its first statement (:20), before the database is read: no credential is 401, any other role 403. Ownership comes from auth.caller.id and from nothing in the request: the answer is, for each of the caller\'s members that is not removed, whether the number is checked, unchecked or cannot be texted; another provider\'s member and a removed one are never in it. The probe sends no body and a provider gets the list, so nothing is written. No \'Probe measured\' claim: the probe was not run on the dev app when this row was written.',
+        probe: { path: '/api/provider/crew/numbers', body: undefined, anon: 401 },
+    },
+    {
         route: '/api/provider/dashboard-stats', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'own stats',
         note: 'ENG-023, converted: the guard is the first statement of GET (src/app/api/provider/dashboard-stats/route.js:6-7, requireCaller(request, [provider]): no credential is 401 and a wrong role 403 before the body is read). Ownership (own stats) comes from auth.caller, never from a request field; caller.id bound at src/app/api/provider/dashboard-stats/route.js:10. Before the conversion, as the census wrote it at 43cdcee (its cited line numbers are 43cdcee numbers, not the current file\'s): Sound gate and ownership; no provider status check.',
         probe: { path: '/api/provider/dashboard-stats', body: undefined, anon: 401 },
@@ -975,6 +1020,16 @@ export const matrix = [
         route: '/api/provider/jobs/[id]/crew', method: 'PUT', today: 'none', kind: 'roles', roles: ['provider'], owner: 'own job, given or claimed; own crew members',
         note: 'ENG-014: a new route (src/app/api/provider/jobs/[id]/crew/route.js). PUT calls requireCaller(request, [\'provider\']) as its first statement, before the id or the body is read: no credential is 401, any other role 403, and nothing is written for either. For a provider it replaces the set of the caller\'s own members on one of the caller\'s own jobs (crew_ids in the body; a provider_id in the body or the query string is not read) and answers who was added and who was removed. A job that is finished is a 409 and an id that is not the caller\'s own active member is a 400, with nothing written. The probe sends an empty JSON body to an id that matches no booking: the answer is a 400 (crew_ids is not a list) or the 404 \'Job not found\', and either way nothing is written.',
         probe: { path: '/api/provider/jobs/999999999/crew', body: {}, anon: 401 },
+    },
+    {
+        route: '/api/provider/jobs/[id]/job-link', method: 'GET', today: 'none', kind: 'roles', roles: ['provider'], owner: 'own job, given or claimed',
+        note: 'ENG-015: a new route (src/app/api/provider/jobs/[id]/job-link/route.js). GET calls requireCaller(request, [\'provider\']) as its first statements (:38-41), before the id is read or the database is touched: no credential is 401, any other role 403. Ownership comes from auth.caller.id and bookings.provider_id, in any status, and from nothing in the request: a job that is another provider\'s, one in the open pool, one that does not exist and an id that is not a number are the same 404 \'Job not found\' and nothing about the job is read. For the job\'s provider it answers the job link (its path while it is on), the crew with their number and check-in state, and the check-in window. The probe\'s id matches no booking: the 404. No \'Probe measured\' claim: the probe was not run on the dev app when this row was written.',
+        probe: { path: '/api/provider/jobs/999999999/job-link', body: undefined, anon: 401 },
+    },
+    {
+        route: '/api/provider/jobs/[id]/job-link', method: 'POST', today: 'none', kind: 'roles', roles: ['provider'], owner: 'own job, given or claimed',
+        note: 'ENG-015: a new route (src/app/api/provider/jobs/[id]/job-link/route.js). POST calls requireCaller(request, [\'provider\']) as its first statements (:62-65), before the id or the body is read: no credential is 401, any other role 403, and nothing is written for either. For a provider it creates, switches off or reissues the link of one of the caller\'s own jobs (action in the body; a provider_id in the body or the query string is not read); a job that is another provider\'s is the same 404 \'Job not found\', and a finished job is a 409 for create and reissue. The probe sends an empty JSON body to an id that matches no booking: the 400 \'Invalid request.\', because the body names no action, and nothing is written. No \'Probe measured\' claim: the probe was not run on the dev app when this row was written.',
+        probe: { path: '/api/provider/jobs/999999999/job-link', body: {}, anon: 401 },
     },
     {
         route: '/api/provider/jobs/photos', method: 'GET', today: 'full', kind: 'roles', roles: ['provider'], owner: 'photos of own assigned jobs',

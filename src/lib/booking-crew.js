@@ -62,9 +62,17 @@ function hasControlCharacter(text) {
   return false;
 }
 
-// -> { ok: true, name } (trimmed) | { ok: false, message }. The length is counted in characters, as the column counts them.
+// What shows as nothing, or changes how the text around it is drawn: every character in Unicode category Cf (zero-width spaces and joiners, the
+// right-to-left override and the other direction marks, a byte order mark, a soft hyphen), the Hangul filler U+3164 and the blank Braille pattern
+// U+2800. They are stripped and not refused: a person who pasted a zero-width space is not scolded, and a name that was nothing else is empty.
+const INVISIBLE = /[\p{Cf}\u3164\u2800]/gu;
+
+// -> { ok: true, name } | { ok: false, message }. The name is stored as this makes it: the invisible characters (above) removed, every Unicode
+// space (a no-break space comes with a paste from a web page) made a plain space, runs of spaces collapsed to one, and the ends trimmed. The
+// length is counted in characters, as the column counts them. Names stored before this rule are not rewritten, so any code that puts a name
+// into a message body runs it through here again.
 export function normaliseName(input) {
-  const name = typeof input === 'string' ? input.trim() : '';
+  const name = typeof input === 'string' ? input.replace(INVISIBLE, '').replace(/\p{Zs}/gu, ' ').replace(/ {2,}/g, ' ').trim() : '';
   if (name === '') return { ok: false, message: "Enter the cleaner's name." };
   if (hasControlCharacter(name)) return { ok: false, message: 'A name cannot have line breaks or other control characters.' };
   if (Array.from(name).length > NAME_MAX) return { ok: false, message: `A name can have at most ${NAME_MAX} characters.` };
@@ -121,9 +129,12 @@ export async function listCrew(execute, providerId) {
 // The members on a job: [{ id, name, phone, removed }], by name then id. Read through the booking's current provider (see the header), so a
 // row made under another provider is not here. While the job's crew can still change a removed member is not here either; on a finished job
 // they are, marked, so that who was on it stays answerable. It reads crew columns and the booking's status only, never the customer's contact.
-export async function assignedCrew(execute, bookingId) {
+// With { withAssignedAt: true } each member also has assigned_epoch, a Number: UNIX_TIMESTAMP of the row in booking_crew, the second this
+// member was put on this job. A member who is taken off and put back has a new one, which is how a job link (src/lib/job-link.js) tells the
+// same assignment from a new one. Without the option the answer is exactly what it was before the option existed.
+export async function assignedCrew(execute, bookingId, { withAssignedAt = false } = {}) {
   const rows = await execute(
-    `SELECT m.id, m.name, m.phone, m.removed_at IS NOT NULL AS removed, b.status
+    `SELECT m.id, m.name, m.phone, m.removed_at IS NOT NULL AS removed, b.status, UNIX_TIMESTAMP(bc.assigned_at) AS assigned_epoch
      FROM booking_crew bc
      JOIN bookings b ON b.id = bc.booking_id
      JOIN provider_crew_members m ON m.id = bc.crew_member_id AND m.provider_id = b.provider_id
@@ -134,7 +145,10 @@ export async function assignedCrew(execute, bookingId) {
   );
   return rows
     .filter((row) => !row.removed || !crewEditable(row.status))
-    .map((row) => ({ id: row.id, name: row.name, phone: row.phone, removed: Boolean(row.removed) }));
+    .map((row) => {
+      const member = { id: row.id, name: row.name, phone: row.phone, removed: Boolean(row.removed) };
+      return withAssignedAt ? { ...member, assigned_epoch: Number(row.assigned_epoch) } : member;
+    });
 }
 
 // ---- writes (inside the caller's transaction) ------------------------------------------------------------------------------------------

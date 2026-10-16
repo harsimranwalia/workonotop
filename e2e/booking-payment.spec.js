@@ -368,7 +368,9 @@ async function withRoutes({ poolSize, rows, stripe, ignoreVisitDate, cardLinks }
         '@/lib/booking-price': '../lib/booking-price.mjs',
         '@/lib/booking-payment': '../lib/booking-payment.mjs',
         '@/lib/booking-card': '../lib/booking-card.mjs',
-        // The one built-in module booking-card.js imports; it is used as it is.
+        // booking-card.js takes its token and hash from link-token.js, which the job link shares (ENG-015); it is copied as it is.
+        './link-token.js': './link-token.mjs',
+        // The one built-in module booking-card.js and link-token.js import; it is used as it is.
         'node:crypto': 'node:crypto',
     };
     const copy = (relative) => fs.readFileSync(path.join(REPO, relative), 'utf8').replace(/from '([^']+)'/g, (whole, specifier) => {
@@ -385,6 +387,7 @@ async function withRoutes({ poolSize, rows, stripe, ignoreVisitDate, cardLinks }
     put('lib/db.mjs', copy('src/lib/db.js'));
     put('lib/booking-price.mjs', copy('src/lib/booking-price.js'));
     put('lib/booking-payment.mjs', copy('src/lib/booking-payment.js'));
+    put('lib/link-token.mjs', copy('src/lib/link-token.js'));
     put('lib/booking-card.mjs', copy('src/lib/booking-card.js'));
     put('routes/approve.mjs', copy('src/app/api/customer/bookings/[id]/approve/route.js'));
     put('routes/auto-release.mjs', copy('src/app/api/cron/auto-release/route.js'));

@@ -1,12 +1,14 @@
 // The "Crew on this job" panel of a provider's job page (ENG-014): the cleaners the provider has put on the job and, while the job's crew can be
 // changed, a checkbox for each cleaner on their crew list to choose who goes. A save sends the whole set, and the panel takes the crew the route answers with
-// as its state, so what is shown is what is stored. For a job the provider does not hold, the route answers 404 and the panel renders nothing. The
-// panel says nothing about texts or links: nobody is texted when a crew is saved until ENG-015 ships.
+// as its state, so what is shown is what is stored. For a job the provider does not hold, the route answers 404 and the panel renders nothing. Nobody is
+// texted when a crew is saved. Each cleaner on the list shows whether their number has been checked (ENG-015), because a job link texts a sign-in code
+// only to a checked number; the check itself is done on the My Crew page.
 'use client';
 
 import Link from 'next/link';
 import { useEffect, useId, useState } from 'react';
 import { formatPhone } from '@/lib/phone';
+import { NumberChip, useNumberStates } from './CrewNumberCheck';
 
 const CREW_PATH = '/api/provider/crew';
 const SEND_TIMEOUT_MS = 20_000;
@@ -102,6 +104,7 @@ export default function JobCrewPanel({ bookingId }) {
   const [picked, setPicked] = useState(() => new Set());
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState(null);
+  const numbers = useNumberStates();
 
   useEffect(() => {
     let current = true;
@@ -203,10 +206,17 @@ export default function JobCrewPanel({ bookingId }) {
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold text-gray-900 break-words">{member.name}</span>
                   <span className="block text-xs text-gray-600">{formatPhone(member.phone)}</span>
+                  {numbers.states.has(member.id) && <span className="mt-1 block"><NumberChip state={numbers.states.get(member.id)} /></span>}
                 </span>
               </label>
             ))}
           </fieldset>
+          {view.crew.some((member) => numbers.states.get(member.id) === 'unchecked') && (
+            <p className="text-xs text-gray-700">
+              A job link texts a code only to a checked number.{' '}
+              <Link href="/provider/crew" className={`font-semibold text-green-800 underline rounded ${RING}`}>Check numbers in My Crew</Link>
+            </p>
+          )}
           <button type="submit" aria-disabled={saving || !differs || undefined} className={`${BUTTON} bg-green-700 hover:bg-green-800 text-white`}>
             {saving ? 'Saving...' : 'Save crew'}
           </button>
