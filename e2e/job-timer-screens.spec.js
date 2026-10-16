@@ -746,6 +746,7 @@ test.describe('Job timer: the poll and the small screens', () => {
         await checkIn(ctx, job, cookie, [cat], 'Ann checks Cat in from another phone');
         await page.clock.fastForward(31_000);
         await expect(timer.getByText('left for each of the 3 cleaners here', { exact: true }), 'the next poll shows the crew that is here').toBeVisible();
+        await expect(card(page, 'Crew').getByRole('button', { name: 'Check out Cat', exact: true }), 'and the read of the whole link that the poll starts has put Cat on the Crew card').toBeVisible();
 
         await page.route('**/api/job/*/timer', async (route) => (route.request().method() === 'GET' ? route.abort() : route.continue()));
         await page.clock.fastForward(31_000);
@@ -757,6 +758,51 @@ test.describe('Job timer: the poll and the small screens', () => {
         await page.clock.fastForward(31_000);
         await expect(page.getByRole('heading', { name: 'This link is not valid.', level: 1 }), 'a link that is not valid sends the page to the invalid screen').toBeVisible();
         await expect(page.getByRole('timer'), 'with no clock').toHaveCount(0);
+    });
+
+    // Mutant that turns this case red: a read of the whole link that is answered after the page has gone to the invalid screen is drawn, so the job and its Timer
+    // card come back over a link that is not valid (BUG-017, the reviewer's N25). The case holds that read where the browser makes it and lets it go after the 404.
+    test('Screens: a read of the whole job that is answered after the poll got its 404 does not put the job and its Timer card back over the invalid screen', async ({ page, request, baseURL, playwright, context }) => {
+        test.setTimeout(180_000);
+        const ctx = await setup(playwright, request, baseURL);
+        const ann = await addMember(ctx, 'Ann', '192');
+        const bea = await addMember(ctx, 'Bea', '193');
+        const cat = await addMember(ctx, 'Cat', '194');
+        const job = await makeJob(ctx, { members: [ann, bea, cat], quote: 360 });
+        const cookie = await signCleanerIn(ctx, job, ann, page);
+        await checkIn(ctx, job, cookie, [ann, bea], 'Ann checks in with Bea');
+        await addPhoto(ctx, job, cookie, 'before', await jpegBytes(page), 'Ann adds the before photo');
+        await timerAct(ctx, job, cookie, 'start', 'Ann starts the job');
+        await context.clearPermissions();
+        await page.clock.install();
+        await openJob(page, job);
+        const timer = card(page, 'Job timer');
+        await expect(timer.getByText('left for each of the 2 cleaners here', { exact: true })).toBeVisible({ timeout: FIRST_VISIT_MS });
+
+        // The read of the whole link that the next poll starts (it finds Cat on the clock and not on the Crew card) is held until the page has the 404.
+        const held = [];
+        await page.route((url) => url.pathname === `/api/job/${job.token}`, async (route) => {
+            if (route.request().method() === 'GET') held.push(route);
+            else await route.continue();
+        });
+        await checkIn(ctx, job, cookie, [cat], 'Ann checks Cat in from another phone');
+        await page.clock.fastForward(31_000);
+        await expect(timer.getByText('left for each of the 3 cleaners here', { exact: true }), 'the poll shows the crew that is here').toBeVisible();
+        await expect.poll(() => held.length, { message: 'the page asks for the whole link again and that read is held', timeout: 15_000 }).toBe(1);
+
+        await page.route('**/api/job/*/timer', async (route) => (route.request().method() === 'GET' ? route.fulfill({ status: 404, json: { success: false, message: 'This link is not valid.' } }) : route.continue()));
+        await page.clock.fastForward(31_000);
+        const invalid = page.getByRole('heading', { name: 'This link is not valid.', level: 1 });
+        await expect(invalid, 'the next poll is answered 404 and the page goes to the invalid screen').toBeVisible();
+        await expect(page.getByRole('timer'), 'with no clock').toHaveCount(0);
+
+        const answered = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/job/${job.token}` && response.request().method() === 'GET');
+        for (const route of held) await route.continue();
+        await answered;
+        await sleep(2_500);
+        await expect(invalid, 'the late answer does not take the invalid screen away').toBeVisible();
+        await expect(page.getByRole('timer'), 'no clock comes back').toHaveCount(0);
+        await expect(card(page, 'Crew'), 'and no job').toHaveCount(0);
     });
 
     // Mutant that turns this case red: a poll answered 401 does not send the page back to the sign-in step, so the Timer card goes on counting for a cleaner

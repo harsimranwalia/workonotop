@@ -3597,6 +3597,9 @@
     "job-timer-screens.spec.js › Job timer: the photos › Screens: before the cleaner checks in both add buttons are off with their reasons as text, and the card says a before photo is needed": {
       "outcome": "PASS"
     },
+    "job-timer-screens.spec.js › Job timer: the poll and the small screens › Screens: a read of the whole job that is answered after the poll got its 404 does not put the job and its Timer card back over the invalid screen": {
+      "outcome": "PASS"
+    },
     "job-timer-screens.spec.js › Job timer: the poll and the small screens › Screens: the page asks the timer again every 30 seconds, shows a crew that changed on another phone, says nothing is lost when the server is out of reach, and leaves for the invalid screen on a 404": {
       "outcome": "PASS"
     },
