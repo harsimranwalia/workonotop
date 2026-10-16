@@ -2457,6 +2457,9 @@
     "booking-payment.spec.js › Booking payment › Stripe out of reach leaves the booking untouched for a later try": {
       "outcome": "PASS"
     },
+    "booking-payment.spec.js › Booking payment › Stripe's answer that another request is in progress under the booking's charge key is a try-later and not a mismatch": {
+      "outcome": "PASS"
+    },
     "booking-payment.spec.js › Booking payment › a booking and create-intent refuse a price below the card minimum with the same answer": {
       "outcome": "PASS"
     },
@@ -3933,6 +3936,9 @@
     "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › Stripe out of reach leaves the charge pending, and a retry is safe; a failed charge can be declined": {
       "outcome": "PASS"
     },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a booking disputed while the approval waits at its lock is not charged: its status is judged again under the booking's lock, and nothing is recorded": {
+      "outcome": "PASS"
+    },
     "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a booking that can not be charged and a report that was already decided are refused, and the second admin's approval writes nothing": {
       "outcome": "PASS"
     },
@@ -3942,7 +3948,19 @@
     "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a customer with no card on file is no_payment_method, recorded as failed, and nothing is created": {
       "outcome": "PASS"
     },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a decline that can not be sure no charge was taken is refused with the report as it is: the intent processing, unreadable, not this report's, short or in a state a charge here never reaches, and no payment client": {
+      "outcome": "PASS"
+    },
     "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a declined card leaves the report failed with its reason, and a retry continues the saved intent and never creates a second": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a failed report whose saved PaymentIntent has since succeeded is recorded paid and its decline is refused": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a failed report whose saved PaymentIntent holds no charge is declined, with the intent read and left as it is": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a loser that did write the report failed does not hide the charge: the approval that took it records it paid from failed": {
       "outcome": "PASS"
     },
     "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › a series visit is never charged on the card of a first visit that belongs to another customer": {
@@ -3958,6 +3976,9 @@
       "outcome": "PASS"
     },
     "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › an approval and a decline made at the same moment, in either order: the report is what the one that got in first made it, and the other is refused as decided": {
+      "outcome": "PASS"
+    },
+    "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › an approval and a retry at the same moment: the retry, answered Stripe's in-progress conflict, leaves the charge pending, and the charge the approval takes is recorded paid with one confirm": {
       "outcome": "PASS"
     },
     "job-reports.spec.js › approving an add-items report: the server prices it, the admin's sum must match, and the charge is taken once, on its own intent › an approval is priced here, recorded, then charged for exactly those cents on a PaymentIntent of its own": {
@@ -4785,6 +4806,9 @@
     "recurring-visits.spec.js › visit dates › weekly visits are twelve dates seven days apart and every-2-weeks visits are six dates fourteen days apart": {
       "outcome": "PASS"
     },
+    "report-desk.spec.js › collectAddedItems › Stripe's answer that another request is in progress under the same key is a try-later wherever it comes, and a key used again with other parameters is still a mismatch": {
+      "outcome": "PASS"
+    },
     "report-desk.spec.js › collectAddedItems › a booking's own completion charge is made with the booking's own key and the booking's own metadata": {
       "outcome": "PASS"
     },
@@ -4837,6 +4861,18 @@
       "outcome": "PASS"
     },
     "report-desk.spec.js › collectAddedItems › with no payment client nothing is called and the answer is not configured": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › lookAtAddedItemsCharge › an intent that is processing, unreadable, not this report's, short of the sum, or in a state a charge here never reaches gives no answer, with its reason": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › lookAtAddedItemsCharge › an intent that needs a payment method, a confirmation or the customer, or was cancelled, holds no charge and is left as it is": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › lookAtAddedItemsCharge › an intent that succeeded for the approved sum or more is a charge taken, with its charge and what it received": {
+      "outcome": "PASS"
+    },
+    "report-desk.spec.js › lookAtAddedItemsCharge › with no payment client nothing is called and the answer is not configured": {
       "outcome": "PASS"
     },
     "report-desk.spec.js › priceExtras › a frequency or a discount handed in is ignored: the function has no parameter for either": {
