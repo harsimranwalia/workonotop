@@ -75,9 +75,9 @@ function expectNoneOf(text, strings, who) {
     }
 }
 
-// Deletes a probe booking as admin. A case that opens a page can leave its `request` context idle for the five seconds a first compile of the
-// page takes, which is how long Node's server keeps an idle connection; a DELETE that reuses the connection in the instant the server closes it
-// fails with "socket hang up" before it reaches a route (BUG-018). The route answers 200 for a booking that is already gone, so the second try is safe.
+// Deletes a probe booking as admin. A case that opens a page can leave its `request` context idle for as long as a first compile of the page takes,
+// and the dev server closes an idle connection after about six seconds (measured: a DELETE sent 5.95 to 6.03 s after the last answer fails with
+// "socket hang up" before it reaches a route, BUG-018). The route answers 200 for a booking that is already gone, so the second try is safe.
 async function deleteProbeBooking(request, as, id) {
     const url = `/api/bookings?id=${id}`;
     try {
