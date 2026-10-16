@@ -48,7 +48,7 @@ const typed = (n) => `+1 403 555 0${n}`;
 // The first request to a route is compiled by the dev server, so every request is given a minute.
 const REQUEST_TIMEOUT = 60_000;
 
-// The code of the extra worth a quarter that the minimum-sum case adds to service 1 and removes again.
+// The code of the extra worth a quarter that the minimum-sum case adds to service 1 and removes again; the quote assertion of the refused-approvals case adds it with a quote_from the same way.
 const QUARTER_CODE = 'probe_quarter';
 
 // The address of every probe booking (Calgary) and the phone at the address.
@@ -379,10 +379,11 @@ const MONEY_WORDS = /price|amount|charge|decision|cents|stripe|commission|paymen
 
 // ---- calls that meet at a lock ----
 
-// Waits until `count` transactions are waiting on a row lock, as InnoDB reports them, and fails after 20 seconds naming how many there were. The server
+// Waits until `count` transactions are waiting on a row lock, as InnoDB reports them, and fails after 60 seconds naming how many there were (the first request to a route on a
+// freshly started dev server compiles it first: the two-sends case takes 14 to 16 seconds there and 4 on a warm one, so 20 left too little). The server
 // serves innodb_trx from a copy it renews only when nobody has read it for 100 ms, so a poll faster than that reads the first copy for ever: 150 ms apart.
 async function waitForLockWaiters(count) {
-    const deadline = Date.now() + 20_000;
+    const deadline = Date.now() + 60_000;
     let seen = 0;
     while (Date.now() < deadline) {
         seen = await countOf("SELECT COUNT(*) AS n FROM information_schema.innodb_trx WHERE trx_state = 'LOCK WAIT'");
@@ -409,8 +410,9 @@ async function meetAtLock(lockSql, lockParams, starts) {
     } catch (error) {
         failure = error;
     } finally {
-        await holder.rollback().catch(() => {});
-        await holder.end().catch(() => {});
+        // A release that fails is written down, by its code alone, and does not throw here: the case's own failure is the one to report.
+        await holder.rollback().catch((error) => console.error('Error releasing the lock the case holds:', error?.code || error?.name));
+        await holder.end().catch((error) => console.error('Error closing the connection that held the lock:', error?.code || error?.name));
     }
     if (failure) {
         const settled = await Promise.allSettled(calls);
@@ -577,7 +579,7 @@ test.describe('the admin\'s queue and decisions over HTTP', () => {
         expect(found !== undefined, 'the new report is waiting').toBe(true);
         expect([found.type, found.status, found.added_items, found.decision, found.booking.customer, found.booking.id]).toEqual(['unhygienic', 'open', null, null, 'E2E Probe', made.job.bookingId]);
         expect(JSON.stringify(found), 'no phone number and no e-mail address is in it').not.toMatch(/4035550|@example\.invalid/);
-        expect(queue.open_count, 'the count of reports waiting on the office is the count the database holds').toBe(await countOf("SELECT COUNT(*) AS n FROM job_reports WHERE status = 'open' OR (status = 'approved' AND charge_status = 'failed')"));
+        expect(queue.open_count, 'the count of reports waiting on the office is the count the database holds').toBe(await countOf("SELECT COUNT(*) AS n FROM job_reports WHERE status = 'open' OR (status = 'approved' AND charge_status IN ('pending', 'failed'))"));
 
         for (const [style, headers, status] of [['no credential', {}, 401], ['a provider', ctx.as.provider, 403]]) {
             const refused = await answerOf(await request.get('/api/admin/reports', { headers }));
@@ -781,6 +783,14 @@ test.describe('approving an add-items report: the server prices it, the admin\'s
         expect([none.ok, none.reason]).toEqual([false, 'extras']);
         const notAList = await desk(planted, stripe, { extras: 'oven' });
         expect([notAList.ok, notAList.reason]).toEqual([false, 'extras']);
+        // A quote: an extra picked as many times as its quote_from has no price to charge. The quarter's row is planted with one and taken out again.
+        await run("INSERT INTO service_pricing_items (service_id, kind, code, label, amount, minutes, quote_from, is_placeholder, sort_order) VALUES (1, 'extra', ?, 'Probe quote', 0.25, 0, 1, 0, 99)", [QUARTER_CODE]);
+        try {
+            const quote = await desk(planted, stripe, { extras: [{ code: QUARTER_CODE, quantity: 1 }] });
+            expect([quote.ok, quote.reason]).toEqual([false, 'quote']);
+        } finally {
+            await run("DELETE FROM service_pricing_items WHERE service_id = 1 AND kind = 'extra' AND code = ?", [QUARTER_CODE]);
+        }
         expect(stripe.calls, 'Stripe was not called for any of them').toEqual([]);
         const row = await reportRow(planted.reportId);
         expect([row.status, row.charge_status, row.approved_cents, row.decided_by]).toEqual(['open', 'none', null, null]);
