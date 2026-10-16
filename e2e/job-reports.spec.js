@@ -24,7 +24,7 @@ import path from 'node:path';
 import { test, expect } from '@playwright/test';
 import mysql from 'mysql2/promise';
 import { getCredentialHeaders } from './auth/credentials.js';
-import { providers } from '../database/fixtures/accounts.js';
+import { providers, users } from '../database/fixtures/accounts.js';
 import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.js';
 import { sha256Hex } from '../src/lib/link-token.js';
 import { budgetScope } from '../src/lib/sms-budget.js';
@@ -36,6 +36,8 @@ import { DECISION_NOTE_MAX, DESK_MESSAGES, decideReport, queueFor } from '../src
 test.use({ trace: 'off' });
 
 const [PROVIDER1] = providers;
+// The two customers of the fixtures: a series' visits belong to one of them, and a first visit of the other is a stranger's.
+const [CUSTOMER1, CUSTOMER2, ADMIN] = users;
 const EMAIL_PREFIX = 'e2e-jrp-';
 // The number block of this file: the digits after '+1 403 555 0'. The last number is the customer's, the others are cleaners'.
 const NUMBER_FIRST = 300;
@@ -45,6 +47,9 @@ const typed = (n) => `+1 403 555 0${n}`;
 
 // The first request to a route is compiled by the dev server, so every request is given a minute.
 const REQUEST_TIMEOUT = 60_000;
+
+// The code of the extra worth a quarter that the minimum-sum case adds to service 1 and removes again.
+const QUARTER_CODE = 'probe_quarter';
 
 // The address of every probe booking (Calgary) and the phone at the address.
 const ADDRESS = { latitude: 51.04473, longitude: -114.07192 };
@@ -151,6 +156,8 @@ async function clearRows() {
     }
     await open.execute('DELETE FROM bookings WHERE customer_email LIKE ?', [`${EMAIL_PREFIX}%`]);
     await open.execute('DELETE FROM provider_crew_members WHERE phone BETWEEN ? AND ?', [stored(NUMBER_FIRST), stored(NUMBER_LAST)]);
+    // The one extra a case adds to service 1's catalogue (a sum under the payment minimum), taken out again if the case did not get to.
+    await open.execute("DELETE FROM service_pricing_items WHERE service_id = 1 AND kind = 'extra' AND code = ?", [QUARTER_CODE]);
 }
 
 // The hooks of a describe that uses the database: a sweep before its first case, after every case (also a case that failed or timed out) and after
@@ -370,6 +377,49 @@ async function watched(bookingId) {
 const reportRow = async (id) => (await rows('SELECT * FROM job_reports WHERE id = ?', [id]))[0];
 const MONEY_WORDS = /price|amount|charge|decision|cents|stripe|commission|payment/i;
 
+// ---- calls that meet at a lock ----
+
+// Waits until `count` transactions are waiting on a row lock, as InnoDB reports them, and fails after 20 seconds naming how many there were. The server
+// serves innodb_trx from a copy it renews only when nobody has read it for 100 ms, so a poll faster than that reads the first copy for ever: 150 ms apart.
+async function waitForLockWaiters(count) {
+    const deadline = Date.now() + 20_000;
+    let seen = 0;
+    while (Date.now() < deadline) {
+        seen = await countOf("SELECT COUNT(*) AS n FROM information_schema.innodb_trx WHERE trx_state = 'LOCK WAIT'");
+        if (seen >= count) return seen;
+        await new Promise((resolve) => setTimeout(resolve, 150));
+    }
+    throw new Error(`${seen} of ${count} transactions are waiting on the row lock`);
+}
+
+// Calls that run at the same moment, met at a lock and not by luck: a third connection (not the pool's, not the app's) holds `lockSql` (a
+// SELECT ... FOR UPDATE of one row), `starts` are called in order, each once the ones before it are waiting on that lock, and the lock is let go only
+// when every call is. They then go through the guard under the lock together. Resolves with the answers in the order the calls were started.
+async function meetAtLock(lockSql, lockParams, starts) {
+    const holder = await mysql.createConnection(DB);
+    const calls = [];
+    let failure = null;
+    try {
+        await holder.beginTransaction();
+        await holder.execute(lockSql, lockParams);
+        for (const [index, start] of starts.entries()) {
+            calls.push(start());
+            await waitForLockWaiters(index + 1);
+        }
+    } catch (error) {
+        failure = error;
+    } finally {
+        await holder.rollback().catch(() => {});
+        await holder.end().catch(() => {});
+    }
+    if (failure) {
+        const settled = await Promise.allSettled(calls);
+        const outcomes = settled.map((one) => (one.status === 'rejected' ? `threw ${one.reason?.message ?? one.reason}` : `answered ${JSON.stringify(one.value?.ok ?? null)} ${one.value?.reason ?? ''}`.trim()));
+        throw new Error(`${failure.message} (the calls started: ${outcomes.join('; ') || 'none'})`, { cause: failure });
+    }
+    return Promise.all(calls);
+}
+
 test.describe('POST /api/job/{token}/reports: the cleaner\'s one-tap report', () => {
     test.describe.configure({ timeout: 180_000 });
     sweepAround();
@@ -414,6 +464,24 @@ test.describe('POST /api/job/{token}/reports: the cleaner\'s one-tap report', ()
         const third = await okOf(await postReport(request, job, cleaner, parts), 'the send made a third time, after the job went back to pending');
         expect([third.again, third.report.id]).toEqual([true, first.report.id]);
         expect(await watched(job.bookingId), 'nothing more was written').toEqual(before);
+    });
+
+    test('two sends made at the same moment with one client_token save one report, one event and one file, and the other is answered as saved', async ({ playwright, request, baseURL }) => {
+        const ctx = await setup(playwright, request, baseURL);
+        const { job, cleaner } = await probeJob(ctx);
+        const parts = reportParts('unhygienic', 'Dirty, sent twice at once', TINY_JPEG, [{ name: 'client_token', value: 'tok-AAAAAAAA-2' }]);
+        const before = await watched(job.bookingId);
+        // Both requests are held at the booking's row, which the library locks first, until both are waiting on it: they meet the token check together.
+        const answers = await meetAtLock('SELECT id FROM bookings WHERE id = ? FOR UPDATE', [job.bookingId], [
+            () => postReport(request, job, cleaner, parts),
+            () => postReport(request, job, cleaner, parts),
+        ]);
+        const [one, other] = [await okOf(answers[0], 'the first of the two sends'), await okOf(answers[1], 'the second of the two sends')];
+        expect([one.again, other.again].sort(), 'one send saved the report and the other was told it was saved').toEqual([false, true]);
+        expect(other.report.id, 'both answers name the one report').toBe(one.report.id);
+        const after = await watched(job.bookingId);
+        expect([after.reports - before.reports, after.events - before.events, after.files.length - before.files.length], 'one row, one event and one file').toEqual([1, 1, 1]);
+        expect(await countOf('SELECT COUNT(*) AS n FROM job_reports WHERE booking_id = ? AND client_token = ?', [job.bookingId, 'tok-AAAAAAAA-2']), 'one row holds the token').toBe(1);
     });
 
     test('every refusal says no-store, names its message and writes nothing', async ({ playwright, request, baseURL }) => {
@@ -509,7 +577,7 @@ test.describe('the admin\'s queue and decisions over HTTP', () => {
         expect(found !== undefined, 'the new report is waiting').toBe(true);
         expect([found.type, found.status, found.added_items, found.decision, found.booking.customer, found.booking.id]).toEqual(['unhygienic', 'open', null, null, 'E2E Probe', made.job.bookingId]);
         expect(JSON.stringify(found), 'no phone number and no e-mail address is in it').not.toMatch(/4035550|@example\.invalid/);
-        expect(queue.open_count).toBeGreaterThanOrEqual(1);
+        expect(queue.open_count, 'the count of reports waiting on the office is the count the database holds').toBe(await countOf("SELECT COUNT(*) AS n FROM job_reports WHERE status = 'open' OR (status = 'approved' AND charge_status = 'failed')"));
 
         for (const [style, headers, status] of [['no credential', {}, 401], ['a provider', ctx.as.provider, 403]]) {
             const refused = await answerOf(await request.get('/api/admin/reports', { headers }));
@@ -525,7 +593,7 @@ test.describe('the admin\'s queue and decisions over HTTP', () => {
         const ctx = await setup(playwright, request, baseURL);
         const info = await sendReport(ctx, 'no_answer');
         const handled = await okOf(await decide(ctx, info.reportId, { action: 'handle', note: 'Called the customer' }), 'handle');
-        expect([handled.report.status, handled.report.decision.note, typeof handled.report.decision.by, handled.report.added_items]).toEqual(['handled', 'Called the customer', 'string', null]);
+        expect([handled.report.status, handled.report.decision.note, handled.report.decision.by, handled.report.added_items]).toEqual(['handled', 'Called the customer', `${ADMIN.first_name} ${ADMIN.last_name}`, null]);
         const again = await decide(ctx, info.reportId, { action: 'handle' });
         expect([again.status, again.body.message, again.body.report.status, again.cache]).toEqual([409, DESK_MESSAGES.decided, 'handled', 'no-store']);
         const page = await okOf(await answerOf(await request.get(`/api/job/${info.job.token}`, { headers: info.cleaner })), 'the page after the decision');
@@ -551,7 +619,11 @@ test.describe('the admin\'s queue and decisions over HTTP', () => {
         expect(all.reports.map((report) => report.status)).toEqual(['declined']);
     });
 
+    // The case sends an approval, which is a real charge on an app that holds a payment key: it runs only when the runner has listed the NAMES of the app's
+    // variables (E2E_APP_ENV_NAMES, never values, as e2e/ownership.spec.js has it) and STRIPE_SECRET_KEY is not one of them.
     test('approving on a server with no payment key is a 503 that records nothing', async ({ playwright, request, baseURL }) => {
+        const names = process.env.E2E_APP_ENV_NAMES;
+        test.skip(names === undefined || names.split(',').map((name) => name.trim()).includes('STRIPE_SECRET_KEY'), 'the app has a payment key (or the runner did not list the names): an approval would reach Stripe');
         const ctx = await setup(playwright, request, baseURL);
         const items = await sendReport(ctx, 'add_items');
         const answer = await decide(ctx, items.reportId, { action: 'approve', extras: [{ code: 'oven', quantity: 1 }], expected_cents: 3500 });
@@ -620,19 +692,32 @@ const connError = () => Object.assign(new Error('connection'), { type: 'StripeCo
 const callsOf = (stripe, method) => stripe.calls.filter(([name]) => name === method);
 
 // A booking and a report planted in SQL, the booking holding the checkout payment the card comes from: the desk is judged here, not the page.
-async function plantItemsReport({ bookingStatus = 'completed', commission = null } = {}) {
+// `owner` is the customer's user id (the booking has none by default); `ownPayment: false` leaves the booking with no payment of its own, as a visit
+// of a series or a booking made for a customer is; `series` is { of: the first visit's booking id, visit: its number }; `type` and `note` are the report's.
+async function plantItemsReport({ bookingStatus = 'completed', commission = null, type = 'add_items', note = 'Oven and fridge too', owner = null, ownPayment = true, series = null } = {}) {
     const bookingId = await insertBooking();
     // payment_intent_id is unique across bookings, so each planted booking holds a checkout payment of its own.
     const checkoutId = `pi_checkout_${tag()}`;
-    await run('UPDATE bookings SET status = ?, payment_intent_id = ?, commission_percent = ? WHERE id = ?', [bookingStatus, checkoutId, commission, bookingId]);
+    await run('UPDATE bookings SET status = ?, payment_intent_id = ?, commission_percent = ?, user_id = ?, series_id = ?, series_visit = ? WHERE id = ?',
+        [bookingStatus, ownPayment ? checkoutId : null, commission, owner, series ? series.of : null, series ? series.visit : null, bookingId]);
     const [link] = await run('SELECT id FROM job_links WHERE booking_id = ?', [bookingId]);
     let linkId = link?.id;
     if (!linkId) {
         const made = await run("INSERT INTO job_links (booking_id, token, generation) VALUES (?, ?, 1)", [bookingId, randomBytes(32).toString('base64url').slice(0, 43)]);
         linkId = made.insertId;
     }
-    const added = await run("INSERT INTO job_reports (booking_id, link_id, report_type, note, reporter_kind, reporter_ref) VALUES (?, ?, 'add_items', 'Oven and fridge too', 'provider', ?)", [bookingId, linkId, PROVIDER1.id]);
+    const added = await run("INSERT INTO job_reports (booking_id, link_id, report_type, note, reporter_kind, reporter_ref) VALUES (?, ?, ?, ?, 'provider', ?)", [bookingId, linkId, type, note, PROVIDER1.id]);
     return { bookingId, reportId: added.insertId, checkout: { id: checkoutId, status: 'succeeded', customer: 'cus_probe', payment_method: 'pm_probe' } };
+}
+
+// What a report's decision must leave as it found it, as one object to compare before and after: the booking's money fields and the number of rows in
+// the two tables that hold what the platform owes a provider and what it bills (counted whole, so a row written for any booking shows).
+const BOOKING_MONEY_FIELDS = ['service_price', 'status', 'payment_status', 'payment_intent_id', 'commission_percent', 'authorized_amount', 'provider_amount', 'final_provider_amount'];
+async function untouched(bookingId) {
+    const [booking] = await run(`SELECT ${BOOKING_MONEY_FIELDS.join(', ')} FROM bookings WHERE id = ?`, [bookingId]);
+    const [{ n: payouts }] = await run('SELECT COUNT(*) AS n FROM provider_payouts');
+    const [{ n: invoices }] = await run('SELECT COUNT(*) AS n FROM invoices');
+    return { booking, payouts: Number(payouts), invoices: Number(invoices) };
 }
 
 const intentFor = (planted, over = {}) => ({ id: 'pi_extra_probe', status: 'requires_confirmation', payment_method: 'pm_probe', metadata: { booking_id: String(planted.bookingId), report_id: String(planted.reportId) }, ...over });
@@ -650,6 +735,7 @@ test.describe('approving an add-items report: the server prices it, the admin\'s
     test('an approval is priced here, recorded, then charged for exactly those cents on a PaymentIntent of its own', async () => {
         const planted = await plantItemsReport({ commission: '20.00' });
         const stripe = scriptedClient({ retrieve: [planted.checkout, takenFor(planted, 9500)], create: [intentFor(planted)], confirm: [{}] });
+        const before = await untouched(planted.bookingId);
         const result = await desk(planted, stripe);
         expect(result.ok, JSON.stringify(result)).toBe(true);
         expect(result.report.status).toBe('approved');
@@ -663,6 +749,25 @@ test.describe('approving an add-items report: the server prices it, the admin\'s
         expect([row.status, row.charge_status, row.approved_cents, row.charge_intent_id, row.charge_id, row.decision_note]).toEqual(['approved', 'paid', 9500, 'pi_extra_probe', 'ch_extra_probe', 'Agreed on site']);
         const [booking] = await run('SELECT service_price, payment_intent_id FROM bookings WHERE id = ?', [planted.bookingId]);
         expect([Number(booking.service_price), booking.payment_intent_id], 'the booking\'s own price and payment are untouched').toEqual([100, planted.checkout.id]);
+        expect(await untouched(planted.bookingId), 'the booking\'s money fields and the rows of provider_payouts and invoices are as they were: the charge is the only money that moved').toEqual(before);
+        expect(callsOf(stripe, 'capture'), 'the booking\'s own payment was not captured').toEqual([]);
+    });
+
+    test('declining an add-items report and handling an information report call no Stripe and change no booking field, payout or invoice', async () => {
+        const items = await plantItemsReport();
+        const info = await plantItemsReport({ type: 'unhygienic', note: 'Dirty kitchen' });
+        const stripe = scriptedClient();
+        const itemsBefore = await untouched(items.bookingId);
+        const infoBefore = await untouched(info.bookingId);
+        const declined = await decideReport({ withConnection, execute: run, stripe, id: items.reportId, admin: { id: 1 }, action: 'decline', note: 'Not needed' });
+        expect([declined.ok, declined.report.status, declined.report.added_items.charge], JSON.stringify(declined)).toEqual([true, 'declined', 'none']);
+        const handled = await decideReport({ withConnection, execute: run, stripe, id: info.reportId, admin: { id: 1 }, action: 'handle', note: 'Called the customer' });
+        expect([handled.ok, handled.report.status], JSON.stringify(handled)).toEqual([true, 'handled']);
+        expect(stripe.calls, 'no call to Stripe for either').toEqual([]);
+        expect(await untouched(items.bookingId), 'the declined report\'s booking').toEqual(itemsBefore);
+        expect(await untouched(info.bookingId), 'the handled report\'s booking').toEqual(infoBefore);
+        const rowsOf = await run('SELECT id, status, charge_status, approved_cents, charge_intent_id FROM job_reports WHERE id IN (?, ?) ORDER BY id', [items.reportId, info.reportId]);
+        expect(rowsOf.map((row) => [row.status, row.charge_status, row.approved_cents, row.charge_intent_id])).toEqual([['declined', 'none', null, null], ['handled', 'none', null, null]]);
     });
 
     test('a sum that is not the one the admin was shown, extras that are not the service\'s and a quote are refused before anything is recorded', async () => {
@@ -752,5 +857,116 @@ test.describe('approving an add-items report: the server prices it, the admin\'s
         const result = await desk(planted, stripe);
         expect([result.ok, result.reason, result.report.added_items.charge]).toEqual([false, 'no_payment_method', 'failed']);
         expect(stripe.calls).toEqual([]);
+    });
+
+    // ---- whose card: a visit of a series, and a booking made for a customer, hold no payment of their own ----
+
+    test('a series visit with no payment of its own is charged on the card of the same customer\'s first visit', async () => {
+        const first = await plantItemsReport({ owner: CUSTOMER1.id });
+        const planted = await plantItemsReport({ owner: CUSTOMER1.id, ownPayment: false, series: { of: first.bookingId, visit: 2 } });
+        const card = { ...first.checkout, customer: 'cus_series_first', payment_method: 'pm_series_first' };
+        const stripe = scriptedClient({ retrieve: [card, takenFor(planted, 9500)], create: [intentFor(planted, { payment_method: 'pm_series_first' })], confirm: [{}] });
+        const result = await desk(planted, stripe);
+        expect(result.ok, JSON.stringify(result)).toBe(true);
+        expect(callsOf(stripe, 'retrieve')[0][1], 'the card is read from the first visit\'s payment').toBe(first.checkout.id);
+        expect(callsOf(stripe, 'create').length, 'one intent').toBe(1);
+        expect(callsOf(stripe, 'create')[0][1]).toMatchObject({ amount: 9500, customer: 'cus_series_first', payment_method: 'pm_series_first' });
+        expect(callsOf(stripe, 'confirm').length, 'one confirm').toBe(1);
+        const row = await reportRow(planted.reportId);
+        expect([row.status, row.charge_status, row.charge_intent_id]).toEqual(['approved', 'paid', 'pi_extra_probe']);
+        const [visit] = await run('SELECT payment_intent_id FROM bookings WHERE id = ?', [planted.bookingId]);
+        expect(visit.payment_intent_id, 'the visit still has no payment of its own').toBeNull();
+    });
+
+    test('a series visit is never charged on the card of a first visit that belongs to another customer', async () => {
+        const stranger = await plantItemsReport({ owner: CUSTOMER2.id });
+        const planted = await plantItemsReport({ owner: CUSTOMER1.id, ownPayment: false, series: { of: stranger.bookingId, visit: 2 } });
+        // Everything Stripe would need to charge the other customer's card is scripted; the case is that none of it is asked for.
+        const stripe = scriptedClient({ retrieve: [stranger.checkout, takenFor(planted, 9500)], create: [intentFor(planted)], confirm: [{}] });
+        const result = await desk(planted, stripe);
+        expect([result.ok, result.reason, result.report.added_items.charge]).toEqual([false, 'no_payment_method', 'failed']);
+        expect(stripe.calls, 'no call to Stripe: the other customer\'s card was neither read nor charged').toEqual([]);
+        const row = await reportRow(planted.reportId);
+        expect([row.status, row.charge_status, row.charge_reason, row.charge_intent_id]).toEqual(['approved', 'failed', 'no_payment_method', null]);
+    });
+
+    test('a booking with no payment of its own is charged on the card its customer put on file from the link', async () => {
+        const planted = await plantItemsReport({ ownPayment: false });
+        await run(
+            "INSERT INTO booking_card_links (booking_id, token_hash, expires_at, used_at, stripe_customer_id, payment_method_id) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 DAY), NOW(), 'cus_link', 'pm_link')",
+            [planted.bookingId, sha256Hex(`jrp-card:${tag()}`)]
+        );
+        const stripe = scriptedClient({ retrieve: [takenFor(planted, 9500)], create: [intentFor(planted, { payment_method: 'pm_link' })], confirm: [{}] });
+        const result = await desk(planted, stripe);
+        expect(result.ok, JSON.stringify(result)).toBe(true);
+        expect(callsOf(stripe, 'create')[0][1]).toMatchObject({ amount: 9500, customer: 'cus_link', payment_method: 'pm_link' });
+        expect(callsOf(stripe, 'retrieve').map(([, id]) => id), 'only the new intent is read: the card came from the link').toEqual(['pi_extra_probe']);
+        expect((await reportRow(planted.reportId)).charge_status).toBe('paid');
+    });
+
+    // ---- the bounds of a sum: judged by the desk, before anything is recorded ----
+
+    test('a sum under the payment minimum and a sum over its ceiling are refused with their own reasons, before anything is recorded or charged', async () => {
+        await run("INSERT INTO service_pricing_items (service_id, kind, code, label, amount, minutes, is_placeholder, sort_order) VALUES (1, 'extra', ?, 'Probe quarter', 0.25, 0, 0, 99)", [QUARTER_CODE]);
+        try {
+            const planted = await plantItemsReport();
+            const stripe = scriptedClient({ retrieve: [planted.checkout, takenFor(planted, 9500)], create: [intentFor(planted)], confirm: [{}] });
+            const before = await untouched(planted.bookingId);
+            const refusals = [
+                ['an extra worth a quarter (25 cents)', [{ code: QUARTER_CODE, quantity: 1 }], 25, 'below_minimum'],
+                ['2,000,000 ovens (7,000,000,000 cents, over the payment ceiling and under the pricing one)', [{ code: 'oven', quantity: 2_000_000 }], 7_000_000_000, 'too_large'],
+                ['3,000,000 ovens (over the pricing ceiling too)', [{ code: 'oven', quantity: 3_000_000 }], 10_500_000_000, 'too_large'],
+            ];
+            for (const [label, extras, expectedCents, reason] of refusals) {
+                const refused = await desk(planted, stripe, { extras, expectedCents });
+                expect([refused.ok, refused.reason], label).toEqual([false, reason]);
+                const row = await reportRow(planted.reportId);
+                expect([row.status, row.charge_status, row.approved_cents, row.decided_by, row.charge_intent_id], `${label}: the report is as it was`).toEqual(['open', 'none', null, null, null]);
+            }
+            expect(stripe.calls, 'Stripe was not called for any of them').toEqual([]);
+            expect(await untouched(planted.bookingId), 'the booking is as it was').toEqual(before);
+        } finally {
+            await run("DELETE FROM service_pricing_items WHERE service_id = 1 AND kind = 'extra' AND code = ?", [QUARTER_CODE]);
+        }
+    });
+
+    // ---- the same report decided at the same moment: held at the report row's lock by a third connection until every call is waiting on it ----
+
+    const LOCK_REPORT = 'SELECT id FROM job_reports WHERE id = ? FOR UPDATE';
+
+    test('ten approvals made at the same moment: one is recorded and charged, with one intent and one confirm, and nine are refused as decided', async () => {
+        const planted = await plantItemsReport();
+        const stripe = scriptedClient({ retrieve: [planted.checkout, takenFor(planted, 9500)], create: [intentFor(planted)], confirm: [{}] });
+        const answers = await meetAtLock(LOCK_REPORT, [planted.reportId], Array.from({ length: 10 }, () => () => desk(planted, stripe)));
+        expect(answers.length, 'ten answers').toBe(10);
+        expect(answers.filter((answer) => answer.ok).length, 'one approval went through').toBe(1);
+        expect(answers.filter((answer) => !answer.ok).map((answer) => answer.reason), 'the others were told it was decided').toEqual(Array(9).fill('decided'));
+        expect(callsOf(stripe, 'create').length, 'one intent').toBe(1);
+        expect(callsOf(stripe, 'confirm').length, 'one confirm').toBe(1);
+        const row = await reportRow(planted.reportId);
+        expect([row.status, row.charge_status, row.approved_cents, row.charge_intent_id]).toEqual(['approved', 'paid', 9500, 'pi_extra_probe']);
+    });
+
+    test('an approval and a decline made at the same moment, in either order: the report is what the one that got in first made it, and the other is refused as decided', async () => {
+        // Which call the lock lets in first is the lock's to say, so the case is run with each call started first and asserts the report against whoever won.
+        for (const order of ['the decline first', 'the approval first']) {
+            const planted = await plantItemsReport();
+            const stripe = scriptedClient({ retrieve: [planted.checkout, takenFor(planted, 9500)], create: [intentFor(planted)], confirm: [{}] });
+            const approve = () => desk(planted, stripe);
+            const decline = () => decideReport({ withConnection, execute: run, stripe, id: planted.reportId, admin: { id: 1 }, action: 'decline', note: 'Not needed' });
+            const answers = await meetAtLock(LOCK_REPORT, [planted.reportId], order === 'the decline first' ? [decline, approve] : [approve, decline]);
+            const [declined, approved] = order === 'the decline first' ? answers : [answers[1], answers[0]];
+            expect([approved.ok, declined.ok].filter(Boolean).length, `${order}: exactly one of the two went through`).toBe(1);
+            const row = await reportRow(planted.reportId);
+            if (approved.ok) {
+                expect(declined.reason, `${order}: the approval won and the decline was refused`).toBe('decided');
+                expect([row.status, row.charge_status, row.approved_cents], order).toEqual(['approved', 'paid', 9500]);
+                expect([callsOf(stripe, 'create').length, callsOf(stripe, 'confirm').length], `${order}: one intent and one confirm`).toEqual([1, 1]);
+            } else {
+                expect(approved.reason, `${order}: the decline won and the approval was refused`).toBe('decided');
+                expect([row.status, row.charge_status, row.approved_cents, row.charge_intent_id], order).toEqual(['declined', 'none', null, null]);
+                expect(stripe.calls, `${order}: a declined report is never charged`).toEqual([]);
+            }
+        }
     });
 });
