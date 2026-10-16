@@ -30,7 +30,8 @@
 //   description, instructions, timing_note, parking, elevator, pets, worker_count } }, text that is not there as '' and the three yes/no as
 //   booleans. `crew` is tickedView of the members on the job now: id, name, checked_in, checked_in_at, checked_out_at, never a number. `window` is
 //   windowView. `timer` is the TimerView (src/lib/job-timer.js) after refreshTimer, `photos` is photosFor, and `photo_can` is { before, after }:
-//   whether each kind of photo may be added now, by the same rules as addPhoto, so a button is right before a refusal (ENG-016).
+//   whether each kind of photo may be added now, by the same rules as addPhoto, so a button is right before a refusal (ENG-016). The limit is
+//   judged on photoCounts, the rows the job holds, and not on `photos`, which leaves out the rows whose address the page may not link.
 // linkView(row) -> { path, on, generation, created_at, off_at } | null; `path` is '/job/{token}', never a URL, and null for a link that is off (the
 //   old token is dead and is not shown again).
 // managedView(execute, { bookingId, providerId, audit, actor }) -> null | { job_link, status_open, crew, window, timer, photos, checkins?, events? }
@@ -53,7 +54,7 @@ import { numberStates } from './crew-number-check.js';
 import { checkinsFor, tickedView } from './job-checkin.js';
 import { JOB_LINK_OPEN_STATUSES, displayName, eventsFor, executeOn, namesFor, nameOf, recordEvent } from './job-link-base.js';
 import { sessionFromRequest } from './job-link-code.js';
-import { PHOTOS_MAX_PER_TYPE, photosFor } from './job-photos.js';
+import { PHOTOS_MAX_PER_TYPE, photoCounts, photosFor } from './job-photos.js';
 import { refreshTimer, timerFor } from './job-timer.js';
 import { LINK_TOKEN_PATTERN, newLinkToken } from './link-token.js';
 import { windowView } from './job-window.js';
@@ -106,12 +107,12 @@ export async function resolveAccess(request, execute, link, crew) {
 // ---- what the page shows --------------------------------------------------------------------------------------------------------------
 
 // Whether each kind of photo may be added now, by the rules addPhoto judges again inside its lock: a before photo while the job is confirmed, an
-// after photo while it is in progress, fewer than PHOTOS_MAX_PER_TYPE of the kind, and a cleaner only while checked in.
-function photoCan(status, canAdd, photos) {
-  const count = (type) => photos.filter((photo) => photo.type === type).length;
+// after photo while it is in progress, fewer than PHOTOS_MAX_PER_TYPE of the kind, and a cleaner only while checked in. `counts` is photoCounts, the
+// rows of each type: addPhoto counts rows as well, and the list on the page has left some out.
+function photoCan(status, canAdd, counts) {
   return {
-    before: canAdd && status === 'confirmed' && count('before') < PHOTOS_MAX_PER_TYPE,
-    after: canAdd && status === 'in_progress' && count('after') < PHOTOS_MAX_PER_TYPE,
+    before: canAdd && status === 'confirmed' && counts.before < PHOTOS_MAX_PER_TYPE,
+    after: canAdd && status === 'in_progress' && counts.after < PHOTOS_MAX_PER_TYPE,
   };
 }
 
@@ -130,6 +131,7 @@ export async function jobPage(execute, link, access, crew) {
   const timer = await refreshTimer(execute, link, { kind: access.kind, ref: access.ref });
   const ticks = await checkinsFor(execute, link.booking_id, crew, { withOut: true });
   const photos = await photosFor(execute, link.booking_id);
+  const counts = await photoCounts(execute, link.booking_id);
   const crewView = tickedView(members, ticks);
   const canAdd = access.kind !== 'cleaner' || crewView.some((member) => member.id === access.ref && member.checked_in);
   return {
@@ -156,7 +158,7 @@ export async function jobPage(execute, link, access, crew) {
     window: windowView(row, Number(row.now_epoch)),
     timer,
     photos,
-    photo_can: photoCan(row.status, canAdd, photos),
+    photo_can: photoCan(row.status, canAdd, counts),
   };
 }
 

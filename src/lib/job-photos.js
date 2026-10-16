@@ -43,14 +43,24 @@
 //   `bytes` is a Buffer; it is cleaned of its Exif segment before it is stored. `location` is the body's { latitude, longitude, accuracy } as
 //   sent; a position that is missing or not usable is left out of the event and never refuses the photo.
 // photosFor(execute, bookingId) -> [{ id, type, url, taken_by: { kind, name } | null, taken_at (ISO) }], oldest first, of the job's newest 100
-//   photos (link photos are capped at 20 a type; the provider's own page has no cap, so the read has one). A photo the provider's page took has
-//   taken_by null. Names are read now, through the ids, with namesFor(): a cleaner who has been erased shows as 'A former cleaner'.
+//   photos (link photos are capped at 20 a type; the provider's own page has no cap, so the read has one), less every one whose address is not an
+//   isShownAddress. The 100 are read first and the rest are left out of them, so a row that is left out uses up one of the 100 and no older photo
+//   takes its place. A photo the provider's page took has taken_by null. Names are read now, through the ids, with namesFor(): a cleaner who has
+//   been erased shows as 'A former cleaner'. A row that is left out stays in the table (security gate round 1, F1): every answer that lists photos
+//   is built here, and both screens put the address of what it lists in an <a href> and an <img src>.
+// photoCounts(execute, bookingId) -> { before, after }: the rows the job holds of each type, whoever took them and whatever their address, which is
+//   the number addPhoto's limit judges. It is not the length of what photosFor lists, because a row that is left out of the list still counts.
+// isShownAddress(url) -> boolean: whether the page may link an address. True for a photo of the store (isStoredAddress, src/lib/job-photo-store.js) and
+//   for an older raster upload, /uploads/{digits}-{letters, digits, dots, underscores}.{jpg, jpeg, png, webp, gif} in any case, which is the shape
+//   src/app/api/upload/route.js gave a file before this feature. Anything else is false: an SVG or a PDF (the uploads route serves them inline), an
+//   address with a host or a scheme, a path with a second segment or a dot-dot, and a value that is not a string. The older routes keep what they are
+//   sent, so the rows can hold any string.
 // beforePhotoCount(execute, bookingId) -> a whole number: the before photos the job has, whoever took them and wherever (the provider's page or
 //   a link). It is what the provider's start asks before it lets a job begin.
 import { assignedCrew, inTransaction } from './booking-crew.js';
 import { checkinsFor, stillAllowed } from './job-checkin.js';
 import { JOB_LINK_OPEN_STATUSES, executeOn, namesFor, nameOf, recordEvent } from './job-link-base.js';
-import { PHOTO_MAX_BYTES, removePhoto, savePhoto, sniffImage, stripJpegMetadata } from './job-photo-store.js';
+import { PHOTO_MAX_BYTES, isStoredAddress, removePhoto, savePhoto, sniffImage, stripJpegMetadata } from './job-photo-store.js';
 import { readLocation } from './job-window.js';
 
 export const PHOTOS_MAX_PER_TYPE = 20;
@@ -70,11 +80,19 @@ const TYPES = Object.freeze(['before', 'after']);
 const LIST_LIMIT = 100;
 const PHOTO_COLUMNS = 'id, photo_url, photo_type, taken_by_kind, taken_by_ref, UNIX_TIMESTAMP(uploaded_at) AS taken_epoch';
 
+// The address /api/upload gave out before this feature: /uploads/, the time in milliseconds, a dash, and the name the file had with every character that is
+// not a letter, a digit or a dot turned into an underscore. Raster kinds only: the uploads route serves an SVG or a PDF inline, so a row that names one is
+// not shown. The extension is matched in any case because the uploads route reads it in lower case.
+const OLDER_UPLOAD = /^\/uploads\/[0-9]+-[A-Za-z0-9._]+\.(?:jpe?g|png|webp|gif)$/i;
+
+export const isShownAddress = (url) => isStoredAddress(url) || (typeof url === 'string' && OLDER_UPLOAD.test(url));
+
 const refuse = (reason) => ({ ok: false, reason });
 const toIso = (epoch) => (epoch === null || epoch === undefined ? null : new Date(Number(epoch) * 1000).toISOString());
 
-// Photo rows as the page and the panels show them, with the names of the people who took them read now.
-async function shown(execute, rows) {
+// Photo rows as the page and the panels show them, with the names of the people who took them read now. A row whose address the page may not link is not shown.
+async function shown(execute, allRows) {
+  const rows = allRows.filter((row) => isShownAddress(row.photo_url));
   const takenBy = (kind) => rows.filter((row) => row.taken_by_kind === kind).map((row) => row.taken_by_ref);
   const names = await namesFor(execute, { providers: takenBy('provider'), admins: takenBy('admin'), cleaners: takenBy('cleaner') });
   return rows.map((row) => ({
@@ -160,6 +178,13 @@ export async function photosFor(execute, bookingId) {
     [bookingId]
   );
   return shown(execute, rows.reverse());
+}
+
+export async function photoCounts(execute, bookingId) {
+  const rows = await execute('SELECT photo_type, COUNT(*) AS n FROM job_photos WHERE booking_id = ? GROUP BY photo_type', [bookingId]);
+  const counts = { before: 0, after: 0 };
+  for (const row of rows) counts[row.photo_type] = Number(row.n);
+  return counts;
 }
 
 export async function beforePhotoCount(execute, bookingId) {

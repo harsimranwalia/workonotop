@@ -38,6 +38,10 @@
 //   when it is missing, and answers PHOTO_URL_BASE + that name. `ext` is one of jpg, png, webp (what sniffImage answered). It throws when the
 //   bytes or the extension are wrong and when the disk refuses (the caller turns that into its 'store' answer); a file it began and could not
 //   finish is removed before the throw.
+// isStoredAddress(url) -> boolean
+//   Whether an address is one savePhoto gave out: PHOTO_URL_BASE, then 32 lowercase hex characters, then .jpg, .png or .webp, and nothing after it. It is
+//   the test removePhoto makes before it builds a path and the test the job link makes before it shows a row's address (src/lib/job-photos.js), so the
+//   pattern is written once, here. A value that is not a string is false.
 // removePhoto(url) -> nothing
 //   Deletes the file an address from savePhoto names; a file that is already gone is a success. An address that does not match
 //   ^/uploads/job-photos/[0-9a-f]{32}\.(jpg|png|webp)$ throws before any path is built, so a bad row cannot make it delete some other file.
@@ -177,6 +181,8 @@ function nameOf(url) {
   const name = url.slice(PHOTO_URL_BASE.length);
   return NAME_PATTERN.test(name) ? name : null;
 }
+
+export const isStoredAddress = (url) => nameOf(url) !== null;
 
 export async function removePhoto(url) {
   const name = nameOf(url);
