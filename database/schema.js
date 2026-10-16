@@ -738,6 +738,36 @@ const tables = [
     UNIQUE KEY uq_booking_card_links_token (token_hash),
     CONSTRAINT fk_booking_card_links_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
     CONSTRAINT fk_booking_card_links_issued_by FOREIGN KEY (issued_by) REFERENCES users(id) ON DELETE SET NULL
+  )`,
+
+  // provider_crew_members: the cleaners a provider has listed, a name and a mobile number in E.164 (database/migrations/0007-provider-crew.up.sql).
+  // A member is removed by setting removed_at, never by deleting the row, and the unique key counts removed rows too, so a number comes back to
+  // the row it was on. The name and number belong to people who are not users of the app.
+  // The migration sets the engine and collation; this file leaves them to the server default.
+  `CREATE TABLE IF NOT EXISTS provider_crew_members (
+    id INT NOT NULL AUTO_INCREMENT,
+    provider_id INT NOT NULL,
+    name VARCHAR(120) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    removed_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_provider_crew_members_phone (provider_id, phone),
+    KEY idx_provider_crew_members_active (provider_id, removed_at),
+    CONSTRAINT fk_provider_crew_members_provider FOREIGN KEY (provider_id) REFERENCES service_providers(id) ON DELETE CASCADE
+  )`,
+
+  // booking_crew: which crew members are on which job. The row says nothing about which provider: that is the member's, reached through the
+  // join in src/lib/booking-crew.js on the booking's current provider_id.
+  `CREATE TABLE IF NOT EXISTS booking_crew (
+    booking_id INT NOT NULL,
+    crew_member_id INT NOT NULL,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (booking_id, crew_member_id),
+    KEY idx_booking_crew_member (crew_member_id),
+    CONSTRAINT fk_booking_crew_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+    CONSTRAINT fk_booking_crew_member FOREIGN KEY (crew_member_id) REFERENCES provider_crew_members(id) ON DELETE CASCADE
   )`
 ];
 

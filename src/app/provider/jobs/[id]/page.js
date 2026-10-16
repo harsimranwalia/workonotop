@@ -6,6 +6,7 @@ import Link from 'next/link'
 import React from 'react'
 import TimeTracker from '../TimeTracker'
 import JobPhotoUpload from '../JobPhotoUpload'
+import JobCrewPanel from '@/components/provider/JobCrewPanel'
 
 export default function ProviderJobDetail({ params }) {
   const router = useRouter()
@@ -471,6 +472,9 @@ export default function ProviderJobDetail({ params }) {
               showContact={showContact}
               setShowContact={setShowContact}
             />
+
+            {/* The crew is the provider's to pick once the job is theirs; an open-pool job has no provider_id yet */}
+            {job.provider_id && <JobCrewPanel bookingId={job.id} />}
 
             {/* Customer Photos Gallery */}
             {job.photos?.length > 0 && (

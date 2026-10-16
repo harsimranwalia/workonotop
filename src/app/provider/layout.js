@@ -31,7 +31,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Home, Briefcase, DollarSign, User, LogOut, Menu, X, ChevronRight, MessageCircle, AlertCircle, Star } from 'lucide-react';
+import { Home, Briefcase, DollarSign, User, Users, LogOut, Menu, X, ChevronRight, MessageCircle, AlertCircle, Star } from 'lucide-react';
 
 const STRIPE_REQUIRED_PATHS = ['/provider/chats', '/provider/earnings', '/provider/jobs'];
 
@@ -211,6 +211,7 @@ export default function ProviderLayout({ children }) {
     { href: '/provider/dashboard', label: 'Dashboard', icon: Home },
     { href: '/provider/available-jobs', label: 'Available Jobs', icon: Briefcase },
     { href: '/provider/jobs', label: 'My Jobs', icon: Briefcase, stripeRequired: true },
+    { href: '/provider/crew', label: 'My Crew', icon: Users },
     { href: '/provider/chats', label: 'Messages', icon: MessageCircle, stripeRequired: true },
     { href: '/provider/payouts', label: 'Earnings', icon: DollarSign, stripeRequired: true },
     { href: '/provider/ratings', label: 'Ratings', icon: Star },
