@@ -179,7 +179,8 @@ export async function collectBookingPayment(stripe, booking, opts = {}) {
   return { ok: false, reason: 'mismatch' };
 }
 
-// The idempotency key of a report's one added-items PaymentIntent. The booking's own key, booking-{id}-completion-charge, is unchanged.
+// The idempotency key of a report's one added-items PaymentIntent, report-{id}-added-items-charge: a function of the report's id, where the booking's
+// own key, booking-{id}-completion-charge, is built in chargeSavedCard.
 export const ADDED_ITEMS_KEY = (reportId) => `report-${reportId}-added-items-charge`;
 
 // collectAddedItems(stripe, report, opts) takes the second charge for the items an admin approved from an on-site report, on the card
