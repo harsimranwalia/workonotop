@@ -1,5 +1,6 @@
-// Decisions about a booking's payment: the amounts a card payment can take, whether a payment matches a booking, and the one
-// charge when the job is done. The Stripe client is passed in, so each branch runs with a scripted client in the suite.
+// Decisions about a booking's payment: the amounts a card payment can take, whether a payment matches a booking, the one
+// charge when the job is done, and the second charge for items added on site and approved by an admin (collectAddedItems). The
+// Stripe client is passed in, so each branch runs with a scripted client in the suite.
 // This module imports nothing and holds no connection: the routes hand it their client and their save/read callbacks.
 
 // The smallest and largest amounts a card payment can take (50 in the smallest unit, the CAD minimum; the eight-digit ceiling
@@ -178,9 +179,98 @@ export async function collectBookingPayment(stripe, booking, opts = {}) {
   return { ok: false, reason: 'mismatch' };
 }
 
+// The idempotency key of a report's one added-items PaymentIntent, report-{id}-added-items-charge: a function of the report's id, where the booking's
+// own key, booking-{id}-completion-charge, is built in chargeSavedCard.
+export const ADDED_ITEMS_KEY = (reportId) => `report-${reportId}-added-items-charge`;
+
+// collectAddedItems(stripe, report, opts) takes the second charge for the items an admin approved from an on-site report, on the card
+// the customer has on file, for exactly the cents the admin approved. report: { id, booking_id, cents, charge_intent_id }; opts as
+// collectBookingPayment's: { currency, saveIntentId(newId, oldId) -> saved?, readIntentId() -> the id on the report, cardIntentId, card }
+// with the callbacks acting on the report's charge_intent_id and not on the booking's payment_intent_id. It is a PaymentIntent of its own
+// and never touches the booking's price or payment: it is created unconfirmed under ADDED_ITEMS_KEY, its id is saved on the report by
+// compare-and-set before it is confirmed, and a retry (charge_intent_id set) reads that intent and decides it by its state, so a crash
+// between the two steps is a retry of the same intent and not a second charge. An intent that does not name this report in
+// metadata.report_id, or that was cancelled, is 'mismatch': nothing is created over it. Never throws for an expected outcome.
+//   -> { ok: true, chargeId, amountCents, overCollected } | { ok: false, reason }
+// reason: 'mismatch' | 'declined' | 'action_required' | 'no_payment_method' | 'cancelled_by_person' | 'unavailable' | 'not_configured'
+// (never 'not_due': that belongs to a payment held for a date). An amount that is not a whole number of cents from MIN_CENTS to MAX_CENTS is
+// 'mismatch', as the booking's guard has it; the admin's desk has already refused such a sum with a reason of its own.
+export async function collectAddedItems(stripe, report, opts = {}) {
+  if (!stripe) return { ok: false, reason: 'not_configured' };
+  const currency = opts.currency || 'cad';
+  const expected = report.cents;
+  if (!Number.isInteger(expected) || expected < MIN_CENTS || expected > MAX_CENTS) return { ok: false, reason: 'mismatch' };
+
+  if (report.charge_intent_id) {
+    let saved;
+    try {
+      saved = await stripe.paymentIntents.retrieve(report.charge_intent_id);
+    } catch (err) {
+      return { ok: false, reason: errorReason(err) };
+    }
+    if (!saved.metadata || String(saved.metadata.report_id) !== String(report.id)) return { ok: false, reason: 'mismatch' };
+    return decideSavedCharge(stripe, saved, expected);
+  }
+
+  let source;
+  if (opts.card && opts.card.customer && opts.card.payment_method) {
+    source = opts.card;
+  } else {
+    if (!opts.cardIntentId) return { ok: false, reason: 'no_payment_method' };
+    try {
+      source = await stripe.paymentIntents.retrieve(opts.cardIntentId);
+    } catch (err) {
+      return { ok: false, reason: errorReason(err) };
+    }
+    if (source.status === 'canceled' && source.cancellation_reason !== 'automatic' && source.cancellation_reason !== 'expired') {
+      return { ok: false, reason: 'cancelled_by_person' };
+    }
+    if (!source.customer) return { ok: false, reason: 'no_payment_method' };
+  }
+  return chargeSavedCard(
+    stripe,
+    { id: report.booking_id, payment_intent_id: report.charge_intent_id },
+    source,
+    expected,
+    currency,
+    { ...opts, chargeKey: ADDED_ITEMS_KEY(report.id), metadata: { booking_id: String(report.booking_id), report_id: String(report.id) } },
+  );
+}
+
+// lookAtAddedItemsCharge(stripe, report) reads the PaymentIntent saved on a report and says whether it holds a charge. It writes nothing to
+// Stripe: it is the look the desk takes before it closes a report whose charge failed, so a charge Stripe took is not declined away.
+// report: { id, cents, charge_intent_id }. Never throws for an expected outcome.
+//   -> { ok: true, taken: true, chargeId, amountCents } | { ok: true, taken: false } | { ok: false, reason }
+// taken: the intent succeeded, received at least report.cents and names its charge (collectedFrom's test). Not taken: the intent holds no
+// charge and none is on its way, whatever the reason (it wants a payment method, a confirmation or the customer, or it was cancelled), and
+// it is left as it is. No answer, with the reason: 'unavailable' (the intent is processing, or Stripe could not be reached to read it),
+// 'mismatch' (it does not name this report, it succeeded but not for what was approved, or it is in a state a charge here never reaches),
+// 'not_configured' (no client).
+export async function lookAtAddedItemsCharge(stripe, report) {
+  if (!stripe) return { ok: false, reason: 'not_configured' };
+  let saved;
+  try {
+    saved = await stripe.paymentIntents.retrieve(report.charge_intent_id);
+  } catch (err) {
+    return { ok: false, reason: errorReason(err) };
+  }
+  if (!saved.metadata || String(saved.metadata.report_id) !== String(report.id)) return { ok: false, reason: 'mismatch' };
+  if (saved.status === 'succeeded') {
+    const collected = collectedFrom(saved, report.cents);
+    return collected.ok ? { ok: true, taken: true, chargeId: collected.chargeId, amountCents: collected.amountCents } : collected;
+  }
+  if (saved.status === 'processing') return { ok: false, reason: 'unavailable' };
+  if (HOLDS_NO_CHARGE.has(saved.status)) return { ok: true, taken: false };
+  return { ok: false, reason: 'mismatch' };
+}
+
+const HOLDS_NO_CHARGE = new Set(['requires_payment_method', 'requires_confirmation', 'requires_action', 'canceled']);
+
 // chargeSavedCard: the hold lapsed, so the card the hold was placed on is charged for the recorded price with a new
 // off-session intent, created unconfirmed under a per-booking key and saved on the booking before it is confirmed, so any
-// retry finds it.
+// retry finds it. It reads `booking` for `id` and `payment_intent_id` only (the key, the metadata and the compare-and-set's old
+// value), so collectAddedItems passes it a report's booking id and charge_intent_id; opts.chargeKey and opts.metadata, when
+// given, replace the booking's key and metadata, and a booking's own charge gives neither.
 async function chargeSavedCard(stripe, booking, intent, expected, currency, opts) {
   const card = await savedCardOf(stripe, intent);
   if (card.reason) return { ok: false, reason: card.reason };
@@ -193,10 +283,10 @@ async function chargeSavedCard(stripe, booking, intent, expected, currency, opts
       currency,
       customer: intent.customer,
       payment_method: card.id,
-      metadata: { booking_id: String(booking.id) },
+      metadata: opts.metadata || { booking_id: String(booking.id) },
       confirm: false,
       automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
-    }, { idempotencyKey: `booking-${booking.id}-completion-charge` });
+    }, { idempotencyKey: opts.chargeKey || `booking-${booking.id}-completion-charge` });
   } catch (err) {
     return { ok: false, reason: errorReason(err) };
   }
@@ -305,6 +395,9 @@ function idOf(value) {
 // Connection, rate-limit, server and key errors are about Stripe or this server's configuration, not about the booking: try
 // again later. A card error is the card's answer. Any other error (an intent Stripe does not know, a request Stripe refuses)
 // is about this booking: it is a mismatch, so the admins hear of it once and it is not retried for ever.
+// One request Stripe refuses is not about the booking either: its 409, "another request is in progress under this idempotency
+// key". It means a second attempt on the same report is running right now, and that attempt may still take the charge. Read
+// as a mismatch it would write the report `failed` under a charge that is about to succeed, so it is "try later".
 const TRY_LATER = new Set(['StripeConnectionError', 'StripeRateLimitError', 'StripeAPIError', 'StripeAuthenticationError', 'StripePermissionError']);
 
 function errorReason(err) {
@@ -313,5 +406,6 @@ function errorReason(err) {
     return 'declined';
   }
   if (err && (TRY_LATER.has(err.type) || err.statusCode >= 500)) return 'unavailable';
+  if (err && (err.statusCode === 409 || err.code === 'idempotency_key_in_use')) return 'unavailable';
   return 'mismatch';
 }

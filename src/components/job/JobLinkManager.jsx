@@ -14,7 +14,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { callApi, clockOf, crewOf, dataOf, distanceOf, isObject, messageOf, OFFLINE_TEXT, photosOf, postJson, stampOf, textOf, timerOf, windowOf } from './jobLinkKit';
+import { callApi, clockOf, crewOf, dataOf, distanceOf, isObject, messageOf, OFFLINE_TEXT, photosOf, postJson, REPORT_CHOICES, reportsOf, stampOf, textOf, timerOf, windowOf } from './jobLinkKit';
 import JobLinkRecord from './JobLinkRecord';
 import { NumberChip } from '@/components/provider/CrewNumberCheck';
 
@@ -114,6 +114,7 @@ function sayEvent(event) {
     case 'timer_start': return `${who} started the job`;
     case 'timer_pause': return detail === 'last_out' ? 'The job paused when the last cleaner checked out' : `${who} paused the job`;
     case 'timer_resume': return `${who} resumed the job`;
+    case 'report_added': return `${who} sent a report: ${REPORT_CHOICES.find((one) => one.code === detail)?.label || 'a report'}`;
     case 'over_quote': return 'The job went over its quoted time';
     default: return `${who} did something on this link`;
   }
@@ -139,6 +140,7 @@ function managedOf(data) {
     window: windowOf(data.window),
     timer: timerOf(data.timer),
     photos: photosOf(data.photos),
+    reports: reportsOf(data.reports),
     checkins: Array.isArray(data.checkins) ? data.checkins.map(checkinOf).filter(Boolean) : null,
     events: Array.isArray(data.events) ? data.events.map(eventOf).filter(Boolean) : null,
   };
@@ -383,7 +385,7 @@ export default function JobLinkManager({ path, kind, look: lookName, title }) {
       )}
 
       {ready && view.link && (
-        <JobLinkRecord look={look} open={view.open} timer={view.timer} photos={view.photos} asOf={view.asOf}
+        <JobLinkRecord look={look} open={view.open} timer={view.timer} photos={view.photos} reports={view.reports} admin={kind === 'admin'} asOf={view.asOf}
           refresh={<Button look={look} busy={reading} onClick={reload}>Refresh</Button>} />
       )}
 

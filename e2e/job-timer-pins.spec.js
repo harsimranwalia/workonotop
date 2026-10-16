@@ -11,7 +11,7 @@
 //        payment, stripe or booking_number word.
 //   Pure     src/lib/job-clock.js has no import.
 //   Self     the four self routes (photos POST, timer GET and POST, check-out POST) call findJobLink( before any body reader.
-//   Named    EVENT_KINDS is its fourteen names in order; PHOTOS_MAX_PER_TYPE, PHOTO_MAX_BYTES, QUOTE_DEFAULT_MINUTES, EVENT_LIST_LIMIT, EVENT_DETAILS,
+//   Named    EVENT_KINDS is its fifteen names in order; PHOTOS_MAX_PER_TYPE, PHOTO_MAX_BYTES, QUOTE_DEFAULT_MINUTES, EVENT_LIST_LIMIT, EVENT_DETAILS,
 //        PHOTO_DAYS, ORPHAN_GRACE_HOURS, PHOTO_URL_BASE and LOCATION_REQUIRED are at their values; vercel.json runs /api/cron/job-photos at 37 4 * * *.
 //        The three constants the page owns (PHOTO_LONG_EDGE_PX, PHOTO_JPEG_QUALITY, TIMER_POLL_SECONDS in src/components/job/jobLinkKit.js) are not pinned here.
 //   Schema   the 0009 migration pair exists and database/schema.js carries its columns and its index.
@@ -408,8 +408,9 @@ test.describe('Job timer and photos: the pins', () => {
     });
 
     // Mutant that turns this case red: an event kind is renamed, dropped or added (the six of ENG-016 are photo_added, check_out, timer_start,
-    // timer_pause, timer_resume and over_quote), so the record's words change under the admin's panel and the two panels' sentences.
-    test('Pins: EVENT_KINDS is the fourteen names, in order', async () => {
+    // timer_pause, timer_resume and over_quote; ENG-017 adds report_added), so the record's words change under the admin's panel and the two
+    // panels' sentences.
+    test('Pins: EVENT_KINDS is the fifteen names, in order', async () => {
         const { EVENT_KINDS } = await loaded('src/lib/job-link-base.js', () => import('../src/lib/job-link-base.js'));
         expect([...EVENT_KINDS], 'EVENT_KINDS exported by src/lib/job-link-base.js').toEqual([
             'link_created',
@@ -426,6 +427,7 @@ test.describe('Job timer and photos: the pins', () => {
             'timer_pause',
             'timer_resume',
             'over_quote',
+            'report_added',
         ]);
     });
 
@@ -452,7 +454,7 @@ test.describe('Job timer and photos: the pins', () => {
     });
 
     // Mutant that turns this case red: the list is cut back to 50 (a busy job's first events fall out of the list) or a detail is renamed or dropped.
-    test('Pins: EVENT_LIST_LIMIT is 100 and EVENT_DETAILS is the twelve names', async () => {
+    test('Pins: EVENT_LIST_LIMIT is 100 and EVENT_DETAILS is the seventeen names', async () => {
         const { EVENT_LIST_LIMIT, EVENT_DETAILS } = await loaded('src/lib/job-link-base.js', () => import('../src/lib/job-link-base.js'));
         expect(EVENT_LIST_LIMIT, 'EVENT_LIST_LIMIT exported by src/lib/job-link-base.js').toBe(100);
         expect([...EVENT_DETAILS], 'EVENT_DETAILS exported by src/lib/job-link-base.js').toEqual([
@@ -468,6 +470,11 @@ test.describe('Job timer and photos: the pins', () => {
             'after',
             'last_out',
             'removed',
+            'no_answer',
+            'details_wrong',
+            'unhygienic',
+            'add_items',
+            'cannot_complete',
         ]);
     });
 
