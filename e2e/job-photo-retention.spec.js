@@ -53,7 +53,7 @@ const EMAIL_PREFIX = 'e2e-jpr-';
 const CUSTOMER_PHONE = '+14035550299';
 const RUN = Date.now().toString(36);
 const CRON_PATH = '/api/cron/job-photos';
-const SUMMARY_KEYS = ['deleted_photos', 'orphan_files', 'skipped'];
+const SUMMARY_KEYS = ['deleted_photos', 'deleted_report_photos', 'orphan_files', 'skipped']; // sorted; ENG-017 adds deleted_report_photos
 // What a probe file holds: the store writes whatever bytes it is given, and nothing here reads a picture.
 const PROBE_BYTES = Buffer.from('ENG-016 retention probe, not a picture');
 
@@ -592,7 +592,7 @@ test.describe('Job photo retention: the library', () => {
             })
         );
         expect(lines, 'the run logs nothing at all').toEqual([]);
-        expect(Object.keys(summary).sort(), 'the summary has the three counts').toEqual(SUMMARY_KEYS);
+        expect(Object.keys(summary).sort(), 'the summary has the four counts').toEqual(SUMMARY_KEYS);
         expect(
             Object.values(summary).every((count) => Number.isSafeInteger(count) && count >= 0),
             'and each is a whole number'
