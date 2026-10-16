@@ -160,7 +160,8 @@ test.describe('Reports: the job link', () => {
     await page.getByRole('button', { name: 'Try again' }).click();
     await expect(page.getByText('Report sent. The office has it.')).toBeVisible();
     expect(caught).toHaveLength(2);
-    expect(caught[1].client_token).toBe(caught[0].client_token);
+    expect(caught[0].client_token, 'the first send carries a token').toMatch(/^[A-Za-z0-9_-]{16,}$/);
+    expect(caught[1].client_token, 'and the send again carries the same one').toBe(caught[0].client_token);
     await expect(page.locator('li', { hasText: 'Unhygienic conditions' }).filter({ hasText: 'Sent' })).toHaveCount(1);
   });
 

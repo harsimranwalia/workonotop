@@ -12,6 +12,8 @@
 //            imported by src/lib/report-desk.js and by no other file under src/.
 //   Gate     every handler of the two admin report routes calls requireCaller(request, ['admin']) as its first statement.
 //   Self     the report route calls findJobLink( before resolveAccess( and before any body reader.
+//   Sent     the three routes, src/lib/job-reports.js, src/lib/report-desk.js and src/lib/booking-payment.js name none of sendEmail, sendSMS,
+//            sendPushNotification and notifyUser and import none of src/lib/email.js, sms.js and push.js; the names are real ones (other files of src/ name them).
 //   Log      every console call in the new files is a fixed string, or a fixed string and error?.code || error?.name, with the caught value named error.
 //   Named    REPORT_NOTE_MAX, REPORTS_MAX_PER_BOOKING, DECISION_NOTE_MAX, CHARGEABLE_STATUSES and REPORT_LIST_LIMIT are at their values; the five report
 //            types are the same five in the library, the migration, database/schema.js and the event details of src/lib/job-link-base.js.
@@ -106,6 +108,31 @@ test.describe('Pins: the money path', () => {
         const importing = sourceFiles('src').filter((file) => /import\s*\{[^}]*\bcollectAddedItems\b[^}]*\}\s*from/.test(codeOf(file)));
         expect(importing).toEqual(['src/lib/report-desk.js']);
         expect(/\bcollectAddedItems\s*\(/.test(codeOf('src/lib/report-desk.js')), 'the desk calls it').toBe(true);
+    });
+});
+
+test.describe('Pins: nothing is sent', () => {
+    // The senders of src/: sendEmail (src/lib/email.js), sendSMS (src/lib/sms.js), sendPushNotification and notifyUser (src/lib/push.js).
+    const SENDERS = ['sendEmail', 'sendSMS', 'sendPushNotification', 'notifyUser'];
+    const SENDER_MODULES = /from\s+['"][^'"]*\/(?:email|sms|push)(?:\.js)?['"]/;
+
+    test('Pins: the three routes, the library, the desk and the money library name no e-mail, SMS or push sender and import none of their modules', () => {
+        const checked = [...newFiles(), 'src/lib/booking-payment.js'];
+        for (const file of checked) {
+            const code = codeOf(file);
+            for (const sender of SENDERS) expect(new RegExp(`\\b${sender}\\b`).test(code), `${file} names ${sender}`).toBe(false);
+            expect(SENDER_MODULES.test(code), `${file} imports src/lib/email.js, sms.js or push.js`).toBe(false);
+        }
+    });
+
+    test('Pins: the sender names are real ones, each named by files of src/ outside the files checked', () => {
+        const checked = new Set([...NEW_FILES, 'src/lib/booking-payment.js']);
+        const others = sourceFiles('src').filter((file) => !checked.has(file));
+        for (const sender of SENDERS) {
+            const naming = others.filter((file) => new RegExp(`\\b${sender}\\b`).test(codeOf(file)));
+            expect(naming.length, `files outside the checked ones that name ${sender} (a renamed sender would leave the pin above reading nothing)`).toBeGreaterThan(0);
+        }
+        expect(others.some((file) => SENDER_MODULES.test(codeOf(file))), 'files outside the checked ones that import a sender module').toBe(true);
     });
 });
 

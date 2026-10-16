@@ -153,7 +153,9 @@ const only = (stripe, ...methods) => stripe.calls.filter(([method]) => methods.i
 test.describe('collectAddedItems', () => {
     test('the key is the report\'s own and is not the booking\'s', () => {
         expect(ADDED_ITEMS_KEY(7)).toBe('report-7-added-items-charge');
-        expect(ADDED_ITEMS_KEY(7)).not.toBe('booking-42-completion-charge');
+        expect(ADDED_ITEMS_KEY(7), 'not the booking\'s key for the same number').not.toBe('booking-7-completion-charge');
+        expect(ADDED_ITEMS_KEY(8), 'one key for each report').not.toBe(ADDED_ITEMS_KEY(7));
+        expect(ADDED_ITEMS_KEY(7), 'the same key every time').toBe(ADDED_ITEMS_KEY(7));
     });
 
     test('an approved sum is charged on the card on file in an intent of its own, saved on the report before it is confirmed', async () => {
