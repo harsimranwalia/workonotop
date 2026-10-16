@@ -24,7 +24,7 @@ const STATUSES = ['open', 'handled', 'approved', 'declined'];
 const CHARGES = ['none', 'pending', 'paid', 'failed'];
 
 const LOAD_FAILED_TEXT = 'Reports could not be loaded. Try again.';
-const MORE_FAILED_TEXT = "Couldn't load more reports. The ones above are still shown.";
+const MORE_FAILED_TEXT = "Couldn't load more reports.";
 const NOTHING_TEXT = 'No reports to show.';
 const PHOTO_GONE_TEXT = 'The photo has been removed.';
 const DECIDE_FAILED_TEXT = "Couldn't save that. Check the report and try again.";
@@ -197,16 +197,16 @@ function ItemsDialog({ report, dark, onClose, onUpdate, onSay }) {
   const [notice, setNotice] = useState('');
   const [serverTotal, setServerTotal] = useState(null);
 
+  // The effect runs twice in development (React's strict mode mounts, cleans up and mounts again). Closing the dialog in the clean-up would raise a late "close"
+  // event on the listener the second run has added, and the card would drop the dialog it had just opened; so the clean-up only removes the listener, and a
+  // dialog that is already open is not opened again.
   useEffect(() => {
     const element = dialog.current;
-    element.showModal();
+    if (!element.open) element.showModal();
     titleRef.current?.focus();
     const closed = () => onClose();
     element.addEventListener('close', closed);
-    return () => {
-      element.removeEventListener('close', closed);
-      if (element.open) element.close();
-    };
+    return () => element.removeEventListener('close', closed);
   }, []);
 
   useEffect(() => {
@@ -216,7 +216,7 @@ function ItemsDialog({ report, dark, onClose, onUpdate, onSay }) {
       const data = dataOf(result);
       const catalogue = data ? catalogueOf(data.catalogue) : null;
       const current = data ? deskOf(data.report) : null;
-      // A list that is being read again after a price change keeps the one on screen when the new read fails: the sum from the server is still shown.
+      // A read after a price change that fails keeps the list on screen, so the server's total can be read and charged.
       setDetail((held) => (catalogue && current ? { status: 'ready', catalogue, report: current } : held.status === 'ready' ? held : { status: 'failed' }));
     });
     return () => controller.abort();
@@ -365,7 +365,7 @@ function ReportCard({ report, dark, onUpdate, onSay }) {
   const body = dark ? 'text-slate-200' : 'text-slate-700';
   const money = report.type === 'add_items';
 
-  // The card keeps its place when its report changes under it, so the focus goes to its title: the button that was used may no longer be there.
+  // The card keeps its place when its report changes under it, so the focus goes to its title: the button that was used can be gone.
   useEffect(() => {
     if (acted.current) {
       acted.current = false;
@@ -485,8 +485,8 @@ export default function OnSiteReports({ isDarkMode }) {
   const [all, setAll] = useState(false);
   const [more, setMore] = useState('idle');
   const [said, setSaid] = useState('');
-  // What a call that is still on its way needs to know when it lands: which list is on screen, how many reports it holds, and whether the answer has been
-  // made out of date by a newer call or a decision.
+  // What a call in flight needs to know when it lands: which list is on screen, how many reports it holds, and whether a newer call or a decision has made
+  // its answer out of date.
   const latest = useRef({ all, page });
   latest.current = { all, page };
   const generation = useRef(0);
@@ -552,8 +552,8 @@ export default function OnSiteReports({ isDarkMode }) {
   const update = useCallback((report) => {
     generation.current += 1;
     setPage((held) => {
-      const old = held.reports.find((one) => one.id === report.id);
-      const delta = (waiting(report) ? 1 : 0) - ((old ? waiting(old) : waiting(report)) ? 1 : 0);
+      const prior = held.reports.find((one) => one.id === report.id);
+      const delta = (waiting(report) ? 1 : 0) - ((prior ? waiting(prior) : waiting(report)) ? 1 : 0);
       return { ...held, openCount: Math.max(0, held.openCount + delta), reports: held.reports.map((one) => (one.id === report.id ? report : one)) };
     });
   }, []);
@@ -593,7 +593,8 @@ export default function OnSiteReports({ isDarkMode }) {
 
   // Nothing while the first read is on its way and nothing when no report is waiting (unless the admin asked to see the handled ones). Only a failed load
   // is shown without any.
-  if (!failed && (!loaded || (page.openCount === 0 && !all))) return null;
+  // A report that has just been decided stays on its card until the next read takes it out, so the section is there while it holds a card.
+  if (!failed && (!loaded || (page.openCount === 0 && page.reports.length === 0 && !all))) return null;
 
   const dark = isDarkMode;
   const muted = dark ? 'text-slate-400' : 'text-slate-600';
