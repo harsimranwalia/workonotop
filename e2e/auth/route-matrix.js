@@ -1,4 +1,4 @@
-// The route matrix: every route file and exported method under src/app/api, one row each, as data (211 rows).
+// The route matrix: every route file and exported method under src/app/api, one row each, as data (218 rows).
 //
 // SOURCE: Appendix A of agents/architect/designs/ENG-004-lock-down-unauthenticated-access-and-role-checks.md (the
 // design for ENG-004; ADR-003). This file was generated from that table, in the table's order and with its route
@@ -26,16 +26,18 @@
 //   note     the census note as in the appendix (cut to fit there), plus a line where this file adds something
 //   probe    what the role-by-route test sends:
 //              path      the route with each [param] replaced by PROBE_IDS.missing, an id no fixture row has
-//              body      undefined for GET and DELETE (105 rows) and for the four POST and PUT rows whose handler `await`s
+//              body      undefined for GET and DELETE (107 rows) and for the four POST and PUT rows whose handler `await`s
 //                        request.json() before its first side effect (a request with no body throws there, nothing is
-//                        written; the notes of the four cite the lines), and for POST /api/admin/bookings/[id]/push, whose
-//                        handler reads no body; {} for the other 101 POST, PUT and PATCH rows. {} is
-//                        the convention, not a finding that the handler validates it: see "What a probe does" below.
+//                        written; the notes of the four cite the lines), and for POST /api/admin/bookings/[id]/push, POST
+//                        /api/admin/bookings/[id]/card-link and POST /api/card/[token]/setup, whose handlers read no body; {}
+//                        for the other 104 POST, PUT and PATCH rows. {} is the convention, not a finding that the handler
+//                        validates it: see "What a probe does" below.
 //              query     optional, e.g. '?id=999999999', for a handler that reads its id from the query (none set yet)
 //              anon      roles rows: 401, always (the contract). public and self rows: an array of the statuses a
 //                        request with no credential may get. public: what today's handler answers, measured on the
 //                        dev app. self: the design's refusal status (cron 401; AI gateway 401, or 500 when the key
-//                        is unset; Stripe 400, or 500 when the secret is unset) widened only by what the dev app
+//                        is unset; Stripe 400, or 500 when the secret is unset; card link 404, the one answer to a token that
+//                        is malformed, unknown or dead) widened only by what the dev app
 //                        answers because that secret is not configured there (the note says which).
 //              allowed   optional: statuses acceptable for a role the row allows when the handler's own validation
 //                        legitimately answers 401 or 403 (default: anything but 401 or 403)
@@ -51,7 +53,7 @@
 // roles: ['admin', 'provider'] with the split in its note.
 //
 // What a probe does. Every probe uses a fixture account only (@workontap.test), an id no fixture row has, and an empty body
-// or none: 211 of the 211 rows, by a script (the body is undefined or {}, the path is the route with each [param] replaced
+// or none: 218 of the 218 rows, by a script (the body is undefined or {}, the path is the route with each [param] replaced
 // by PROBE_IDS.missing, no row sets a query). That does not make a probe harmless by itself: a handler that needs no input
 // acts on {} and on nothing (ENG-020 review B1, QA F1). What the notes say about it, as counted by script:
 //   - Twelve rows carry a `Probe (B2, 2026-10-02` line (the rows whose note holds that text): GET and PATCH
@@ -62,11 +64,11 @@
 //     where the handler writes or sends, the first side effect it stops before (a write, a schema change, mail, a push, an
 //     outbound call, a payment, a file); GET /api/admin/deletion-requests carries only a cross-reference to the PATCH row, for
 //     the same fetch.
-//   - The other 199 rows have no such line: 119 are write rows (POST, PUT, PATCH, DELETE) and 80 are GET (script counts).
-//     49 of the 199 (36 public, 13 self) carry a `Probe measured on the dev app` line instead, which records the
+//   - The other 206 rows have no such line: 124 are write rows (POST, PUT, PATCH, DELETE) and 82 are GET (script counts).
+//     49 of the 206 (36 public, 13 self) carry a `Probe measured on the dev app` line instead, which records the
 //     status measured there for the request with no credential and no body. Code-review round 1 read the write handlers the
 //     probes reach (88: 31 admin, 57 other; agents/principal-engineer/notebook/2026-10-02-eng020-review.md; the matrix has
-//     96 routes with a write row, 32 admin and 64 other, and the difference was not traced). It did not read the GET
+//     101 routes with a write row, 35 admin and 66 other, and the difference was not traced). It did not read the GET
 //     handlers, nor the public, self and pending rows as such. The GET handlers were scanned in review round 2 (comments
 //     removed; the scan found two that reach a write) and again by this round's sweep of all 83 GET rows (next bullet). No
 //     field of the 195 rows that were there before ENG-007 added its row (POST /api/pricing, a public row with no `Probe measured`
@@ -143,6 +145,21 @@ export const matrix = [
         route: '/api/admin/blogs/[id]', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
         note: 'ENG-022: DELETE calls requireCaller(request, [\'admin\']) as its first statements (src/app/api/admin/blogs/[id]/route.js:53-54), before the body or the database is read: no credential is 401, any other role 403, and the admin gets what it got. Census finding before the guard, line numbers moved to this file: Anyone can hard-delete any blog by sequential id.',
         probe: { path: '/api/admin/blogs/999999999', body: undefined, anon: 401 },
+    },
+    {
+        route: '/api/admin/bookings', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
+        note: 'ENG-013: a new route (src/app/api/admin/bookings/route.js). POST calls requireCaller(request, [\'admin\']) as its first statements (:121-122), before the body is read: no credential is 401, any other role 403, and nothing is written for either. For an admin it books a job on a customer\'s behalf: one bookings row priced by the server from the answers (priceJobPastQuote), its history row and its booking_card_links row in one transaction; user_id, payment_intent_id and every money field of the body are not read. The probe sends an empty JSON body: the answer to an admin is 400 \'Choose a service.\' on the field service_id (:142-143), before the catalog or any table is read (e2e/on-behalf-booking.spec.js asserts it). No \'Probe measured\' claim: the probe was not run on the dev app when this row was written.',
+        probe: { path: '/api/admin/bookings', body: {}, anon: 401 },
+    },
+    {
+        route: '/api/admin/bookings/[id]/card-link', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
+        note: 'ENG-013: a new route (src/app/api/admin/bookings/[id]/card-link/route.js). GET calls requireCaller(request, [\'admin\']) as its first statements (:29-30), before the id is read or the database is touched: no credential is 401, any other role 403. For an admin it answers the link\'s state and the card on file, never a token (none is stored). The probe\'s id matches no booking: 404 \'This booking has no card link\' (:36).',
+        probe: { path: '/api/admin/bookings/999999999/card-link', body: undefined, anon: 401 },
+    },
+    {
+        route: '/api/admin/bookings/[id]/card-link', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
+        note: 'ENG-013: a new route (src/app/api/admin/bookings/[id]/card-link/route.js). POST calls requireCaller(request, [\'admin\']) as its first statements (:62-63), before the id is read or the database is touched: no credential is 401, any other role 403. For an admin it reissues the booking\'s link (a new token, shown once) and keeps a card already on file. The handler never reads the body, so the probe sends none. The probe\'s id matches no booking: 404 \'This booking has no card link\' (:69), before the UPDATE at :77-82, so nothing is written.',
+        probe: { path: '/api/admin/bookings/999999999/card-link', body: undefined, anon: 401 },
     },
     {
         route: '/api/admin/bookings/[id]/override', method: 'PUT', today: 'full', kind: 'roles', roles: ['admin'], owner: '-',
@@ -293,6 +310,11 @@ export const matrix = [
         route: '/api/admin/payouts', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
         note: 'Before ENG-021 there was no auth: provider balances, emails and Stripe payout/transfer ids were exposed (now to an admin only). A cookie-only fix wo… ENG-021 guard: src/app/api/admin/payouts/route.js:6-7 calls requireCaller(request, [\'admin\']) as the method\'s first statements, so a request with no session gets 401 and a role the row does not allow gets 403. GET() took no parameter before ENG-021; it is GET(request) at :5 now.',
         probe: { path: '/api/admin/payouts', body: undefined, anon: 401 },
+    },
+    {
+        route: '/api/admin/pricing', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
+        note: 'ENG-013: a new route (src/app/api/admin/pricing/route.js). POST calls requireCaller(request, [\'admin\']) as its first statements (:24-25), before the body is read: no credential is 401, any other role 403. For an admin it answers the price of a set of answers with the quote verdict passed (priceJobPastQuote) and writes nothing. The probe sends an empty JSON body, which names no service: the answer to an admin is 400 \'This service is not available for booking\' (:41-43; e2e/on-behalf-booking.spec.js asserts it). No \'Probe measured\' claim: the probe was not run on the dev app when this row was written.',
+        probe: { path: '/api/admin/pricing', body: {}, anon: 401 },
     },
     {
         route: '/api/admin/provider-jobs', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
@@ -683,6 +705,21 @@ export const matrix = [
         route: '/api/bookings/[id]/restart', method: 'POST', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
         note: 'HIGH before ENG-021 (an admin only now): anonymous removal of the provider and reset to pending on any booking; no status guard, s… Probe (B2, 2026-10-02): not held, probe unchanged. The handler never reads the body. The UPDATE at restart/route.js:22-34 matches no row for 999999999, and the INSERT into booking_status_history at :37-41 is stopped only by the database: SHOW CREATE TABLE on the dev DB (structure only, 07:01 on 2026-10-02) shows booking_status_history_ibfk_1, booking_id REFERENCES bookings (id) ON DELETE CASCADE, so the INSERT fails, the transaction rolls back (:45-48) and the catch answers 500. A schema without that foreign key would store a history row for a booking that does not exist. ENG-021 guard: restart/route.js:6-7 (requireCaller(request, [\'admin\'])), ahead of the UPDATE; it does not read the body either, so the probe (admin style only now) still stops where it did. The line numbers in the probe line above are the ones after this change.',
         probe: { path: '/api/bookings/999999999/restart', body: {}, anon: 401 },
+    },
+    {
+        route: '/api/card/[token]', method: 'GET', today: 'none', kind: 'self', self: 'the card link token, a SHA-256-hashed 256-bit secret in the path (src/lib/booking-card.js); anything else is a 404', owner: '-',
+        note: 'ENG-013: a new route (src/app/api/card/[token]/route.js). It asks for no session: the secret is the token in the path, found by its hash (findCardLink, :40). A token that is not 43 characters of [A-Za-z0-9_-] is a 404 with no database read, and so is an unknown, expired, closed or used-up one (:41), the one answer \'This link is not valid.\', so every credential style gets the same 404 and a cookie decides nothing. The probe\'s token, 999999999, is not a token. It writes nothing.',
+        probe: { path: '/api/card/999999999', body: undefined, anon: [404] },
+    },
+    {
+        route: '/api/card/[token]/confirm', method: 'POST', today: 'none', kind: 'self', self: 'the card link token, a SHA-256-hashed 256-bit secret in the path (src/lib/booking-card.js); anything else is a 404', owner: '-',
+        note: 'ENG-013: a new route (src/app/api/card/[token]/confirm/route.js). It asks for no session: the secret is the token in the path (findCardLink, :67). A token that is not 43 characters of [A-Za-z0-9_-] is a 404 with no database read (:68), before the body is read (:72), so every credential style gets the same 404 and nothing is saved. The probe\'s token, 999999999, is not a token.',
+        probe: { path: '/api/card/999999999/confirm', body: {}, anon: [404] },
+    },
+    {
+        route: '/api/card/[token]/setup', method: 'POST', today: 'none', kind: 'self', self: 'the card link token, a SHA-256-hashed 256-bit secret in the path (src/lib/booking-card.js); anything else is a 404', owner: '-',
+        note: 'ENG-013: a new route (src/app/api/card/[token]/setup/route.js). It asks for no session: the secret is the token in the path (findCardLink, :34). A token that is not 43 characters of [A-Za-z0-9_-] is a 404 with no database read (:35), before an attempt is counted or Stripe is called, so every credential style gets the same 404. The handler never reads the body, so the probe sends none. The probe\'s token, 999999999, is not a token.',
+        probe: { path: '/api/card/999999999/setup', body: undefined, anon: [404] },
     },
     {
         route: '/api/categories', method: 'DELETE', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',

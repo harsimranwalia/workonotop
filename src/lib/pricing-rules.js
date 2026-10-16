@@ -3,7 +3,8 @@
 // hour), property types, the weekend and extras by quantity. Every part adds to the price in whole cents; only the hourly line is
 // rounded, once, to the cent. A booking that repeats takes a percent off the sum of each visit, by how often it repeats, as a line of its
 // own, rounded once, to the cent; the percents are settings in system_settings. A job that picks an item as many times as the item's
-// quote_from is not priced at all: it is a job for a quote, and what comes back carries no figure for a caller to use.
+// quote_from is not priced at all: it is a job for a quote, and what comes back carries no figure for a caller to use. Only
+// priceJobPastQuote, which the two admin routes alone import, prices such a job.
 
 import { catalogPrice } from './booking-price.js'
 import { FREQUENCIES, visitDates } from './visit-series.js'
@@ -258,6 +259,24 @@ export function priceJob(service, items, answers, discounts = {}) {
     return { ok: true, price: Number(cents - discountCents) / 100, minutes: Number(minutes), lines }
   }
   return { ok: true, price: Number(cents) / 100, minutes: Number(minutes), lines }
+}
+
+// priceJob with the quote verdict lifted: the price the rules give for answers that pick an item as many times as its quote_from, which
+// priceJob refuses with reason 'quote'. It is for exactly two importers, src/app/api/admin/pricing/route.js and
+// src/app/api/admin/bookings/route.js, and each of them calls requireCaller(request, ['admin']) as its first statement, so only an admin
+// booking on a customer's behalf can have a job that is normally a quote priced from the rules. A public caller that imported it would
+// book a job for a quote at a price nobody gave, which is why it is a name of its own and not an argument of priceJob: an argument is one
+// forgotten value away from a public bypass, and a name can be searched for. A pin reads the source and fails on a third importer, or on
+// a use that comes before the guard.
+// The items as given are priced first, only for the flags of a quote verdict; the items again with every quote_from cleared give the price.
+// Answers what that second pricing answers plus `quote_flags` (the picks that sent the job to a quote, as quoteFlagsOf gives them: [] when
+// none did) when it prices, and its refusal as it is when it does not, so a malformed answer is still the refusal it is. A quote_from that
+// is not a whole number from 1 up still stops the first pricing with an error, as it does everywhere else.
+export function priceJobPastQuote(service, items, answers, discounts) {
+  const first = priceJob(service, items, answers, discounts)
+  const flags = !first.ok && first.reason === 'quote' ? first.flags : []
+  const second = priceJob(service, Array.from(items || [], (item) => ({ ...item, quote_from: null })), answers, discounts)
+  return second.ok ? { ...second, quote_flags: flags } : second
 }
 
 // The price of each visit of a booking, for `answers` as priceJob takes them. With a frequency, a visit on each date of

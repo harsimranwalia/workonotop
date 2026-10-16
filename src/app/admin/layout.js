@@ -17,6 +17,7 @@ function getPageTitle(pathname) {
   const map = {
     '/admin': 'Dashboard',
     '/admin/jobs': 'Job Requests',
+    '/admin/book': 'Book for a customer',
     '/admin/logs': 'Activity Logs',
     '/admin/users': 'Users',
     '/admin/providers': 'Providers',

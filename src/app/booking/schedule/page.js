@@ -11,6 +11,7 @@ import PriceBox, { HOURS_MESSAGE_ID, formatMoney } from '@/components/booking/Pr
 import QuoteRequestForm from '@/components/booking/QuoteRequestForm';
 import WhenAndWhereStep from '@/components/booking/WhenAndWhereStep';
 import { answersWithoutWhen, bookingAnswers, hoursAnswer } from '@/lib/booking-answers';
+import { onBehalfFields, readFlow, useOnBehalf } from '@/lib/on-behalf';
 import { useLivePrice } from '@/lib/use-live-price';
 import { EMPTY_WHEN_AND_WHERE, checkWhenAndWhere, whenAndWhereBooking, withDefaults } from '@/lib/when-and-where';
 
@@ -23,6 +24,8 @@ const STEPS = [
 
 const EMPTY_SELECTIONS = { units: {}, propertyType: null, option: null, hours: '', extras: {} };
 const NO_ADDRESS = 'Please enter your service location';
+// An admin booking for a customer is priced by this route, which prices every job; the customer's own route sends some jobs to a quote.
+const ADMIN_PRICING = '/api/admin/pricing';
 
 const ofKind = (choices, kind) => (choices || []).filter((item) => item && item.kind === kind);
 const shownStepsOf = (choices) => STEPS.filter((step) => !step.kinds || step.kinds.some((kind) => ofKind(choices, kind).length > 0));
@@ -154,6 +157,7 @@ function FlowContent({ serviceId }) {
   const [initialAnswers, setInitialAnswers] = useState({});
   const [showHints, setShowHints] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const onBehalf = useOnBehalf();
   const headingRef = useRef(null);
   const shownStep = useRef(null);
   // The picked place that the address field was last filled from, kept with the flow so a restore can tell a new place from the customer's own edit.
@@ -174,8 +178,9 @@ function FlowContent({ serviceId }) {
       console.error('The stored booking flow could not be read:', error);
     }
     // The place the customer picked on the service page, which the address field is filled from; the confirm step pairs the field with that place's city and coordinates.
-    const userAddress = sessionStorage.getItem('userAddress');
-    const picked = userAddress && userAddress.trim() && userAddress !== NO_ADDRESS ? userAddress : null;
+    // An admin booking for a customer types the address: the place in the session is one the admin picked while browsing.
+    const userAddress = flow && flow.onBehalf === true ? null : sessionStorage.getItem('userAddress');
+    const picked =userAddress && userAddress.trim() && userAddress !== NO_ADDRESS ? userAddress : null;
     if (flow && String(flow.service_id) === String(serviceId)) {
       setSelections(readSelections(flow.selections));
       const stored = withDefaults(flow.whenAndWhere);
@@ -217,11 +222,14 @@ function FlowContent({ serviceId }) {
     };
   }, [serviceId, router]);
 
-  const live = useLivePrice(ready ? serviceId : null, (choices) => {
+  // A booking made for a customer happens once: the repeat pick is not offered, so no answer carries a frequency.
+  const frequencyOf = (value) => (onBehalf.active ? undefined : value);
+
+  const live = useLivePrice(ready && !onBehalf.checking ? serviceId : null, (choices) => {
     if (!choices) return initialAnswers;
     const onWhen = resolveStep(requestedStep, choices, selections) === 4;
-    return bookingAnswers(selections, onWhen ? whenAndWhere.selectedDates : [], choices, onWhen ? whenAndWhere.frequency : undefined);
-  });
+    return bookingAnswers(selections, onWhen ? whenAndWhere.selectedDates : [], choices, onWhen ? frequencyOf(whenAndWhere.frequency) : undefined);
+  }, onBehalf.active ? ADMIN_PRICING : undefined);
   const { choices } = live;
   const shown = choices ? shownStepsOf(choices) : null;
   const step = choices ? resolveStep(requestedStep, choices, selections) : null;
@@ -250,6 +258,7 @@ function FlowContent({ serviceId }) {
     if (!ready || !service) return;
     const booking = whenAndWhereBooking(whenAndWhere);
     const flow = {
+      ...onBehalfFields(readFlow()),
       service_id: service.id,
       service_name: service.name,
       step: step ?? requestedStep,
@@ -266,10 +275,12 @@ function FlowContent({ serviceId }) {
         photos: booking.photos,
         address: booking.address,
       },
-      answers: choices ? bookingAnswers(selections, whenAndWhere.selectedDates, choices, whenAndWhere.frequency) : initialAnswers,
+      answers: choices ? bookingAnswers(selections, whenAndWhere.selectedDates, choices, frequencyOf(whenAndWhere.frequency)) : initialAnswers,
     };
     sessionStorage.setItem('bookingFlow', JSON.stringify(flow));
-  }, [ready, service, step, requestedStep, selections, whenAndWhere, choices, initialAnswers]);
+    // `frequencyOf` reads `onBehalf.active`, which is the dependency that stands for it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, service, step, requestedStep, selections, whenAndWhere, choices, initialAnswers, onBehalf.active]);
 
   useEffect(() => {
     if (step === null || stepParam === null || String(step) === stepParam) return;
@@ -290,7 +301,7 @@ function FlowContent({ serviceId }) {
 
   const chooseOption = (item) => setSelections((prev) => ({ ...prev, option: item.code, hours: isHourly(item) ? prev.hours : '' }));
 
-  if (serviceLoading || !ready) return <Spinner />;
+  if (serviceLoading || !ready || onBehalf.checking) return <Spinner />;
 
   if (!service) {
     return (
@@ -351,6 +362,12 @@ function FlowContent({ serviceId }) {
           </div>
         </div>
       </div>
+
+      {onBehalf.active && (
+        <div className="bg-amber-50 border-b border-amber-300 py-2">
+          <p className="container mx-auto px-4 text-sm font-semibold text-amber-900">Booking for a customer</p>
+        </div>
+      )}
 
       <div className="container mx-auto px-4 py-8 md:py-12 pb-48 lg:pb-12">
         <div className="max-w-6xl mx-auto">
@@ -458,7 +475,7 @@ function FlowContent({ serviceId }) {
                   )}
 
                   {current.number === 4 && (
-                    <WhenAndWhereStep value={whenAndWhere} onChange={setWhenAndWhere} showHints={showHints} onUploadingChange={setUploading} />
+                    <WhenAndWhereStep value={whenAndWhere} onChange={setWhenAndWhere} showHints={showHints} onUploadingChange={setUploading} allowRepeat={!onBehalf.active} />
                   )}
                 </fieldset>
               )}
@@ -478,6 +495,12 @@ function FlowContent({ serviceId }) {
                   times={whenAndWhere.selectedTimes}
                   proNote={current != null && current.number === 4}
                 />
+                {onBehalf.active && live.status === 'priced' && live.quoteFlags.length > 0 && (
+                  <p className="mx-4 mb-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 lg:mx-0">
+                    <span className="font-semibold">Normally a quote:</span> {live.quoteFlags.map((flag) => flag.label).join(', ')}. The price shown is what
+                    the pricing rules give for these answers.
+                  </p>
+                )}
                 <div className="flex gap-3 px-4 pb-4 lg:p-0">
                   {current && stepIndex > 0 && (
                     <button

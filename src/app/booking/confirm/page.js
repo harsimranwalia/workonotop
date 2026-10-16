@@ -6,17 +6,26 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CustomerAuthModal from '@/components/CustomerAuthModal';
+import OnBehalfConfirm from '@/components/booking/OnBehalfConfirm';
+import OnBehalfDone from '@/components/booking/OnBehalfDone';
 import PriceBox from '@/components/booking/PriceBox';
 import SeriesConsent from '@/components/booking/SeriesConsent';
 import VisitSchedule from '@/components/booking/VisitSchedule';
 import { dayLabel } from '@/lib/booking-answers';
+import { useOnBehalf } from '@/lib/on-behalf';
 import { useLivePrice } from '@/lib/use-live-price';
 import { checkWhenAndWhere, isRepeating } from '@/lib/when-and-where';
 import { useAuth } from 'src/context/AuthContext';
 
+const ADMIN_PRICING = '/api/admin/pricing';
+const CUSTOMER_STEPS = ['Schedule', 'Details', 'Confirm', 'Payment'];
+const ON_BEHALF_STEPS = ['Schedule', 'Details', 'Confirm', 'Card link'];
+
 export default function BookingConfirmPage() {
   const router = useRouter();
   const { user, login } = useAuth();
+  const onBehalf = useOnBehalf();
+  const [created, setCreated] = useState(null);
   const [flow, setFlow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -36,6 +45,8 @@ export default function BookingConfirmPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    // A booking made for a customer clears the flow, which is not a reason to leave the page: its done screen is shown.
+    if (onBehalf.checking || created) return;
     let saved = null;
     try {
       saved = JSON.parse(sessionStorage.getItem('bookingFlow') || 'null');
@@ -52,18 +63,21 @@ export default function BookingConfirmPage() {
       }
       setFlow(saved);
       if (saved.details.address) setAddress(saved.details.address);
-      
-      const locName = sessionStorage.getItem('selectedLocationName');
-      const userCity = sessionStorage.getItem('userCity');
-      setCity(userCity || locName || '');
-      setPostalCode(sessionStorage.getItem('userPostalCode') || '');
-      setLat(sessionStorage.getItem('userLat') ? parseFloat(sessionStorage.getItem('userLat')) : null);
-      setLng(sessionStorage.getItem('userLng') ? parseFloat(sessionStorage.getItem('userLng')) : null);
+
+      // The place in the session is the one the person using this browser picked; an admin's booking for a customer is typed in its form.
+      if (!onBehalf.active) {
+        const locName = sessionStorage.getItem('selectedLocationName');
+        const userCity = sessionStorage.getItem('userCity');
+        setCity(userCity || locName || '');
+        setPostalCode(sessionStorage.getItem('userPostalCode') || '');
+        setLat(sessionStorage.getItem('userLat') ? parseFloat(sessionStorage.getItem('userLat')) : null);
+        setLng(sessionStorage.getItem('userLng') ? parseFloat(sessionStorage.getItem('userLng')) : null);
+      }
     } else {
-      router.push('/services');
+      router.push(onBehalf.active ? '/admin/book' : '/services');
     }
 
-    if (user) {
+    if (user && !onBehalf.active) {
       setCurrentUser(user);
       setIsAuthenticated(true);
       setFirstName(user.first_name);
@@ -73,10 +87,10 @@ export default function BookingConfirmPage() {
     }
 
     setLoading(false);
-  }, [router, user]);
+  }, [router, user, onBehalf.checking, onBehalf.active, created]);
 
   const answers = flow && flow.answers && typeof flow.answers === 'object' ? flow.answers : {};
-  const live = useLivePrice(flow ? flow.service_id : null, answers);
+  const live = useLivePrice(flow ? flow.service_id : null, answers, onBehalf.active ? ADMIN_PRICING : undefined);
   const canProceed = live.status === 'priced' && acceptTerms && !submitting;
 
   // ✅ NO booking creation here — just save to session and redirect to payment
@@ -179,6 +193,18 @@ export default function BookingConfirmPage() {
     );
   }
 
+  if (created) {
+    return (
+      <div className="min-h-screen bg-gray-50/50 font-sans antialiased">
+        <Header />
+        <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 md:py-12">
+          <OnBehalfDone created={created} />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   const jobDates = flow.schedule.job_date;
   const savedTimes = flow.whenAndWhere && flow.whenAndWhere.selectedTimes;
   const times = savedTimes && typeof savedTimes === 'object' ? savedTimes : {};
@@ -205,7 +231,7 @@ export default function BookingConfirmPage() {
                 <div className="h-full bg-gradient-to-r from-green-600 to-green-500 rounded-full" style={{ width: '75%' }}></div>
               </div>
               <div className="flex justify-between mt-1 sm:mt-2">
-                {['Schedule', 'Details', 'Confirm', 'Payment'].map((step, i) => (
+                {(onBehalf.active ? ON_BEHALF_STEPS : CUSTOMER_STEPS).map((step, i) => (
                   <div key={step} className="flex items-center">
                     <div aria-hidden="true" className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold
                       ${i < 3 ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-500'}`}>
@@ -228,12 +254,14 @@ export default function BookingConfirmPage() {
                 <div className="bg-gradient-to-r from-green-800 to-green-700 px-4 sm:px-6 py-4 sm:py-5">
                   <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white flex items-center">
                     <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">✨</span>
-                    {isAuthenticated ? 'Confirm Your Booking' : 'Create an account to continue'}
+                    {onBehalf.active ? 'Create the booking' : isAuthenticated ? 'Confirm Your Booking' : 'Create an account to continue'}
                   </h2>
                 </div>
 
                 <div className="p-4 sm:p-6 md:p-8">
-                  {isAuthenticated ? (
+                  {onBehalf.active ? (
+                    <OnBehalfConfirm flow={flow} answers={answers} live={live} onCreated={setCreated} />
+                  ) : isAuthenticated ? (
                     <div>
                       {/* User Info */}
                       <div className="bg-green-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border-2 border-green-200 mb-4 sm:mb-6">

@@ -198,6 +198,9 @@
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/blogs/[id] is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/bookings/[id]/card-link is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/admin/cities is in the matrix": {
       "outcome": "PASS"
     },
@@ -310,6 +313,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/bookings/[id]/invoice/download is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › GET /api/card/[token] is in the matrix": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › GET /api/categories is in the matrix": {
@@ -468,6 +474,12 @@
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/blogs is in the matrix": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/bookings is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/bookings/[id]/card-link is in the matrix": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/bookings/[id]/push is in the matrix": {
       "outcome": "PASS"
     },
@@ -484,6 +496,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/logout is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/pricing is in the matrix": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/admin/providers/[providerId]/documents is in the matrix": {
@@ -574,6 +589,12 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/bookings/[id]/restart is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/card/[token]/confirm is in the matrix": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth coverage - routes › POST /api/card/[token]/setup is in the matrix": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth coverage - routes › POST /api/categories is in the matrix": {
@@ -837,6 +858,9 @@
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/blogs/[id] uses the guard": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth wiring › GET /api/admin/bookings/[id]/card-link uses the guard": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth wiring › GET /api/admin/cities uses the guard": {
       "outcome": "PASS"
     },
@@ -946,6 +970,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/bookings/[id]/invoice/download uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › GET /api/card/[token] uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › GET /api/chat uses the guard": {
@@ -1068,6 +1095,12 @@
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/blogs uses the guard": {
       "outcome": "PASS"
     },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/bookings uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/bookings/[id]/card-link uses the guard": {
+      "outcome": "PASS"
+    },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/bookings/[id]/push uses the guard": {
       "outcome": "PASS"
     },
@@ -1078,6 +1111,9 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/invoices/generate uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/admin/pricing uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/admin/providers/[providerId]/documents uses the guard": {
@@ -1123,6 +1159,12 @@
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/bookings/[id]/restart uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/card/[token]/confirm uses the guard": {
+      "outcome": "PASS"
+    },
+    "auth-coverage.spec.js › Auth wiring › POST /api/card/[token]/setup uses the guard": {
       "outcome": "PASS"
     },
     "auth-coverage.spec.js › Auth wiring › POST /api/categories uses the guard": {
@@ -1506,6 +1548,9 @@
     "auth-matrix.spec.js › Role by route › GET /api/admin/blogs/[id]": {
       "outcome": "PASS"
     },
+    "auth-matrix.spec.js › Role by route › GET /api/admin/bookings/[id]/card-link": {
+      "outcome": "PASS"
+    },
     "auth-matrix.spec.js › Role by route › GET /api/admin/cities": {
       "outcome": "PASS"
     },
@@ -1618,6 +1663,9 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/bookings/[id]/invoice/download": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › GET /api/card/[token]": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › GET /api/categories": {
@@ -1776,6 +1824,12 @@
     "auth-matrix.spec.js › Role by route › POST /api/admin/blogs": {
       "outcome": "PASS"
     },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/bookings": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/bookings/[id]/card-link": {
+      "outcome": "PASS"
+    },
     "auth-matrix.spec.js › Role by route › POST /api/admin/bookings/[id]/push": {
       "outcome": "PASS"
     },
@@ -1792,6 +1846,9 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/logout": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/admin/pricing": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/admin/providers/[providerId]/documents": {
@@ -1882,6 +1939,12 @@
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/bookings/[id]/restart": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/card/[token]/confirm": {
+      "outcome": "PASS"
+    },
+    "auth-matrix.spec.js › Role by route › POST /api/card/[token]/setup": {
       "outcome": "PASS"
     },
     "auth-matrix.spec.js › Role by route › POST /api/categories": {
@@ -2266,6 +2329,27 @@
       "outcome": "PASS"
     },
     "booking-payment.spec.js › Booking payment › without a payment key, production refuses a booking and other environments book it unverified": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a booking made on a customer's behalf at completion › a booking made on a customer's behalf is neither charged nor failed before its date, and is charged on it": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a booking made on a customer's behalf at completion › a booking with a payment of its own is charged on that payment whatever card link it has, and the link is not read": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a booking made on a customer's behalf at completion › a second release run takes nothing more for a booking already charged on its card": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a booking made on a customer's behalf at completion › the customer's approval of a booking made on their behalf charges the card they saved once, and captures nothing": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a booking made on a customer's behalf at completion › the customer's approval of a booking with no payment, no series card and no saved card is refused as no payment intent found": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a booking made on a customer's behalf at completion › the release sweep charges the card on file of a booking made on a customer's behalf once, for the recorded price": {
+      "outcome": "PASS"
+    },
+    "booking-payment.spec.js › a booking made on a customer's behalf at completion › the release sweep marks a booking whose link holds no card as a failed payment, tells the admins once, and does not pick it up again": {
       "outcome": "PASS"
     },
     "booking-payment.spec.js › a later visit of a series › a booking with a payment of its own is charged whatever its date: only a later visit of a series is held to one": {
@@ -3057,6 +3141,129 @@
     "mobile-refresh-role.spec.js › Mobile refresh role › the sign-in routes that derive the type from the account re-store it on a repeat sign-in": {
       "outcome": "PASS"
     },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a SetupIntent made for use on session is refused as invalid and nothing is saved": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a SetupIntent that belongs to another customer is refused as invalid and nothing is saved": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a SetupIntent that belongs to another link is refused as invalid and nothing is saved": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a SetupIntent that has not succeeded is refused as invalid and nothing is saved": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a SetupIntent that holds no card is refused as invalid and nothing is saved": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a booking for an e-mail address that is a customer account joins that account, and a new address stays a guest booking with no account made": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a card link page shows the job and the price and nothing that names the customer, and it is not cached": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a customer, a provider and a caller with no credential are refused by the admin booking and pricing routes, and nothing is written": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a customer, a provider and a caller with no credential are refused by the card link routes of a booking, and the link is left as it was": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a job that is normally a quote is priced from the rule by the admin booking, and the booking records the picks that made it a quote": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a link allows ten card entries and the eleventh is refused as dead, with no SetupIntent created": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a link that has expired or whose booking is completed or cancelled is the same 404 on all three card routes": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a link that has its card shows the card, and a setup or a confirm on it answers 409 and changes nothing": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a link whose ten tries are spent is a 404 for the page and for a new card entry, and still takes the confirm of the tenth entry": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a malformed or unknown token is the same 404 on all three card routes": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a price, an account, a payment or a status in the body of an admin booking is ignored": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a repeating frequency in the answers is refused by both admin routes, naming the field, and nothing is written": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a second save on a link that has its card is refused as used, even from a stale read, and the first card stays": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › a succeeded SetupIntent saves the brand and last four that Stripe gives and marks the link used": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › after a reissue clears used_at and keeps the card, a replacement card is saved in its place": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › an admin booking is written to the activity log as made by an admin on the customer behalf, with the amount": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › an admin booking with a missing or malformed field is refused with the field named, and nothing is written": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › an admin books for a customer who phoned in: the price is the rule price, no payment is held, and a link that stores only a hash is made": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › an admin books from a quote request: the request names the booking, the list of requests shows it, and a second booking from the same request is refused and writes nothing": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › an admin reissues the card link of a booking: the old link stops working, the new one opens, a card on file stays, and no read of the link shows a token": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › starting a card entry creates one off-session card SetupIntent for the Stripe customer and makes no payment call": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › the admin pricing route prices a job past a quote, names the picks that make it a quote, and writes nothing": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › the card link of a booking is not made for a booking that has none, nor reissued for a booking that is over, and an id that is not a row id is refused": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › the first card entry of a link that has no Stripe customer creates one under a key for the link, and a second entry reuses it": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › with no Stripe client a card entry counts no try and creates nothing": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › with no payment key on the server a card entry answers 503 and the link keeps all its tries": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › with no payment key on the server a confirm answers 503 and saves nothing, and an id that is not a SetupIntent id is 400": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › a flag in a customer's session turns the mode off and shows no booking form for a customer": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › a quote request has \"Book this\", which opens the mode with its answers and contact, and the booking made from it shows on the row": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › an admin on the confirm screen creates the booking, is shown the link once, and the flow is cleared": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › the admin's entry lists the services, and choosing one opens the booking steps in the mode at that service": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › the card page of a link that has its card shows the job, the card and the price, and nothing that names the customer": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › the card page of a link that is not valid says so and nothing else, asks not to be indexed, and sends no referrer": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › the card panel shows the card and the link's state, \"New link\" makes a link that is shown once and ends the current link, and a booking with no link has no panel": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › the schedule screen in the mode prices a job that is normally a quote, says so, and has no repeat pick": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › with no payment key the card page of a valid link says card entry is not available, spends no try, and removes a bank's return query from the address": {
+      "outcome": "PASS"
+    },
     "ownership.spec.js › Ownership: POST /api/reviews › Ownership POST /api/reviews: a body naming customer 2 as customer_id, or provider 2 as provider_id, on customer 1's own booking is 403": {
       "outcome": "PASS"
     },
@@ -3258,7 +3465,13 @@
     "pricing-rules.spec.js › Pricing rules › every active service prices with no answers at its catalog price and minutes": {
       "outcome": "PASS"
     },
+    "pricing-rules.spec.js › Pricing rules › no route file updates the service_price of a booking": {
+      "outcome": "PASS"
+    },
     "pricing-rules.spec.js › Pricing rules › one more room or unit changes the price by that unit's amount": {
+      "outcome": "PASS"
+    },
+    "pricing-rules.spec.js › Pricing rules › priceJobPastQuote is imported by the two admin routes only, and each of them checks for an admin before it prices": {
       "outcome": "PASS"
     },
     "pricing-rules.spec.js › Pricing rules › the price and the quoted minutes follow the service's rule for each set of answers": {

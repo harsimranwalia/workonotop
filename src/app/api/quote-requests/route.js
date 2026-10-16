@@ -142,7 +142,8 @@ export async function POST(request) {
 }
 
 // Admin only: the requests, newest first, a page at a time. ?limit= (default 50, at most 200) and ?offset= as the job queue reads them. The answer
-// carries total (every request) and the limit and offset it used, so a client pages by the values the server applied.
+// carries total (every request) and the limit and offset it used, so a client pages by the values the server applied. Each request also carries
+// booking_id and booking_number: the booking an admin made from it on the customer's behalf, both null while it has none.
 export async function GET(request) {
   const auth = await requireCaller(request, ['admin']);
   if (!auth.ok) return auth.response;
@@ -153,8 +154,10 @@ export async function GET(request) {
 
     // query, not execute: execute sends a JS number as a DOUBLE, which MySQL 8.0.22 and later refuse for LIMIT and OFFSET. The two are whole numbers read above.
     const rows = await query(
-      `SELECT id, created_at, service_id, service_name, customer_name, customer_email, customer_phone, address, message, picks, answers, user_id
-       FROM quote_requests ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
+      `SELECT q.id, q.created_at, q.service_id, q.service_name, q.customer_name, q.customer_email, q.customer_phone, q.address, q.message, q.picks, q.answers, q.user_id,
+              q.booking_id, b.booking_number
+       FROM quote_requests q LEFT JOIN bookings b ON b.id = q.booking_id
+       ORDER BY q.created_at DESC, q.id DESC LIMIT ? OFFSET ?`,
       [limit, offset]
     )
     const [counted] = await execute('SELECT COUNT(*) AS total FROM quote_requests')

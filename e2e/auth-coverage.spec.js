@@ -19,8 +19,9 @@
 //    the method, as `methodText` cuts it, holds the design's "two lines at the top of each method" anywhere in it (rows c1, c2,
 //    g12), so a file that guards its GET does not turn its PUT green (row g5): `const auth = await requireCaller(request,
 //    [the row's roles])`, then `if (!auth.ok) return auth.response` (guardCallProblems' doc names the row of each piece). A
-//    `self` row's file uses its named check: requireCronSecret (rows g8, g9, r1cron) or the Stripe signature check (rows g10,
-//    g11, r1stripe); for verifyAiGatewayAuth a call anywhere in the file counts (row g13, a false pass). The checks are looked for by name,
+//    `self` row's file uses its named check: requireCronSecret (rows g8, g9, r1cron), the Stripe signature check (rows g10,
+//    g11, r1stripe) or the card link's token lookup, findCardLink imported from '@/lib/booking-card' and called in the method before
+//    the method reads a body (rows g19 to g24); for verifyAiGatewayAuth a call anywhere in the file counts (row g13, a false pass). The checks are looked for by name,
 //    not by binding: a call to another function that has the same name reads as the check (row t3, a false pass). A `public` row needs
 //    nothing and has no case. A `pending` row (there is none now) counts as classified for coverage, is annotated, and its wiring case is
 //    skipped with the reason so every run prints it: nothing passes it silently, and AC5 does not hold while one `pending`
@@ -240,6 +241,14 @@ function wiringProblems(row, source) {
             if (!/\brequireCronSecret\s*\(/.test(methodCode)) problems.push(`${row.method} does not call requireCronSecret(request)`);
         } else if (/Stripe signature/i.test(text)) {
             if (!/\bwebhooks\.constructEvent\s*\(/.test(methodCode)) problems.push(`${row.method} does not verify the Stripe signature (webhooks.constructEvent)`);
+        } else if (/card link token/i.test(text)) {
+            // The token is the credential: the method finds the link by it before it does anything else, and a method that reads a body reads it after
+            // (ENG-013 AC6: an unknown token is a 404 whatever the body holds). Looked for by name, in the method's text, as the other checks are.
+            if (!importsName(code, 'findCardLink', '@/lib/booking-card')) problems.push("does not import findCardLink from '@/lib/booking-card'");
+            const lookedUp = methodCode.search(/\bfindCardLink\s*\(/);
+            const bodyRead = methodCode.search(/\brequest\.(?:json|text|formData|arrayBuffer|blob)\s*\(/);
+            if (lookedUp < 0) problems.push(`${row.method} does not look the link up with findCardLink(`);
+            else if (bodyRead >= 0 && bodyRead < lookedUp) problems.push(`${row.method} reads the body before it looks the link up`);
         } else {
             problems.push(`no wiring rule for the self-authenticating check "${text}": add one to e2e/auth-coverage.spec.js`);
         }
@@ -274,6 +283,10 @@ const cronRow = { kind: 'self', method: 'GET', self: 'CRON_SECRET, made fail-clo
 const stripeCall = "  const event = stripe.webhooks.constructEvent(body, signature, secret);\n";
 const stripeRow = { kind: 'self', method: 'POST', self: 'Stripe signature, verified before any branch (unchanged)' };
 const gatewayRow = { kind: 'self', method: 'GET', self: 'AI gateway key (unchanged)' };
+const cardImp = "import { findCardLink } from '@/lib/booking-card';\n";
+const cardCall = "  const link = await findCardLink(execute, token);\n  if (!link) return notValid();\n";
+const cardRow = { kind: 'self', method: 'GET', self: 'the card link token, a SHA-256-hashed 256-bit secret in the path (src/lib/booking-card.js); anything else is a 404' };
+const cardPostRow = { ...cardRow, method: 'POST' };
 const oneLine = (name) => `export async function ${name}(request) { return Response.json({ ok: true }); }\n\n`;
 
 const wiringShapes = [
@@ -333,6 +346,12 @@ const wiringShapes = [
     { id: 'g16', label: 'the call keeps its result in auth and the refusal tests another variable, if (!x.ok) return x.response: must be reported', row: getRow, source: imp + getWith("  const auth = await requireCaller(request, ['admin']);\n  if (!x.ok) return x.response;\n"), verdict: 'REPORTED', says: 'does not `if (!auth.ok) return auth.response`' },
     { id: 'g17', label: 'a handler that takes no parameter, the guard written with request: must be reported', row: getRow, source: imp + 'export async function GET() {\n' + guard + '  return 1;\n}\n', verdict: 'REPORTED', says: 'takes no request parameter' },
     { id: 'g18', label: "row roles ['customer', 'admin'], the call names ['customer', 'admin']: the row's own order, must read as guarded", row: { kind: 'roles', method: 'GET', roles: ['customer', 'admin'] }, source: imp + getWith(guard.replace("['admin']", "['customer', 'admin']")), verdict: 'clean' },
+    { id: 'g19', label: 'card link row: GET imports findCardLink and calls it: must read as guarded', row: cardRow, source: cardImp + handler('GET', cardCall), verdict: 'clean' },
+    { id: 'g20', label: 'card link row: GET has no call, the POST below it has one: must be reported', row: cardRow, source: cardImp + handler('GET') + '\n' + handler('POST', cardCall), verdict: 'REPORTED', says: 'GET does not look the link up' },
+    { id: 'g21', label: "card link row: GET calls findCardLink and does not import it from '@/lib/booking-card': must be reported", row: cardRow, source: handler('GET', cardCall), verdict: 'REPORTED', says: "does not import findCardLink from '@/lib/booking-card'" },
+    { id: 'g22', label: 'card link row: POST reads the body, then looks the link up: must be reported', row: cardPostRow, source: cardImp + handler('POST', '  const body = await request.json();\n' + cardCall), verdict: 'REPORTED', says: 'POST reads the body before it looks the link up' },
+    { id: 'g23', label: 'card link row: POST looks the link up, then reads the body: must read as guarded', row: cardPostRow, source: cardImp + handler('POST', cardCall + '  const body = await request.json();\n'), verdict: 'clean' },
+    { id: 'g24', label: 'card link row: GET holds the call only in a line comment: must be reported', row: cardRow, source: cardImp + handler('GET', '  // const link = await findCardLink(execute, token);\n'), verdict: 'REPORTED', says: 'GET does not look the link up' },
     { id: 'p1cron', label: 'cron row: a `GET$` helper that calls requireCronSecret, exported above the real GET, which has no call: must be reported', row: cronRow, source: cronImp + handler('GET$', cronCall) + '\n' + handler('GET'), verdict: 'REPORTED' },
     { id: 'p1stripe', label: 'Stripe row: a `POST$` helper that calls webhooks.constructEvent, exported above the real POST, which has no check: must be reported', row: stripeRow, source: handler('POST$', stripeCall) + '\n' + handler('POST'), verdict: 'REPORTED' },
     { id: 'p1roles', label: 'a guarded `GET$` helper exported above the real GET, which has no guard: must be reported', row: getRow, source: imp + handler('GET$', guard) + '\n' + handler('GET'), verdict: 'REPORTED', says: 'does not have `const auth = await requireCaller(' },
