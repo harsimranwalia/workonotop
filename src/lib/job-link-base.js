@@ -13,6 +13,9 @@
 //   timer_resume, over_quote) and four details: before and after (the type of a photo), last_out (a timer paused because the last cleaner left) and
 //   removed (a check-out the system stamped after a cleaner was taken off the crew while checked in). check_out is always about a member; over_quote
 //   and the timer_* kinds are about the job and carry the actor. No event holds a photo address, a number or a name.
+//   ENG-017 adds one kind, report_added (an on-site report was sent), and five details, the report's type: no_answer, details_wrong, unhygienic,
+//   add_items, cannot_complete. The event is about the job and carries the actor (a cleaner's id as crewMemberId), so it is not in ABOUT_A_MEMBER.
+//   It holds no note and no photo address, as no event does. An admin's decision on a report is not an event: it is on the report's own row.
 // executeOn(connection) -> an `execute(sql, params)` that runs on a connection a transaction owns and answers what src/lib/db.js's execute
 //   answers (the rows, or the result header), so a library written for the pool runs unchanged inside a transaction.
 // recordEvent(execute, link, { kind, actor, crewMemberId, location, detail }) -> nothing. `link` is { id, booking_id }. `actor` is { kind:
@@ -45,6 +48,7 @@ export const EVENT_KINDS = Object.freeze([
   'timer_pause',
   'timer_resume',
   'over_quote',
+  'report_added',
 ]);
 
 export const EVENT_DETAILS = Object.freeze([
@@ -60,6 +64,11 @@ export const EVENT_DETAILS = Object.freeze([
   'after',
   'last_out',
   'removed',
+  'no_answer',
+  'details_wrong',
+  'unhygienic',
+  'add_items',
+  'cannot_complete',
 ]);
 
 export const EVENT_LIST_LIMIT = 100;
