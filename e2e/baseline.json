@@ -4581,6 +4581,21 @@
     "recurring-visits.spec.js › visit dates › weekly visits are twelve dates seven days apart and every-2-weeks visits are six dates fourteen days apart": {
       "outcome": "PASS"
     },
+    "reset-retries.spec.js › Reset retries: a connection the server closes before it answers › Reset: a call that names its own maxRetries keeps it": {
+      "outcome": "PASS"
+    },
+    "reset-retries.spec.js › Reset retries: a connection the server closes before it answers › Reset: a call that names no retries ends in \"socket hang up\" and the server read it once": {
+      "outcome": "PASS"
+    },
+    "reset-retries.spec.js › Reset retries: a connection the server closes before it answers › Reset: a server that closes every connection fails the call after RESET_RETRIES more tries, and the error says how many were made": {
+      "outcome": "PASS"
+    },
+    "reset-retries.spec.js › Reset retries: a connection the server closes before it answers › Reset: an answer comes back as it is, a 500 included, and is not sent again": {
+      "outcome": "PASS"
+    },
+    "reset-retries.spec.js › Reset retries: a connection the server closes before it answers › Reset: through the helper the same call is sent again on a new connection, its answer comes back, and the server read the body twice": {
+      "outcome": "PASS"
+    },
     "role-checks.spec.js › Role check /api/admin/notifications › Role check GET /api/admin/notifications: only the signed-in admin's own rows, by cookie and by Bearer, and no query names another owner": {
       "outcome": "PASS"
     },
