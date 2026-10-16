@@ -90,7 +90,7 @@ async function deleteProbeBooking(request, as, id) {
 
 // A booking the case makes itself through the public checkout (POST /api/bookings stays public), so a write probe never touches
 // a fixture row. `run(id, body)` gets its id and the body that was posted; the row is deleted again as admin, even when `run`
-// fails, and a delete that fails after `run` has failed does not hide the case's own failure. With no options the checkout is a
+// fails, and a delete that fails after `run` has failed is reported by console.error and does not hide the case's own failure. With no options the checkout is a
 // guest's. `headers` sends a credential with the POST and `fields` adds to the body or replaces one of its fields (the owner
 // cases send both: a credential and a body user_id).
 async function withProbeBooking(request, as, run, { headers = {}, fields = {} } = {}) {
@@ -117,6 +117,7 @@ async function withProbeBooking(request, as, run, { headers = {}, fields = {} } 
             await deleteProbeBooking(request, as, id);
         } catch (error) {
             if (!failed) throw error;
+            console.error(`probe booking ${id} was not removed after the case failed: ${error?.message}`);
         }
     }
 }
