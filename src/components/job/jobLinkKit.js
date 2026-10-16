@@ -308,6 +308,12 @@ export function reportOf(value) {
   };
 }
 
+// Where the phone was when a report was sent, in the words of the check-in's line; `away` is null when the phone sent no position or the job has none.
+export function reportPlaceOf(report) {
+  if (report.away === true) return `Not at the address — ${distanceOf(report.distanceM) || 'some distance'} away`;
+  return report.away === false ? 'At the address' : 'Location not shared';
+}
+
 // The reports of an answer, or null when the answer is not a list of them.
 export function reportsOf(value) {
   if (!Array.isArray(value)) return null;
