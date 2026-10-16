@@ -1,6 +1,8 @@
 'use client';
 
 // The "Job timer and photos" block of the job link's panels (ENG-016): the timer's state and clock, how long each cleaner has worked, and the photos taken.
+// Under it the "Reports" list (ENG-017): what the people on site sent from the link, read-only. The office's decisions and charges are not here, because
+// the provider's panel shares this block and the link-facing answer carries none; the admin's queue on the jobs page is where those are made.
 // src/components/job/JobLinkManager.jsx reads them with the rest of the managed view and hands them in as the shapes of src/components/job/jobLinkKit.js
 // (`timer` and `photos` are null when the answer did not hold them in the shape the routes promise). The panel does not poll, so the block says when the
 // read was made and carries the panel's Refresh; between reads the clock of a running job is counted on the screen (useCountdown), and a new read starts
@@ -11,11 +13,15 @@
 // Every colour comes from the look the panel passes in, so the panel's table of looks is the one place that is measured.
 
 import { useId } from 'react';
-import { clockFaceOf, clockOf, durationOf, stampOf, useCountdown } from './jobLinkKit';
+import Link from 'next/link';
+import { clockFaceOf, clockOf, durationOf, reportPlaceOf, stampOf, useCountdown } from './jobLinkKit';
 
 const NOBODY_TEXT = 'Nobody is checked in.';
 const SPENT_TEXT = 'The quoted time is up. Refresh to see how far over it is.';
 const NO_PHOTOS_TEXT = 'No photos yet.';
+const NO_REPORTS_TEXT = 'No reports yet.';
+const SEEN_TEXT = 'Seen by the office';
+const NOT_SEEN_TEXT = 'Not seen yet';
 const HERE_NOW_TEXT = 'here now';
 const STATES = { not_started: 'Not started', running: 'Running', paused: 'Paused', closed: 'Finished' };
 const COLUMNS = ['Cleaner', 'Here since', 'Out at', 'Time worked'];
@@ -107,10 +113,35 @@ function PhotoGroup({ look, heading, photos }) {
   );
 }
 
+// One report sent from the link: what it was, who sent it and when, the note and the photo, and whether the office has opened it. Where the phone was is the
+// admin's to see, as it is for a check-in, so the provider's panel does not draw it.
+function Report({ look, report, admin }) {
+  const caption = [report.by, stampOf(report.at)].filter(Boolean).join(' · ');
+  return (
+    <li className="py-3">
+      <div className="flex items-start gap-3">
+        {report.photo && (
+          <a href={report.photo} target="_blank" rel="noopener noreferrer" className={`block shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${look.ring}`}>
+            <img src={report.photo} alt={`Photo sent with the report: ${report.label}`} width="96" height="96" loading="lazy" decoding="async" className={`h-24 w-24 rounded-lg border object-cover ${look.well}`} />
+          </a>
+        )}
+        <div className="min-w-0">
+          <p className={`text-sm font-semibold ${look.strong}`}>{report.label}</p>
+          {caption && <p className={`text-xs ${look.muted}`}>{caption}</p>}
+          {admin && <p className={`text-xs font-medium ${report.away === true ? look.warn : look.muted}`}>{reportPlaceOf(report)}</p>}
+          {report.note && <p className={`mt-1 text-sm whitespace-pre-wrap break-words ${look.strong}`}>{report.note}</p>}
+          <p className={`mt-1 text-xs font-medium ${look.muted}`}>{report.seen ? SEEN_TEXT : NOT_SEEN_TEXT}</p>
+        </div>
+      </div>
+    </li>
+  );
+}
+
 // `look` is a row of the panel's LOOKS; `open` is whether the job is open (a closed job counts nothing, whatever its timer says); `timer` and
-// `photos` are timerOf and photosOf of the answer; `asOf` is the moment the answer arrived; `refresh` is the panel's Refresh button.
-export default function JobLinkRecord({ look, open, timer, photos, asOf, refresh }) {
-  const missing = [timer ? '' : 'the job timer', photos ? '' : 'the photos'].filter(Boolean);
+// `photos` are timerOf and photosOf of the answer; `reports` is reportsOf of it; `admin` is whether the admin is looking; `asOf` is the moment the answer
+// arrived; `refresh` is the panel's Refresh button.
+export default function JobLinkRecord({ look, open, timer, photos, reports, admin, asOf, refresh }) {
+  const missing = [timer ? '' : 'the job timer', photos ? '' : 'the photos', reports ? '' : 'the reports'].filter(Boolean);
   const overStamp = timer ? stampOf(timer.overQuoteAt) : '';
   const readAt = clockOf(asOf);
   return (
@@ -145,6 +176,22 @@ export default function JobLinkRecord({ look, open, timer, photos, asOf, refresh
         <div>
           {PHOTO_TYPES.map(({ type, heading }) => <PhotoGroup key={type} look={look} heading={heading} photos={photos.filter((photo) => photo.type === type)} />)}
           {photos.length === 0 && <p className={`mt-2 text-sm ${look.muted}`}>{NO_PHOTOS_TEXT}</p>}
+        </div>
+      )}
+
+      {reports && (
+        <div className="mt-4">
+          <h3 className={`text-xs font-bold uppercase tracking-wide ${look.muted}`}>Reports</h3>
+          {reports.length === 0 ? <p className={`mt-1 text-sm ${look.muted}`}>{NO_REPORTS_TEXT}</p> : (
+            <ul className={`mt-1 divide-y ${look.divider}`}>
+              {reports.map((report) => <Report key={report.id} look={look} report={report} admin={admin} />)}
+            </ul>
+          )}
+          {admin && reports.length > 0 && (
+            <Link href="/admin/jobs" className={`mt-2 inline-flex min-h-[44px] items-center rounded-lg text-sm font-semibold underline underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${look.strong} ${look.ring}`}>
+              Open Job Requests to act on a report
+            </Link>
+          )}
         </div>
       )}
     </div>
