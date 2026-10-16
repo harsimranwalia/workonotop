@@ -537,15 +537,20 @@ export default function JobLink({ token }) {
   const [read, setRead] = useState({ status: 'loading' });
   const live = useRef(true);
   const lastRead = useRef(0);
+  // The number of the latest read of the whole link, or of the invalid screen. A read draws its answer only if no later one has been taken since it began.
+  const readNo = useRef(0);
 
   // Reads the link. `quiet` keeps what is on the page while the read runs and keeps it when the read cannot be made; it returns the status read, so a
-  // caller can tell whether a sign-in took.
+  // caller can tell whether a sign-in took. An answer that arrives after a later read began, or after the page went to the invalid screen, is older than
+  // what the page holds and is not drawn: a slow read of the whole link must not put the job back over a link the timer's poll found not valid.
   const load = useCallback(async ({ quiet = false } = {}) => {
+    readNo.current += 1;
+    const mine = readNo.current;
     if (!quiet) setRead({ status: 'loading' });
     lastRead.current = Date.now();
     const next = readOf(await callApi(base));
     if (!live.current) return 'gone';
-    setRead((held) => (quiet && next.status === 'failed' && (held.status === 'in' || held.status === 'none') ? held : next));
+    if (mine === readNo.current) setRead((held) => (quiet && next.status === 'failed' && (held.status === 'in' || held.status === 'none') ? held : next));
     return next.status;
   }, [base]);
 
@@ -569,7 +574,10 @@ export default function JobLink({ token }) {
     };
   }, [load]);
 
-  const invalid = () => setRead({ status: 'invalid' });
+  const invalid = () => {
+    readNo.current += 1;
+    setRead({ status: 'invalid' });
+  };
   const signedIn = () => load({ quiet: true });
   // Puts newer parts of the read (the timer, the photos) on the page without a read of the whole link.
   const patch = useCallback((part) => {
