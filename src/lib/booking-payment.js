@@ -237,6 +237,35 @@ export async function collectAddedItems(stripe, report, opts = {}) {
   );
 }
 
+// lookAtAddedItemsCharge(stripe, report) reads the PaymentIntent saved on a report and says whether it holds a charge. It writes nothing to
+// Stripe: it is the look the desk takes before it closes a report whose charge failed, so a charge Stripe took is not declined away.
+// report: { id, cents, charge_intent_id }. Never throws for an expected outcome.
+//   -> { ok: true, taken: true, chargeId, amountCents } | { ok: true, taken: false } | { ok: false, reason }
+// taken: the intent succeeded, received at least report.cents and names its charge (collectedFrom's test). Not taken: the intent holds no
+// charge and none is on its way, whatever the reason (it wants a payment method, a confirmation or the customer, or it was cancelled), and
+// it is left as it is. No answer, with the reason: 'unavailable' (the intent is processing, or Stripe could not be reached to read it),
+// 'mismatch' (it does not name this report, it succeeded but not for what was approved, or it is in a state a charge here never reaches),
+// 'not_configured' (no client).
+export async function lookAtAddedItemsCharge(stripe, report) {
+  if (!stripe) return { ok: false, reason: 'not_configured' };
+  let saved;
+  try {
+    saved = await stripe.paymentIntents.retrieve(report.charge_intent_id);
+  } catch (err) {
+    return { ok: false, reason: errorReason(err) };
+  }
+  if (!saved.metadata || String(saved.metadata.report_id) !== String(report.id)) return { ok: false, reason: 'mismatch' };
+  if (saved.status === 'succeeded') {
+    const collected = collectedFrom(saved, report.cents);
+    return collected.ok ? { ok: true, taken: true, chargeId: collected.chargeId, amountCents: collected.amountCents } : collected;
+  }
+  if (saved.status === 'processing') return { ok: false, reason: 'unavailable' };
+  if (HOLDS_NO_CHARGE.has(saved.status)) return { ok: true, taken: false };
+  return { ok: false, reason: 'mismatch' };
+}
+
+const HOLDS_NO_CHARGE = new Set(['requires_payment_method', 'requires_confirmation', 'requires_action', 'canceled']);
+
 // chargeSavedCard: the hold lapsed, so the card the hold was placed on is charged for the recorded price with a new
 // off-session intent, created unconfirmed under a per-booking key and saved on the booking before it is confirmed, so any
 // retry finds it. It reads `booking` for `id` and `payment_intent_id` only (the key, the metadata and the compare-and-set's old
@@ -366,6 +395,9 @@ function idOf(value) {
 // Connection, rate-limit, server and key errors are about Stripe or this server's configuration, not about the booking: try
 // again later. A card error is the card's answer. Any other error (an intent Stripe does not know, a request Stripe refuses)
 // is about this booking: it is a mismatch, so the admins hear of it once and it is not retried for ever.
+// One request Stripe refuses is not about the booking either: its 409, "another request is in progress under this idempotency
+// key". It means a second attempt on the same report is running right now, and that attempt may still take the charge. Read
+// as a mismatch it would write the report `failed` under a charge that is about to succeed, so it is "try later".
 const TRY_LATER = new Set(['StripeConnectionError', 'StripeRateLimitError', 'StripeAPIError', 'StripeAuthenticationError', 'StripePermissionError']);
 
 function errorReason(err) {
@@ -374,5 +406,6 @@ function errorReason(err) {
     return 'declined';
   }
   if (err && (TRY_LATER.has(err.type) || err.statusCode >= 500)) return 'unavailable';
+  if (err && (err.statusCode === 409 || err.code === 'idempotency_key_in_use')) return 'unavailable';
   return 'mismatch';
 }

@@ -31,13 +31,18 @@
 //   status, extras, quote, price_changed (with cents), below_minimum, too_large, not_configured, unavailable, declined, action_required, no_payment_method,
 //   cancelled_by_person, mismatch. `report` comes with decided and with every refusal that follows the approval being recorded.
 //   handle   an open report that is not *Add more items* becomes 'handled'. decline: an open report of any type, or an approved one whose charge failed,
-//            becomes 'declined'; nothing is sent to Stripe. approve: an open *Add more items* report on a chargeable booking, priced here, becomes
-//            'approved' with its charge 'pending' and is then charged. retry: an approved report whose charge is 'failed' or 'pending' is charged again
-//            for the lines and cents that were approved, not priced again; the saved PaymentIntent is continued, never a second one.
+//            becomes 'declined'; nothing is written to Stripe, but a failed report that holds a saved PaymentIntent has that intent read first
+//            (lookAtAddedItemsCharge): one that succeeded is a charge taken, so the report is recorded 'paid' and the decline is refused as 'decided';
+//            one that is processing, unreadable or not this report's is refused with its reason; any other is left as it is and the decline goes on.
+//            approve: an open *Add more items* report on a chargeable booking, priced here, becomes 'approved' with its charge 'pending' and is then
+//            charged; the booking is locked before the report, and its status is judged again under that lock. retry: an approved report whose charge
+//            is 'failed' or 'pending' is charged again for the lines and cents that were approved, not priced again; the saved PaymentIntent is
+//            continued, never a second one. A charge Stripe took is written 'paid' from 'pending' or from 'failed', whatever an attempt that
+//            overlapped it wrote.
 // cardSourceFor(execute, booking) -> { cardIntentId, card }: the booking's own payment, else its series' first payment when that is this customer's, else the card the
 //   customer put on file from a link (src/lib/booking-card.js). None of the three is 'no_payment_method' at the charge.
 // providerShareCents(cents, booking) -> whole cents: the sum less the booking's commission, to the cent.
-import { collectAddedItems, paymentAmountCents } from './booking-payment.js';
+import { collectAddedItems, lookAtAddedItemsCharge, paymentAmountCents } from './booking-payment.js';
 import { cardOnFile } from './booking-card.js';
 import { inTransaction } from './booking-crew.js';
 import { commissionPercentOf } from './booking-price.js';
@@ -214,6 +219,17 @@ async function reportWithBooking(execute, id) {
   return rows[0] ?? null;
 }
 
+// A charge Stripe took, written on its report -> whether a row changed. It is written from 'pending' and from 'failed': two attempts on one report can
+// overlap, and the one that lost may have written 'failed' before the one that won finished taking the charge; a charge taken is paid, whatever a loser
+// wrote. A report that is not approved any more (it was declined) is not moved.
+async function recordPaid(execute, id, chargeId) {
+  const done = await execute(
+    "UPDATE job_reports SET charge_status = 'paid', charge_id = ?, charged_at = NOW(), charge_reason = NULL WHERE id = ? AND status = 'approved' AND charge_status IN ('pending', 'failed')",
+    [chargeId, id]
+  );
+  return done.affectedRows > 0;
+}
+
 // The charge for an approved report, taken outside any connection, and what came of it written on the report. A guarded update that changes no row
 // means another try finished first: the report is then read and returned as it is.
 async function takeCharge({ execute, stripe, currency, report }) {
@@ -243,11 +259,13 @@ async function takeCharge({ execute, stripe, currency, report }) {
   );
 
   if (result.ok) {
-    await execute(
-      "UPDATE job_reports SET charge_status = 'paid', charge_id = ?, charged_at = NOW(), charge_reason = NULL WHERE id = ? AND status = 'approved' AND charge_status = 'pending'",
-      [result.chargeId, report.id]
-    );
-    return { ok: true, report: await deskReport(execute, report.id) };
+    const recorded = await recordPaid(execute, report.id, result.chargeId);
+    const fresh = await deskReport(execute, report.id);
+    // No row changed and the report does not read paid: the charge was taken on a report that is no longer approved. Nothing here can undo that, so the log says so.
+    if (!recorded && fresh && !(fresh.added_items && fresh.added_items.charge === 'paid')) {
+      console.error('A charge was taken for a report that is no longer approved');
+    }
+    return { ok: true, report: fresh };
   }
   // Stripe could not be reached, or there is no client: nothing is known, the report stays pending and a retry is safe.
   if (!CARD_SIDE.has(result.reason)) return refuse(result.reason, { report: await deskReport(execute, report.id) });
@@ -282,13 +300,31 @@ async function closeReport({ withConnection, id, admin, action, decisionNote }) 
   );
 }
 
+// A decline of an approved report whose charge failed and which holds a saved PaymentIntent: the intent is read first, outside any connection, so a
+// charge Stripe took is not declined away (a loser of two overlapping attempts can have written 'failed' over it). Nothing is written to Stripe, and
+// an intent that holds no charge is left as it is. -> null when the decline may go on, else the answer to give.
+async function lookBeforeDecline({ execute, stripe, id }) {
+  const [row] = await execute('SELECT status, charge_status, charge_intent_id, approved_cents FROM job_reports WHERE id = ?', [id]);
+  if (!row || row.status !== 'approved' || row.charge_status !== 'failed' || !row.charge_intent_id) return null;
+  const seen = await lookAtAddedItemsCharge(stripe, { id, cents: Number(row.approved_cents), charge_intent_id: row.charge_intent_id });
+  if (!seen.ok) return refuse(seen.reason, { report: await deskReport(execute, id) });
+  if (!seen.taken) return null;
+  // The charge was taken: it is written on the report, and the decline is not carried out.
+  await recordPaid(execute, id, seen.chargeId);
+  return refuse('decided', { report: await deskReport(execute, id) });
+}
+
 export async function decideReport({ withConnection, execute, stripe, currency = 'cad', id, admin, action, note, extras, expectedCents }) {
   if (!ACTIONS.includes(action)) return refuse('action');
   const decisionNote = note === undefined || note === null ? '' : typeof note === 'string' ? note.trim() : null;
   if (decisionNote === null || [...decisionNote].length > DECISION_NOTE_MAX) return refuse('note');
   if (!positive(id)) return refuse('not_found');
 
-  if (action === 'handle' || action === 'decline') return closeReport({ withConnection, id, admin, action, decisionNote });
+  if (action === 'handle') return closeReport({ withConnection, id, admin, action, decisionNote });
+  if (action === 'decline') {
+    const held = await lookBeforeDecline({ execute, stripe, id });
+    return held ?? closeReport({ withConnection, id, admin, action, decisionNote });
+  }
 
   const report = await reportWithBooking(execute, id);
   if (!report) return refuse('not_found');
@@ -324,21 +360,26 @@ export async function decideReport({ withConnection, execute, stripe, currency =
   if (!bound.ok) return refuse(bound.reason);
   if (!Number.isInteger(expectedCents) || expectedCents !== priced.cents) return refuse('price_changed', { cents: priced.cents });
 
-  const recorded = await withConnection((connection) =>
+  // The booking is locked before the report, the order the crew's side takes, and its status is judged again under that lock: it was read above, and a
+  // customer's dispute can land between that read and this record.
+  const blocked = await withConnection((connection) =>
     inTransaction(connection, async () => {
       const run = executeOn(connection);
+      const [booking] = await run('SELECT status FROM bookings WHERE id = ? FOR UPDATE', [report.booking_id]);
       const [current] = await run('SELECT status FROM job_reports WHERE id = ? FOR UPDATE', [id]);
-      if (!current || current.status !== 'open') return false;
+      if (!current || current.status !== 'open') return 'decided';
+      if (!booking || !CHARGEABLE_STATUSES.includes(booking.status)) return 'status';
       await run(
         `UPDATE job_reports SET status = 'approved', charge_status = 'pending', approved_lines = ?, approved_cents = ?,
                 decided_by = ?, decided_at = NOW(), decision_note = ?
          WHERE id = ?`,
         [JSON.stringify(priced.lines.map(({ code, label, quantity, amount }) => ({ code, label, quantity, amount }))), priced.cents, admin.id, decisionNote, id]
       );
-      return true;
+      return null;
     })
   );
-  if (!recorded) return refuse('decided', { report: await deskReport(execute, id) });
+  if (blocked === 'decided') return refuse('decided', { report: await deskReport(execute, id) });
+  if (blocked) return refuse(blocked);
 
   const fresh = await reportWithBooking(execute, id);
   return takeCharge({ execute, stripe, currency, report: fresh });
