@@ -449,7 +449,7 @@ test.describe('Reports in the job record', () => {
     // The two states the list has besides success: nothing sent yet, and an answer that holds no reports.
     // Mutant that turns this case red: a job with no reports shows an empty list, no sentence or the link to the queue, or an answer without reports takes the
     // rest of the block with it or is read as "no reports yet".
-    test('Screens: a job with no reports says so, and an answer that holds none says that it could not show them and still shows the timer', async ({ page, request, baseURL, playwright }) => {
+    test('Screens: a job with no reports says so, and an answer that holds none says that it could not show them and keeps the timer on the page', async ({ page, request, baseURL, playwright }) => {
         test.setTimeout(300_000);
         const ctx = await setup(playwright, request, baseURL);
         const ann = await addMember(ctx, 'Ann', '344');
@@ -475,7 +475,7 @@ test.describe('Reports in the job record', () => {
         await page.reload({ timeout: FIRST_VISIT_MS });
         const again = page.getByRole('region', { name: 'Job link for your crew', exact: true });
         await expect(again.getByText("Couldn't show the reports.", { exact: true }), 'the page says what it could not show').toBeVisible({ timeout: FIRST_VISIT_MS });
-        await expect(again.getByRole('heading', { name: 'Job timer and photos', level: 3 }), 'and the timer is still there').toBeVisible();
+        await expect(again.getByRole('heading', { name: 'Job timer and photos', level: 3 }), 'and the timer is on the page').toBeVisible();
         await expect(again.getByText('No reports yet.', { exact: true }), 'it does not claim that nothing was sent').toHaveCount(0);
     });
 });

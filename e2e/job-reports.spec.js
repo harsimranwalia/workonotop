@@ -413,7 +413,7 @@ test.describe('POST /api/job/{token}/reports: the cleaner\'s one-tap report', ()
         await setStatus(job.bookingId, 'pending');
         const third = await okOf(await postReport(request, job, cleaner, parts), 'the send made a third time, after the job went back to pending');
         expect([third.again, third.report.id]).toEqual([true, first.report.id]);
-        expect(await watched(job.bookingId), 'still nothing more').toEqual(before);
+        expect(await watched(job.bookingId), 'nothing more was written').toEqual(before);
     });
 
     test('every refusal says no-store, names its message and writes nothing', async ({ playwright, request, baseURL }) => {
@@ -535,7 +535,7 @@ test.describe('the admin\'s queue and decisions over HTTP', () => {
         const items = await sendReport(ctx, 'add_items');
         const wrong = await decide(ctx, items.reportId, { action: 'handle' });
         expect([wrong.status, wrong.body.message]).toEqual([409, DESK_MESSAGES.wrongType]);
-        expect((await reportRow(items.reportId)).status, 'still open').toBe('open');
+        expect((await reportRow(items.reportId)).status, 'the report is open').toBe('open');
     });
 
     test('decline closes any open report, sends nothing to Stripe and keeps the lines empty', async ({ playwright, request, baseURL }) => {
@@ -546,7 +546,7 @@ test.describe('the admin\'s queue and decisions over HTTP', () => {
         const row = await reportRow(items.reportId);
         expect([row.charge_status, row.charge_intent_id, row.approved_cents]).toEqual(['none', null, null]);
         const queue = await okOf(await answerOf(await request.get(`/api/admin/reports?booking_id=${items.job.bookingId}`, { headers: ctx.as.admin })), 'the queue for the job');
-        expect(queue.reports, 'a declined report no longer waits on the office').toEqual([]);
+        expect(queue.reports, 'a declined report is not waiting on the office').toEqual([]);
         const all = await okOf(await answerOf(await request.get(`/api/admin/reports?status=all&booking_id=${items.job.bookingId}`, { headers: ctx.as.admin })), 'every report of the job');
         expect(all.reports.map((report) => report.status)).toEqual(['declined']);
     });
@@ -692,7 +692,7 @@ test.describe('approving an add-items report: the server prices it, the admin\'s
         expect((await desk(planted, stripe)).ok).toBe(true);
         const second = await desk(planted, stripe);
         expect([second.ok, second.reason, second.report.status]).toEqual([false, 'decided', 'approved']);
-        expect(callsOf(stripe, 'create').length, 'still one intent').toBe(1);
+        expect(callsOf(stripe, 'create').length, 'one intent').toBe(1);
         const info = await decideReport({ withConnection, execute: run, stripe, id: planted.reportId, admin: { id: 1 }, action: 'handle' });
         expect([info.ok, info.reason], 'handle is for information reports').toEqual([false, 'wrong_type']);
     });
@@ -713,7 +713,7 @@ test.describe('approving an add-items report: the server prices it, the admin\'s
         expect([refused.ok, refused.reason, refused.report.added_items.charge, refused.report.added_items.reason]).toEqual([false, 'declined', 'failed', 'declined']);
         let row = await reportRow(planted.reportId);
         expect([row.status, row.charge_status, row.charge_reason, row.charge_intent_id]).toEqual(['approved', 'failed', 'declined', 'pi_extra_probe']);
-        expect((await queueFor(run, { bookingId: planted.bookingId })).reports.length, 'a failed charge still waits on the office').toBe(1);
+        expect((await queueFor(run, { bookingId: planted.bookingId })).reports.length, 'a failed charge waits on the office').toBe(1);
 
         const retry = scriptedClient({ retrieve: [intentFor(planted, { status: 'requires_payment_method' }), takenFor(planted, 9500)], confirm: [{}] });
         const paid = await decideReport({ withConnection, execute: run, stripe: retry, currency: 'cad', id: planted.reportId, admin: { id: 1 }, action: 'retry' });
@@ -742,7 +742,7 @@ test.describe('approving an add-items report: the server prices it, the admin\'s
         expect((await desk(declinedCard, bad)).reason).toBe('declined');
         const closed = await decideReport({ withConnection, execute: run, stripe: bad, id: declinedCard.reportId, admin: { id: 1 }, action: 'decline', note: 'Customer will pay another way' });
         expect([closed.ok, closed.report.status, closed.report.added_items.charge]).toEqual([true, 'declined', 'failed']);
-        expect((await queueFor(run, { bookingId: declinedCard.bookingId })).reports, 'a declined report no longer waits').toEqual([]);
+        expect((await queueFor(run, { bookingId: declinedCard.bookingId })).reports, 'a declined report is not waiting').toEqual([]);
     });
 
     test('a customer with no card on file is no_payment_method, recorded as failed, and nothing is created', async () => {

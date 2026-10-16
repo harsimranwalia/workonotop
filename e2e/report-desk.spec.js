@@ -80,7 +80,7 @@ test.describe('priceExtras', () => {
         expect(priceExtras(SERVICE, dust, [ask('dust', 1)])).toMatchObject({ ok: true, cents: 25 });
     });
 
-    test('the catalogue\'s own ceiling is too_large; a sum under it that a card could not take is still priced', () => {
+    test('the catalogue\'s own ceiling is too_large; a sum under it that a card could not take is priced', () => {
         expect(priceExtras(SERVICE, ITEMS, [ask('window', 10_000_000)])).toEqual({ ok: false, reason: 'too_large' });
         expect(priceExtras(SERVICE, ITEMS, [ask('window', 2_000_000)])).toMatchObject({ ok: true, cents: 2_000_000_000 });
     });
@@ -299,7 +299,7 @@ test.describe('collectAddedItems', () => {
             const unsettled = scriptedClient({ create: [created()], confirm: [{}], retrieve: [created({ status })] });
             expect(await collectAddedItems(unsettled, REPORT, { ...onReport(), card: CARD }), status).toEqual({ ok: false, reason });
         }
-        // A declined retry continues the same intent: still one create across both tries.
+        // A declined retry continues the same intent: one create across both tries.
         const again = scriptedClient({ retrieve: [created({ status: 'requires_payment_method' }), paid()], confirm: [{}] });
         expect(await collectAddedItems(again, { ...REPORT, charge_intent_id: 'pi_extra_1' }, onReport('pi_extra_1'))).toMatchObject({ ok: true });
         expect(only(again, 'create')).toEqual([]);
@@ -363,7 +363,7 @@ test.describe('collectAddedItems', () => {
         expect(await collectAddedItems(undefined, REPORT, { ...onReport(), card: CARD })).toEqual({ ok: false, reason: 'not_configured' });
     });
 
-    test('a booking\'s own completion charge is the same call as before: its key and its metadata are the booking\'s', async () => {
+    test('a booking\'s own completion charge is made with the booking\'s own key and the booking\'s own metadata', async () => {
         const lapsed = { id: 'pi_hold_1', status: 'canceled', cancellation_reason: 'automatic', customer: 'cus_1', payment_method: 'pm_1', latest_charge: 'ch_1', metadata: {} };
         const make = () => scriptedClient({
             retrieve: [lapsed, { id: 'pi_new_1', status: 'succeeded', amount_received: 13500, latest_charge: 'ch_9' }],
