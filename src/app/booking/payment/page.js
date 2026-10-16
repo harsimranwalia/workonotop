@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import SeriesConsent from '@/components/booking/SeriesConsent';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { dayLabel } from '@/lib/booking-answers';
+import { isRepeating } from '@/lib/when-and-where';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 const cad = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' });
@@ -242,6 +244,8 @@ export default function PaymentPage() {
     : String(pendingBookingData.job_date || '').split(','))
     .map((d) => String(d).trim())
     .filter(Boolean);
+  // A booking that repeats holds one date, its first visit's, which the summary calls its start.
+  const repeating = isRepeating(pendingBookingData.answers?.frequency);
 
   return (
     <div className="min-h-screen bg-gray-50/50 font-sans antialiased">
@@ -287,7 +291,7 @@ export default function PaymentPage() {
                     <span className="font-medium text-right break-words max-w-[60%]">{pendingBookingData.service_name}</span>
                   </div>
                   <div className="flex justify-between gap-2">
-                    <span className="text-gray-600">Dates:</span>
+                    <span className="text-gray-600">{repeating ? 'Starts:' : 'Dates:'}</span>
                     <span className="font-medium text-right flex flex-col items-end text-xs sm:text-sm">
                       {jobDates.map((d, i) => (
                         <span key={`${d}-${i}`}>{dayLabel(d, 'long')}</span>
@@ -314,6 +318,8 @@ export default function PaymentPage() {
                         <span className="font-bold text-green-700 text-base sm:text-lg md:text-xl">{cad.format(heldAmount)}</span>
                       </div>
                     )}
+
+                    <SeriesConsent answers={pendingBookingData.answers} className="mt-2 sm:mt-3" />
                   </div>
                 </div>
               </div>

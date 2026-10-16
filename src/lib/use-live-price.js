@@ -9,8 +9,9 @@ const CHOICE_FIELDS = ['units', 'option', 'property_type', 'extras'];
 const EMPTY_KEY = '{}';
 
 // `answers` is the answers object, or a function from the latest `choices` (null before the first price) to it.
-// Returns { status, price, lines, quotedMinutes, field, message, choices, choicesChanged, answers, retry }; status is one of
+// Returns { status, price, lines, visits, quotedMinutes, field, message, choices, choicesChanged, answers, retry }; status is one of
 // loading, updating, priced, refused, too_large, stale_choices, unavailable, failed. A null serviceId waits in loading.
+// `visits` is the { date, price, lines } of each visit of a booking that repeats, the first visit first; it is [] when the answer has none.
 export function useLivePrice(serviceId, answers) {
   const [choices, setChoices] = useState(null);
   const [settled, setSettled] = useState({ status: 'loading', key: null });
@@ -49,7 +50,14 @@ export function useLivePrice(serviceId, answers) {
           return;
         }
         staleOnce.current = false;
-        setSettled({ status: 'priced', key: requestKey, price: body.price, lines: body.lines, quotedMinutes: body.quoted_minutes });
+        setSettled({
+          status: 'priced',
+          key: requestKey,
+          price: body.price,
+          lines: body.lines,
+          visits: Array.isArray(body.visits) ? body.visits : [],
+          quotedMinutes: body.quoted_minutes,
+        });
         return;
       }
       if (status === 400 && body && typeof body === 'object') {
@@ -128,6 +136,7 @@ export function useLivePrice(serviceId, answers) {
     status,
     price: priced ? settled.price : null,
     lines: priced ? settled.lines : [],
+    visits: priced ? settled.visits : [],
     quotedMinutes: priced ? settled.quotedMinutes : null,
     field: status === 'refused' ? settled.field : null,
     message: status === 'refused' ? settled.message : '',

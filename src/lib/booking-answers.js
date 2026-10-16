@@ -1,5 +1,6 @@
 // The answers a booking is priced by, built in one place from the customer's choices: only the keys the pricing rule reads, each
-// present only when answered. The job's first date is the date that prices it.
+// present only when answered. The job's first date is the date that prices it. A booking that repeats also carries its frequency
+// ('weekly', 'every_2_weeks' or 'monthly'); a booking that happens once has no frequency key.
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -14,7 +15,7 @@ export function hoursAnswer(value) {
   return Number.isFinite(hours) && hours >= 1 && hours <= 24 ? hours : null;
 }
 
-export function bookingAnswers(selections, jobDates, choices) {
+export function bookingAnswers(selections, jobDates, choices, frequency) {
   const picked = selections || {};
   const items = Array.isArray(choices) ? choices : [];
   const ofKind = (kind) => items.filter((item) => item && item.kind === kind);
@@ -42,6 +43,8 @@ export function bookingAnswers(selections, jobDates, choices) {
   const first = Array.isArray(jobDates) ? jobDates[0] : undefined;
   if (typeof first === 'string' && first) answers.date = first;
 
+  if (typeof frequency === 'string' && frequency !== '' && frequency !== 'once') answers.frequency = frequency;
+
   const extras = [];
   for (const item of ofKind('extra')) {
     const quantity = Number(picked.extras?.[item.code]);
@@ -52,10 +55,11 @@ export function bookingAnswers(selections, jobDates, choices) {
   return answers;
 }
 
-// The same answers without the date, as steps before the date is chosen send them.
-export function answersWithoutDate(answers) {
+// The same answers without the date and the frequency, as steps before the date is chosen send them.
+export function answersWithoutWhen(answers) {
   const rest = { ...(answers || {}) };
   delete rest.date;
+  delete rest.frequency;
   return rest;
 }
 

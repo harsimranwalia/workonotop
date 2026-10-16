@@ -56,17 +56,75 @@ export function checkHeldPayment(intent, { amountCents, currency, customerId, no
   return mismatch;
 }
 
+// The time zone "today" is read in wherever the money path compares a date with the day it is (the market is Metro Vancouver).
+// No Canadian zone is behind it, so its date is never ahead of the date anywhere else in the country: a visit is not treated as
+// due before its date in any province, and in the easternmost it is due a few hours late, which does no harm. A name, not an
+// offset: the zone database decides the offset (tzdata 2026c has this zone at UTC-7 all year), so no rule is written here.
+export const BUSINESS_TIME_ZONE = 'America/Vancouver';
+
+// businessToday(nowMs) -> 'YYYY-MM-DD': the calendar day it is in BUSINESS_TIME_ZONE at nowMs (milliseconds, as Date.now()).
+// The clock is the caller's, so this stays pure. A time that is not a number is refused, never read as "now" or as 1970.
+export function businessToday(nowMs) {
+  if (typeof nowMs !== 'number' || !Number.isFinite(nowMs)) throw new RangeError('businessToday needs a time in milliseconds');
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: BUSINESS_TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' })
+    .formatToParts(new Date(nowMs));
+  const part = (type) => parts.find((p) => p.type === type).value;
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+// The calendar day a booking's job_date names, 'YYYY-MM-DD', or null when it names none. A date-only string is taken as written. A
+// Date is what the database driver makes of a DATE column: midnight in this server's own zone, so its local year, month and day
+// are the column's (reading it in UTC would name the day before, east of Greenwich the day after).
+function dayOf(value) {
+  if (typeof value === 'string') return DAY.test(value) ? value : null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const two = (n) => String(n).padStart(2, '0');
+    return `${String(value.getFullYear()).padStart(4, '0')}-${two(value.getMonth() + 1)}-${two(value.getDate())}`;
+  }
+  return null;
+}
+
 // collectBookingPayment(stripe, booking, opts) takes the one charge for a booking whose job is done, for the price recorded
-// on the booking. opts: { currency, saveIntentId(newId, oldId) -> saved?, readIntentId() -> the id on the booking }. The two
-// callbacks run outside the route's transaction, so a saved charge stays on the booking whatever the route does next.
+// on the booking. opts: { currency, saveIntentId(newId, oldId) -> saved?, readIntentId() -> the id on the booking, cardIntentId, today }.
+// The two callbacks run outside the route's transaction, so a saved charge stays on the booking whatever the route does next.
+// cardIntentId: for a booking with no payment of its own (a later visit of a series), the payment whose card it is charged on.
+// today: businessToday(Date.now()); such a booking is charged on or after its job_date and not before, whatever its status says
+// (a provider's click or an admin's write can mark a visit done weeks early). With no readable date or no today it is refused.
 // Never throws for an expected outcome.
-//   -> { ok: true, chargeId, amountCents, overCollected } | { ok: false, reason }
+//   -> { ok: true, chargeId, amountCents, overCollected } | { ok: false, reason, day? }
 // reason: 'mismatch' | 'declined' | 'action_required' | 'no_payment_method' | 'cancelled_by_person' | 'unavailable' | 'not_configured'
+//   | 'not_due' (nothing was called: the visit's date is still ahead, and day is that date)
 export async function collectBookingPayment(stripe, booking, opts = {}) {
+  // First, before the key is asked about: this refusal calls nothing, so it holds on a server with no payment key too.
+  if (!booking.payment_intent_id) {
+    const day = dayOf(booking.job_date);
+    if (!day || !DAY.test(opts.today || '')) return { ok: false, reason: 'mismatch' };
+    if (day > opts.today) return { ok: false, reason: 'not_due', day };
+  }
   if (!stripe) return { ok: false, reason: 'not_configured' };
   const currency = opts.currency || 'cad';
   const expected = Math.round(parseFloat(booking.service_price) * 100);
   if (!Number.isInteger(expected) || expected <= 0) return { ok: false, reason: 'mismatch' };
+
+  // A later visit of a series holds no payment of its own: it is charged, for its own recorded price, on the card of the
+  // payment its series' first visit holds (opts.cardIntentId), as a lapsed hold is. That payment is read first: one a person
+  // cancelled is not a card to charge (as for a lapsed hold, below), and one with no customer cannot be charged off-session.
+  if (!booking.payment_intent_id) {
+    if (!opts.cardIntentId) return { ok: false, reason: 'no_payment_method' };
+    let source;
+    try {
+      source = await stripe.paymentIntents.retrieve(opts.cardIntentId);
+    } catch (err) {
+      return { ok: false, reason: errorReason(err) };
+    }
+    if (source.status === 'canceled' && source.cancellation_reason !== 'automatic' && source.cancellation_reason !== 'expired') {
+      return { ok: false, reason: 'cancelled_by_person' };
+    }
+    if (!source.customer) return { ok: false, reason: 'no_payment_method' };
+    return chargeSavedCard(stripe, booking, source, expected, currency, opts);
+  }
 
   let intent;
   try {

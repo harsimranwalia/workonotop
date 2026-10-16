@@ -7,9 +7,14 @@ import { sendEmail } from '@/lib/email'
 import { notifyUser } from '@/lib/push'
 import { logActivity } from '@/lib/logger'
 import { providerPayout } from '@/lib/booking-price'
-import { collectBookingPayment } from '@/lib/booking-payment'
+import { collectBookingPayment, businessToday } from '@/lib/booking-payment'
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-05-27.dahlia' }) : null
+
+// 'YYYY-MM-DD' as "Thursday, November 5, 2026", from the day's own year, month and date: read in UTC, so no zone moves it.
+function longDay(day) {
+  return new Date(`${day}T00:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+}
 
 // ── Receipt email ─────────────────────────────────────────────────────────────
 function receiptHtml({ bookingNumber, serviceName, customerName, providerName, amount, isCustomer, jobDate }) {
@@ -196,17 +201,29 @@ export async function POST(request, { params }) {
     // ── The one charge, for the recorded price ───────────────────────
     let collected = null
     if (action === 'approve') {
-      if (!booking.payment_intent_id) {
+      // A later visit of a series holds no payment of its own: it is charged on the card of the payment its series' first
+      // visit holds, read from that visit only when it is this customer's booking.
+      let cardIntentId = null
+      if (!booking.payment_intent_id && booking.series_visit > 1) {
+        const [first] = await execute(
+          'SELECT payment_intent_id FROM bookings WHERE id = ? AND user_id = ?',
+          [booking.series_id, booking.user_id]
+        )
+        cardIntentId = first ? first.payment_intent_id : null
+      }
+      if (!booking.payment_intent_id && !cardIntentId) {
         return NextResponse.json({ success: false, message: 'No payment intent found' }, { status: 400 })
       }
 
       collected = await collectBookingPayment(stripe, booking, {
         currency: process.env.STRIPE_CURRENCY || 'cad',
+        cardIntentId,
+        today: businessToday(Date.now()),
         // These two run on the pool and this request holds no connection while they do: a charge saved on the booking stays
-        // saved whatever this request does next.
+        // saved whatever this request does next. The save compares with <=>, which also matches a later visit's empty payment.
         saveIntentId: async (newId, oldId) => {
           const result = await execute(
-            'UPDATE bookings SET payment_intent_id = ? WHERE id = ? AND payment_intent_id = ?',
+            'UPDATE bookings SET payment_intent_id = ? WHERE id = ? AND payment_intent_id <=> ?',
             [newId, id, oldId]
           )
           return result.affectedRows > 0
@@ -216,6 +233,15 @@ export async function POST(request, { params }) {
           return row ? row.payment_intent_id : null
         },
       })
+
+      // A later visit is not approved, and so not charged, before its date (the provider may have marked it done early): the
+      // customer is told the date, nothing is called or recorded, and the visit stays as it is. A dispute is still open to them.
+      if (!collected.ok && collected.reason === 'not_due') {
+        return NextResponse.json({
+          success: false,
+          message: `This visit is booked for ${longDay(collected.day)}, so it can't be approved before then.`
+        }, { status: 400 })
+      }
 
       if (!collected.ok && (collected.reason === 'unavailable' || collected.reason === 'not_configured')) {
         return NextResponse.json({

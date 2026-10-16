@@ -7,9 +7,11 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CustomerAuthModal from '@/components/CustomerAuthModal';
 import PriceBox from '@/components/booking/PriceBox';
+import SeriesConsent from '@/components/booking/SeriesConsent';
+import VisitSchedule from '@/components/booking/VisitSchedule';
 import { dayLabel } from '@/lib/booking-answers';
 import { useLivePrice } from '@/lib/use-live-price';
-import { checkWhenAndWhere } from '@/lib/when-and-where';
+import { checkWhenAndWhere, isRepeating } from '@/lib/when-and-where';
 import { useAuth } from 'src/context/AuthContext';
 
 export default function BookingConfirmPage() {
@@ -180,6 +182,8 @@ export default function BookingConfirmPage() {
   const jobDates = flow.schedule.job_date;
   const savedTimes = flow.whenAndWhere && flow.whenAndWhere.selectedTimes;
   const times = savedTimes && typeof savedTimes === 'object' ? savedTimes : {};
+  // A booking that repeats holds one date, its first visit's, which the notice below calls its start.
+  const repeating = isRepeating(answers.frequency);
 
   return (
     <div className="min-h-screen bg-gray-50/50 font-sans antialiased">
@@ -261,7 +265,7 @@ export default function BookingConfirmPage() {
                       {/* Info Notice */}
                       <div className="mb-4 sm:mb-6 bg-amber-50 border border-amber-200 rounded-lg sm:rounded-xl p-3 sm:p-4">
                         <div className="flex justify-between gap-2">
-                          <span className="text-gray-600 text-xs sm:text-sm">Dates:</span>
+                          <span className="text-gray-600 text-xs sm:text-sm">{repeating ? 'Starts:' : 'Dates:'}</span>
                           <span className="font-medium text-right text-xs sm:text-sm flex flex-col items-end">
                             {jobDates.map((date) => (
                               <span key={date}>{dayLabel(date, 'long')}</span>
@@ -276,6 +280,13 @@ export default function BookingConfirmPage() {
                           </p>
                         </div>
                       </div>
+
+                      {/* Visits of a booking that repeats */}
+                      <VisitSchedule live={live} className="mb-4 sm:mb-6" />
+                      <SeriesConsent
+                        answers={answers}
+                        className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-lg sm:rounded-xl"
+                      />
 
                       {/* Terms */}
                       <div className="mb-4 sm:mb-6">

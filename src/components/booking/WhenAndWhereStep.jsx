@@ -2,9 +2,14 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import { dayLabel } from '@/lib/booking-answers';
-import { MIN_DESCRIPTION_LENGTH, TIME_SLOTS, withDefaults } from '@/lib/when-and-where';
+import { FREQUENCIES } from '@/lib/visit-series';
+import { MIN_DESCRIPTION_LENGTH, TIME_SLOTS, isRepeating, withDefaults } from '@/lib/when-and-where';
 
 const MAX_DATES = 3;
+const FREQUENCY_CHOICES = [
+  { value: 'once', label: 'Once' },
+  ...Object.entries(FREQUENCIES).map(([value, { label }]) => ({ value, label })),
+];
 const MAX_TIMING_LENGTH = 400;
 const MAX_DESCRIPTION_LENGTH = 500;
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -110,11 +115,28 @@ export default function WhenAndWhereStep({ value, onChange, showHints = false, o
   const goToNextMonth = () =>
     setView(({ year, month }) => (month < 12 ? { year, month: month + 1 } : { year: year + 1, month: 1 }));
 
+  const repeating = isRepeating(v.frequency);
+  // A repeating booking has one date, the first visit's, so another day replaces it; otherwise up to MAX_DATES days are kept.
+  const canAddDate = repeating || v.selectedDates.length < MAX_DATES;
+
+  const chooseFrequency = (frequency) => {
+    if (frequency === v.frequency) return;
+    if (!isRepeating(frequency) || v.selectedDates.length <= 1) {
+      update({ frequency });
+      return;
+    }
+    // Only the earliest date, with its times, stays when a booking that has several dates starts to repeat.
+    const [first] = v.selectedDates;
+    update({ frequency, selectedDates: [first], selectedTimes: first in v.selectedTimes ? { [first]: v.selectedTimes[first] } : {} });
+  };
+
   const toggleDate = (day) => {
     const dateStr = toDateStr(view.year, view.month, day);
     if (v.selectedDates.includes(dateStr)) {
       update({ selectedDates: v.selectedDates.filter((d) => d !== dateStr) });
-    } else if (v.selectedDates.length < MAX_DATES) {
+    } else if (repeating) {
+      update({ selectedDates: [dateStr] });
+    } else if (canAddDate) {
       // 'YYYY-MM-DD' strings sort in date order
       update({ selectedDates: [...v.selectedDates, dateStr].sort() });
     }
@@ -211,7 +233,40 @@ export default function WhenAndWhereStep({ value, onChange, showHints = false, o
   return (
     <div className="space-y-8">
       <Card>
-        <CardHeader id={id('dates')} icon="📅" title="When should we send someone?" subtitle="Select 1 to 3 dates that work for you" />
+        <CardHeader id={id('often')} icon="🔁" title="How often?" />
+
+        <div className="p-6 md:p-8">
+          <div role="radiogroup" aria-labelledby={id('often')} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {FREQUENCY_CHOICES.map((choice) => {
+              const checked = v.frequency === choice.value;
+              return (
+                <label
+                  key={choice.value}
+                  className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer motion-safe:transition focus-within:ring-2 focus-within:ring-green-700 ${checked ? 'border-green-700 bg-green-50' : 'border-gray-200 hover:border-green-500'}`}
+                >
+                  <input
+                    type="radio"
+                    name={id('often-choice')}
+                    value={choice.value}
+                    checked={checked}
+                    onChange={() => chooseFrequency(choice.value)}
+                    className="w-4 h-4 accent-green-700"
+                  />
+                  <span className="font-medium text-gray-800">{choice.label}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader
+          id={id('dates')}
+          icon="📅"
+          title="When should we send someone?"
+          subtitle={repeating ? 'Choose the date of the first visit. The next visits are booked from it.' : 'Select 1 to 3 dates that work for you'}
+        />
 
         <div className="p-6 md:p-8">
           <div className="flex items-center justify-between mb-6">
@@ -258,7 +313,7 @@ export default function WhenAndWhereStep({ value, onChange, showHints = false, o
                 const dateStr = toDateStr(view.year, view.month, day.day);
                 const isSelected = v.selectedDates.includes(dateStr);
                 // a selected day stays clickable so it can always be removed
-                const isClickable = isSelected || (day.available && v.selectedDates.length < MAX_DATES);
+                const isClickable = isSelected || (day.available && canAddDate);
 
                 return (
                   <div key={index} className="aspect-square">

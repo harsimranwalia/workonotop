@@ -240,6 +240,9 @@ const tables = [
     photo_upload_deadline TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    series_id INT NULL,
+    series_visit TINYINT UNSIGNED NULL,
+    series_frequency VARCHAR(20) NULL,
     FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (provider_id) REFERENCES service_providers(id) ON DELETE SET NULL,
@@ -253,7 +256,8 @@ const tables = [
     UNIQUE INDEX uq_bookings_payment_intent (payment_intent_id),
     INDEX idx_payment_status (payment_status),
     INDEX idx_stripe_customer (stripe_customer_id),
-    INDEX idx_job_timer_status (job_timer_status)
+    INDEX idx_job_timer_status (job_timer_status),
+    INDEX idx_series (series_id)
   )`,
 
   // Table 8: chat_messages
@@ -723,6 +727,13 @@ const alterations = [
 
   // Bookings table - marketplace_pushed_at: when an admin offered the job to providers (NULL: not offered)
   { table: 'bookings', column: 'marketplace_pushed_at', sql: 'ALTER TABLE bookings ADD COLUMN marketplace_pushed_at DATETIME NULL AFTER accepted_at' },
+
+  // Bookings table - series_id, series_visit, series_frequency (migration 0004): the series a visit belongs to (the id of its first visit),
+  // its number in the series (1 for the first visit) and how often the series repeats; all NULL on a one-time booking. The index is on series_id.
+  { table: 'bookings', column: 'series_id', sql: 'ALTER TABLE bookings ADD COLUMN series_id INT NULL' },
+  { table: 'bookings', column: 'series_visit', sql: 'ALTER TABLE bookings ADD COLUMN series_visit TINYINT UNSIGNED NULL' },
+  { table: 'bookings', column: 'series_frequency', sql: 'ALTER TABLE bookings ADD COLUMN series_frequency VARCHAR(20) NULL' },
+  { table: 'bookings', column: 'idx_series', sql: 'CREATE INDEX idx_series ON bookings(series_id)' },
 
   // Index for previous_provider_id
   { table: 'bookings', column: 'idx_previous_provider', sql: 'CREATE INDEX idx_previous_provider ON bookings(previous_provider_id)' },

@@ -1,5 +1,5 @@
 // database/fixtures/catalog.js
-// What a customer can book, and the one setting the code reads for it. Plain data with no imports.
+// What a customer can book, and the settings the code reads for it. Plain data with no imports.
 // The catalog is plausible and plainly invented; it is never shaped to make a test pass. Prices are
 // placeholders. image_url stays NULL (identity rules: accounts.js).
 
@@ -107,7 +107,14 @@ export const catalog = {
     ],
     // The commission the code falls back to (provider/available-jobs/route.js), so a fixture database
     // behaves as the code expects when the setting is absent. In the dev database this table's key is its
-    // primary key and it has neither an id nor timestamps, so this row carries none.
-    system_settings: [{ key: 'default_commission', value: '20' }],
+    // primary key and it has neither an id nor timestamps, so these rows carry none.
+    system_settings: [
+      { key: 'default_commission', value: '20' },
+      // The percent taken off each visit of a repeating booking, by how often it repeats (src/lib/pricing-rules.js). Invented
+      // placeholders, not the client's figures: a monthly series carries a discount line in the dev app, the other two do not.
+      { key: 'recurring_discount_weekly_percent', value: '0' },
+      { key: 'recurring_discount_every_2_weeks_percent', value: '0' },
+      { key: 'recurring_discount_monthly_percent', value: '10' },
+    ],
   },
 };

@@ -9,9 +9,9 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PriceBox, { HOURS_MESSAGE_ID, formatMoney } from '@/components/booking/PriceBox';
 import WhenAndWhereStep from '@/components/booking/WhenAndWhereStep';
-import { answersWithoutDate, bookingAnswers, hoursAnswer } from '@/lib/booking-answers';
+import { answersWithoutWhen, bookingAnswers, hoursAnswer } from '@/lib/booking-answers';
 import { useLivePrice } from '@/lib/use-live-price';
-import { EMPTY_WHEN_AND_WHERE, checkWhenAndWhere, whenAndWhereBooking } from '@/lib/when-and-where';
+import { EMPTY_WHEN_AND_WHERE, checkWhenAndWhere, whenAndWhereBooking, withDefaults } from '@/lib/when-and-where';
 
 const STEPS = [
   { number: 1, name: 'About the job', kinds: ['unit', 'property_type'] },
@@ -177,13 +177,13 @@ function FlowContent({ serviceId }) {
     const picked = userAddress && userAddress.trim() && userAddress !== NO_ADDRESS ? userAddress : null;
     if (flow && String(flow.service_id) === String(serviceId)) {
       setSelections(readSelections(flow.selections));
-      const stored = { ...EMPTY_WHEN_AND_WHERE, ...(flow.whenAndWhere || {}) };
+      const stored = withDefaults(flow.whenAndWhere);
       // A place picked since the field was filled replaces the stored street; while the place is the same, the customer's own edit of the field stands.
       const placeChanged = picked !== null && picked !== flow.addressFrom;
       setWhenAndWhere(placeChanged ? { ...stored, address: picked } : stored);
       addressFrom.current = picked ?? flow.addressFrom ?? null;
       const saved = flow.answers && typeof flow.answers === 'object' ? flow.answers : {};
-      setInitialAnswers(requestedStep >= 4 ? saved : answersWithoutDate(saved));
+      setInitialAnswers(requestedStep >= 4 ? saved : answersWithoutWhen(saved));
     } else {
       if (picked !== null) setWhenAndWhere({ ...EMPTY_WHEN_AND_WHERE, address: picked });
       addressFrom.current = picked;
@@ -218,8 +218,8 @@ function FlowContent({ serviceId }) {
 
   const live = useLivePrice(ready ? serviceId : null, (choices) => {
     if (!choices) return initialAnswers;
-    const step = resolveStep(requestedStep, choices, selections);
-    return bookingAnswers(selections, step === 4 ? whenAndWhere.selectedDates : [], choices);
+    const onWhen = resolveStep(requestedStep, choices, selections) === 4;
+    return bookingAnswers(selections, onWhen ? whenAndWhere.selectedDates : [], choices, onWhen ? whenAndWhere.frequency : undefined);
   });
   const { choices } = live;
   const shown = choices ? shownStepsOf(choices) : null;
@@ -265,7 +265,7 @@ function FlowContent({ serviceId }) {
         photos: booking.photos,
         address: booking.address,
       },
-      answers: choices ? bookingAnswers(selections, whenAndWhere.selectedDates, choices) : initialAnswers,
+      answers: choices ? bookingAnswers(selections, whenAndWhere.selectedDates, choices, whenAndWhere.frequency) : initialAnswers,
     };
     sessionStorage.setItem('bookingFlow', JSON.stringify(flow));
   }, [ready, service, step, requestedStep, selections, whenAndWhere, choices, initialAnswers]);

@@ -2,10 +2,11 @@
 
 import { NextResponse } from 'next/server'
 import { execute } from '@/lib/db'
-import { loadPricing, priceJob, refusalOf } from '@/lib/pricing-rules'
+import { loadPricing, priceJob, priceVisits, refusalOf } from '@/lib/pricing-rules'
 
 // Body: { service_id, answers }. Answers the price, the quoted minutes, the lines the price is made of and the service's choices (the
-// items of its rule), or a 400 that names the answer that cannot be priced. Nothing is written.
+// items of its rule), or a 400 that names the answer that cannot be priced. Nothing is written. When the answers carry a frequency and a
+// date, the answer also holds `visits`: the date, price and lines of each visit of the series, the first visit being the one priced above.
 export async function POST(request) {
   let body
   try {
@@ -16,9 +17,16 @@ export async function POST(request) {
 
   try {
     const { service_id, answers } = body || {}
-    const { service, items } = await loadPricing(execute, service_id)
-    const job = priceJob(service, items, answers)
+    const { service, items, discounts } = await loadPricing(execute, service_id)
+    const job = priceJob(service, items, answers, discounts)
     if (!job.ok) return NextResponse.json(refusalOf(job), { status: 400 })
+
+    let visits
+    if (answers?.frequency != null && answers?.date != null) {
+      const priced = priceVisits(service, items, answers, discounts)
+      if (!priced.ok) return NextResponse.json(refusalOf(priced), { status: 400 })
+      visits = priced.visits.map((visit) => ({ date: visit.date, price: visit.price, lines: visit.lines }))
+    }
 
     return NextResponse.json({
       success: true,
@@ -27,6 +35,7 @@ export async function POST(request) {
       quoted_minutes: job.minutes,
       lines: job.lines,
       choices: items.map((item) => ({ kind: item.kind, code: item.code, label: item.label, amount: item.amount, minutes: item.minutes, is_hourly: item.is_hourly })),
+      ...(visits ? { visits } : {}),
     })
   } catch (error) {
     console.error('Error working out the price:', error)

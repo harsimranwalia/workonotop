@@ -1,11 +1,13 @@
 // @ts-check
 // The payment of a booking: the amounts a card payment can take, the payment bound to the booking at the checkout, and the
-// one charge when the job is done. Thirty-eight cases, each titled for what it shows. The first thirty import the module
+// one charge when the job is done. Fifty-four cases, each titled for what it shows. The first thirty import the module
 // (src/lib/booking-payment.js) in this process and drive it with a scripted client that records every call and answers per
 // a script (the precedent is e2e/price-of-record.spec.js); the next five run the two completion routes (approve and
-// auto-release) in this process against a pool of a few connections; the last three go through the dev app. The dev stack
+// auto-release) in this process against a pool of a few connections; the next three go through the dev app. The dev stack
 // holds no payment key, so the dev app books unverified (recorded pending, no held amount); the verified path is the scripted
-// client's and, later, a run with test keys.
+// client's and, later, a run with test keys. The last sixteen are the later visits of a series: ten drive the module with the
+// scripted client (what a later visit is charged on, and that it is not charged before its date), and six run the two
+// completion routes in this process.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -19,6 +21,7 @@ const {
     paymentCheckMode,
     checkHeldPayment,
     collectBookingPayment,
+    businessToday,
 } = await import('../src/lib/booking-payment.js');
 
 // A scripted Stripe client: each entry in `script` answers the next call to the named method, either a value or an error.
@@ -87,9 +90,45 @@ function within(ms, promise) {
     return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
 }
 
+// Whether a WHERE that compares `left` with `right` by `operator` matches, as MySQL answers it: `<=>` matches two NULLs and not
+// one, and `=` matches nothing when either side is NULL (the comparison is NULL, not true).
+function matchesInMysql(operator, left, right) {
+    const empty = (value) => value === null || value === undefined;
+    if (empty(left) || empty(right)) return operator === '<=>' && empty(left) && empty(right);
+    return left === right;
+}
+
+// Whether `left` stands to `right` as the operator says, as MySQL answers it: a comparison with a NULL side is NULL, which no
+// WHERE keeps. Days are 'YYYY-MM-DD' text here, which orders as the dates do.
+function comparesInMysql(operator, left, right) {
+    const empty = (value) => value === null || value === undefined;
+    if (empty(left) || empty(right)) return false;
+    return { '<=': left <= right, '<': left < right, '>=': left >= right, '>': left > right, '=': left === right }[operator];
+}
+
+// The release sweep's own condition on a booking's payment and date, read out of the statement and applied as MySQL applies it:
+// a booking is kept when it holds a payment of its own, or is a later visit of a series whose date stands to the day the
+// statement is given (its one ?) as the statement's own operator says. A statement without the condition has no answer, so a
+// sweep that lost it fails here instead of passing every booking on.
+function sweepKeeps(sql, params) {
+    const found = /AND \(b\.payment_intent_id IS NOT NULL OR \(b\.series_visit > 1 AND b\.job_date (<=|<|>=|>|=) \?\)\)/.exec(sql);
+    if (!found) throw new Error(`the stand-in database has no answer for the sweep's payment and date condition in: ${sql}`);
+    return (row) => (row.payment_intent_id !== null && row.payment_intent_id !== undefined)
+        || (row.series_visit > 1 && comparesInMysql(found[1], row.job_date, params[0]));
+}
+
+// A booking row as the driver hands it over: a DATE column is a Date at midnight in the server's own zone, not the text stored.
+function asDriverRow(row) {
+    const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(row.job_date);
+    return { ...row, job_date: day ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3])) : row.job_date };
+}
+
 // The pool. A SELECT answers with its rows and a write with { affectedRows }, as mysql2 does through execute().
+// `ignoreVisitDate` makes the sweep's statement answer as if it had no date condition: a case for what the route does when
+// a visit that is not yet due reaches its payment call anyway.
 class FakeDatabase {
-    constructor(size, rows) {
+    constructor(size, rows, { ignoreVisitDate = false } = {}) {
+        this.ignoreVisitDate = ignoreVisitDate;
         this.size = size;
         this.inUse = 0;
         this.waiting = [];
@@ -136,17 +175,25 @@ class FakeDatabase {
         const byId = (value) => this.rows.get(Number(value));
         if (sql.includes('WHERE b.id = ? AND b.user_id = ?')) {
             const row = byId(params[0]);
-            return row && row.user_id === params[1] ? [{ ...row }] : [];
+            return row && row.user_id === params[1] ? [asDriverRow(row)] : [];
         }
         if (sql.includes("WHERE b.status = 'awaiting_approval'")) {
-            return [...this.rows.values()].filter((row) => row.status === 'awaiting_approval').map((row) => ({ ...row }));
+            const keeps = this.ignoreVisitDate ? () => true : sweepKeeps(sql, params);
+            return [...this.rows.values()].filter((row) => row.status === 'awaiting_approval' && keeps(row)).map(asDriverRow);
         }
         if (sql === 'SELECT id FROM bookings WHERE id = ?') return byId(params[0]) ? [{ id: byId(params[0]).id }] : [];
         if (sql.startsWith('SELECT email, first_name, last_name FROM users')) return [{ email: 'customer@example.test', first_name: 'Cass', last_name: 'Customer' }];
         if (sql === 'SELECT payment_intent_id FROM bookings WHERE id = ?') return byId(params[0]) ? [{ payment_intent_id: byId(params[0]).payment_intent_id }] : [];
+        if (sql === 'SELECT payment_intent_id FROM bookings WHERE id = ? AND user_id = ?') {
+            const row = byId(params[0]);
+            return row && row.user_id === params[1] ? [{ payment_intent_id: row.payment_intent_id }] : [];
+        }
         if (sql.startsWith('UPDATE bookings SET payment_intent_id = ?')) {
             const row = byId(params[1]);
-            const swapped = Boolean(row) && row.payment_intent_id === params[2];
+            // The old id is compared as the statement's own operator compares it in MySQL; a statement with neither has no answer.
+            const compare = /\sAND payment_intent_id\s*(<=>|=)\s*\?$/.exec(sql);
+            if (!compare) throw new Error(`the stand-in database has no answer for the compare in: ${sql}`);
+            const swapped = Boolean(row) && matchesInMysql(compare[1], row.payment_intent_id, params[2]);
             if (swapped) row.payment_intent_id = params[0];
             return { affectedRows: swapped ? 1 : 0 };
         }
@@ -261,8 +308,8 @@ const approveCall = (id = '5') => [{ json: async () => ({ action: 'approve' }) }
 
 // Runs `body` with the two routes loaded against a database whose pool has `poolSize` connections. `stripe(db)` makes the
 // Stripe stand-in the routes are given. Everything the case set up is put back afterwards.
-async function withRoutes({ poolSize, rows, stripe }, body) {
-    const db = new FakeDatabase(poolSize, rows);
+async function withRoutes({ poolSize, rows, stripe, ignoreVisitDate }, body) {
+    const db = new FakeDatabase(poolSize, rows, { ignoreVisitDate });
     const standIn = stripe(db);
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'booking-routes-'));
     const put = (relative, text) => {
@@ -852,5 +899,463 @@ test.describe('Booking payment', () => {
         } finally {
             await request.delete(`/api/bookings?id=${first.booking_id}`, { headers: styles['admin-bearer'] });
         }
+    });
+});
+
+// ── A later visit of a series ────────────────────────────────────────────────────────────────────────────────────────
+// A later visit of a series holds no payment of its own: the series' one hold is its first visit's (pi_hold_1, on card pm_1
+// of customer cus_1). When the visit is done it is charged, for its own recorded price, on that card.
+test.describe('a later visit of a series', () => {
+    // The second visit: booking 43, its own recorded price, no payment of its own, dated 2026-11-04. The routes give the module
+    // the day it is in the business's zone (businessToday); a visit is charged on or after its date, so ON_THE_DAY is that day.
+    const VISIT = { id: 43, service_price: '121.50', payment_intent_id: null, job_date: '2026-11-04' };
+    const ON_THE_DAY = { ...OPTS, today: '2026-11-04' };
+    const VISIT_CENTS = 12150;
+    const created = { id: 'pi_new_43', status: 'requires_confirmation', payment_method: 'pm_1', metadata: { booking_id: '43' } };
+    const taken = { ...created, status: 'succeeded', amount_received: VISIT_CENTS, latest_charge: 'ch_43' };
+
+    test("a later visit is charged on the card of its series' first payment, for its own recorded price", async () => {
+        const stripe = scriptedClient({ retrieve: [heldIntent(), taken], create: [created], confirm: [{}] });
+        const saved = [];
+        const result = await collectBookingPayment(stripe, VISIT, {
+            ...ON_THE_DAY,
+            cardIntentId: 'pi_hold_1',
+            saveIntentId: async (newId, oldId) => { saved.push([newId, oldId]); return true; },
+        });
+        expect(result).toEqual({ ok: true, chargeId: 'ch_43', amountCents: VISIT_CENTS, overCollected: false });
+        // The first visit's payment is read for its card; the charge is created for the visit's price under the visit's key,
+        // confirmed off-session and read back. The hold itself is not captured.
+        expect(stripe.calls).toEqual([
+            ['retrieve', 'pi_hold_1'],
+            ['create', {
+                amount: VISIT_CENTS, currency: 'cad', customer: 'cus_1', payment_method: 'pm_1',
+                metadata: { booking_id: '43' }, confirm: false,
+                automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
+            }, { idempotencyKey: 'booking-43-completion-charge' }],
+            ['confirm', 'pi_new_43', { payment_method: 'pm_1', off_session: true }],
+            ['retrieve', 'pi_new_43'],
+        ]);
+        // Saved on the visit, over its empty payment, before it is confirmed.
+        expect(saved).toEqual([['pi_new_43', null]]);
+
+        // The card is the same when the first visit's payment has been taken, or its hold has lapsed.
+        for (const first of [heldIntent({ status: 'succeeded', amount_received: EXPECTED }), heldIntent({ status: 'canceled', cancellation_reason: 'expired' })]) {
+            const again = scriptedClient({ retrieve: [first, taken], create: [created], confirm: [{}] });
+            expect(await collectBookingPayment(again, VISIT, { ...ON_THE_DAY, cardIntentId: 'pi_hold_1' }), first.status).toEqual({ ok: true, chargeId: 'ch_43', amountCents: VISIT_CENTS, overCollected: false });
+            expect(again.calls.map(([method]) => method), first.status).toEqual(['retrieve', 'create', 'confirm', 'retrieve']);
+            expect(again.calls[1][1], first.status).toMatchObject({ amount: VISIT_CENTS, customer: 'cus_1', payment_method: 'pm_1' });
+        }
+    });
+
+    test('a later visit with no card to charge makes no payment call', async () => {
+        // No card is passed when the series' first visit holds no payment, or is another customer's booking.
+        for (const [name, opts] of [['no cardIntentId', ON_THE_DAY], ['cardIntentId null', { ...ON_THE_DAY, cardIntentId: null }]]) {
+            const stripe = scriptedClient({ retrieve: [heldIntent()], create: [created], confirm: [{}] });
+            const saved = [];
+            const result = await collectBookingPayment(stripe, VISIT, { ...opts, saveIntentId: async (...ids) => { saved.push(ids); return true; } });
+            expect(result, name).toEqual({ ok: false, reason: 'no_payment_method' });
+            expect(stripe.calls, name).toEqual([]);
+            expect(saved, name).toEqual([]);
+        }
+    });
+
+    test('a retry after the charge is saved on the visit confirms that charge and creates none', async () => {
+        // The first run creates the charge and saves it on the visit; its confirm does not answer and the read after it finds the
+        // charge still waiting, so the run ends with a try-later.
+        const stripe = scriptedClient({
+            retrieve: [heldIntent(), created, created, taken],
+            create: [created],
+            confirm: [connError(), {}],
+        });
+        // The visit's payment column: a compare-and-set that matches NULL as <=> does, and its read.
+        let onVisit = null;
+        const opts = {
+            ...ON_THE_DAY,
+            cardIntentId: 'pi_hold_1',
+            saveIntentId: async (newId, oldId) => {
+                if (onVisit !== oldId) return false;
+                onVisit = newId;
+                return true;
+            },
+            readIntentId: async () => onVisit,
+        };
+        expect(await collectBookingPayment(stripe, VISIT, opts)).toEqual({ ok: false, reason: 'unavailable' });
+        expect(onVisit).toBe('pi_new_43');
+
+        // The retry holds the visit as it is now, with its saved charge: that charge is read and confirmed, nothing is created,
+        // and the first visit's payment is not read again.
+        const retry = await collectBookingPayment(stripe, { ...VISIT, payment_intent_id: onVisit }, opts);
+        expect(retry).toEqual({ ok: true, chargeId: 'ch_43', amountCents: VISIT_CENTS, overCollected: false });
+        expect(stripe.calls.filter(([method]) => method === 'create')).toHaveLength(1);
+        expect(stripe.calls.slice(4)).toEqual([
+            ['retrieve', 'pi_new_43'],
+            ['confirm', 'pi_new_43', { payment_method: 'pm_1', off_session: true }],
+            ['retrieve', 'pi_new_43'],
+        ]);
+    });
+
+    // "Done" is a provider's click or an admin's write, and neither looks at the visit's date: a later visit can be marked done
+    // weeks early, and the sweep (24 hours on) or the customer's approval would charge it. A later visit is charged on or after
+    // its date, in the business's zone, and not before.
+    test('a later visit dated after today makes no payment call and is answered not_due, with a payment key or without', async () => {
+        // Eleven weeks ahead, tomorrow, and the first day of the next year seen from the last day of this one.
+        for (const [date, today] of [['2027-01-20', '2026-11-04'], ['2026-11-05', '2026-11-04'], ['2027-01-01', '2026-12-31']]) {
+            const stripe = scriptedClient({ retrieve: [heldIntent(), taken], create: [created], confirm: [{}] });
+            const saved = [];
+            const opts = { ...OPTS, today, cardIntentId: 'pi_hold_1', saveIntentId: async (...ids) => { saved.push(ids); return true; } };
+            expect(await collectBookingPayment(stripe, { ...VISIT, job_date: date }, opts), date).toEqual({ ok: false, reason: 'not_due', day: date });
+            expect(stripe.calls, date).toEqual([]);
+            expect(saved, date).toEqual([]);
+            // The date is asked before the payment key is, so a server with none answers the same.
+            expect(await collectBookingPayment(null, { ...VISIT, job_date: date }, opts), `${date}, no key`).toEqual({ ok: false, reason: 'not_due', day: date });
+        }
+    });
+
+    test('a later visit is charged on its date and on every day after it, and not on the day before', async () => {
+        const dated = { ...VISIT, job_date: '2027-01-01' };
+        const early = scriptedClient({});
+        expect(await collectBookingPayment(early, dated, { ...OPTS, today: '2026-12-31', cardIntentId: 'pi_hold_1' })).toEqual({ ok: false, reason: 'not_due', day: '2027-01-01' });
+        expect(early.calls).toEqual([]);
+        for (const today of ['2027-01-01', '2027-01-02', '2027-03-01', '2028-01-01']) {
+            const stripe = scriptedClient({ retrieve: [heldIntent(), taken], create: [created], confirm: [{}] });
+            expect(await collectBookingPayment(stripe, dated, { ...OPTS, today, cardIntentId: 'pi_hold_1' }), today).toEqual({ ok: true, chargeId: 'ch_43', amountCents: VISIT_CENTS, overCollected: false });
+            expect(stripe.calls.map(([method]) => method), today).toEqual(['retrieve', 'create', 'confirm', 'retrieve']);
+        }
+    });
+
+    test("a later visit's date is read as the day it names, whether it is text or the Date the database driver returns, in any server zone", async () => {
+        const zone = process.env.TZ;
+        try {
+            // The driver hands a DATE column over as midnight in the server's own zone. East of Greenwich that instant falls on the
+            // day before in UTC, and the day the column holds is still the one named.
+            for (const where of ['UTC', 'America/Vancouver', 'Pacific/Auckland', 'Pacific/Pago_Pago']) {
+                process.env.TZ = where;
+                for (const job_date of [new Date(2026, 10, 5), '2026-11-05']) {
+                    const visit = { ...VISIT, job_date };
+                    expect(await collectBookingPayment(null, visit, { ...OPTS, today: '2026-11-04' }), where).toEqual({ ok: false, reason: 'not_due', day: '2026-11-05' });
+                    // On the day the date no longer holds it back; with no client the answer is the missing key's.
+                    expect(await collectBookingPayment(null, visit, { ...OPTS, today: '2026-11-05' }), where).toEqual({ ok: false, reason: 'not_configured' });
+                }
+            }
+        } finally {
+            if (zone === undefined) delete process.env.TZ; else process.env.TZ = zone;
+        }
+    });
+
+    test('a later visit with no readable date, or with no day to compare it with, is refused and makes no payment call', async () => {
+        const unreadable = [
+            ['no date', { ...VISIT, job_date: undefined }, '2026-11-04'],
+            ['a null date', { ...VISIT, job_date: null }, '2026-11-04'],
+            ['a date with a time on it', { ...VISIT, job_date: '2026-11-04T00:00:00.000Z' }, '2026-11-04'],
+            ['a Date that is not a date', { ...VISIT, job_date: new Date('not a date') }, '2026-11-04'],
+            ['no today', VISIT, undefined],
+            ['a today that is not a day', VISIT, '11/04/2026'],
+            ['a today that is a Date, which would be read in the server zone', VISIT, new Date(2026, 10, 4)],
+        ];
+        for (const [name, visit, today] of unreadable) {
+            const stripe = scriptedClient({ retrieve: [heldIntent(), taken], create: [created], confirm: [{}] });
+            expect(await collectBookingPayment(stripe, visit, { ...OPTS, cardIntentId: 'pi_hold_1', today }), name).toEqual({ ok: false, reason: 'mismatch' });
+            expect(stripe.calls, name).toEqual([]);
+        }
+    });
+
+    test('a booking with a payment of its own is charged whatever its date: only a later visit of a series is held to one', async () => {
+        // A one-time booking's date is whatever the customer typed, and a series' first visit holds the series' hold: the date is
+        // asked only on the branch that has no payment of its own.
+        for (const job_date of ['2099-12-31', undefined, 'next Tuesday']) {
+            const stripe = scriptedClient({ retrieve: [heldIntent(), heldIntent({ status: 'succeeded', amount_received: EXPECTED })], capture: [{}] });
+            expect(await collectBookingPayment(stripe, { ...BOOKING, job_date }, { ...OPTS, today: '2026-11-04' }), String(job_date)).toEqual({ ok: true, chargeId: 'ch_1', amountCents: EXPECTED, overCollected: false });
+            expect(stripe.calls.map(([method]) => method), String(job_date)).toEqual(['retrieve', 'capture', 'retrieve']);
+        }
+    });
+
+    test("a later visit is not charged on a card whose payment a person cancelled, or that names no customer, but a lapsed hold is still the series' card", async () => {
+        for (const [name, source, reason] of [
+            ['cancelled at the customer\'s request', heldIntent({ status: 'canceled', cancellation_reason: 'requested_by_customer' }), 'cancelled_by_person'],
+            ['abandoned', heldIntent({ status: 'canceled', cancellation_reason: 'abandoned' }), 'cancelled_by_person'],
+            ['no customer', heldIntent({ customer: null }), 'no_payment_method'],
+            ['no customer on the payment at all', heldIntent({ customer: undefined }), 'no_payment_method'],
+        ]) {
+            const stripe = scriptedClient({ retrieve: [source], create: [created], confirm: [{}] });
+            expect(await collectBookingPayment(stripe, VISIT, { ...ON_THE_DAY, cardIntentId: 'pi_hold_1' }), name).toEqual({ ok: false, reason });
+            // Only the series' first payment is read: nothing is created, saved or confirmed.
+            expect(stripe.calls, name).toEqual([['retrieve', 'pi_hold_1']]);
+        }
+        // A hold that lapsed (Stripe's own 'automatic' or 'expired') is still the card the series was booked with.
+        for (const cancellation_reason of ['automatic', 'expired']) {
+            const stripe = scriptedClient({ retrieve: [heldIntent({ status: 'canceled', cancellation_reason }), taken], create: [created], confirm: [{}] });
+            expect((await collectBookingPayment(stripe, VISIT, { ...ON_THE_DAY, cardIntentId: 'pi_hold_1' })).ok, cancellation_reason).toBe(true);
+        }
+    });
+
+    test('today is the day it is in Metro Vancouver, not the day it is in UTC or on the server', () => {
+        // Instants whose Vancouver date is the same on either side of any daylight-saving rule, and whose UTC date is the next day.
+        expect(businessToday(Date.parse('2026-11-05T03:00:00Z'))).toBe('2026-11-04');
+        expect(businessToday(Date.parse('2026-11-05T18:00:00Z'))).toBe('2026-11-05');
+        expect(businessToday(Date.parse('2026-07-01T03:00:00Z'))).toBe('2026-06-30');
+        expect(businessToday(Date.parse('2027-01-01T03:00:00Z'))).toBe('2026-12-31');
+        expect(businessToday(Date.parse('2028-03-01T03:00:00Z'))).toBe('2028-02-29');
+        // Not the server's: the same answer under two other server zones.
+        const zone = process.env.TZ;
+        try {
+            for (const where of ['Pacific/Auckland', 'UTC']) {
+                process.env.TZ = where;
+                expect(businessToday(Date.parse('2026-11-05T03:00:00Z')), where).toBe('2026-11-04');
+            }
+        } finally {
+            if (zone === undefined) delete process.env.TZ; else process.env.TZ = zone;
+        }
+        // A time that is not a number is refused, never read as now or as 1970.
+        for (const bad of [undefined, null, NaN, '2026-11-05', new Date(0)]) expect(() => businessToday(bad), String(bad)).toThrow(RangeError);
+    });
+});
+
+// ── A series at completion ───────────────────────────────────────────────────────────────────────────────────────────
+// The two completion routes, in this process, with the rows of one series. Visit k of a weekly series that customer 7 booked
+// is booking 10 + k, and series_id is the first visit's id on every visit. The first visit holds the series' one payment
+// (pi_hold_1, for its own 135.00); a later visit holds none of its own and has its own recorded price (121.50). Every visit is
+// dated 2026-02-02 (routeBooking's), long past whenever this suite runs, so a visit that is done is due unless a case dates it
+// from the day the routes read off the clock (businessToday).
+test.describe('a series at completion', () => {
+    const addDays = (day, n) => new Date(Date.parse(`${day}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+    const visit = (k, over = {}) => routeBooking({
+        id: 10 + k, series_id: 11, series_visit: k, series_frequency: 'weekly', booking_number: `BK${10 + k}`,
+        ...(k > 1 ? { payment_intent_id: null, payment_status: 'pending', service_price: '121.50' } : {}),
+        ...over,
+    });
+    const CARD_READ = 'SELECT payment_intent_id FROM bookings WHERE id = ? AND user_id = ?';
+
+    test('the release sweep with no visit done makes no payment call', async () => {
+        // A visit in every state but awaiting_approval (done, waiting for the customer): the first visit completed and paid, the
+        // later ones booked, being matched, confirmed, under way, cancelled and disputed.
+        const rows = [
+            visit(1, { status: 'completed', payment_status: 'paid' }),
+            ...['pending', 'matching', 'confirmed', 'in_progress', 'cancelled', 'disputed'].map((status, index) => visit(index + 2, { status })),
+        ];
+        await withRoutes({ poolSize: 1, rows, stripe: () => statefulStripe(false) }, async ({ db, stripe, autoRelease }) => {
+            const answer = await within(4000, autoRelease.GET({}));
+            expect(answer, 'the run answers').not.toBe(NO_ANSWER);
+            expect(answer.body).toEqual({ success: true, processed: 0, results: [] });
+            expect(stripe.calls).toEqual([]);
+            expect(db.payouts).toEqual([]);
+            for (const row of rows) expect(db.rows.get(row.id), row.status).toEqual(row);
+        });
+
+        // A first visit, or a one-time booking, that holds no payment: the customer's approval is refused, no card is read and no
+        // payment call is made.
+        const unpaid = [
+            visit(1, { payment_intent_id: null, payment_status: 'pending' }),
+            routeBooking({ payment_intent_id: null, payment_status: 'pending', series_id: null, series_visit: null, series_frequency: null }),
+        ];
+        for (const row of unpaid) {
+            await withRoutes({ poolSize: 1, rows: [row], stripe: () => statefulStripe(false) }, async ({ db, stripe, approve }) => {
+                const answer = await within(4000, approve.POST(...approveCall(String(row.id))));
+                expect(answer, 'the route answers').not.toBe(NO_ANSWER);
+                expect(answer.status, JSON.stringify(answer.body)).toBe(400);
+                expect(answer.body).toEqual({ success: false, message: 'No payment intent found' });
+                expect(stripe.calls).toEqual([]);
+                expect(db.statements.some(([, sql]) => sql === CARD_READ)).toBe(false);
+                expect(db.rows.get(row.id)).toEqual(row);
+            });
+        }
+
+        // The sweep's own WHERE, which the stand-in database reads out of the statement: a booking with no payment is selected only
+        // as a later visit of a series (and a due one), so a first visit or a one-time booking with no payment is not selected.
+        await withRoutes({ poolSize: 1, rows: unpaid, stripe: () => statefulStripe(false) }, async ({ db, stripe, autoRelease }) => {
+            const answer = await within(4000, autoRelease.GET({}));
+            expect(answer, 'the run answers').not.toBe(NO_ANSWER);
+            expect(answer.body).toEqual({ success: true, processed: 0, results: [] });
+            expect(stripe.calls).toEqual([]);
+            for (const row of unpaid) expect(db.rows.get(row.id)).toEqual(row);
+        });
+    });
+
+    test('the release sweep charges only the visit that is done', async () => {
+        // The second visit is done and waits for the customer; the first is booked and holds the series' payment; the third to
+        // the fifth are not done.
+        const rows = [
+            visit(1, { status: 'confirmed' }),
+            visit(2),
+            visit(3, { status: 'in_progress' }),
+            visit(4, { status: 'matching' }),
+            visit(5, { status: 'pending' }),
+        ];
+        await withRoutes({ poolSize: 1, rows, stripe: () => statefulStripe(false) }, async ({ db, stripe, autoRelease }) => {
+            const answer = await within(4000, autoRelease.GET({}));
+            expect(answer, 'the run answers').not.toBe(NO_ANSWER);
+            expect(answer.body.results).toEqual([{ booking_id: 12, status: 'released' }]);
+            // One charge, for the second visit's own price, on the card of the first visit's payment, which is not captured; one
+            // transfer to the provider, from that charge.
+            expect(stripe.calls.map(([name]) => name)).toEqual(['retrieve', 'create', 'confirm', 'retrieve', 'transfer']);
+            expect(stripe.calls[0]).toEqual(['retrieve', 'pi_hold_1']);
+            expect(stripe.calls[1][1]).toMatchObject({ amount: 12150, customer: 'cus_1', payment_method: 'pm_1', metadata: { booking_id: '12' } });
+            expect(stripe.calls[1][2]).toEqual({ idempotencyKey: 'booking-12-completion-charge' });
+            expect(stripe.calls[4][1]).toMatchObject({ amount: 9720, destination: 'acct_1', source_transaction: 'ch_new' });
+            // Only the second visit is paid; every other visit is unchanged.
+            expect(db.rows.get(12)).toMatchObject({ status: 'completed', payment_status: 'paid', payment_intent_id: 'pi_new_1' });
+            for (const row of rows.filter(({ id }) => id !== 12)) expect(db.rows.get(row.id), `visit ${row.series_visit}`).toEqual(row);
+        });
+
+        // A later visit whose series_id names another customer's booking has no card there: no payment call is made and no provider
+        // is paid, and the visit is recorded as a payment that could not be taken, not released.
+        const elsewhere = [
+            routeBooking({ id: 21, user_id: 8, status: 'confirmed', series_id: 21, series_visit: 1, series_frequency: 'weekly' }),
+            visit(2, { series_id: 21 }),
+        ];
+        await withRoutes({ poolSize: 1, rows: elsewhere, stripe: () => statefulStripe(false) }, async ({ db, stripe, autoRelease }) => {
+            const answer = await within(4000, autoRelease.GET({}));
+            expect(answer, 'the run answers').not.toBe(NO_ANSWER);
+            expect(answer.body.results).toEqual([{ booking_id: 12, status: 'payment_failed' }]);
+            expect(stripe.calls).toEqual([]);
+            expect(db.payouts).toEqual([]);
+            expect(db.credits).toEqual([]);
+            expect(db.rows.get(12)).toEqual({ ...elsewhere[1], payment_status: 'failed' });
+            expect(db.rows.get(21)).toEqual(elsewhere[0]);
+            expect(db.statements.some(([, sql]) => sql.startsWith('INSERT INTO booking_status_history') && sql.includes("'payment_failed'"))).toBe(true);
+        });
+    });
+
+    test('the release sweep leaves a done later visit alone until its date, and charges it on the day', async () => {
+        const TODAY = businessToday(Date.now());
+        // The second and third visits are done and waiting for the customer, as a provider can leave them weeks early; the first is
+        // booked. One is eleven weeks off and one is tomorrow: neither is selected, called for, paid out or changed.
+        const ahead = [
+            visit(1, { status: 'confirmed' }),
+            visit(2, { job_date: addDays(TODAY, 77) }),
+            visit(3, { job_date: addDays(TODAY, 1) }),
+        ];
+        await withRoutes({ poolSize: 1, rows: ahead, stripe: () => statefulStripe(false) }, async ({ db, stripe, autoRelease }) => {
+            const answer = await within(4000, autoRelease.GET({}));
+            expect(answer, 'the run answers').not.toBe(NO_ANSWER);
+            expect(answer.body).toEqual({ success: true, processed: 0, results: [] });
+            expect(stripe.calls).toEqual([]);
+            expect(db.payouts).toEqual([]);
+            for (const row of ahead) expect(db.rows.get(row.id), `visit ${row.series_visit}`).toEqual(row);
+        });
+
+        // The same visit on its date, and after it, is taken by the first run: one charge on the series' card, one transfer.
+        for (const date of [TODAY, addDays(TODAY, -1)]) {
+            const due = [visit(1, { status: 'confirmed' }), visit(2, { job_date: date })];
+            await withRoutes({ poolSize: 1, rows: due, stripe: () => statefulStripe(false) }, async ({ db, stripe, autoRelease }) => {
+                const answer = await within(4000, autoRelease.GET({}));
+                expect(answer, 'the run answers').not.toBe(NO_ANSWER);
+                expect(answer.body.results, date).toEqual([{ booking_id: 12, status: 'released' }]);
+                expect(stripe.calls.map(([name]) => name), date).toEqual(['retrieve', 'create', 'confirm', 'retrieve', 'transfer']);
+                expect(db.rows.get(12), date).toMatchObject({ status: 'completed', payment_status: 'paid', payment_intent_id: 'pi_new_1' });
+                expect(db.rows.get(11), date).toEqual(due[0]);
+            });
+        }
+
+        // A booking with a payment of its own is not held to a date by the query: a one-time booking's date is whatever the customer
+        // typed, and it is released after its day of silence however far off that date is.
+        const own = routeBooking({ id: 31, job_date: addDays(TODAY, 77) });
+        await withRoutes({ poolSize: 1, rows: [own], stripe: () => statefulStripe(false) }, async ({ db, stripe, autoRelease }) => {
+            const answer = await within(4000, autoRelease.GET({}));
+            expect(answer, 'the run answers').not.toBe(NO_ANSWER);
+            expect(answer.body.results).toEqual([{ booking_id: 31, status: 'released' }]);
+            expect(stripe.calls.map(([name]) => name)).toEqual(['retrieve', 'capture', 'retrieve', 'transfer']);
+            expect(db.rows.get(31)).toMatchObject({ status: 'completed', payment_status: 'paid' });
+        });
+    });
+
+    test("a later visit that reaches the sweep's payment call before its date is skipped, not recorded as a failed payment", async () => {
+        // The query keeps such a visit out; this is the refusal behind it, with the stand-in answering as if the query had no date.
+        const TODAY = businessToday(Date.now());
+        const rows = [visit(1, { status: 'confirmed' }), visit(2, { job_date: addDays(TODAY, 77) })];
+        await withRoutes({ poolSize: 1, rows, ignoreVisitDate: true, stripe: () => statefulStripe(false) }, async ({ db, stripe, autoRelease }) => {
+            const answer = await within(4000, autoRelease.GET({}));
+            expect(answer, 'the run answers').not.toBe(NO_ANSWER);
+            expect(answer.body).toEqual({ success: true, processed: 1, results: [{ booking_id: 12, status: 'not_due' }] });
+            expect(stripe.calls).toEqual([]);
+            expect(db.payouts).toEqual([]);
+            // Nothing is recorded: the visit is not marked failed, nothing is written to its history, and no admin is looked up to
+            // be mailed or pushed.
+            expect(db.rows.get(12)).toEqual(rows[1]);
+            const failure = db.statements.filter(([, sql]) => sql.startsWith("UPDATE bookings SET payment_status = 'failed'")
+                || sql.startsWith('INSERT INTO booking_status_history') || sql.startsWith("SELECT id FROM users WHERE role = 'admin'"));
+            expect(failure).toEqual([]);
+        });
+    });
+
+    test("the customer's approval of a later visit charges that visit on the series' card", async () => {
+        // The first visit is approved and its hold captured for its own price; then the second visit is approved.
+        await withRoutes({ poolSize: 1, rows: [visit(1), visit(2)], stripe: () => statefulStripe(false) }, async ({ db, stripe, approve }) => {
+            const firstAnswer = await within(4000, approve.POST(...approveCall('11')));
+            expect(firstAnswer, 'the route answers').not.toBe(NO_ANSWER);
+            expect(firstAnswer.status, JSON.stringify(firstAnswer.body)).toBe(200);
+            const before = stripe.calls.length;
+
+            const answer = await within(4000, approve.POST(...approveCall('12')));
+            expect(answer, 'the route answers').not.toBe(NO_ANSWER);
+            expect(answer.status, JSON.stringify(answer.body)).toBe(200);
+            expect(answer.body.data).toEqual({ total_charged: 121.5, provider_received: 97.2, admin_commission: 24.3 });
+            // The card of the first visit's payment, one charge for the second visit's price under its own key, confirmed
+            // off-session and read back, and the provider's transfer from that charge. Nothing is captured.
+            const calls = stripe.calls.slice(before);
+            expect(calls.map(([name]) => name)).toEqual(['retrieve', 'create', 'confirm', 'retrieve', 'transfer']);
+            expect(calls[0]).toEqual(['retrieve', 'pi_hold_1']);
+            expect(calls[1]).toEqual(['create', {
+                amount: 12150, currency: 'cad', customer: 'cus_1', payment_method: 'pm_1',
+                metadata: { booking_id: '12' }, confirm: false,
+                automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
+            }, { idempotencyKey: 'booking-12-completion-charge' }]);
+            expect(calls[2]).toEqual(['confirm', 'pi_new_1', { payment_method: 'pm_1', off_session: true }]);
+            expect(calls[3]).toEqual(['retrieve', 'pi_new_1']);
+            expect(calls[4][1]).toMatchObject({ amount: 9720, destination: 'acct_1', source_transaction: 'ch_new' });
+            expect(db.rows.get(11)).toMatchObject({ status: 'completed', payment_status: 'paid', payment_intent_id: 'pi_hold_1' });
+            expect(db.rows.get(12)).toMatchObject({ status: 'completed', payment_status: 'paid', payment_intent_id: 'pi_new_1' });
+            expect(db.payouts).toHaveLength(2);
+            expect(db.credits).toEqual([108, 97.2]);
+        });
+
+        // A later visit whose series_id names another customer's booking has no card there: its approval is refused, and no
+        // payment call is made.
+        const elsewhere = [
+            routeBooking({ id: 21, user_id: 8, status: 'confirmed', series_id: 21, series_visit: 1, series_frequency: 'weekly' }),
+            visit(2, { series_id: 21 }),
+        ];
+        await withRoutes({ poolSize: 1, rows: elsewhere, stripe: () => statefulStripe(false) }, async ({ db, stripe, approve }) => {
+            const answer = await within(4000, approve.POST(...approveCall('12')));
+            expect(answer, 'the route answers').not.toBe(NO_ANSWER);
+            expect(answer.status, JSON.stringify(answer.body)).toBe(400);
+            expect(answer.body).toEqual({ success: false, message: 'No payment intent found' });
+            expect(stripe.calls).toEqual([]);
+            expect(db.rows.get(12)).toEqual(elsewhere[1]);
+        });
+    });
+
+    test("the customer's approval of a later visit is refused with its date until the day, and charges nothing", async () => {
+        // The second visit was marked done long before its date: approving it is declined with a sentence that names the date,
+        // before any card is read from Stripe, and the visit stays awaiting approval. The date is the one the visit holds in any
+        // server zone (a zone west of Greenwich would name the day before if the text were made from the instant).
+        const rows = [visit(1, { status: 'confirmed' }), visit(2, { job_date: '2099-12-31' })];
+        const zone = process.env.TZ;
+        try {
+            for (const where of ['UTC', 'America/Vancouver', 'Pacific/Auckland']) {
+                process.env.TZ = where;
+                await withRoutes({ poolSize: 1, rows, stripe: () => statefulStripe(false) }, async ({ db, stripe, approve }) => {
+                    const answer = await within(4000, approve.POST(...approveCall('12')));
+                    expect(answer, `the route answers in ${where}`).not.toBe(NO_ANSWER);
+                    expect(answer.status, JSON.stringify(answer.body)).toBe(400);
+                    expect(answer.body, where).toEqual({ success: false, message: "This visit is booked for Thursday, December 31, 2099, so it can't be approved before then." });
+                    expect(stripe.calls, where).toEqual([]);
+                    expect(db.payouts, where).toEqual([]);
+                    expect(db.rows.get(12), where).toEqual(rows[1]);
+                    expect(db.statements.some(([, sql]) => sql.includes('payment_failed')), where).toBe(false);
+                });
+            }
+        } finally {
+            if (zone === undefined) delete process.env.TZ; else process.env.TZ = zone;
+        }
+
+        // On its date the same approval charges the visit on the series' card, as any approval of a later visit does.
+        const due = [visit(1, { status: 'confirmed' }), visit(2, { job_date: businessToday(Date.now()) })];
+        await withRoutes({ poolSize: 1, rows: due, stripe: () => statefulStripe(false) }, async ({ db, stripe, approve }) => {
+            const answer = await within(4000, approve.POST(...approveCall('12')));
+            expect(answer, 'the route answers').not.toBe(NO_ANSWER);
+            expect(answer.status, JSON.stringify(answer.body)).toBe(200);
+            expect(stripe.calls.map(([name]) => name)).toEqual(['retrieve', 'create', 'confirm', 'retrieve', 'transfer']);
+            expect(db.rows.get(12)).toMatchObject({ status: 'completed', payment_status: 'paid', payment_intent_id: 'pi_new_1' });
+        });
     });
 });
