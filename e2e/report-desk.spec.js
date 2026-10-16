@@ -1,12 +1,13 @@
 // @ts-check
 // The money half of the on-site reports (ENG-017): what the items an admin approves from a report cost (priceExtras,
-// src/lib/pricing-rules.js), and the second charge for them (collectAddedItems, src/lib/booking-payment.js). Every case here
+// src/lib/pricing-rules.js), the second charge for them (collectAddedItems, src/lib/booking-payment.js) and the look at that charge before a failed report is declined
+// (lookAtAddedItemsCharge, the same file). Every case here
 // imports the modules in this process; none opens a connection and none calls Stripe: the payment cases hand the module a
 // scripted client that records every call and answers per a script (the precedent is e2e/booking-payment.spec.js).
 import { test, expect } from '@playwright/test';
 
 const { priceExtras } = await import('../src/lib/pricing-rules.js');
-const { collectAddedItems, collectBookingPayment, ADDED_ITEMS_KEY } = await import('../src/lib/booking-payment.js');
+const { collectAddedItems, collectBookingPayment, lookAtAddedItemsCharge, ADDED_ITEMS_KEY } = await import('../src/lib/booking-payment.js');
 
 // ── What the items cost: priceExtras ─────────────────────────────────────────────────────────────────────────────────
 // A service whose catalogue holds the extras fridge at 25.00 (15 minutes, a quote from 6), oven at 40.00 (30 minutes, a quote
@@ -321,6 +322,26 @@ test.describe('collectAddedItems', () => {
         expect(await collectAddedItems(unknownSaved, { ...REPORT, charge_intent_id: 'pi_extra_1' }, onReport('pi_extra_1'))).toEqual({ ok: false, reason: 'mismatch' });
     });
 
+    test('Stripe\'s answer that another request is in progress under the same key is a try-later wherever it comes, and a key used again with other parameters is still a mismatch', async () => {
+        // The loser of two attempts that overlap is told this while the winner may still take the charge; written down as a failure, it hid a charge that then succeeded.
+        const inProgress = Object.assign(new Error('There is currently another in-progress request using this Stripe idempotency key'), { type: 'StripeInvalidRequestError', code: 'idempotency_key_in_use', statusCode: 409 });
+        const bare = Object.assign(new Error('conflict'), { type: 'StripeInvalidRequestError', statusCode: 409 });
+        for (const [name, error] of [['its code and status', inProgress], ['its status alone', bare]]) {
+            const atCreate = scriptedClient({ create: [error] });
+            const opts = onReport();
+            expect(await collectAddedItems(atCreate, REPORT, { ...opts, card: CARD }), `${name}, at the create`).toEqual({ ok: false, reason: 'unavailable' });
+            expect(opts.saves, `${name}: nothing was saved`).toEqual([]);
+            expect(only(atCreate, 'confirm'), `${name}: nothing was confirmed`).toEqual([]);
+            const atConfirm = scriptedClient({ create: [created()], confirm: [error], retrieve: [created()] });
+            expect(await collectAddedItems(atConfirm, REPORT, { ...onReport(), card: CARD }), `${name}, at the confirm`).toEqual({ ok: false, reason: 'unavailable' });
+            const atRead = scriptedClient({ retrieve: [error] });
+            expect(await collectAddedItems(atRead, { ...REPORT, charge_intent_id: 'pi_extra_1' }, onReport('pi_extra_1')), `${name}, at the read of the saved intent`).toEqual({ ok: false, reason: 'unavailable' });
+        }
+        const reused = Object.assign(new Error('Keys for idempotent requests can only be used with the same parameters'), { type: 'StripeIdempotencyError', statusCode: 400 });
+        const other = scriptedClient({ create: [reused] });
+        expect(await collectAddedItems(other, REPORT, { ...onReport(), card: CARD }), 'a key used again with other parameters').toEqual({ ok: false, reason: 'mismatch' });
+    });
+
     test('when another try saved its intent first, this one continues that one and confirms none of its own', async () => {
         const theirs = created({ id: 'pi_theirs' });
         const stripe = scriptedClient({ create: [created()], retrieve: [theirs, paid({ id: 'pi_theirs' })], confirm: [{}] });
@@ -390,5 +411,55 @@ test.describe('collectAddedItems', () => {
         expect(extraArgs.metadata).toEqual({ booking_id: '42', report_id: '7' });
         expect(bookingOptions).toEqual({ idempotencyKey: 'booking-42-completion-charge' });
         expect(extraOptions).toEqual({ idempotencyKey: 'report-7-added-items-charge' });
+    });
+});
+
+// ── The look before a decline: lookAtAddedItemsCharge ───────────────────────────────────────────────────────────────
+// The desk reads the PaymentIntent saved on a failed report before it declines the report, so a charge Stripe took is not declined away. The look writes nothing
+// to Stripe: every case holds the calls to one read of the saved id.
+test.describe('lookAtAddedItemsCharge', () => {
+    const SAVED = { ...REPORT, charge_intent_id: 'pi_extra_1' };
+    const readOnce = (stripe) => expect(stripe.calls).toEqual([['retrieve', 'pi_extra_1']]);
+
+    test('an intent that succeeded for the approved sum or more is a charge taken, with its charge and what it received', async () => {
+        const exact = scriptedClient({ retrieve: [paid()] });
+        expect(await lookAtAddedItemsCharge(exact, SAVED)).toEqual({ ok: true, taken: true, chargeId: 'ch_extra_1', amountCents: 5000 });
+        readOnce(exact);
+        const over = scriptedClient({ retrieve: [paid({ amount_received: 5500, latest_charge: { id: 'ch_extra_2' } })] });
+        expect(await lookAtAddedItemsCharge(over, SAVED)).toEqual({ ok: true, taken: true, chargeId: 'ch_extra_2', amountCents: 5500 });
+        readOnce(over);
+    });
+
+    test('an intent that needs a payment method, a confirmation or the customer, or was cancelled, holds no charge and is left as it is', async () => {
+        for (const status of ['requires_payment_method', 'requires_confirmation', 'requires_action', 'canceled']) {
+            const stripe = scriptedClient({ retrieve: [created({ status })] });
+            expect(await lookAtAddedItemsCharge(stripe, SAVED), status).toEqual({ ok: true, taken: false });
+            readOnce(stripe);
+        }
+    });
+
+    test('an intent that is processing, unreadable, not this report\'s, short of the sum, or in a state a charge here never reaches gives no answer, with its reason', async () => {
+        const answers = [
+            ['processing', created({ status: 'processing' }), 'unavailable'],
+            ['held for capture', created({ status: 'requires_capture' }), 'mismatch'],
+            ['a state Stripe has added', created({ status: 'something_new' }), 'mismatch'],
+            ['succeeded for less than the sum', paid({ amount_received: 4999 }), 'mismatch'],
+            ['succeeded with no charge', paid({ latest_charge: null }), 'mismatch'],
+            ['another report\'s', paid({ metadata: { booking_id: '42', report_id: '8' } }), 'mismatch'],
+            ['naming no report', paid({ metadata: {} }), 'mismatch'],
+            ['naming nothing', paid({ metadata: undefined }), 'mismatch'],
+            ['Stripe out of reach', connError(), 'unavailable'],
+            ['an intent Stripe does not know', missingError(), 'mismatch'],
+        ];
+        for (const [name, answer, reason] of answers) {
+            const stripe = scriptedClient({ retrieve: [answer] });
+            expect(await lookAtAddedItemsCharge(stripe, SAVED), name).toEqual({ ok: false, reason });
+            readOnce(stripe);
+        }
+    });
+
+    test('with no payment client nothing is called and the answer is not configured', async () => {
+        expect(await lookAtAddedItemsCharge(null, SAVED)).toEqual({ ok: false, reason: 'not_configured' });
+        expect(await lookAtAddedItemsCharge(undefined, SAVED)).toEqual({ ok: false, reason: 'not_configured' });
     });
 });

@@ -12,7 +12,11 @@
 //   the money edges        decideReport in this process, against the dev database and a scripted Stripe client (the dev app holds no payment key, and
 //                          no case here calls Stripe): the server prices the lines and the admin's sum must match (price_changed with the server's
 //                          cents), a booking that can not be charged, the charge on a PaymentIntent of its own with the report's key, a declined card
-//                          left failed with its reason and a retry that continues the saved intent, Stripe out of reach left pending, no card on file.
+//                          left failed with its reason and a retry that continues the saved intent, Stripe out of reach left pending, no card on file;
+//                          then two attempts on one report at the same moment (an approval and a retry: the loser answered Stripe's in-progress conflict
+//                          leaves the charge pending, and a charge the winner takes is recorded paid from pending or from failed), a decline of a failed
+//                          report that reads the saved intent first (succeeded: recorded paid and refused; no charge: declined; not sure: refused), and
+//                          a booking disputed while an approval waits at its lock.
 // Rows: every booking belongs to the e-mail prefix e2e-jrp- (provider 1's, so the foreign keys hold) and every cleaner to the number block
 // +1 403 555 0300 to 0328; the customer number of the probe bookings is +1 403 555 0329. The describes sweep, before their first case, after every
 // case and after their last, the crew members of the block, the bookings of the prefix (links, codes, check-ins, sessions, photos, reports and events
@@ -978,5 +982,147 @@ test.describe('approving an add-items report: the server prices it, the admin\'s
                 expect(stripe.calls, `${order}: a declined report is never charged`).toEqual([]);
             }
         }
+    });
+
+    // ---- two charge attempts on one report at the same moment (the security gate's B1): the ten-approvals case has one writer, so it can not show these ----
+
+    // An approval whose create is held at Stripe, and a retry that reaches the same create while it is held. `loser` is what Stripe answers the retry's create; the
+    // approval's create is let go once the retry has answered, so the order is the case's and not a timer's. The scripted client answers a read by the id asked for.
+    async function overlap(planted, loser) {
+        let entered;
+        const inCreate = new Promise((resolve) => { entered = resolve; });
+        let release;
+        const held = new Promise((resolve) => { release = resolve; });
+        const stripe = scriptedClient({
+            retrieve: [async (id) => (id === 'pi_extra_probe' ? takenFor(planted, 9500) : planted.checkout)],
+            create: [async () => { entered(); await held; return intentFor(planted); }, loser],
+            confirm: [{}],
+        });
+        const approving = desk(planted, stripe);
+        let retried = null;
+        let between = null;
+        try {
+            await Promise.race([inCreate, approving]);
+            retried = await desk(planted, stripe, { action: 'retry' });
+            between = await reportRow(planted.reportId);
+        } finally {
+            release();
+        }
+        const approved = await approving;
+        return { stripe, retried, between, approved, after: await reportRow(planted.reportId) };
+    }
+
+    test('an approval and a retry at the same moment: the retry, answered Stripe\'s in-progress conflict, leaves the charge pending, and the charge the approval takes is recorded paid with one confirm', async () => {
+        const planted = await plantItemsReport();
+        const inProgress = Object.assign(new Error('There is currently another in-progress request using this Stripe idempotency key'), { type: 'StripeInvalidRequestError', code: 'idempotency_key_in_use', statusCode: 409 });
+        const { stripe, retried, between, approved, after } = await overlap(planted, inProgress);
+        expect([retried.ok, retried.reason], 'the retry is told to try again').toEqual([false, 'unavailable']);
+        expect([between.status, between.charge_status, between.charge_reason], 'the conflict wrote no failure over a charge that was still being taken').toEqual(['approved', 'pending', null]);
+        expect(approved.ok, JSON.stringify(approved)).toBe(true);
+        expect([after.status, after.charge_status, after.charge_intent_id, after.charge_id, after.charge_reason]).toEqual(['approved', 'paid', 'pi_extra_probe', 'ch_extra_probe', null]);
+        expect(callsOf(stripe, 'create').length, 'both attempts reached the create').toBe(2);
+        expect(callsOf(stripe, 'confirm').length, 'one confirm').toBe(1);
+    });
+
+    test('a loser that did write the report failed does not hide the charge: the approval that took it records it paid from failed', async () => {
+        const planted = await plantItemsReport();
+        const { stripe, between, approved, after } = await overlap(planted, cardError('card_declined'));
+        expect([between.status, between.charge_status, between.charge_reason], 'the loser wrote its answer on the report').toEqual(['approved', 'failed', 'declined']);
+        expect(approved.ok, JSON.stringify(approved)).toBe(true);
+        expect(approved.report.added_items, 'the answer to the admin reads the charge as paid').toMatchObject({ charge: 'paid', reason: null });
+        expect([after.status, after.charge_status, after.charge_id, after.charge_reason]).toEqual(['approved', 'paid', 'ch_extra_probe', null]);
+        expect(callsOf(stripe, 'confirm').length, 'one confirm').toBe(1);
+    });
+
+    // ---- a decline of a failed report reads the saved intent first: a charge Stripe took is not declined away ----
+
+    // A report approved and left failed on a card that needed the customer, its PaymentIntent saved on it (or, with `withIntent: false`, failed before any was made):
+    // the state a decline is asked of.
+    async function plantFailedReport({ withIntent = true } = {}) {
+        const planted = await plantItemsReport();
+        if (!withIntent) await run('UPDATE bookings SET payment_intent_id = NULL WHERE id = ?', [planted.bookingId]);
+        const stripe = scriptedClient({ retrieve: [planted.checkout, intentFor(planted, { status: 'requires_action' })], create: [intentFor(planted)], confirm: [cardError('authentication_required')] });
+        const refused = await desk(planted, stripe);
+        expect([refused.ok, refused.reason, refused.report.added_items.charge], JSON.stringify(refused)).toEqual([false, withIntent ? 'action_required' : 'no_payment_method', 'failed']);
+        return planted;
+    }
+    const declineWith = (planted, stripe) => decideReport({ withConnection, execute: run, stripe, id: planted.reportId, admin: { id: 1 }, action: 'decline', note: 'Will pay another way' });
+    const readsOf = (stripe) => stripe.calls.map(([name, id]) => [name, id]);
+
+    test('a failed report whose saved PaymentIntent has since succeeded is recorded paid and its decline is refused', async () => {
+        const planted = await plantFailedReport();
+        const stripe = scriptedClient({ retrieve: [takenFor(planted, 9500)] });
+        const answer = await declineWith(planted, stripe);
+        expect([answer.ok, answer.reason], JSON.stringify(answer)).toEqual([false, 'decided']);
+        expect(answer.report.added_items, 'the answer carries the report as it now reads').toMatchObject({ charge: 'paid', reason: null });
+        const row = await reportRow(planted.reportId);
+        expect([row.status, row.charge_status, row.charge_id, row.charge_intent_id, row.charge_reason]).toEqual(['approved', 'paid', 'ch_extra_probe', 'pi_extra_probe', null]);
+        expect(readsOf(stripe), 'the saved intent was read and nothing else was asked of Stripe').toEqual([['retrieve', 'pi_extra_probe']]);
+        expect((await queueFor(run, { bookingId: planted.bookingId })).reports, 'a paid report is not waiting on the office').toEqual([]);
+    });
+
+    test('a failed report whose saved PaymentIntent holds no charge is declined, with the intent read and left as it is', async () => {
+        for (const status of ['requires_payment_method', 'requires_confirmation', 'requires_action', 'canceled']) {
+            const planted = await plantFailedReport();
+            const stripe = scriptedClient({ retrieve: [intentFor(planted, { status })] });
+            const answer = await declineWith(planted, stripe);
+            expect([answer.ok, answer.report.status, answer.report.added_items.charge], `${status}: ${JSON.stringify(answer)}`).toEqual([true, 'declined', 'failed']);
+            expect(readsOf(stripe), `${status}: read once, nothing written to Stripe`).toEqual([['retrieve', 'pi_extra_probe']]);
+            const row = await reportRow(planted.reportId);
+            expect([row.status, row.charge_status, row.charge_reason, row.charge_intent_id], status).toEqual(['declined', 'failed', 'action_required', 'pi_extra_probe']);
+        }
+        // A report that failed before any intent was made has nothing to read, so Stripe is not asked.
+        const early = await plantFailedReport({ withIntent: false });
+        const none = scriptedClient();
+        const answer = await declineWith(early, none);
+        expect([answer.ok, answer.report.status], JSON.stringify(answer)).toEqual([true, 'declined']);
+        expect(none.calls, 'no intent, no call to Stripe').toEqual([]);
+    });
+
+    test('a decline that can not be sure no charge was taken is refused with the report as it is: the intent processing, unreadable, not this report\'s, short or in a state a charge here never reaches, and no payment client', async () => {
+        const refusals = [
+            ['processing', (planted) => scriptedClient({ retrieve: [intentFor(planted, { status: 'processing' })] }), 'unavailable'],
+            ['unreadable', () => scriptedClient({ retrieve: [connError()] }), 'unavailable'],
+            ['another report\'s intent', (planted) => scriptedClient({ retrieve: [intentFor(planted, { metadata: { booking_id: String(planted.bookingId), report_id: String(planted.reportId + 1) } })] }), 'mismatch'],
+            ['succeeded for less than was approved', (planted) => scriptedClient({ retrieve: [takenFor(planted, 9499)] }), 'mismatch'],
+            ['held for capture', (planted) => scriptedClient({ retrieve: [intentFor(planted, { status: 'requires_capture' })] }), 'mismatch'],
+            ['no payment client', () => null, 'not_configured'],
+        ];
+        for (const [name, clientFor, reason] of refusals) {
+            const planted = await plantFailedReport();
+            const answer = await declineWith(planted, clientFor(planted));
+            expect([answer.ok, answer.reason], name).toEqual([false, reason]);
+            expect(answer.report.added_items.charge, `${name}: the answer carries the report, still failed`).toBe('failed');
+            const row = await reportRow(planted.reportId);
+            expect([row.status, row.charge_status], `${name}: the report was not declined`).toEqual(['approved', 'failed']);
+        }
+    });
+
+    // ---- the booking is judged under its own lock, with the report's ----
+
+    test('a booking disputed while the approval waits at its lock is not charged: its status is judged again under the booking\'s lock, and nothing is recorded', async () => {
+        const planted = await plantItemsReport({ bookingStatus: 'awaiting_approval' });
+        const stripe = scriptedClient({ retrieve: [planted.checkout, takenFor(planted, 9500)], create: [intentFor(planted)], confirm: [{}] });
+        const holder = await mysql.createConnection(DB);
+        let approving = null;
+        let met = null;
+        try {
+            await holder.beginTransaction();
+            await holder.execute('SELECT id FROM bookings WHERE id = ? FOR UPDATE', [planted.bookingId]);
+            approving = desk(planted, stripe);
+            met = await Promise.race([waitForLockWaiters(1).then(() => 'waiting'), approving.then(() => 'finished')]);
+            await holder.execute("UPDATE bookings SET status = 'disputed' WHERE id = ?", [planted.bookingId]);
+            await holder.commit();
+        } finally {
+            // A release that fails is written down, by its code alone, and does not throw here: the case's own failure is the one to report.
+            await holder.rollback().catch((error) => console.error('Error releasing the lock the case holds:', error?.code || error?.name));
+            await holder.end().catch((error) => console.error('Error closing the connection that held the lock:', error?.code || error?.name));
+        }
+        const answer = await approving;
+        expect(met, 'the approval waited at the booking\'s lock').toBe('waiting');
+        expect([answer.ok, answer.reason], JSON.stringify(answer)).toEqual([false, 'status']);
+        const row = await reportRow(planted.reportId);
+        expect([row.status, row.charge_status, row.approved_cents, row.decided_by, row.charge_intent_id]).toEqual(['open', 'none', null, null, null]);
+        expect(stripe.calls, 'nothing was asked of Stripe').toEqual([]);
     });
 });
