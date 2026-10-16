@@ -3330,6 +3330,12 @@
     "job-photo-retention.spec.js › Job photo retention: the route source › Retention: the cron route calls requireCronSecret first and runs the retention with the pool's execute": {
       "outcome": "PASS"
     },
+    "job-photo-routes.spec.js › Job photo route: the addresses the lists show › F1: a row that is left out of the lists still counts toward the 20 of its type: with 19 such rows one more photo is kept, then the page offers no more and the route refuses the next, and the after photos are counted apart": {
+      "outcome": "PASS"
+    },
+    "job-photo-routes.spec.js › Job photo route: the addresses the lists show › F1: the cleaner's page, the provider's panel and the admin's panel each list the two photos whose addresses the page may link and none of the eight beside them (an SVG, a store-shaped SVG, two off-site addresses, a script address, a data address, a path that climbs, a path that nests)": {
+      "outcome": "PASS"
+    },
     "job-photo-routes.spec.js › Job photo route: the cap on the body › Photos: a Content-Length smaller than the body that is sent never lets the surplus into a photo: the answer is a refusal (the route's 413 or 400, or the server's own 400) or a reset, nothing is written, and the app keeps answering": {
       "outcome": "PASS"
     },
@@ -3396,6 +3402,9 @@
     "job-photo-routes.spec.js › Job photo route: what is kept › AC1: the provider and the admin each add a photo with no check-in; the photo and the photo_added event name who took it": {
       "outcome": "PASS"
     },
+    "job-photo-routes.spec.js › Job photo route: which addresses the lists show, in plain Node › F1: isShownAddress is true for a photo of the store and for an older raster upload in any case of its extension, and false for every address in the table of what a row can hold": {
+      "outcome": "PASS"
+    },
     "job-photo-routes.spec.js › readCappedBody: the counter in front of the form parser › Photos: a Content-Length that is missing or false does not matter: the bytes that arrive are what is counted": {
       "outcome": "PASS"
     },
@@ -3448,6 +3457,9 @@
       "outcome": "PASS"
     },
     "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: forty saves at once are forty files, each holding its own bytes": {
+      "outcome": "PASS"
+    },
+    "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: isStoredAddress is true for what savePhoto gave out and false for any other value, an older upload and every address a client could plant included": {
       "outcome": "PASS"
     },
     "job-photos.spec.js › ENG-016 photos: the store in plain Node › Photos: removePhoto of a file that is already gone is a success, with the directory there or not": {

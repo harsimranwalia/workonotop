@@ -11,8 +11,9 @@
 //           two-byte file refused); stripJpegMetadata (the Exif JPEG comes back without Exif and GPS, starting FF D8 and ending FF D9; a truncated JPEG
 //           and one that does not parse cleanly to its scan are refused; a PNG, a WebP and a JPEG with no Exif come back as they came); savePhoto (PNG
 //           bytes are stored .png; a thousand addresses are distinct and match the pattern; forty at once do not write over one another); removePhoto
-//           (throws on /uploads/../x, /uploads/job-photos/../../x, an upper-case name and a name with no extension, and deletes nothing); storedPhotos;
-//           and a PHOTO_DIR that cannot be written, which makes savePhoto throw (addPhoto answers that as `store`);
+//           (throws on /uploads/../x, /uploads/job-photos/../../x, an upper-case name and a name with no extension, and deletes nothing);
+//           isStoredAddress (true for what savePhoto gives out and for nothing else: the address that shows a row on the job link, security gate round 1, F1);
+//           storedPhotos; and a PHOTO_DIR that cannot be written, which makes savePhoto throw (addPhoto answers that as `store`);
 //   Pins    source checks: node:fs is imported by no new file but the store; job_photos is named only by job-photos.js and job-photo-retention.js; no
 //           new file contains query(; PHOTO_DIR, PHOTO_URL_BASE, PHOTO_MAX_BYTES and PHOTOS_MAX_PER_TYPE are at their values; git ignores
 //           public/uploads/job-photos/x.jpg; usePhotoDir is named by nothing under src/ but the store; the store draws an address from
@@ -27,7 +28,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
-import { PHOTO_DIR, PHOTO_MAX_BYTES, PHOTO_URL_BASE, removePhoto, savePhoto, sniffImage, storedPhotos, stripJpegMetadata, usePhotoDir } from '../src/lib/job-photo-store.js';
+import { PHOTO_DIR, PHOTO_MAX_BYTES, PHOTO_URL_BASE, isStoredAddress, removePhoto, savePhoto, sniffImage, storedPhotos, stripJpegMetadata, usePhotoDir } from '../src/lib/job-photo-store.js';
 
 // Nothing here sends a request, so a trace would record nothing; the convention of the other plain-Node specs is kept: tracing is off.
 test.use({ trace: 'off' });
@@ -352,6 +353,56 @@ test.describe('ENG-016 photos: the store in plain Node', () => {
             for (const url of bad) await expect(removePhoto(url), `the address ${JSON.stringify(url)}`).rejects.toThrow();
             for (const decoy of decoys) expect(fs.readFileSync(decoy, 'utf8'), `${path.relative(root, decoy)} was not touched`).toBe('keep');
         });
+    });
+
+    // Mutant that turns this case red: isStoredAddress accepts more than the store gives out (a prefix test, an extension that is not one of the three, a name
+    // in any case, a path inside the name, a line break at the end, a value that is not a string), so a row whose address is a script, an SVG, a picture on
+    // another site or a file elsewhere in public/uploads is shown on the job link as a link (security gate round 1, F1).
+    test('Photos: isStoredAddress is true for what savePhoto gave out and false for any other value, an older upload and every address a client could plant included', async () => {
+        await inScratch(async () => {
+            for (const [bytes, ext] of [[JPEG, 'jpg'], [PNG, 'png'], [WEBP, 'webp']]) {
+                const { url } = await savePhoto(stripJpegMetadata(bytes), sniffImage(bytes).ext);
+                expect(isStoredAddress(url), `an address savePhoto gave out for ${ext} bytes`).toBe(true);
+                await removePhoto(url);
+            }
+        });
+        const hex = 'a1'.repeat(16);
+        for (const url of [`${PHOTO_URL_BASE}${'0'.repeat(32)}.jpg`, `${PHOTO_URL_BASE}${'f'.repeat(32)}.png`, `${PHOTO_URL_BASE}${hex}.webp`]) {
+            expect(isStoredAddress(url), `the address ${url}`).toBe(true);
+        }
+        const bad = [
+            '/uploads/1-x.svg',
+            `${PHOTO_URL_BASE}${hex}.svg`,
+            'https://evil.example/p.png',
+            '//evil.example/p.png',
+            'javascript:alert(1)',
+            'data:image/svg+xml;base64,PHN2Zy8+',
+            '/uploads/../x.png',
+            '/uploads/1-a/b.png',
+            '/uploads/1-photo.png',
+            `${PHOTO_URL_BASE}${hex.toUpperCase()}.jpg`,
+            `${PHOTO_URL_BASE}${hex}.JPG`,
+            `${PHOTO_URL_BASE}${hex}.jpg\n`,
+            `${PHOTO_URL_BASE}${hex}.jpg?x=1`,
+            `${PHOTO_URL_BASE}${hex}.jpg#x`,
+            `${PHOTO_URL_BASE}${hex}.jpeg`,
+            `${PHOTO_URL_BASE}${hex}.gif`,
+            `${PHOTO_URL_BASE}${hex}`,
+            `${PHOTO_URL_BASE}${hex.slice(1)}.jpg`,
+            `${PHOTO_URL_BASE}${hex}a.jpg`,
+            `${PHOTO_URL_BASE}sub/${hex}.jpg`,
+            `${PHOTO_URL_BASE}..%2f${hex}.jpg`,
+            ` ${PHOTO_URL_BASE}${hex}.jpg`,
+            `http://localhost:3000${PHOTO_URL_BASE}${hex}.jpg`,
+            PHOTO_URL_BASE,
+            '',
+            undefined,
+            null,
+            42,
+            {},
+            [`${PHOTO_URL_BASE}${hex}.jpg`],
+        ];
+        for (const url of bad) expect(isStoredAddress(url), `the value ${JSON.stringify(url)}`).toBe(false);
     });
 
     // Mutant that turns this case red: removePhoto throws when the file is not there, so the retention sweep stops at the first row whose file is

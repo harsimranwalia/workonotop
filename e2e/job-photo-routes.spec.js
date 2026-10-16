@@ -10,6 +10,9 @@
 //   kept        a JPEG, a PNG and a WebP through the route (the shapes of photo and photos, the extension that follows the bytes and never the
 //               name the client gave, the photo_added event with its actor and no photo address), the provider's and the admin's photos, and the
 //               Exif cut seen in the stored file;
+//   listed      the three answers that list a job's photos (the cleaner's page, the provider's panel and the admin's panel) leave out a row whose address
+//               is neither a photo of the store nor an older raster upload, and a row that is left out still counts toward the limit of 20 (security gate
+//               round 1, F1: both screens put the address in a link, and the provider's routes store any string); the rule itself, address by address;
 //   the cap     a body of exactly PHOTO_MAX_BYTES is kept, one byte more is 413 (the whole multipart body is counted, its framing too), a body
 //               with no length is stopped, and a Content-Length that is smaller than the body is stopped; after each the app keeps answering;
 //   the counter readCappedBody (src/lib/read-capped-body.js) in plain Node with chunked streams: exactly the cap passes, one byte more is cut, a
@@ -27,6 +30,7 @@
 // the prefix (links, codes, check-ins, sessions, photos and events go with them), the files those photo rows named, any file the case added to
 // public/uploads/job-photos, and the sms_budget counters of the numbers, links and members. A failure message names the case, the status and the
 // figures, never a cookie, a token or a code.
+import { randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
 import http from 'node:http';
 import https from 'node:https';
@@ -39,7 +43,7 @@ import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.
 import { sha256Hex } from '../src/lib/link-token.js';
 import { budgetScope } from '../src/lib/sms-budget.js';
 import { CODE_MESSAGES } from '../src/lib/job-link-code.js';
-import { PHOTO_MESSAGES, PHOTOS_MAX_PER_TYPE } from '../src/lib/job-photos.js';
+import { PHOTO_MESSAGES, PHOTOS_MAX_PER_TYPE, isShownAddress } from '../src/lib/job-photos.js';
 import { PHOTO_MAX_BYTES } from '../src/lib/job-photo-store.js';
 import { readCappedBody } from '../src/lib/read-capped-body.js';
 
@@ -330,13 +334,17 @@ const setStatus = async (bookingId, status) => {
     await (await db()).execute('UPDATE bookings SET status = ? WHERE id = ?', [status, bookingId]);
 };
 
-// Photo rows planted in SQL: rows only, with addresses that name no file.
-async function plantPhotos(bookingId, type, count) {
-    for (let n = 0; n < count; n += 1) {
-        const url = `/uploads/job-photos/${tag().padEnd(32, '0')}.jpg`;
+// Photo rows planted in SQL: rows only, with the addresses given, which name no file.
+async function plantRows(bookingId, type, urls) {
+    for (const url of urls) {
         await (await db()).execute('INSERT INTO job_photos (booking_id, photo_url, photo_type, uploaded_by) VALUES (?, ?, ?, ?)', [bookingId, url, type, PROVIDER1.id]);
     }
 }
+
+// An address in the shape the store gives out (32 lowercase hex characters), which is what the job link shows: a planted row that has to be listed needs one.
+const storeAddress = () => `/uploads/job-photos/${randomBytes(16).toString('hex')}.jpg`;
+
+const plantPhotos = (bookingId, type, count) => plantRows(bookingId, type, Array.from({ length: count }, () => storeAddress()));
 
 // What a refused photo must not change: the photo rows, the event rows and the files.
 async function watched(bookingId) {
@@ -826,6 +834,128 @@ test.describe('Job photo route: what is kept', () => {
         expect([onDisk[0], onDisk[1]], 'the stored file starts FF D8').toEqual([0xff, 0xd8]);
         expect([onDisk[onDisk.length - 2], onDisk[onDisk.length - 1]], 'the stored file ends FF D9').toEqual([0xff, 0xd9]);
         expect(onDisk.length, 'only the Exif segment was cut').toBe(JPEG_WITH_EXIF.length - EXIF.length);
+    });
+});
+
+// ---- the addresses the lists show ----
+
+// Security gate round 1, F1. Both screens put the address of every row in a link (an <a href> that opens it, an <img src> that shows it), and the rows
+// are not all the store's: the provider's own routes keep any string (src/app/api/provider/jobs/photos/route.js) and the older upload keeps the
+// extension of a file whose declared type is image/* (src/app/api/upload/route.js), SVG included, which the uploads route serves inline. So the three answers
+// that list a job's photos leave out a row unless its address is a photo of the store or an older raster upload.
+const OLDER_UPLOAD_URL = '/uploads/1-photo.png';
+const HOSTILE_URLS = [
+    '/uploads/1-x.svg',
+    `/uploads/job-photos/${'0'.repeat(32)}.svg`,
+    'https://evil.example/p.png',
+    '//evil.example/p.png',
+    'javascript:alert(1)',
+    'data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9YWxlcnQoMSkgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIi8+',
+    '/uploads/../x.png',
+    '/uploads/1-a/b.png',
+];
+
+const readData = async (request, url, headers, who) => okOf(await answerOf(await request.get(url, { headers, timeout: REQUEST_TIMEOUT })), who);
+// What a list says of each photo that matters here, sorted so that the order the rows came in does not.
+const typedUrls = (data) => data.photos.map((photo) => `${photo.type} ${photo.url}`).sort();
+
+test.describe('Job photo route: the addresses the lists show', () => {
+    sweepAround();
+
+    // Mutant that turns this case red: a list is built from the rows as they are (the code at d411ae7), or only one or two of the three answers filter, or the
+    // pattern lets an SVG, a store-shaped address with another extension, an address with a host or a scheme, or a path that climbs or nests through.
+    test('F1: the cleaner\'s page, the provider\'s panel and the admin\'s panel each list the two photos whose addresses the page may link and none of the eight beside them (an SVG, a store-shaped SVG, two off-site addresses, a script address, a data address, a path that climbs, a path that nests)', async ({ playwright, request, baseURL }) => {
+        test.setTimeout(180_000);
+        const ctx = await setup(playwright, request, baseURL);
+        const { job, cleaner } = await probeJob(ctx);
+        const storedUrl = storeAddress();
+        await plantRows(job.bookingId, 'before', HOSTILE_URLS.slice(0, 4));
+        await plantRows(job.bookingId, 'before', [OLDER_UPLOAD_URL]);
+        await plantRows(job.bookingId, 'after', HOSTILE_URLS.slice(4));
+        await plantRows(job.bookingId, 'after', [storedUrl]);
+        expect(await countOf('SELECT COUNT(*) AS n FROM job_photos WHERE booking_id = ?', [job.bookingId]), 'the ten rows are in the table: they are left out of the lists, not out of the job').toBe(HOSTILE_URLS.length + 2);
+
+        const expected = [`before ${OLDER_UPLOAD_URL}`, `after ${storedUrl}`].sort();
+        const answers = [
+            ['the cleaner\'s page', await readData(request, `/api/job/${job.token}`, cleaner, 'the cleaner reads the job')],
+            ['the provider\'s panel', await readData(request, `/api/provider/jobs/${job.bookingId}/job-link`, ctx.as.provider, 'the provider reads the panel')],
+            ['the admin\'s panel', await readData(request, `/api/admin/bookings/${job.bookingId}/job-link`, ctx.as.admin, 'the admin reads the panel')],
+        ];
+        for (const [who, data] of answers) {
+            expect(typedUrls(data), `${who} lists the older upload and the stored photo and nothing else`).toEqual(expected);
+            const text = JSON.stringify(data);
+            for (const url of HOSTILE_URLS) expect(text.includes(url), `${who} holds no ${url.slice(0, 24)} anywhere in its answer`).toBe(false);
+        }
+    });
+
+    // The count that gates a new photo is the route's own COUNT(*) over the rows, left-out ones included (addPhoto), so the page must not offer a photo the route will
+    // refuse, and must not count a type with the other's rows. Mutant that turns this case red: photo_can is worked out from the list that is shown, or from both
+    // types together, or for the wrong type; or the answer to the POST lists the rows that are left out.
+    test('F1: a row that is left out of the lists still counts toward the 20 of its type: with 19 such rows one more photo is kept, then the page offers no more and the route refuses the next, and the after photos are counted apart', async ({ playwright, request, baseURL }) => {
+        test.setTimeout(240_000);
+        const ctx = await setup(playwright, request, baseURL);
+        const { job, cleaner } = await probeJob(ctx);
+        const hidden = (letter) => Array.from({ length: PHOTOS_MAX_PER_TYPE - 1 }, (_, n) => `/uploads/${n + 1}-${letter}.svg`);
+        await plantRows(job.bookingId, 'before', hidden('b'));
+        const open = await readData(request, `/api/job/${job.token}`, cleaner, 'the cleaner reads a job with 19 before photos left out');
+        expect([open.photos, open.photo_can.before], 'nothing is listed and one more before photo may be added').toEqual([[], true]);
+
+        const kept = await postParts(request, job, cleaner, [typePart('before'), photoPart(TINY_JPEG)]);
+        expect(kept.status, `the 20th before photo is kept (${kept.body?.message ?? 'no message'})`).toBe(200);
+        expect(kept.body.data.photos.map((photo) => photo.id), 'the answer to the POST lists the new photo and not the 19 left out').toEqual([kept.body.data.photo.id]);
+        const full = await readData(request, `/api/job/${job.token}`, cleaner, 'the cleaner reads a job that holds 20 before photos');
+        expect([full.photos.length, full.photo_can.before], 'one photo is listed and the page offers no more: the 19 left out are in the count').toEqual([1, false]);
+        await refused(job, 'the 21st before photo, 19 of the 20 being left out of the lists', 409, PHOTO_MESSAGES.tooMany, () => postParts(request, job, cleaner, [typePart('before'), photoPart(TINY_JPEG)]));
+
+        // The job starts: the 20 before rows are another type's and the after photos start from none, hidden ones counted the same way.
+        await setStatus(job.bookingId, 'in_progress');
+        const started = await readData(request, `/api/job/${job.token}`, cleaner, 'the cleaner reads the started job');
+        expect(started.photo_can, 'started: no more before photos, and the 20 before rows are not the after photos\' count').toEqual({ before: false, after: true });
+        await plantRows(job.bookingId, 'after', hidden('a'));
+        const afterKept = await postParts(request, job, cleaner, [typePart('after'), photoPart(TINY_JPEG)]);
+        expect(afterKept.status, `the 20th after photo is kept (${afterKept.body?.message ?? 'no message'})`).toBe(200);
+        const end = await readData(request, `/api/job/${job.token}`, cleaner, 'the cleaner reads a job that holds 20 of each');
+        expect([end.photos.map((photo) => photo.type).sort(), end.photo_can], 'the two photos taken here are listed and neither type has room').toEqual([['after', 'before'], { before: false, after: false }]);
+        await refused(job, 'the 21st after photo, 19 of the 20 being left out of the lists', 409, PHOTO_MESSAGES.tooMany, () => postParts(request, job, cleaner, [typePart('after'), photoPart(TINY_JPEG)]));
+    });
+});
+
+// The rule itself, in plain Node, address by address. Mutant that turns a row red: the pattern admits the address (an extension, a second segment, a host, a
+// scheme, a newline) or turns away one of the shapes the page has to show (the store's three extensions, an older upload in any case of its extension).
+const SHOWN = [
+    `/uploads/job-photos/${'0'.repeat(32)}.jpg`,
+    `/uploads/job-photos/${'f'.repeat(32)}.png`,
+    `/uploads/job-photos/${'a1'.repeat(16)}.webp`,
+    '/uploads/1-photo.png',
+    '/uploads/1760000000000-kitchen_before.jpg',
+    '/uploads/1-a.b.c.jpeg',
+    '/uploads/17-Photo_1.PNG',
+    '/uploads/17-x.WebP',
+    '/uploads/17-x.gif',
+];
+const NOT_SHOWN = [
+    // What the older upload keeps when a file is declared image/* and is not a raster, and the store's own shape with an extension it never gives.
+    '/uploads/1-x.svg', '/uploads/1-x.SVG', '/uploads/1-x.pdf', '/uploads/1-x.png.svg', '/uploads/1-x', '/uploads/1-x.html',
+    `/uploads/job-photos/${'0'.repeat(32)}.svg`, `/uploads/job-photos/${'0'.repeat(32)}.gif`, `/uploads/job-photos/${'0'.repeat(32)}.jpeg`,
+    // The store's shape, slightly off.
+    `/uploads/job-photos/${'A'.repeat(32)}.jpg`, `/uploads/job-photos/${'0'.repeat(31)}.jpg`, `/uploads/job-photos/${'0'.repeat(33)}.jpg`,
+    `/uploads/job-photos/${'0'.repeat(32)}.JPG`, `/uploads/job-photos/${'0'.repeat(32)}`, '/uploads/job-photos/', '/uploads/job-photos/x.png', `/uploads/job-photos/sub/${'0'.repeat(32)}.jpg`,
+    // The older upload's shape, slightly off.
+    '/uploads/photo.png', '/uploads/x-photo.png', '/uploads/-photo.png', '/uploads/1photo.png', '/uploads//1-x.png', '/uploads/1-a b.png', '/uploads/1-a%2fb.png', '/uploads/1-ü.png',
+    // A path that leaves the folder or goes deeper, an address with a host or a scheme, and a script.
+    '/uploads/../x.png', '/uploads/1-a/b.png', '/uploads/1-a/../b.png', '/x.png', 'uploads/1-x.png', './uploads/1-x.png',
+    'https://evil.example/p.png', 'http://localhost:3000/uploads/1-x.png', '//evil.example/p.png', '/\\evil.example/p.png', '\\\\evil.example\\p.png',
+    'javascript:alert(1)', 'data:image/png;base64,iVBORw0KGgo=', 'data:image/svg+xml;base64,PHN2Zy8+', 'blob:https://evil.example/1',
+    // Anything after the extension, and anything around the address.
+    '/uploads/1-x.png?x=1', '/uploads/1-x.png#x', '/uploads/1-x.png\n', '/uploads/1-x.png\r\n', '/uploads/1-x.png ', ' /uploads/1-x.png', '\n/uploads/1-x.png', '',
+];
+
+test.describe('Job photo route: which addresses the lists show, in plain Node', () => {
+    test('F1: isShownAddress is true for a photo of the store and for an older raster upload in any case of its extension, and false for every address in the table of what a row can hold', () => {
+        for (const url of SHOWN) expect(isShownAddress(url), `${url} is shown`).toBe(true);
+        for (const url of NOT_SHOWN) expect(isShownAddress(url), `${JSON.stringify(url)} is not shown`).toBe(false);
+        // A value that is not a string is not an address (a row's column is not null, but the function takes what it is given).
+        for (const value of [undefined, null, 42, true, {}, [], [SHOWN[0]], { toString: () => SHOWN[0] }]) expect(isShownAddress(value), `${typeof value} ${JSON.stringify(value)} is not shown`).toBe(false);
     });
 });
 
