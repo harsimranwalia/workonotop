@@ -4,16 +4,21 @@
 // way in for a visitor with no access, and for a cleaner who has entered a code, the job's provider or an admin, the job, its crew and the check-in.
 //   invalid      the link is switched off, replaced, finished or was never a link: one sentence, the same for every cause
 //   not in       a mobile number, then the six-digit code texted to it; the page cannot tell whether the number was on the job
-//   signed in    the days, the address, the details, the crew with who is checked in, and the tick list that checks people in
-// A cleaner's session is a cookie the server sets and the page never reads: after every action and when the tab comes back to the front the page asks again
-// (it does not poll), so a person taken off the crew, or a link switched off, is seen at the next of those. The number typed here lives in this
-// component's state only (never in storage or the address), and the page shows nothing the server did not send.
+//   signed in    the days, the address, the details, the crew with who is checked in and out, the tick list that checks people in, and below the
+//                crew the job's photos (JobPhotos.jsx) and its timer (JobTimer.jsx)
+// A cleaner's session is a cookie the server sets and the page never reads: after every action, when the tab comes back to the front and, while the timer
+// is on the page, every TIMER_POLL_SECONDS the page asks again, so a person taken off the crew, or a link switched off, is seen at the next of those. The
+// number typed here lives in this component's state only (never in storage or the address), and the page shows nothing the server did not send.
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { PHONE_HINT } from '@/lib/phone';
-import { callApi, clockOf, crewOf, dataOf, distanceOf, isObject, messageOf, namesOf, OFFLINE_TEXT, postJson, textOf, windowOf } from './jobLinkKit';
+import {
+  CARD, CARD_HEADING, NOTICE, OFFLINE_TEXT, OPTIONAL_POSITION_WAIT_MS, OUTLINE, POSITION_TEXT, PRIMARY, RING,
+  callApi, clockOf, crewOf, currentPosition, dataOf, distanceOf, isObject, messageOf, namesOf, photoCanOf, photosOf, postJson, textOf, timerOf, windowOf,
+} from './jobLinkKit';
+import JobPhotos from './JobPhotos';
+import JobTimer from './JobTimer';
 
-const POSITION_TIMEOUT_MS = 20_000;
 const CODE_WAIT_SECONDS = 60;
 const REFRESH_GAP_MS = 1000;
 
@@ -33,21 +38,19 @@ const PROVIDER_ADMIN_TEXT = 'Provider or WorkOnTap admin? Sign in to your accoun
 const NO_CREW_TEXT = 'No cleaners are assigned to this job yet.';
 const LOCATION_NOTE_TEXT = "We record your phone's location when you check in. The office can see if it is not at the job address.";
 const PERMISSION_TEXT = "We need your location to check in. Allow location for this page in your phone's settings, then try again.";
-const POSITION_TEXT = 'We could not get your location. Try again somewhere with a clearer view of the sky.';
 const CHECK_IN_FAILED_TEXT = "Couldn't check them in. Try again.";
+const CHECK_OUT_FAILED_TEXT = "Couldn't check them out. Try again.";
 const ALL_IN_TEXT = 'Everyone on the crew is checked in.';
 const LATE_TEXT = 'Someone arriving late? Tick them and check them in the same way.';
+// How long the polite line stays on the page after an action.
+const SAID_FOR_MS = 8000;
 
 const KINDS = ['cleaner', 'provider', 'admin'];
 const KIND_NOTE = { cleaner: '', provider: ' (provider)', admin: ' (admin)' };
 
-const RING = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2';
-// A button that is busy or has nothing to do is marked aria-disabled, not disabled, so keyboard focus stays on it while it is.
-const BUTTON = `w-full sm:w-auto px-5 py-3 min-h-[48px] rounded-xl text-base font-semibold transition-colors aria-disabled:opacity-50 aria-disabled:cursor-not-allowed ${RING}`;
-const PRIMARY = `${BUTTON} bg-green-700 hover:bg-green-800 text-white`;
-const OUTLINE = `${BUTTON} border border-gray-500 text-gray-800 hover:bg-gray-50`;
+// A button on a crew row sits beside the name when there is room and under it when there is not.
+const LEAVE = `px-4 py-2 min-h-[48px] rounded-xl border border-gray-500 text-base font-semibold text-gray-800 hover:bg-gray-50 transition-colors aria-disabled:opacity-50 ${RING}`;
 const INPUT = 'w-full rounded-xl border border-gray-500 px-3 py-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-700';
-const CARD = 'rounded-2xl border border-gray-200 bg-white p-5 shadow-sm';
 
 // The answer for a person who is let in, in the shape the screens use, or null when the answer is not the one the route promises.
 function viewOf(data) {
@@ -72,6 +75,10 @@ function viewOf(data) {
     workers: Number.isInteger(details.worker_count) && details.worker_count > 0 ? details.worker_count : 0,
     crew,
     window: windowOf(data.window),
+    // null when the answer's own figures cannot be read: the card says so and offers to read again
+    timer: timerOf(data.timer),
+    photos: photosOf(data.photos),
+    photoCan: photoCanOf(data.photo_can),
   };
 }
 
@@ -84,21 +91,6 @@ function readOf(result) {
   if (data.access === 'none') return { status: 'none' };
   const view = viewOf(data);
   return view ? { status: 'in', view } : { status: 'failed', offline: false };
-}
-
-// The phone's position, once, as accurately as it can: { ok: true, latitude, longitude, accuracy } or { ok: false, denied }.
-function currentPosition() {
-  return new Promise((resolve) => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      resolve({ ok: false, denied: false });
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => resolve({ ok: true, latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy }),
-      (error) => resolve({ ok: false, denied: error?.code === 1 }),
-      { enableHighAccuracy: true, timeout: POSITION_TIMEOUT_MS, maximumAge: 0 }
-    );
-  });
 }
 
 function Frame({ children }) {
@@ -292,19 +284,48 @@ function Facts({ view }) {
   );
 }
 
-// The job for a person who is let in, with the crew and the check-in. `onChanged` asks the page to read the link again; `onOut` and `onInvalid` send the
-// page back to the step the server's answer calls for.
-function JobView({ view, base, onChanged, onOut, onInvalid }) {
+// The job for a person who is let in, with the crew, the check-in and out, the photos and the timer. `onChanged` asks the page to read the link again;
+// `onPatch` puts newer parts of the read (the timer, the photos) on the page at once; `onOut` and `onInvalid` send the page back to the step the server's
+// answer calls for.
+function JobView({ view, base, onChanged, onPatch, onOut, onInvalid }) {
   const crewHeadingId = useId();
+  const confirmId = useId();
+  const crewHeadingRef = useRef(null);
+  const stayRef = useRef(null);
+  const outButtons = useRef(new Map());
+  const restore = useRef(null);
+  const saying = useRef(null);
   const [ticked, setTicked] = useState(() => new Set());
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState(null);
+  const [leaving, setLeaving] = useState(null);
+  const [leaveBusy, setLeaveBusy] = useState(false);
+  const [leaveNote, setLeaveNote] = useState('');
+  const [said, setSaid] = useState({ text: '', count: 0 });
 
-  const waiting = view.crew.filter((member) => !member.checkedIn);
   const here = view.crew.filter((member) => member.checkedIn);
+  const gone = view.crew.filter((member) => !member.checkedIn && member.checkedOutAt);
+  const waiting = view.crew.filter((member) => !member.checkedIn && !member.checkedOutAt);
   const chosen = waiting.filter((member) => ticked.has(member.id));
   const open = view.window.open;
   const closedText = view.window.opensLabel ? `Check-in opens at ${view.window.opensLabel}.` : 'Check-in has not opened yet.';
+
+  // The polite line a screen reader announces after an action. The count changes the line's text each time, so the same words twice in a row are announced twice.
+  const say = (text) => {
+    clearTimeout(saying.current);
+    setSaid((held) => ({ text, count: held.count + 1 }));
+    saying.current = setTimeout(() => setSaid((held) => ({ text: '', count: held.count })), SAID_FOR_MS);
+  };
+  useEffect(() => () => clearTimeout(saying.current), []);
+
+  // The confirm opens with focus on "Stay", and when it closes without a check-out focus goes back to the button that opened it.
+  useEffect(() => {
+    if (leaving !== null) stayRef.current?.focus();
+    else if (restore.current !== null) {
+      outButtons.current.get(restore.current)?.focus();
+      restore.current = null;
+    }
+  }, [leaving]);
 
   const toggle = (id) => {
     setNote(null);
@@ -356,15 +377,61 @@ function JobView({ view, base, onChanged, onOut, onInvalid }) {
     return undefined;
   };
 
+  const leave = (member) => {
+    setNote(null);
+    setLeaveNote('');
+    setLeaving(member.id);
+  };
+
+  const stay = (member) => {
+    restore.current = member.id;
+    setLeaveNote('');
+    setLeaving(null);
+  };
+
+  // A check-out is final for this job, so it is asked for twice. The phone's position goes with it when the phone has one within a short wait.
+  const checkOut = async (member) => {
+    if (leaveBusy) return undefined;
+    setLeaveBusy(true);
+    setLeaveNote('');
+    const place = await currentPosition(OPTIONAL_POSITION_WAIT_MS);
+    const body = { crew_ids: [member.id] };
+    if (place.ok) body.location = { latitude: place.latitude, longitude: place.longitude, accuracy: place.accuracy };
+    const result = await postJson(`${base}/check-out`, body);
+    setLeaveBusy(false);
+
+    const data = dataOf(result);
+    if (data) {
+      setLeaving(null);
+      setNote({ kind: 'ok', text: `Checked out: ${member.name}.` });
+      say('Cleaner checked out');
+      const timer = timerOf(data.timer);
+      if (timer) onPatch({ timer });
+      onChanged();
+      crewHeadingRef.current?.focus();
+      return undefined;
+    }
+    if (result.status === 401) return onOut();
+    if (result.status === 404) return onInvalid();
+    if (result.status === 0 || result.status >= 500) {
+      setLeaveNote(result.status === 0 ? OFFLINE_TEXT : CHECK_OUT_FAILED_TEXT);
+      return undefined;
+    }
+    setLeaving(null);
+    setNote({ kind: 'error', text: messageOf(result) || CHECK_OUT_FAILED_TEXT });
+    onChanged();
+    return undefined;
+  };
+
   return (
     <>
       <div>
         <h1 className="text-2xl font-bold text-gray-900 break-words">{view.service || 'Your job'}</h1>
-        <p className="mt-1 text-sm text-gray-700">Signed in as {view.name}{KIND_NOTE[view.access]}</p>
+        <p className="mt-1 text-sm text-gray-700 break-words">Signed in as {view.name}{KIND_NOTE[view.access]}</p>
       </div>
 
       <section className={CARD} aria-labelledby="when-heading">
-        <h2 id="when-heading" className="text-sm font-bold uppercase tracking-wide text-gray-700">When</h2>
+        <h2 id="when-heading" className={CARD_HEADING}>When</h2>
         {view.days.length === 0 ? <p className="mt-2 text-base text-gray-900">No day is set for this job yet.</p> : (
           <ul className="mt-2 space-y-1 text-base text-gray-900">
             {view.days.map((day) => <li key={day}>{day}</li>)}
@@ -373,7 +440,7 @@ function JobView({ view, base, onChanged, onOut, onInvalid }) {
       </section>
 
       <section className={CARD} aria-labelledby="where-heading">
-        <h2 id="where-heading" className="text-sm font-bold uppercase tracking-wide text-gray-700">Where</h2>
+        <h2 id="where-heading" className={CARD_HEADING}>Where</h2>
         {view.address.length === 0 ? <p className="mt-2 text-base text-gray-900">No address is set for this job yet.</p> : (
           <p className="mt-2 text-base text-gray-900">
             {view.address.map((line, index) => <span key={`${index}-${line}`} className="block break-words">{line}</span>)}
@@ -384,33 +451,61 @@ function JobView({ view, base, onChanged, onOut, onInvalid }) {
       <Facts view={view} />
 
       <section className={CARD} aria-labelledby={crewHeadingId}>
-        <h2 id={crewHeadingId} className="text-sm font-bold uppercase tracking-wide text-gray-700">Crew</h2>
+        <h2 id={crewHeadingId} ref={crewHeadingRef} tabIndex={-1} className={`${CARD_HEADING} focus:outline-none`}>Crew</h2>
 
         {view.crew.length === 0 && <p className="mt-2 text-base text-gray-900">{NO_CREW_TEXT}</p>}
 
         {here.length > 0 && (
-          <ul className="mt-2 space-y-1">
+          <ul className="mt-2 divide-y divide-gray-200">
             {here.map((member) => (
-              <li key={member.id} className="text-base text-gray-900 break-words">
-                <span aria-hidden="true" className="mr-2 text-green-700">&#10003;</span>
-                {member.name}
-                <span className="text-sm text-gray-600">, checked in{member.checkedInAt && clockOf(member.checkedInAt) ? ` ${clockOf(member.checkedInAt)}` : ''}</span>
+              <li key={member.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 text-base text-gray-900">
+                <span className="min-w-0 flex-1 basis-40 break-words">
+                  <span aria-hidden="true" className="mr-2 text-green-700">&#10003;</span>
+                  {member.name}
+                  <span className="text-sm text-gray-600">, checked in{member.checkedInAt && clockOf(member.checkedInAt) ? ` ${clockOf(member.checkedInAt)}` : ''}</span>
+                </span>
+                {leaving !== member.id ? (
+                  <button type="button" aria-label={`Check out ${member.name}`} onClick={() => leave(member)}
+                    ref={(node) => { if (node) outButtons.current.set(member.id, node); else outButtons.current.delete(member.id); }}
+                    className={LEAVE}>Check out</button>
+                ) : (
+                  <div role="group" aria-labelledby={confirmId} onKeyDown={(event) => { if (event.key === 'Escape') stay(member); }}
+                    className="w-full rounded-xl border border-amber-300 bg-amber-50 p-3">
+                    <p id={confirmId} className="text-base text-amber-900 break-words">Check out {member.name}? They can not check in again on this job.</p>
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                      <button type="button" ref={stayRef} onClick={() => stay(member)} className={OUTLINE}>Stay</button>
+                      <button type="button" aria-disabled={leaveBusy || undefined} onClick={() => checkOut(member)} className={PRIMARY}>{leaveBusy ? 'Checking out...' : 'Check out'}</button>
+                    </div>
+                    {leaveNote && <p role="alert" className="mt-2 text-sm font-medium text-red-700">{leaveNote}</p>}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
         )}
 
-        {!open && view.crew.length > 0 && <p className="mt-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm font-medium text-amber-900">{closedText}</p>}
+        {gone.length > 0 && (
+          <ul className={`divide-y divide-gray-200 ${here.length > 0 ? 'border-t border-gray-200' : 'mt-2'}`}>
+            {gone.map((member) => (
+              <li key={member.id} className="py-2.5 text-base text-gray-900 break-words">
+                {member.name}
+                <span className="block text-sm text-gray-600">{clockOf(member.checkedOutAt) ? `Checked out at ${clockOf(member.checkedOutAt)}` : 'Checked out'}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {!open && view.crew.length > 0 && <p className={`mt-3 ${NOTICE}`}>{closedText}</p>}
 
         {waiting.length > 0 && (
           <form onSubmit={checkIn} className="mt-3 space-y-3" noValidate>
-            <fieldset disabled={!open} className="space-y-2">
+            <fieldset disabled={!open} className="min-w-0 space-y-2">
               <legend className="text-sm font-semibold text-gray-900">Tick everyone who is here</legend>
               {waiting.map((member) => (
                 <label key={member.id} className="flex items-center gap-3 rounded-xl border border-gray-300 px-3 py-2.5 min-h-[48px] cursor-pointer has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60">
                   <input type="checkbox" checked={ticked.has(member.id)} onChange={() => { if (!busy) toggle(member.id); }}
                     className="h-6 w-6 shrink-0 accent-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700" />
-                  <span className="text-base text-gray-900 break-words">{member.name}</span>
+                  <span className="min-w-0 text-base text-gray-900 break-words">{member.name}</span>
                 </label>
               ))}
             </fieldset>
@@ -424,11 +519,15 @@ function JobView({ view, base, onChanged, onOut, onInvalid }) {
         <div role="status" className="mt-3 space-y-2">
           {note?.kind === 'ok' && <p className="text-sm font-medium text-green-800">{note.text}</p>}
           {note?.kind === 'ok' && note.away && <p className="text-sm font-medium text-amber-900">Your phone puts you {note.away} from the job address. The office can see this.</p>}
-          {view.crew.length > 0 && waiting.length === 0 && <p className="text-sm font-medium text-green-800">{ALL_IN_TEXT}</p>}
+          {view.crew.length > 0 && waiting.length === 0 && gone.length === 0 && <p className="text-sm font-medium text-green-800">{ALL_IN_TEXT}</p>}
           {here.length > 0 && waiting.length > 0 && <p className="text-sm text-gray-700">{LATE_TEXT}</p>}
         </div>
         {note?.kind === 'error' && <p role="alert" className="mt-3 text-sm font-medium text-red-700">{note.text}</p>}
       </section>
+
+      <JobPhotos base={base} view={view} onPhotos={(photos) => onPatch({ photos })} onChanged={onChanged} onOut={onOut} onInvalid={onInvalid} onSay={say} />
+      <JobTimer base={base} view={view} said={said.count % 2 === 0 ? said.text : `${said.text} `} onTimer={(timer) => onPatch({ timer })} onChanged={onChanged}
+        onOut={onOut} onInvalid={onInvalid} onSay={say} />
     </>
   );
 }
@@ -438,15 +537,20 @@ export default function JobLink({ token }) {
   const [read, setRead] = useState({ status: 'loading' });
   const live = useRef(true);
   const lastRead = useRef(0);
+  // The number of the latest read of the whole link, or of the invalid screen. A read draws its answer only if no later one has been taken since it began.
+  const readNo = useRef(0);
 
   // Reads the link. `quiet` keeps what is on the page while the read runs and keeps it when the read cannot be made; it returns the status read, so a
-  // caller can tell whether a sign-in took.
+  // caller can tell whether a sign-in took. An answer that arrives after a later read began, or after the page went to the invalid screen, is older than
+  // what the page holds and is not drawn: a slow read of the whole link must not put the job back over a link the timer's poll found not valid.
   const load = useCallback(async ({ quiet = false } = {}) => {
+    readNo.current += 1;
+    const mine = readNo.current;
     if (!quiet) setRead({ status: 'loading' });
     lastRead.current = Date.now();
     const next = readOf(await callApi(base));
     if (!live.current) return 'gone';
-    setRead((held) => (quiet && next.status === 'failed' && (held.status === 'in' || held.status === 'none') ? held : next));
+    if (mine === readNo.current) setRead((held) => (quiet && next.status === 'failed' && (held.status === 'in' || held.status === 'none') ? held : next));
     return next.status;
   }, [base]);
 
@@ -456,7 +560,7 @@ export default function JobLink({ token }) {
     return () => { live.current = false; };
   }, [load]);
 
-  // A tab that comes back to the front asks again; the page does not poll.
+  // A tab that comes back to the front asks again. Between those reads only the timer is asked for (JobTimer's poll), and only while the tab is visible.
   useEffect(() => {
     const again = () => {
       if (document.visibilityState !== 'visible' || Date.now() - lastRead.current < REFRESH_GAP_MS) return;
@@ -470,8 +574,15 @@ export default function JobLink({ token }) {
     };
   }, [load]);
 
-  const invalid = () => setRead({ status: 'invalid' });
+  const invalid = () => {
+    readNo.current += 1;
+    setRead({ status: 'invalid' });
+  };
   const signedIn = () => load({ quiet: true });
+  // Puts newer parts of the read (the timer, the photos) on the page without a read of the whole link.
+  const patch = useCallback((part) => {
+    setRead((held) => (held.status === 'in' ? { ...held, view: { ...held.view, ...part } } : held));
+  }, []);
 
   if (read.status === 'loading') {
     return (
@@ -516,7 +627,7 @@ export default function JobLink({ token }) {
 
   return (
     <Frame>
-      <JobView view={read.view} base={base} onChanged={() => load({ quiet: true })} onOut={() => load({ quiet: true })} onInvalid={invalid} />
+      <JobView view={read.view} base={base} onChanged={() => load({ quiet: true })} onPatch={patch} onOut={() => load({ quiet: true })} onInvalid={invalid} />
     </Frame>
   );
 }

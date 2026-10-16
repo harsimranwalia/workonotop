@@ -24,7 +24,8 @@ function notValid() {
 // Public: the token in the path is the locator, and it is checked before anything else. Body { crew_ids, location: { latitude, longitude,
 // accuracy } }. Refused in this order: no access (401, "Enter your code to continue."); crew_ids not one to 30 positive whole numbers (400); the
 // window not open (409, with opens_at and opens_label); the position missing or unusable (400); an id that is not on the crew now (400, nobody is
-// ticked). 200 { success: true, data: { checked_in, already, away, distance_m, crew } }: the ids ticked by this request and the ids that had been
+// ticked); an id that has checked out of this job (409, nobody is ticked: a check-out is final for the assignment). 200 { success: true, data: {
+// checked_in, already, away, distance_m, crew } }: the ids ticked by this request and the ids that had been
 // ticked already, whether the phone was more than 500 m from the address (null when the job has no position), that distance, and the crew as
 // the page shows it. A link in any other state, or a job that closed since the link was read, is the 404.
 export async function POST(request, { params }) {
@@ -65,6 +66,8 @@ export async function POST(request, { params }) {
         return refusal(400, CHECKIN_MESSAGES.location)
       case 'not_on_crew':
         return refusal(400, CHECKIN_MESSAGES.notOnCrew)
+      case 'checked_out':
+        return refusal(409, CHECKIN_MESSAGES.checkedOut)
       default:
         return refusal(400, CHECKIN_MESSAGES.ids)
     }

@@ -8,6 +8,8 @@ import { logActivity } from '@/lib/logger'
 import { sendSMS } from '@/lib/sms'
 import { providerPayout } from '@/lib/booking-price'
 import { jobCompletedEmailHtml } from '@/lib/job-completed-email'
+import { executeOn } from '@/lib/job-link-base'
+import { beforePhotoCount } from '@/lib/job-photos'
 
 export async function POST(request) {
   const auth = await requireCaller(request, ['provider']);
@@ -52,9 +54,19 @@ export async function POST(request) {
             await connection.query('ROLLBACK')
             return NextResponse.json({ success: false, message: 'Job must be confirmed to start' }, { status: 400 })
           }
+          // The same function the job link's start calls: a job does not start without a before photo, whoever took it and wherever it was taken.
+          if ((await beforePhotoCount(executeOn(connection), booking_id)) === 0) {
+            await connection.query('ROLLBACK')
+            return NextResponse.json({ success: false, message: 'Take a before photo first' }, { status: 400 })
+          }
           await connection.execute(
             `UPDATE bookings SET status = 'in_progress', start_time = ?, job_timer_status = 'running', worker_count = ?, estimated_hours = ?, updated_at = NOW() WHERE id = ?`,
             [now, worker_count || 1, estimated_hours || null, booking_id]
+          )
+          // A stretch that a restarted run left open is closed as an empty one, so that it cannot run beside this run's own (the job link's clock reads every stretch).
+          await connection.execute(
+            `UPDATE job_sessions SET clock_out = clock_in WHERE booking_id = ? AND clock_out IS NULL`,
+            [booking_id]
           )
           // Create the first job session
           await connection.execute(

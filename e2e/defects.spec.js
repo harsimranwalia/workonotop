@@ -75,10 +75,24 @@ function expectNoneOf(text, strings, who) {
     }
 }
 
+// Deletes a probe booking as admin. A case that opens a page can leave its `request` context idle for as long as a first compile of the page takes,
+// and the dev server closes an idle connection after about six seconds (measured: a DELETE sent 5.95 to 6.03 s after the last answer fails with
+// "socket hang up" before it reaches a route, BUG-018). The route answers 200 for a booking that is already gone, so the second try is safe.
+async function deleteProbeBooking(request, as, id) {
+    const url = `/api/bookings?id=${id}`;
+    try {
+        await request.delete(url, { headers: as.admin });
+    } catch (error) {
+        if (!/socket hang up|ECONNRESET|EPIPE/i.test(String(error?.message))) throw error;
+        await request.delete(url, { headers: as.admin });
+    }
+}
+
 // A booking the case makes itself through the public checkout (POST /api/bookings stays public), so a write probe never touches
 // a fixture row. `run(id, body)` gets its id and the body that was posted; the row is deleted again as admin, even when `run`
-// fails. With no options the checkout is a guest's. `headers` sends a credential with the POST and `fields` adds to the body or
-// replaces one of its fields (the owner cases send both: a credential and a body user_id).
+// fails, and a delete that fails after `run` has failed is reported by console.error and does not hide the case's own failure. With no options the checkout is a
+// guest's. `headers` sends a credential with the POST and `fields` adds to the body or replaces one of its fields (the owner
+// cases send both: a credential and a body user_id).
 async function withProbeBooking(request, as, run, { headers = {}, fields = {} } = {}) {
     const tag = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
     const body = {
@@ -92,10 +106,19 @@ async function withProbeBooking(request, as, run, { headers = {}, fields = {} } 
     expect(created.status(), 'checkout makes the probe booking').toBe(200);
     const id = (await created.json()).booking_id;
     expect(Number.isInteger(id), 'the probe booking has an id').toBe(true);
+    let failed = false;
     try {
         await run(id, body);
+    } catch (error) {
+        failed = true;
+        throw error;
     } finally {
-        await request.delete(`/api/bookings?id=${id}`, { headers: as.admin });
+        try {
+            await deleteProbeBooking(request, as, id);
+        } catch (error) {
+            if (!failed) throw error;
+            console.error(`probe booking ${id} was not removed after the case failed: ${String(error?.message).split('\n', 1)[0]}`);
+        }
     }
 }
 

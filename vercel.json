@@ -1,6 +1,7 @@
 {
   "crons": [
     { "path": "/api/cron/auto-release", "schedule": "0 * * * *" },
-    { "path": "/api/cron/crew-retention", "schedule": "17 4 * * *" }
+    { "path": "/api/cron/crew-retention", "schedule": "17 4 * * *" },
+    { "path": "/api/cron/job-photos", "schedule": "37 4 * * *" }
   ]
 }

@@ -1,4 +1,4 @@
-// The route matrix: every route file and exported method under src/app/api, one row each, as data (235 rows).
+// The route matrix: every route file and exported method under src/app/api, one row each, as data (240 rows).
 //
 // SOURCE: Appendix A of agents/architect/designs/ENG-004-lock-down-unauthenticated-access-and-role-checks.md (the
 // design for ENG-004; ADR-003). This file was generated from that table, in the table's order and with its route
@@ -53,7 +53,7 @@
 // roles: ['admin', 'provider'] with the split in its note.
 //
 // What a probe does. Every probe uses a fixture account only (@workontap.test), an id no fixture row has, and an empty body
-// or none: 235 of the 235 rows, by a script (the body is undefined or {}, the path is the route with each [param] replaced
+// or none: 240 of the 240 rows, by a script (the body is undefined or {}, the path is the route with each [param] replaced
 // by PROBE_IDS.missing, no row sets a query). That does not make a probe harmless by itself: a handler that needs no input
 // acts on {} and on nothing (ENG-020 review B1, QA F1). What the notes say about it, as counted by script:
 //   - Twelve rows carry a `Probe (B2, 2026-10-02` line (the rows whose note holds that text): GET and PATCH
@@ -64,8 +64,8 @@
 //     where the handler writes or sends, the first side effect it stops before (a write, a schema change, mail, a push, an
 //     outbound call, a payment, a file); GET /api/admin/deletion-requests carries only a cross-reference to the PATCH row, for
 //     the same fetch.
-//   - The other 223 rows have no such line: 134 are write rows (POST, PUT, PATCH, DELETE) and 89 are GET (script counts).
-//     49 of the 223 (36 public, 13 self) carry a `Probe measured on the dev app` line instead, which records the
+//   - The other 228 rows have no such line: 137 are write rows (POST, PUT, PATCH, DELETE) and 91 are GET (script counts).
+//     49 of the 228 (36 public, 13 self) carry a `Probe measured on the dev app` line instead, which records the
 //     status measured there for the request with no credential and no body. Code-review round 1 read the write handlers the
 //     probes reach (88: 31 admin, 57 other; agents/principal-engineer/notebook/2026-10-02-eng020-review.md; the matrix has
 //     110 routes with a write row, 36 admin and 74 other, and the difference was not traced). It did not read the GET
@@ -163,7 +163,7 @@ export const matrix = [
     },
     {
         route: '/api/admin/bookings/[id]/job-link', method: 'GET', today: 'none', kind: 'roles', roles: ['admin'], owner: '-',
-        note: 'ENG-015: a new route (src/app/api/admin/bookings/[id]/job-link/route.js). GET calls requireCaller(request, [\'admin\']) as its first statements (:46-49), before the id is read or the database is touched: no credential is 401, any other role 403. For an admin it answers the booking\'s job link (its path while it is on, its generation), the crew on the job with whether each number has been checked and whether each cleaner ticked in, the check-in window, who ticked in and where, and the last 50 events on the link; no phone number and no code is in the answer. The probe\'s id matches no booking: 404 \'Booking not found\'. No \'Probe measured\' claim: the probe was not run on the dev app when this row was written.',
+        note: 'ENG-015: a new route (src/app/api/admin/bookings/[id]/job-link/route.js). GET calls requireCaller(request, [\'admin\']) as its first statements (:46-49), before the id is read or the database is touched: no credential is 401, any other role 403. For an admin it answers the booking\'s job link (its path while it is on, its generation), the crew on the job with whether each number has been checked and whether each cleaner ticked in, the check-in window, who ticked in and where, and the last 100 events on the link; no phone number and no code is in the answer. The probe\'s id matches no booking: 404 \'Booking not found\'. No \'Probe measured\' claim: the probe was not run on the dev app when this row was written.',
         probe: { path: '/api/admin/bookings/999999999/job-link', body: undefined, anon: 401 },
     },
     {
@@ -782,6 +782,11 @@ export const matrix = [
         probe: { path: '/api/cron/crew-retention', body: undefined, anon: [401] },
     },
     {
+        route: '/api/cron/job-photos', method: 'GET', today: 'none', kind: 'self', self: 'CRON_SECRET, made fail-closed', owner: '-',
+        note: 'ENG-016: a new route (src/app/api/cron/job-photos/route.js). requireCronSecret(request) is the first statement of GET, as in the three cron routes before it. With CRON_SECRET unset, as on the dev app (it must stay unset there), every request is 401, `Bearer undefined` and `?secret=undefined` included; with it set, the secret is accepted as `Authorization: Bearer` or `?secret=` and anything else is 401. Behind the guard the job deletes the photos of jobs finished more than 365 days ago and sweeps the files no row names (src/lib/job-photo-retention.js); vercel.json runs it once a day. The probe stops at the guard: 401 for every credential style, and nothing is read or written.',
+        probe: { path: '/api/cron/job-photos', body: undefined, anon: [401] },
+    },
+    {
         route: '/api/cron/notifications', method: 'GET', today: 'partial', kind: 'self', self: 'CRON_SECRET, made fail-closed', owner: '-',
         note: 'ENG-022: requireCronSecret(request) is the first statement of GET (src/app/api/cron/notifications/route.js:10-11). With CRON_SECRET unset, as on the dev app (it must stay unset there), every request is 401, `Bearer undefined` and `?secret=undefined` included; with it set, the secret is accepted as `Authorization: Bearer` or `?secret=` and anything else is 401. The check that was skipped when CRON_SECRET was unset or empty (route.js:14 at 1d67c30) is gone. Census finding before the guard: MEDIUM: fail-open, no check at all when CRON_SECRET is unset or empty (14 at 1d67c30); anonymous caller ca… Probe measured on the dev app at 04:50 on 2026-10-02 with no credential and no body, before the change: 500 \'Internal Server Error\' (the route did not refuse the anonymous caller). Probe (B2, 2026-10-02): hold, removed by ENG-022 on 2026-10-03: the row is not held now; it sends all seven credential styles and expects 401 from each (anon [401]). The first job sits behind the guard: it selects the providers with stripe_onboarding_complete = 0 (:21-26) and for each sends an email (:41) and a push (:47) and updates onboarding_reminder_stage (:49-52). Today it stops only because that column is not in the dev schema (absent at 07:04 on 2026-10-02), so the SELECT throws and the answer is 500: an accident, not a guard before the change; now every request is 401 before the SELECT. Probe (round 3, 2026-10-02): the handler holds a second job in the same try (:57-106) that runs when the server hour is 19 or later (:61-64): it selects the confirmed bookings of tomorrow not yet reminded (:67-75) and for each emails and pushes the customer (:82-89) and, when a provider is assigned, the provider (:92-100), then updates bookings (:103). It is not reached today: the first SELECT throws first (:21-26, to the catch at :110-113), and if it were reached it would select nothing: it takes only confirmed bookings of tomorrow (:67-75) and both fixture bookings are completed, with job date 2026-01-15 (database/fixtures hold six files, whose sets insert into users, service_providers, service_categories, services, system_settings, bookings, invoices, provider_payouts and provider_reviews).',
         probe: { path: '/api/cron/notifications', body: undefined, anon: [401] },
@@ -872,9 +877,29 @@ export const matrix = [
         probe: { path: '/api/job/999999999/check-in', body: {}, anon: [404] },
     },
     {
+        route: '/api/job/[token]/check-out', method: 'POST', today: 'none', kind: 'self', self: 'the job link token, a 256-bit random locator in the path (src/lib/job-link.js); a dead link is a 404, a live one opens only for a cleaner with a texted code, the job\'s provider or an admin', owner: '-',
+        note: 'ENG-016: a new route (src/app/api/job/[token]/check-out/route.js). It asks for no session to find the job: the token is looked up before anything else (findJobLink, :33), so a token nobody holds is the one 404 \'This link is not valid.\' whatever the body holds, and the body is read after it (:42). For a live link a caller with no access is a 401, and one with access checks out the crew members they name (checkOut, in one transaction): each check-out is final for that assignment, the phone\'s position is kept when it was sent, and when the last cleaner on site leaves a running timer is paused. The probe\'s token, 999999999, is not a token. It writes nothing.',
+        probe: { path: '/api/job/999999999/check-out', body: {}, anon: [404] },
+    },
+    {
         route: '/api/job/[token]/code', method: 'POST', today: 'none', kind: 'self', self: 'the job link token, a 256-bit random locator in the path (src/lib/job-link.js); a dead link is a 404, a live one opens only for a cleaner with a texted code, the job\'s provider or an admin', owner: '-',
         note: 'ENG-015: a new route (src/app/api/job/[token]/code/route.js). It asks for no session: the token is looked up before anything else (findJobLink, :29), so a token nobody holds is the one 404 \'This link is not valid.\' whatever the body holds, and the body is read after it (:34). For a live link it answers the same 200 for every number that is typed, and texts a six-digit code only to a number a provider has checked and that is on the job\'s crew (a Canadian number, inside the caps); the answer never says which. The probe\'s token, 999999999, is not a token. It writes nothing.',
         probe: { path: '/api/job/999999999/code', body: {}, anon: [404] },
+    },
+    {
+        route: '/api/job/[token]/photos', method: 'POST', today: 'none', kind: 'self', self: 'the job link token, a 256-bit random locator in the path (src/lib/job-link.js); a dead link is a 404, a live one opens only for a cleaner with a texted code, the job\'s provider or an admin', owner: '-',
+        note: 'ENG-016: a new route (src/app/api/job/[token]/photos/route.js). It asks for no session to find the job: the token is looked up before anything else (findJobLink), so a token nobody holds is the one 404 \'This link is not valid.\' whatever the body holds, and the body is read after it, capped in size. For a live link a caller with no access is a 401, and one with access adds a before photo (while the job is confirmed) or an after photo (while it is in progress): the type is worked out from the file\'s bytes, never from what the caller says, location data is stripped, and the file is stored under a name nobody can guess. The probe\'s token, 999999999, is not a token. It writes nothing.',
+        probe: { path: '/api/job/999999999/photos', body: {}, anon: [404] },
+    },
+    {
+        route: '/api/job/[token]/timer', method: 'GET', today: 'none', kind: 'self', self: 'the job link token, a 256-bit random locator in the path (src/lib/job-link.js); a dead link is a 404, a live one opens only for a cleaner with a texted code, the job\'s provider or an admin', owner: '-',
+        note: 'ENG-016: a new route (src/app/api/job/[token]/timer/route.js), the poll behind the job page\'s countdown. The token is looked up before anything else (findJobLink, :34), so a token nobody holds is the one 404 \'This link is not valid.\'; for a live link a caller with no access is a 401, and one with access gets the timer as the server works it out from its own rows (refreshTimer), with the server\'s clock beside it. The probe\'s token, 999999999, is not a token. It writes nothing.',
+        probe: { path: '/api/job/999999999/timer', body: undefined, anon: [404] },
+    },
+    {
+        route: '/api/job/[token]/timer', method: 'POST', today: 'none', kind: 'self', self: 'the job link token, a 256-bit random locator in the path (src/lib/job-link.js); a dead link is a 404, a live one opens only for a cleaner with a texted code, the job\'s provider or an admin', owner: '-',
+        note: 'ENG-016: the same new route (src/app/api/job/[token]/timer/route.js), POST. The token is looked up before anything else (findJobLink, :59), so a token nobody holds is the one 404 \'This link is not valid.\' whatever the body holds, and the body is read after it (:68). For a live link a caller with no access is a 401, and one with access starts, pauses or resumes the job\'s timer; starting needs a checked-in cleaner, a before photo and the phone\'s position. The probe\'s token, 999999999, is not a token. It writes nothing.',
+        probe: { path: '/api/job/999999999/timer', body: {}, anon: [404] },
     },
     {
         route: '/api/job/[token]/verify', method: 'POST', today: 'none', kind: 'self', self: 'the job link token, a 256-bit random locator in the path (src/lib/job-link.js); a dead link is a 404, a live one opens only for a cleaner with a texted code, the job\'s provider or an admin', owner: '-',

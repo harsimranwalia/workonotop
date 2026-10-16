@@ -9,10 +9,13 @@
 // The link is a locator, not a credential: showing it to the person who manages the job is the point. What the panel shows is what the route answers;
 // switching off, and issuing a new link to replace one that works, are asked about first (a link that is off comes back with no question), and a new link is
 // sent with the generation this panel last saw so that two people acting at once do not each end up holding a link the other has ended.
+// Under the crew list come the check-ins, the job's timer and photos (src/components/job/JobLinkRecord.jsx) and the recent activity. The panel reads once and
+// after its own actions and does not poll, so the timer block says when the read was made and has a Refresh; a running clock is counted on the screen between reads.
 
 import Link from 'next/link';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { callApi, clockOf, crewOf, dataOf, distanceOf, isObject, messageOf, OFFLINE_TEXT, postJson, stampOf, textOf, windowOf } from './jobLinkKit';
+import { callApi, clockOf, crewOf, dataOf, distanceOf, isObject, messageOf, OFFLINE_TEXT, photosOf, postJson, stampOf, textOf, timerOf, windowOf } from './jobLinkKit';
+import JobLinkRecord from './JobLinkRecord';
 import { NumberChip } from '@/components/provider/CrewNumberCheck';
 
 const LOADING_TEXT = 'Loading the job link...';
@@ -29,6 +32,7 @@ const NEW_QUESTION = 'Issue a new link? The current link stops working at once a
 const COPY_FAILED_TEXT = 'Select the link and copy it.';
 const NO_CHECKINS_TEXT = 'Nobody has checked in.';
 const NO_EVENTS_TEXT = 'Nothing has happened on this link yet.';
+const REFRESHED_TEXT = 'Updated.';
 
 // The look of each use. `button` is an outline button, `primary` the filled one; every colour pair is AA on its ground.
 const LOOKS = {
@@ -103,6 +107,14 @@ function sayEvent(event) {
     case 'code_asked':
       if (detail === 'no_match') return 'A code was asked for a number that is not on this job';
       return `${detail === 'not_sent' ? 'A code could not be sent to' : 'A code was texted to'} ${subject || 'a cleaner'}`;
+    case 'photo_added': return `${who} added ${detail === 'before' ? 'a before photo' : detail === 'after' ? 'an after photo' : 'a photo'}`;
+    case 'check_out':
+      if (detail === 'removed') return `${subject || 'A cleaner'} was taken off the crew while checked in; checked out when ${who} looked`;
+      return `${who} checked out ${subject || 'a cleaner'}`;
+    case 'timer_start': return `${who} started the job`;
+    case 'timer_pause': return detail === 'last_out' ? 'The job paused when the last cleaner checked out' : `${who} paused the job`;
+    case 'timer_resume': return `${who} resumed the job`;
+    case 'over_quote': return 'The job went over its quoted time';
     default: return `${who} did something on this link`;
   }
 }
@@ -114,7 +126,8 @@ function linkOf(link) {
   return { path: typeof link.path === 'string' && link.path.startsWith('/') ? link.path : null, on: link.on, generation: link.generation };
 }
 
-// The managed view of an answer, or null when it is not the shape the routes promise.
+// The managed view of an answer, or null when it is not the shape the routes promise. The timer and the photos are each null when theirs is not, and the rest of
+// the view is drawn without it.
 function managedOf(data) {
   const crew = crewOf(data.crew);
   const link = linkOf(data.job_link);
@@ -124,6 +137,8 @@ function managedOf(data) {
     open: data.status_open === true,
     crew,
     window: windowOf(data.window),
+    timer: timerOf(data.timer),
+    photos: photosOf(data.photos),
     checkins: Array.isArray(data.checkins) ? data.checkins.map(checkinOf).filter(Boolean) : null,
     events: Array.isArray(data.events) ? data.events.map(eventOf).filter(Boolean) : null,
   };
@@ -147,6 +162,7 @@ export default function JobLinkManager({ path, kind, look: lookName, title }) {
   const [view, setView] = useState({ status: 'loading' });
   const [asking, setAsking] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [reading, setReading] = useState(false);
   const [note, setNote] = useState(null);
   const headingRef = useRef(null);
   const fieldRef = useRef(null);
@@ -154,14 +170,14 @@ export default function JobLinkManager({ path, kind, look: lookName, title }) {
   const live = useRef(true);
 
   // Reads the managed view: { status: 'absent' } for a job that is not there for this caller, { status: 'ended' } for a session that is gone,
-  // { status: 'failed', offline } for anything else that is not an answer, and { status: 'ready', ...view } otherwise.
+  // { status: 'failed', offline } for anything else that is not an answer, and { status: 'ready', ...view } otherwise, with `asOf`, the moment the answer arrived.
   const read = useCallback(async (signal) => {
     const result = await callApi(path, { signal });
     if (result.status === 404) return { status: 'absent' };
     if (result.status === 401 || result.status === 403) return { status: 'ended' };
     const data = dataOf(result);
     const managed = data ? managedOf(data) : null;
-    return managed ? { status: 'ready', ...managed } : { status: 'failed', offline: result.status === 0 };
+    return managed ? { status: 'ready', ...managed, asOf: Date.now() } : { status: 'failed', offline: result.status === 0 };
   }, [path]);
 
   useEffect(() => {
@@ -180,10 +196,23 @@ export default function JobLinkManager({ path, kind, look: lookName, title }) {
     read().then((next) => { if (live.current) setView(next); });
   };
 
-  // After a change the view is read again, keeping the one on the screen if that read cannot be made.
+  // After a change the view is read again, keeping the one on the screen if that read cannot be made. Resolves to what the read found.
   const refresh = async () => {
     const next = await read();
     if (live.current && next.status !== 'failed') setView(next);
+    return next;
+  };
+
+  // The Refresh button of the timer block: the same read, with an answer for the person who asked (the figures on the screen are as recent as the last read).
+  const reload = async () => {
+    if (reading || busy || view.status !== 'ready') return;
+    setReading(true);
+    setNote(null);
+    const next = await refresh();
+    setReading(false);
+    if (!live.current) return;
+    if (next.status === 'failed') setNote({ kind: 'error', text: next.offline ? OFFLINE_TEXT : LOAD_FAILED_TEXT });
+    else if (next.status === 'ready') setNote({ kind: 'ok', text: REFRESHED_TEXT });
   };
 
   const change = async (action, done) => {
@@ -317,7 +346,7 @@ export default function JobLinkManager({ path, kind, look: lookName, title }) {
                   <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                     <NumberChip state={member.numberState} />
                     <span className={`text-xs ${member.checkedIn ? look.ok : look.muted}`}>
-                      {member.checkedIn ? `Checked in${clockOf(member.checkedInAt) ? ` ${clockOf(member.checkedInAt)}` : ''}` : 'Not checked in'}
+                      {member.checkedIn ? `Checked in${clockOf(member.checkedInAt) ? ` ${clockOf(member.checkedInAt)}` : ''}` : member.checkedOutAt ? `Checked out${clockOf(member.checkedOutAt) ? ` ${clockOf(member.checkedOutAt)}` : ''}` : 'Not checked in'}
                     </span>
                   </p>
                   {kind === 'provider' && member.numberState === 'unchecked' && (
@@ -351,6 +380,11 @@ export default function JobLinkManager({ path, kind, look: lookName, title }) {
             </ul>
           )}
         </div>
+      )}
+
+      {ready && view.link && (
+        <JobLinkRecord look={look} open={view.open} timer={view.timer} photos={view.photos} asOf={view.asOf}
+          refresh={<Button look={look} busy={reading} onClick={reload}>Refresh</Button>} />
       )}
 
       {ready && view.events && view.link && (

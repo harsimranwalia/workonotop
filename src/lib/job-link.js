@@ -25,17 +25,22 @@
 //   to callerFrom, not one with both roles: it stops at the first verified caller whose role is allowed, so a stranger's provider cookie would
 //   hide an admin's Bearer.) `ref` is the users.id of the admin, the provider's id or the crew member's id; `epoch` is the cleaner's assignment
 //   second, which checkIn judges again inside its lock. `crew` is assignedCrew(…, { withAssignedAt: true }), read once by the caller.
-// jobPage(execute, link, access, crew) -> { access, you: { kind, name }, job, crew, window } | null
+// jobPage(execute, link, access, crew) -> { access, you: { kind, name }, job, crew, window, timer, photos, photo_can } | null
 //   null when the job closed since findJobLink. `job` is { service_name, days, address: { line1, line2, city, postal_code }, details: {
 //   description, instructions, timing_note, parking, elevator, pets, worker_count } }, text that is not there as '' and the three yes/no as
-//   booleans. `crew` is tickedView of the members on the job now: id, name, checked_in, checked_in_at, never a number. `window` is windowView.
+//   booleans. `crew` is tickedView of the members on the job now: id, name, checked_in, checked_in_at, checked_out_at, never a number. `window` is
+//   windowView. `timer` is the TimerView (src/lib/job-timer.js) after refreshTimer, `photos` is photosFor, and `photo_can` is { before, after }:
+//   whether each kind of photo may be added now, by the same rules as addPhoto, so a button is right before a refusal (ENG-016). The limit is
+//   judged on photoCounts, the rows the job holds, and not on `photos`, which leaves out the rows whose address the page may not link.
 // linkView(row) -> { path, on, generation, created_at, off_at } | null; `path` is '/job/{token}', never a URL, and null for a link that is off (the
 //   old token is dead and is not shown again).
-// managedView(execute, { bookingId, providerId, audit }) -> null | { job_link, status_open, crew, window, checkins?, events? }
+// managedView(execute, { bookingId, providerId, audit, actor }) -> null | { job_link, status_open, crew, window, timer, photos, checkins?, events? }
 //   What the provider's panel and the admin's panel show. null when the booking is not there, or, with a providerId, is not that provider's (in any
-//   status). `crew` is [{ id, name, number_state, checked_in, checked_in_at }] and number_state is 'checked' | 'unchecked' | 'cannot_text'. With
-//   `audit` (the admin's) there are also `checkins` [{ crew_member_id, name, checked_in_at, by: { kind, name }, away, distance_m, accuracy_m }]
-//   and `events` (eventsFor: the last EVENT_LIST_LIMIT, newest first), names resolved at read.
+//   status). `crew` is [{ id, name, number_state, checked_in, checked_in_at, checked_out_at }] and number_state is 'checked' | 'unchecked' |
+//   'cannot_text'. `timer` and `photos` are the page's (ENG-016); `actor` is { kind, ref } of whoever is looking, and with it (and a link) the look
+//   is refreshTimer, which owes the record the reconcile and the over-quote flag, and without it the timer is only read. With `audit` (the admin's)
+//   there are also `checkins` [{ crew_member_id, name, checked_in_at, checked_out_at, by: { kind, name }, away, distance_m, accuracy_m }] and
+//   `events` (eventsFor: the last EVENT_LIST_LIMIT, newest first), names resolved at read.
 // createJobLink / switchOffLink / reissueLink({ withConnection, bookingId, providerId, actor, generation? }) -> { ok: true, job_link } | { ok: false, reason }
 //   `providerId` is the caller's when a provider asks and null for an admin; `actor` is { kind: 'provider' | 'admin', ref }. Each is an event.
 //   create: the job must be open ('finished'), have a provider and at least one cleaner who is not removed ('no_crew'); a link that is on is
@@ -49,6 +54,8 @@ import { numberStates } from './crew-number-check.js';
 import { checkinsFor, tickedView } from './job-checkin.js';
 import { JOB_LINK_OPEN_STATUSES, displayName, eventsFor, executeOn, namesFor, nameOf, recordEvent } from './job-link-base.js';
 import { sessionFromRequest } from './job-link-code.js';
+import { PHOTOS_MAX_PER_TYPE, photoCounts, photosFor } from './job-photos.js';
+import { refreshTimer, timerFor } from './job-timer.js';
 import { LINK_TOKEN_PATTERN, newLinkToken } from './link-token.js';
 import { windowView } from './job-window.js';
 
@@ -99,6 +106,16 @@ export async function resolveAccess(request, execute, link, crew) {
 
 // ---- what the page shows --------------------------------------------------------------------------------------------------------------
 
+// Whether each kind of photo may be added now, by the rules addPhoto judges again inside its lock: a before photo while the job is confirmed, an
+// after photo while it is in progress, fewer than PHOTOS_MAX_PER_TYPE of the kind, and a cleaner only while checked in. `counts` is photoCounts, the
+// rows of each type: addPhoto counts rows as well, and the list on the page has left some out.
+function photoCan(status, canAdd, counts) {
+  return {
+    before: canAdd && status === 'confirmed' && counts.before < PHOTOS_MAX_PER_TYPE,
+    after: canAdd && status === 'in_progress' && counts.after < PHOTOS_MAX_PER_TYPE,
+  };
+}
+
 export async function jobPage(execute, link, access, crew) {
   const rows = await execute(
     `SELECT status, service_name, job_time_slot, address_line1, address_line2, city, postal_code, job_description, instructions,
@@ -111,7 +128,12 @@ export async function jobPage(execute, link, access, crew) {
   if (!row || !isOpen(row.status)) return null;
 
   const members = crew.filter((member) => !member.removed);
-  const ticks = await checkinsFor(execute, link.booking_id, crew);
+  const timer = await refreshTimer(execute, link, { kind: access.kind, ref: access.ref });
+  const ticks = await checkinsFor(execute, link.booking_id, crew, { withOut: true });
+  const photos = await photosFor(execute, link.booking_id);
+  const counts = await photoCounts(execute, link.booking_id);
+  const crewView = tickedView(members, ticks);
+  const canAdd = access.kind !== 'cleaner' || crewView.some((member) => member.id === access.ref && member.checked_in);
   return {
     access: access.kind,
     you: { kind: access.kind, name: access.name },
@@ -132,8 +154,11 @@ export async function jobPage(execute, link, access, crew) {
         worker_count: Number(row.worker_count) > 0 ? Number(row.worker_count) : 1,
       },
     },
-    crew: tickedView(members, ticks),
+    crew: crewView,
     window: windowView(row, Number(row.now_epoch)),
+    timer,
+    photos,
+    photo_can: photoCan(row.status, canAdd, counts),
   };
 }
 
@@ -154,7 +179,7 @@ export function linkView(row) {
   return { path: on ? `/job/${row.token}` : null, on, generation: row.generation, created_at: iso(row.created_epoch), off_at: iso(row.off_epoch) };
 }
 
-export async function managedView(execute, { bookingId, providerId = null, audit = false }) {
+export async function managedView(execute, { bookingId, providerId = null, audit = false, actor = null }) {
   const bookings = await execute(
     `SELECT status, provider_id, cluster, city, job_time_slot, DATE_FORMAT(job_date, '%Y-%m-%d') AS job_date, UNIX_TIMESTAMP() AS now_epoch
      FROM bookings WHERE id = ?`,
@@ -165,7 +190,12 @@ export async function managedView(execute, { bookingId, providerId = null, audit
 
   const [link, crew] = await Promise.all([linkRow(execute, bookingId), assignedCrew(execute, bookingId, { withAssignedAt: true })]);
   const members = crew.filter((member) => !member.removed);
-  const [states, ticks] = await Promise.all([numberStates(execute, members), checkinsFor(execute, bookingId, crew)]);
+  const timer = link && actor ? await refreshTimer(execute, { id: link.id, booking_id: bookingId }, actor) : await timerFor(execute, bookingId);
+  const [states, ticks, photos] = await Promise.all([
+    numberStates(execute, members),
+    checkinsFor(execute, bookingId, crew, { withOut: true }),
+    photosFor(execute, bookingId),
+  ]);
   const stateOf = new Map(states.map((state) => [state.id, state.number_state]));
 
   const view = {
@@ -177,8 +207,11 @@ export async function managedView(execute, { bookingId, providerId = null, audit
       number_state: stateOf.get(member.id) ?? 'unchecked',
       checked_in: member.checked_in,
       checked_in_at: member.checked_in_at,
+      checked_out_at: member.checked_out_at,
     })),
     window: windowView(booking, Number(booking.now_epoch)),
+    timer,
+    photos,
   };
   if (!audit) return view;
 
@@ -191,6 +224,7 @@ export async function managedView(execute, { bookingId, providerId = null, audit
       crew_member_id: tick.crew_member_id,
       name: nameOfMember.get(tick.crew_member_id) ?? displayName(null),
       checked_in_at: tick.checked_in_at,
+      checked_out_at: tick.checked_out_at,
       by: { kind: tick.by_kind, name: nameOf(names, tick.by_kind, tick.by_ref) },
       away: tick.away,
       distance_m: tick.distance_m,

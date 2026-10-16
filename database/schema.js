@@ -228,6 +228,7 @@ const tables = [
     submitted_headcount INT,
     adjustment_reason TEXT,
     job_timer_status ENUM('not_started', 'running', 'paused', 'completed') DEFAULT 'not_started',
+    over_quote_at DATETIME NULL,
     before_photos_uploaded TINYINT(1) DEFAULT 0,
     after_photos_uploaded TINYINT(1) DEFAULT 0,
     work_summary TEXT,
@@ -318,13 +319,16 @@ const tables = [
     photo_url VARCHAR(500) NOT NULL,
     photo_type ENUM('before', 'after') NOT NULL,
     uploaded_by INT NOT NULL,
+    taken_by_kind ENUM('cleaner','provider','admin') NULL,
+    taken_by_ref INT NULL,
     captured_at TIMESTAMP NULL,
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
     FOREIGN KEY (uploaded_by) REFERENCES service_providers(id) ON DELETE CASCADE,
     INDEX idx_booking (booking_id),
     INDEX idx_photo_type (photo_type),
-    INDEX idx_uploaded_by (uploaded_by)
+    INDEX idx_uploaded_by (uploaded_by),
+    INDEX idx_job_photos_uploaded (uploaded_at)
   )`,
 
   // Table 13: provider_reviews
@@ -818,6 +822,7 @@ const tables = [
     crew_member_id INT NOT NULL,
     assignment_epoch BIGINT NOT NULL,
     checked_in_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    checked_out_at DATETIME NULL,
     by_kind ENUM('cleaner','provider','admin') NOT NULL,
     by_ref INT NOT NULL,
     latitude DECIMAL(10,8) NULL,
@@ -1008,7 +1013,15 @@ const alterations = [
       ADD COLUMN booking_id INT NULL AFTER picks,
       ADD INDEX idx_booking (booking_id),
       ADD CONSTRAINT fk_quote_requests_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE SET NULL`
-  }
+  },
+
+  // Who took a job photo, when a cleaner left a job and when a job first used up its quote (migration 0009, ENG-016). All NULL on a row or a
+  // booking that existed before: a NULL taken_by_kind is how src/lib/job-photo-retention.js knows a photo is not a link photo.
+  { table: 'job_photos', column: 'taken_by_kind', sql: "ALTER TABLE job_photos ADD COLUMN taken_by_kind ENUM('cleaner','provider','admin') NULL AFTER uploaded_by" },
+  { table: 'job_photos', column: 'taken_by_ref', sql: 'ALTER TABLE job_photos ADD COLUMN taken_by_ref INT NULL AFTER taken_by_kind' },
+  { table: 'job_photos', column: 'idx_job_photos_uploaded', sql: 'CREATE INDEX idx_job_photos_uploaded ON job_photos(uploaded_at)' },
+  { table: 'job_checkins', column: 'checked_out_at', sql: 'ALTER TABLE job_checkins ADD COLUMN checked_out_at DATETIME NULL AFTER checked_in_at' },
+  { table: 'bookings', column: 'over_quote_at', sql: 'ALTER TABLE bookings ADD COLUMN over_quote_at DATETIME NULL AFTER job_timer_status' }
 ];
 
 // =====================================================

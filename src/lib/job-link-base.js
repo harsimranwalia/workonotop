@@ -9,14 +9,18 @@
 //   completed, cancelled and disputed close the link. A status added to bookings later is closed until someone decides, as in booking-crew.js.
 //   A ticket that needs the link longer widens this one list and the case that pins it.
 // EVENT_KINDS, EVENT_DETAILS -> what an event may be and the short fixed codes its detail may hold. recordEvent throws on anything else, so a
-//   number, a name or a code cannot be put into the record by a slip.
+//   number, a name or a code cannot be put into the record by a slip. ENG-016 adds six kinds (photo_added, check_out, timer_start, timer_pause,
+//   timer_resume, over_quote) and four details: before and after (the type of a photo), last_out (a timer paused because the last cleaner left) and
+//   removed (a check-out the system stamped after a cleaner was taken off the crew while checked in). check_out is always about a member; over_quote
+//   and the timer_* kinds are about the job and carry the actor. No event holds a photo address, a number or a name.
 // executeOn(connection) -> an `execute(sql, params)` that runs on a connection a transaction owns and answers what src/lib/db.js's execute
 //   answers (the rows, or the result header), so a library written for the pool runs unchanged inside a transaction.
 // recordEvent(execute, link, { kind, actor, crewMemberId, location, detail }) -> nothing. `link` is { id, booking_id }. `actor` is { kind:
 //   'cleaner' | 'provider' | 'admin' | 'visitor', ref } where ref is a crew member id, a provider id or a users.id and a visitor (someone who has
 //   not signed in) has none. `crewMemberId` is the person the event is about; `location` is { latitude, longitude, accuracy_m } for a check-in.
 //   The record holds ids and never a name or a number: a name is read through its id when shown.
-// eventsFor(execute, bookingId) -> the last EVENT_LIST_LIMIT events of a job, newest first, with names resolved at read:
+// eventsFor(execute, bookingId) -> the last EVENT_LIST_LIMIT events of a job (100, since ENG-016: a busy job's first events must stay in the list),
+//   newest first, with names resolved at read:
 //   [{ id, kind, actor: { kind, name }, subject, detail, latitude, longitude, accuracy_m, created_at }]. `subject` is the name of the person the
 //   event is about. A cleaner who has been erased (src/lib/crew-retention.js) shows as 'A former cleaner'. `created_at` is an ISO string, read as
 //   UNIX_TIMESTAMP so that it does not depend on the zone of the server, the pool and the database agreeing.
@@ -35,11 +39,30 @@ export const EVENT_KINDS = Object.freeze([
   'code_failed',
   'signed_in',
   'check_in',
+  'photo_added',
+  'check_out',
+  'timer_start',
+  'timer_pause',
+  'timer_resume',
+  'over_quote',
 ]);
 
-export const EVENT_DETAILS = Object.freeze(['no_match', 'cannot_text', 'not_checked', 'cooldown', 'number_cap', 'provider_cap', 'sent', 'not_sent']);
+export const EVENT_DETAILS = Object.freeze([
+  'no_match',
+  'cannot_text',
+  'not_checked',
+  'cooldown',
+  'number_cap',
+  'provider_cap',
+  'sent',
+  'not_sent',
+  'before',
+  'after',
+  'last_out',
+  'removed',
+]);
 
-export const EVENT_LIST_LIMIT = 50;
+export const EVENT_LIST_LIMIT = 100;
 
 // What src/lib/crew-retention.js stores as the name of a cleaner it erased, and how that shows.
 export const ERASED_NAME = 'Former cleaner';
@@ -48,7 +71,7 @@ const ERASED_SHOWN = 'A former cleaner';
 const ACTOR_KINDS = Object.freeze(['cleaner', 'provider', 'admin', 'visitor']);
 
 // Events about a person who is always known: a code that was asked for a number nobody has (detail no_match) is the one that is not.
-const ABOUT_A_MEMBER = new Set(['code_suppressed', 'code_failed', 'signed_in', 'check_in']);
+const ABOUT_A_MEMBER = new Set(['code_suppressed', 'code_failed', 'signed_in', 'check_in', 'check_out']);
 
 export function executeOn(connection) {
   return async (sql, params = []) => {
