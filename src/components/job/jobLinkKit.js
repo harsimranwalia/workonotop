@@ -271,3 +271,56 @@ export async function shrinkPhoto(file) {
   context.drawImage(picture, 0, 0, canvas.width, canvas.height);
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', PHOTO_JPEG_QUALITY));
 }
+
+// ---- the on-site reports (ENG-017) ----
+
+// REPORT_CHOICES is REPORT_TYPES of src/lib/job-reports.js in the contract's order and words, REPORT_NOTE_MAX its limit on a note and
+// REPORTS_MAX_PER_BOOKING the most reports a job holds; a case reads that file and pins them equal.
+export const REPORT_CHOICES = Object.freeze([
+  Object.freeze({ code: 'no_answer', label: 'Customer did not answer' }),
+  Object.freeze({ code: 'details_wrong', label: 'Job details are incorrect' }),
+  Object.freeze({ code: 'unhygienic', label: 'Unhygienic conditions' }),
+  Object.freeze({ code: 'add_items', label: 'Add more items' }),
+  Object.freeze({ code: 'cannot_complete', label: 'Unable to complete the job' }),
+]);
+export const REPORT_NOTE_MAX = 1000;
+export const REPORTS_MAX_PER_BOOKING = 20;
+
+// One report of an answer, or null when it is not the shape the routes promise. `by` is the sender's name ('' when the answer has none) and `byKind` who
+// they are; `away` and `distanceM` are only in what the provider and the office are sent (true, false or null for "not known", and metres or null).
+export function reportOf(value) {
+  const choice = isObject(value) ? REPORT_CHOICES.find((one) => one.code === value.type) : undefined;
+  if (!choice || !Number.isInteger(value.id)) return null;
+  const by = isObject(value.by) ? value.by : {};
+  const photo = textOf(value.photo);
+  return {
+    id: value.id,
+    type: choice.code,
+    label: textOf(value.label) || choice.label,
+    note: textOf(value.note),
+    photo: photo !== '' && safeAddress(photo) ? photo : '',
+    by: textOf(by.name),
+    byKind: textOf(by.kind),
+    at: textOf(value.at),
+    seen: value.seen === true,
+    away: value.away === 1 || value.away === true ? true : value.away === 0 || value.away === false ? false : null,
+    distanceM: finiteOrNull(value.distance_m),
+  };
+}
+
+// The reports of an answer, or null when the answer is not a list of them.
+export function reportsOf(value) {
+  if (!Array.isArray(value)) return null;
+  const reports = value.map(reportOf);
+  return reports.includes(null) ? null : reports;
+}
+
+// A random id for one try at sending a report: the server keeps one report per id on a job, so a send made again with the same id gets the saved report
+// back and not a second one. It is only a name for the try (nothing is guarded by it), so a phone without the browser's own generator gets one made by hand.
+export function newToken() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') crypto.getRandomValues(bytes);
+  else for (let at = 0; at < bytes.length; at += 1) bytes[at] = Math.floor(Math.random() * 256);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}

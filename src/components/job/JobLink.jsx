@@ -5,7 +5,7 @@
 //   invalid      the link is switched off, replaced, finished or was never a link: one sentence, the same for every cause
 //   not in       a mobile number, then the six-digit code texted to it; the page cannot tell whether the number was on the job
 //   signed in    the days, the address, the details, the crew with who is checked in and out, the tick list that checks people in, and below the
-//                crew the job's photos (JobPhotos.jsx) and its timer (JobTimer.jsx)
+//                crew the job's photos (JobPhotos.jsx), its timer (JobTimer.jsx) and its on-site reports (JobReports.jsx)
 // A cleaner's session is a cookie the server sets and the page never reads: after every action, when the tab comes back to the front and, while the timer
 // is on the page, every TIMER_POLL_SECONDS the page asks again, so a person taken off the crew, or a link switched off, is seen at the next of those. The
 // number typed here lives in this component's state only (never in storage or the address), and the page shows nothing the server did not send.
@@ -14,9 +14,10 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { PHONE_HINT } from '@/lib/phone';
 import {
   CARD, CARD_HEADING, NOTICE, OFFLINE_TEXT, OPTIONAL_POSITION_WAIT_MS, OUTLINE, POSITION_TEXT, PRIMARY, RING,
-  callApi, clockOf, crewOf, currentPosition, dataOf, distanceOf, isObject, messageOf, namesOf, photoCanOf, photosOf, postJson, textOf, timerOf, windowOf,
+  callApi, clockOf, crewOf, currentPosition, dataOf, distanceOf, isObject, messageOf, namesOf, photoCanOf, photosOf, postJson, reportsOf, textOf, timerOf, windowOf,
 } from './jobLinkKit';
 import JobPhotos from './JobPhotos';
+import JobReports from './JobReports';
 import JobTimer from './JobTimer';
 
 const CODE_WAIT_SECONDS = 60;
@@ -79,6 +80,9 @@ function viewOf(data) {
     timer: timerOf(data.timer),
     photos: photosOf(data.photos),
     photoCan: photoCanOf(data.photo_can),
+    // null when the list cannot be read: the card says so and offers to read again
+    reports: reportsOf(data.reports),
+    reportCan: data.report_can === true,
   };
 }
 
@@ -528,6 +532,7 @@ function JobView({ view, base, onChanged, onPatch, onOut, onInvalid }) {
       <JobPhotos base={base} view={view} onPhotos={(photos) => onPatch({ photos })} onChanged={onChanged} onOut={onOut} onInvalid={onInvalid} onSay={say} />
       <JobTimer base={base} view={view} said={said.count % 2 === 0 ? said.text : `${said.text} `} onTimer={(timer) => onPatch({ timer })} onChanged={onChanged}
         onOut={onOut} onInvalid={onInvalid} onSay={say} />
+      <JobReports base={base} view={view} onReports={(reports) => onPatch({ reports })} onChanged={onChanged} onOut={onOut} onInvalid={onInvalid} onSay={say} />
     </>
   );
 }
