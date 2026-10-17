@@ -18,6 +18,9 @@
 //   Sweep    runCrewRetention calls pruneNotices and puts the count in its summary as notice_rows.
 //   Pages    src/app/layout.js renders none of its four <Script> tags, and reads no seo_settings script, on a link page; src/middleware.js puts the policy on
 //            the request and the response with a nonce from crypto.getRandomValues; linkPageKind and linkPagePolicy answer their vectors.
+//   Card     (ENG-013 F7) CardForm.jsx asks for a new card entry when a confirm failed at Stripe and keeps its form when Stripe.js refused the fields, and the
+//            setup route no longer says that the count of tries keeps a link from testing stolen card numbers. The form needs a Stripe key to run in a browser,
+//            which dev does not have, so this is the one place its two branches are looked at.
 // The files are read with their comments blanked, and each case that depends on that reading checks that what it looked for is really there, so a reading
 // that finds nothing fails and does not pass.
 import fs from 'node:fs';
@@ -307,5 +310,20 @@ test.describe('Pins: the link pages', () => {
         expect(card.match(/https:\/\/[a-z.]+/g)).toEqual([
             'https://js.stripe.com', 'https://api.stripe.com', 'https://js.stripe.com', 'https://hooks.stripe.com',
         ]);
+    });
+});
+
+test.describe('Pins: the card entry', () => {
+    test('Pins: CardForm starts a new card entry after a confirm that failed at Stripe and stays on its form after a validation_error; the setup route does not claim the count guards against stolen cards', () => {
+        const form = codeOf('src/components/card/CardForm.jsx');
+        const refused = form.search(/result\.error\.type\s*===\s*['"]validation_error['"]/);
+        expect(refused, "the test for Stripe.js's validation_error in CardEntry").toBeGreaterThan(-1);
+        const retry = form.search(/onFailure\(\s*['"]retry['"]\s*,\s*result\.error\.message/);
+        expect(retry, "onFailure('retry', ...) with Stripe's words in CardEntry").toBeGreaterThan(refused);
+        expect(form.slice(refused, retry), 'the retry is the else of the validation_error test').toMatch(/\}\s*else\s*\{/);
+        expect(form).toMatch(/next\s*===\s*['"]retry['"]\s*\)\s*\{\s*setNotice\(text\s*\|\|\s*NOT_SAVED_TEXT\);\s*setAttempt\(\(n\)\s*=>\s*n\s*\+\s*1\);/);
+        const route = textOf('src/app/api/card/[token]/setup/route.js');
+        expect(route).not.toMatch(/keeps a link from testing/);
+        expect(route).toMatch(/not a guard against testing stolen card numbers/);
     });
 });
