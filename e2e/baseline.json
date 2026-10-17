@@ -4971,6 +4971,9 @@
     "transfer-events.spec.js › Transfer events › the library, given an event type it does not know, moves no payout": {
       "outcome": "PASS"
     },
+    "transfer-events.spec.js › Transfer events › the route answers 500 when the database refuses the history write, leaves the payout pending, and records the event when it is sent again": {
+      "outcome": "PASS"
+    },
     "transfer-events.spec.js › Transfer events › the route refuses an unsigned request and a changed body, ignores transfer.updated and answers its ping": {
       "outcome": "PASS"
     },

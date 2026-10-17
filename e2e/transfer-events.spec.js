@@ -497,6 +497,39 @@ test.describe('Transfer events', () => {
         expect((await payoutRow(id)).status, 'the payout after the second try').toBe('paid');
     });
 
+    // QA (ENG-027, quality gate). The case above shows the library rolls back and throws; this one shows the route turn that into a 500 with its fixed body, so
+    // that Stripe sends the event again (the design's first departure from the PRD), and that the event sent again is recorded. The route is the only place that
+    // answer is made, so a try/catch that swallowed the error there would pass every other case. The failure is a pool whose connections refuse the history write.
+    test('the route answers 500 when the database refuses the history write, leaves the payout pending, and records the event when it is sent again', async () => {
+        const { bookingId, transferId, id } = await pair('pending');
+        const sent = event('transfer.created', transfer(transferId));
+        const real = pool.getConnection;
+        pool.getConnection = async (...args) => {
+            const taken = await real.apply(pool, args);
+            return new Proxy(taken, {
+                get(target, name) {
+                    if (name === 'execute') {
+                        return (sql, params) => (/INSERT INTO booking_status_history/.test(sql) ? Promise.reject(new Error('probe: the history write is refused')) : target.execute(sql, params));
+                    }
+                    const member = target[name];
+                    return typeof member === 'function' ? member.bind(target) : member;
+                },
+            });
+        };
+        let refused;
+        try {
+            refused = await deliver(sent);
+        } finally {
+            pool.getConnection = real;
+        }
+        expect({ status: refused.status, body: refused.body }, 'the answer while the database refuses the write').toEqual({ status: 500, body: { error: 'Webhook handler failed' } });
+        expect((await payoutRow(id)).status, 'the payout was rolled back').toBe('pending');
+        expect(await lines(bookingId), 'no history line').toEqual([]);
+        ok(await deliver(sent), 'the answer to the same event once the database accepts the write');
+        expect((await payoutRow(id)).status, 'the payout after the event is sent again').toBe('paid');
+        expect((await lines(bookingId)).map(([line]) => line), 'the booking history after the event is sent again').toEqual(['transfer_completed']);
+    });
+
     test('a payout with no booking is moved and writes no history line', async () => {
         const transferId = `tr_eng027_${stamp()}`;
         const id = await payout({ bookingId: null, transferId });
