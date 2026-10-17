@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { linkPageKind, linkPagePolicy } from "@/lib/link-pages";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+
+// A fresh nonce for one response: 16 random bytes as base64.
+function newNonce() {
+  return btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))));
+}
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
@@ -9,11 +15,18 @@ export async function middleware(request) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);
 
+  // A job link or a card link page is answered with a Content-Security-Policy that carries a nonce made for this response. The policy is also put on the
+  // request, which is how Next finds the nonce and puts it on its own inline scripts (src/lib/link-pages.js says what the policy allows).
+  const linkKind = linkPageKind(pathname);
+  const policy = linkKind ? linkPagePolicy(linkKind, newNonce(), { production: process.env.NODE_ENV === "production" }) : null;
+  if (policy) requestHeaders.set("Content-Security-Policy", policy);
+
   let response = NextResponse.next({
     request: {
       headers: requestHeaders,
     },
   });
+  if (policy) response.headers.set("Content-Security-Policy", policy);
 
   // ✅ 1. Admin routes protection
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {

@@ -3,6 +3,7 @@ import "./globals.css";
 import { headers } from "next/headers";
 import Script from "next/script";
 import { getSeoForPath } from "@/lib/seo";
+import { linkPageKind } from "@/lib/link-pages";
 import { AuthProvider } from "@/context/AuthContext";
 import parse from 'html-react-parser';
 
@@ -79,7 +80,10 @@ const parserOptions = {
 export default async function RootLayout({ children }) {
   const headersList = await headers();
   const rawPathname = headersList.get("x-pathname") || "/";
-  const seo = await getSeoForPath(rawPathname);
+  // A page whose address is a credential (a job link, a card link) runs none of the site-wide scripts: not the ones pasted into seo_settings and not the
+  // four tags below. A page that needs a widget loads it inside its own component (the card page loads Stripe.js itself). See src/lib/link-pages.js.
+  const linkPage = linkPageKind(rawPathname) !== null;
+  const seo = linkPage ? { headerScripts: '' } : await getSeoForPath(rawPathname);
 
   return (
     <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} antialiased font-sans flex flex-col min-h-screen`}>
@@ -92,12 +96,16 @@ export default async function RootLayout({ children }) {
           {children}
         </AuthProvider>
 
-        <Script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js" strategy="afterInteractive" crossOrigin="anonymous" />
-        <Script noModule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js" strategy="lazyOnload" crossOrigin="anonymous" />
-        
-        <Script src="https://accounts.google.com/gsi/client" strategy="beforeInteractive" />
+        {linkPage ? null : (
+          <>
+            <Script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js" strategy="afterInteractive" crossOrigin="anonymous" />
+            <Script noModule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js" strategy="lazyOnload" crossOrigin="anonymous" />
 
-        <Script src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&v=weekly&loading=async`} strategy="beforeInteractive" />
+            <Script src="https://accounts.google.com/gsi/client" strategy="beforeInteractive" />
+
+            <Script src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&v=weekly&loading=async`} strategy="beforeInteractive" />
+          </>
+        )}
       </body>
     </html>
   );
