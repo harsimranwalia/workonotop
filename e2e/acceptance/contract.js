@@ -228,6 +228,7 @@ export const ITEMS = [
                     spec('job-timer.spec.js', 'AC2: (hard gate)', 'AC7: a whole flow'),
                     spec('job-timer-screens.spec.js', 'Screens: Start the job takes the phone'),
                     spec('acceptance-links.spec.js', 'Links: W5 the cleaner with the code, the provider and an admin each start'),
+                    spec('acceptance-journey.spec.js', 'Journey: W5 code', 'Journey: W5 photo'),
                 ],
             },
             {
@@ -267,6 +268,7 @@ export const ITEMS = [
                     spec('job-timer-screens.spec.js', 'Screens: while the job has not started the Start button is off'),
                     spec('job-timer-page.spec.js', 'Screens: the job can not be started until a before photo is taken'),
                     spec('acceptance-links.spec.js', 'Links: W5 a start is refused, and nothing is written, when only this is wrong: no before photo'),
+                    spec('acceptance-journey.spec.js', 'Journey: W5 photo'),
                 ],
             },
             {
@@ -310,12 +312,12 @@ export const ITEMS = [
             {
                 id: 'W6.late-arrival',
                 says: 'a late arrival is added later',
-                cases: [spec('job-checkin.spec.js', 'AC9: after three, one more id is added')],
+                cases: [spec('job-checkin.spec.js', 'AC9: after three, one more id is added'), spec('acceptance-journey.spec.js', 'Journey: W6 late')],
             },
             {
                 id: 'W6.no-show',
                 says: 'a cleaner who did not show is not checked in',
-                cases: [spec('job-checkin.spec.js', 'AC8: a cleaner session ticks three members', 'AC15: the view lists every assigned member')],
+                cases: [spec('job-checkin.spec.js', 'AC8: a cleaner session ticks three members', 'AC15: the view lists every assigned member'), spec('acceptance-journey.spec.js', 'Journey: W6 no-show')],
             },
         ],
     },
@@ -332,7 +334,7 @@ export const ITEMS = [
             {
                 id: 'W7.re-divides',
                 says: 'it re-divides when a cleaner is added or checked out',
-                cases: [spec('job-timer.spec.js', 'AC4: an hour on, a fourth cleaner checking in', 'AC4: a cleaner taken off the crew')],
+                cases: [spec('job-timer.spec.js', 'AC4: an hour on, a fourth cleaner checking in', 'AC4: a cleaner taken off the crew'), spec('acceptance-journey.spec.js', 'Journey: W7 re-divides')],
             },
             {
                 id: 'W7.arithmetic',
@@ -360,13 +362,13 @@ export const ITEMS = [
             {
                 id: 'W8.admin-queue',
                 says: 'the reports reach the admin queue',
-                cases: [spec('job-reports.spec.js', 'the queue lists the report with its job'), spec('acceptance-seams.spec.js', 'Seams: W8 queue:')],
+                cases: [spec('job-reports.spec.js', 'the queue lists the report with its job'), spec('acceptance-seams.spec.js', 'Seams: W8 queue:'), spec('acceptance-journey.spec.js', 'Journey: W8 queue')],
             },
             {
                 id: 'W8.alerts',
                 says: 'admin and the provider are alerted by text and by email',
                 kind: 'attempt',
-                cases: [spec('notices-routes.spec.js', 'R14:'), spec('notices-events.spec.js', 'E14 '), spec('acceptance-seams.spec.js', 'Seams: W8 alerts:')],
+                cases: [spec('notices-routes.spec.js', 'R14:'), spec('notices-events.spec.js', 'E14 '), spec('acceptance-seams.spec.js', 'Seams: W8 alerts:'), spec('acceptance-journey.spec.js', 'Journey: W8 alerts')],
             },
             {
                 id: 'W8.no-charge-before-approval',

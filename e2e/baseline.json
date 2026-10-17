@@ -72,6 +72,39 @@
     "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: the map holds twelve items and nine defects, and the hard gates are exactly 2, 5, 9, 11 and 12": {
       "outcome": "PASS"
     },
+    "acceptance-journey.spec.js › Journey acceptance: a booking from the checkout to a finished job › Journey: W2 finish: the provider finishes the job with hours and a crew size of their own choosing, and the bill and the payout are the rule's": {
+      "outcome": "PASS"
+    },
+    "acceptance-journey.spec.js › Journey acceptance: a booking from the checkout to a finished job › Journey: W5 code: a cleaner who gives back the code she was texted is let in to the link, and a caller with no session is not": {
+      "outcome": "PASS"
+    },
+    "acceptance-journey.spec.js › Journey acceptance: a booking from the checkout to a finished job › Journey: W5 photo: the start is refused until a before photo has gone in through the photo route, and then the cleaner starts the job from the link": {
+      "outcome": "PASS"
+    },
+    "acceptance-journey.spec.js › Journey acceptance: a booking from the checkout to a finished job › Journey: W6 late: a cleaner added after the start enters her own code and ticks in, and the crew is three with two of them ticked in": {
+      "outcome": "PASS"
+    },
+    "acceptance-journey.spec.js › Journey acceptance: a booking from the checkout to a finished job › Journey: W6 no-show: one cleaner ticks in and the other never does, so the job shows one of two ticked in and the timer counts one cleaner here": {
+      "outcome": "PASS"
+    },
+    "acceptance-journey.spec.js › Journey acceptance: a booking from the checkout to a finished job › Journey: W7 re-divides: with a third cleaner here the timer shares what is left of the quote among two, and the shares worked add up to the time used": {
+      "outcome": "PASS"
+    },
+    "acceptance-journey.spec.js › Journey acceptance: a booking from the checkout to a finished job › Journey: W8 alerts: an add-more-items report sent from the link texts and e-mails the provider and each admin, and not the cleaner who sent it": {
+      "outcome": "ATTEMPTED"
+    },
+    "acceptance-journey.spec.js › Journey acceptance: a booking from the checkout to a finished job › Journey: W8 queue: the report is in the admin queue with its photo, note, sender and job, an approval with no payment key is a 503 that records nothing, and the admin declines it": {
+      "outcome": "PASS"
+    },
+    "acceptance-journey.spec.js › Journey acceptance: a booking from the checkout to a finished job › Journey: book: a customer's checkout is in the admin job queue as waiting, an admin assigns it to provider 1 and provider 1 accepts it, at the rule's price": {
+      "outcome": "PASS"
+    },
+    "acceptance-journey.spec.js › Journey acceptance: a booking from the checkout to a finished job › Journey: texts late: a cleaner put on the job after the start is texted the link, and the two before her are not texted again": {
+      "outcome": "ATTEMPTED"
+    },
+    "acceptance-journey.spec.js › Journey acceptance: a booking from the checkout to a finished job › Journey: texts: provider 1 puts two cleaners on the job and makes its link, and each cleaner is texted the link once": {
+      "outcome": "ATTEMPTED"
+    },
     "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: POST /api/job/[token]/check-in refuses a cleaner who is not on the crew now with the link's one 401 and writes nothing": {
       "outcome": "PASS"
     },
