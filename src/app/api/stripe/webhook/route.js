@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { getConnection } from '@/lib/db';
+import { getConnection, withConnection } from '@/lib/db';
 import { providerPayout } from '@/lib/booking-price';
+import { recordTransferEvent } from '@/lib/transfer-events';
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-05-27.dahlia' }) : null;
 
@@ -55,16 +56,18 @@ export async function POST(request) {
         break;
         
       case 'transfer.created':
-        console.log('Transfer created:', event.data.object.id);
-        break;
-        
       case 'transfer.paid':
-        await handleTransferPaid(event.data.object);
+      case 'transfer.reversed':
+      case 'transfer.failed': {
+        const { outcome } = await withConnection((connection) => recordTransferEvent(connection, event));
+        if (outcome === 'retry') {
+          // The transfer was made for a payout whose row is not there yet. A 503 makes Stripe send the event again.
+          console.warn('Transfer event ahead of its payout row, answered 503:', event.data.object.id);
+          return NextResponse.json({ error: 'Payout not recorded yet' }, { status: 503 });
+        }
         break;
-        
-      case 'transfer.failed':
-        await handleTransferFailed(event.data.object);
-        break;
+      }
+
       case 'checkout.session.completed':
         await handleCheckoutCompleted(event.data.object);
         break;
@@ -88,89 +91,6 @@ export async function POST(request) {
       { error: 'Webhook handler failed' },
       { status: 500 }
     );
-  }
-}
-
-async function handleTransferPaid(transfer) {
-  const connection = await getConnection();
-  
-  try {
-    await connection.beginTransaction();
-    
-    if (transfer.metadata?.booking_id) {
-      const bookingId = transfer.metadata.booking_id;
-      const amount = (transfer.amount / 100).toFixed(2);
-      
-      // Update provider_payouts status to 'paid'
-      await connection.execute(
-        `UPDATE provider_payouts 
-         SET status = 'paid', paid_at = NOW() 
-         WHERE stripe_transfer_id = ? OR booking_id = ?`,
-        [transfer.id, bookingId]
-      );
-      
-      // Update service_providers balances (move from pending to available)
-      await connection.execute(
-        `UPDATE service_providers sp
-         JOIN provider_payouts pp ON pp.provider_id = sp.id
-         SET sp.available_balance = sp.available_balance + pp.amount,
-             sp.pending_balance = sp.pending_balance - pp.amount
-         WHERE pp.stripe_transfer_id = ?`,
-        [transfer.id]
-      );
-      
-      // Add to status history
-      await connection.execute(
-        `INSERT INTO booking_status_history (booking_id, status, notes, created_at) 
-         VALUES (?, 'transfer_completed', ?, NOW())`,
-        [bookingId, `💰 $${amount} transferred to provider and settled`]
-      );
-      
-      console.log(`✅ Transfer ${transfer.id} paid - Payout updated to 'paid' for booking ${bookingId}`);
-    }
-    
-    await connection.commit();
-  } catch (error) {
-    await connection.rollback();
-    console.error('❌ handleTransferPaid error:', error);
-  } finally {
-    connection.release();
-  }
-}
-
-async function handleTransferFailed(transfer) {
-  const connection = await getConnection();
-  
-  try {
-    await connection.beginTransaction();
-    
-    if (transfer.metadata?.booking_id) {
-      const bookingId = transfer.metadata.booking_id;
-      
-      // Update provider_payouts status to 'failed'
-      await connection.execute(
-        `UPDATE provider_payouts 
-         SET status = 'failed' 
-         WHERE stripe_transfer_id = ? OR booking_id = ?`,
-        [transfer.id, bookingId]
-      );
-      
-      // Add to status history
-      await connection.execute(
-        `INSERT INTO booking_status_history (booking_id, status, notes, created_at) 
-         VALUES (?, 'transfer_failed', ?, NOW())`,
-        [bookingId, `❌ Transfer failed: ${transfer.failure_message || 'Unknown error'}`]
-      );
-      
-      console.log(`❌ Transfer ${transfer.id} failed for booking ${bookingId}`);
-    }
-    
-    await connection.commit();
-  } catch (error) {
-    await connection.rollback();
-    console.error('❌ handleTransferFailed error:', error);
-  } finally {
-    connection.release();
   }
 }
 
