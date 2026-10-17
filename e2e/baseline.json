@@ -123,6 +123,24 @@
     "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: the cleaner with the code, the job's provider and an admin are let in at check-in and at reports": {
       "outcome": "PASS"
     },
+    "acceptance-roles.spec.js › Role guard acceptance: a cleaner signed in at a job link › Roles: DELETE is refused to a cleaner's link session at every role-guarded route": {
+      "outcome": "PASS"
+    },
+    "acceptance-roles.spec.js › Role guard acceptance: a cleaner signed in at a job link › Roles: GET is refused to a cleaner's link session at every role-guarded route": {
+      "outcome": "PASS"
+    },
+    "acceptance-roles.spec.js › Role guard acceptance: a cleaner signed in at a job link › Roles: PATCH is refused to a cleaner's link session at every role-guarded route": {
+      "outcome": "PASS"
+    },
+    "acceptance-roles.spec.js › Role guard acceptance: a cleaner signed in at a job link › Roles: POST is refused to a cleaner's link session at every role-guarded route": {
+      "outcome": "PASS"
+    },
+    "acceptance-roles.spec.js › Role guard acceptance: a cleaner signed in at a job link › Roles: PUT is refused to a cleaner's link session at every role-guarded route": {
+      "outcome": "PASS"
+    },
+    "acceptance-roles.spec.js › Role guard acceptance: a cleaner signed in at a job link › Roles: the route table has no role-guarded route of a method that no case here sends": {
+      "outcome": "PASS"
+    },
     "admin-job-queue.spec.js › Admin job queue › Push to marketplace puts a waiting booking on the marketplace: the server's message, the time under a disabled button, and the queue holds it on the marketplace": {
       "outcome": "PASS"
     },

@@ -491,6 +491,11 @@ export const ITEMS = [
                     ),
                 ],
             },
+            {
+                id: 'W12.cleaner-on-the-portals',
+                says: "a cleaner's link session is turned away at every role-guarded route of the portals, one case per HTTP method the route table holds",
+                cases: [spec('acceptance-roles.spec.js', 'Roles:')],
+            },
         ],
     },
 ];
