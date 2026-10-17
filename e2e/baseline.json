@@ -4944,6 +4944,9 @@
     "transfer-events.spec.js › Transfer events › a payout with no booking is moved and writes no history line": {
       "outcome": "PASS"
     },
+    "transfer-events.spec.js › Transfer events › a transfer.reversed that reverses nothing changes nothing, in every status a payout can be moved from": {
+      "outcome": "PASS"
+    },
     "transfer-events.spec.js › Transfer events › an event ahead of its payout row is answered 503 without waiting on the writer, and lands when it is sent again": {
       "outcome": "PASS"
     },
@@ -4965,16 +4968,25 @@
     "transfer-events.spec.js › Transfer events › reversalOf tells a full reversal, a partial one and none from the transfer alone": {
       "outcome": "PASS"
     },
+    "transfer-events.spec.js › Transfer events › the library, given an event type it does not know, moves no payout": {
+      "outcome": "PASS"
+    },
     "transfer-events.spec.js › Transfer events › the route refuses an unsigned request and a changed body, ignores transfer.updated and answers its ping": {
       "outcome": "PASS"
     },
     "transfer-events.spec.js › Transfer events › the same event twice, or ten at once, changes the payout once": {
       "outcome": "PASS"
     },
+    "transfer-events.spec.js › Transfer events › the same partial reversal ten at once writes one line": {
+      "outcome": "PASS"
+    },
     "transfer-events.spec.js › Transfer events › transfer.created marks the payout of that transfer paid at the time Stripe sent it, with one history line": {
       "outcome": "PASS"
     },
     "transfer-events.spec.js › Transfer events, source pins › every transfer that is written to a payout carries the provider id": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events, source pins › the library finds the payouts of a transfer with no lock and locks them one at a time by key": {
       "outcome": "PASS"
     },
     "transfer-events.spec.js › Transfer events, source pins › the library names no balance and moves a payout only by its key": {

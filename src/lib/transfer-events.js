@@ -71,7 +71,9 @@ async function applyToPayout(connection, event, kind, reversal, payout) {
 
   if (kind === 'reversed' && reversal === 'partial') {
     // A partial reversal changes no status. The line is the record, written once for a pair of amounts: the same line already on the
-    // booking means this reversal has been recorded.
+    // booking means this reversal has been recorded. That holds under ten deliveries at once only because of the order in settle(): the row
+    // lock is the transaction's first read, so the snapshot of the read below is taken after the lock was won. Read anything ahead of it and a
+    // delivery that waited for the lock cannot see the line the one before it wrote.
     if (!['pending', 'processing', 'paid'].includes(payout.status) || payout.booking_id === null) return false;
     const [seen] = await connection.execute(
       'SELECT id FROM booking_status_history WHERE booking_id = ? AND status = ? AND notes = ? LIMIT 1',

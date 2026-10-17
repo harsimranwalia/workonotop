@@ -13,9 +13,13 @@
 //   12  a failed history write rolls the move back and is thrown;
 //   13  a payout with no booking is moved and writes no history line;
 //   14  the route refuses an unsigned request and a changed body, ignores transfer.updated and answers its ping;
-//   15  source pins: the library names no balance and moves a payout only by its key; the route verifies the signature first, keeps no
-//       handler of its own for the transfer events and leaves no way to match a payout by its booking; every transfer written to a
-//       payout carries provider_id, which is how an event ahead of its row is told from one that has no row to wait for.
+//   15  a transfer.reversed that reverses nothing changes nothing, in every status a payout can be moved from;
+//   16  the same partial reversal ten at once writes one line (its idempotency is a read, not a status guard, so only the lock's order holds it);
+//   17  the library, given an event type it does not know, moves no payout;
+//   18  source pins: the library names no balance, moves a payout only by its key and finds the payouts of a transfer with no lock while it
+//       locks one row at a time by key; the route verifies the signature first, keeps no handler of its own for the transfer events and
+//       leaves no way to match a payout by its booking; every transfer written to a payout carries provider_id, which is how an event
+//       ahead of its row is told from one that has no row to wait for.
 // The cases call the real route, loaded the way e2e/booking-payment.spec.js loads its routes (a copy in a temporary directory whose
 // imports are a closed list) with two differences: the stripe package is the real one, so the signature check is the real check, and
 // the pool is a real one on the dev database. Events are signed with the package's own test-header helper and a secret made up here, so
@@ -524,6 +528,51 @@ test.describe('Transfer events', () => {
         expect(ping.status, 'the ping').toBe(200);
         expect(ping.body.message, 'the ping').toMatch(/ready/);
     });
+
+    // A transfer.reversed whose object Stripe fills in differently (an older pinned api version, a field missing) must not be read as a
+    // reversal: the library answers 'none' for it, and only the line that sets 'none' aside keeps it from failing the payout.
+    test('a transfer.reversed that reverses nothing changes nothing, in every status a payout can be moved from', async () => {
+        for (const [what, fields] of [
+            ['nothing reversed', { reversed: false, amount_reversed: 0 }],
+            ['no amount reversed given', { reversed: false, amount_reversed: undefined }],
+            ['amounts that are not numbers', { reversed: false, amount: '4500', amount_reversed: '4500' }],
+        ]) {
+            for (const status of ['pending', 'processing', 'paid']) {
+                const { bookingId, transferId, id } = await pair(status);
+                const before = await payoutRow(id);
+                ok(await deliver(event('transfer.reversed', transfer(transferId, fields))), `${what}, ${status}: the answer`);
+                expect(await payoutRow(id), `${what}, ${status}: the payout`).toEqual(before);
+                expect(await lines(bookingId), `${what}, ${status}: the booking history`).toEqual([]);
+            }
+        }
+    });
+
+    // The partial reversal is the one path whose idempotency is a read of the booking's lines and then an insert, not a status guard under the
+    // row lock, so ten deliveries at once are one line only while the lock stays ahead of the read (and the transaction stays a transaction).
+    test('the same partial reversal ten at once writes one line', async () => {
+        const { bookingId, transferId, id } = await pair('paid');
+        const before = await payoutRow(id);
+        const sent = event('transfer.reversed', transfer(transferId, { amount_reversed: 1000 }));
+        const answers = await Promise.all(Array.from({ length: 10 }, () => deliver(sent)));
+        expect(answers.map((answer) => answer.status), 'the ten answers').toEqual(Array(10).fill(200));
+        expect((await lines(bookingId)).map(([line]) => line), 'the booking history').toEqual(['transfer_part_reversed']);
+        expect(await payoutRow(id), 'the payout').toEqual(before);
+    });
+
+    // The route's switch passes the library four types, so only a direct call reaches the library's own refusal of a type it does not know.
+    test('the library, given an event type it does not know, moves no payout', async () => {
+        const { bookingId, transferId, id } = await pair('pending');
+        const before = await payoutRow(id);
+        const held = await pool.getConnection();
+        try {
+            const result = await recordTransferEvent(held, event('transfer.updated', transfer(transferId, { reversed: true, amount_reversed: 4500 })));
+            expect(result.outcome, 'the outcome').toBe('unmatched');
+        } finally {
+            held.release();
+        }
+        expect(await payoutRow(id), 'the payout').toEqual(before);
+        expect(await lines(bookingId), 'the booking history').toEqual([]);
+    });
 });
 
 // ---- source pins
@@ -550,6 +599,19 @@ test.describe('Transfer events, source pins', () => {
         expect(updates.length, 'the statements that move a payout').toBeGreaterThan(0);
         for (const update of updates) expect(update, 'a payout is moved by its key').toMatch(/WHERE id = \?$/);
         expect(library, 'a payout is matched by its booking').not.toMatch(/OR\s+booking_id/i);
+    });
+
+    // ADR-017's central decision. stripe_transfer_id has no index, so a statement that searches by it under a lock scans the table and locks
+    // the gap where every new payout row goes; no case can see that without a second writer at the right moment.
+    test('the library finds the payouts of a transfer with no lock and locks them one at a time by key', () => {
+        const library = read('src/lib/transfer-events.js');
+        const reads = [...library.matchAll(/(["'`])(SELECT(?:(?!\1)[\s\S])*FROM provider_payouts(?:(?!\1)[\s\S])*)\1/g)].map((found) => found[2]);
+        const byTransfer = reads.filter((statement) => statement.includes('stripe_transfer_id'));
+        const byKey = reads.filter((statement) => !statement.includes('stripe_transfer_id'));
+        expect(byTransfer.length, 'the read that finds the payouts of a transfer').toBeGreaterThan(0);
+        for (const statement of byTransfer) expect(statement, 'the transfer id is searched with no lock').not.toMatch(/FOR UPDATE|LOCK IN SHARE MODE/i);
+        expect(byKey.length, 'the reads that lock a payout').toBeGreaterThan(0);
+        for (const statement of byKey) expect(statement, 'a payout is locked by its key').toMatch(/WHERE id = \? FOR UPDATE$/);
     });
 
     test('the route checks the signature first, keeps no handler of its own for the transfer events and cannot match a payout by its booking', () => {
