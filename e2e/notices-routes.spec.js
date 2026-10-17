@@ -133,6 +133,7 @@ async function sweep() {
         await open.execute(`DELETE FROM activity_logs WHERE entity_type = 'booking' AND entity_id IN (${marks(ids)})`, ids);
     }
     await open.execute("DELETE FROM notice_attempts WHERE id > ? AND booking_id IS NULL AND kind = 'quote_requested'", [startMax]);
+    const quoted = await rows('SELECT customer_email FROM quote_requests WHERE customer_email LIKE ?', [mine]);
     await open.execute('DELETE FROM quote_requests WHERE customer_email LIKE ?', [mine]);
     await open.execute('DELETE FROM bookings WHERE customer_email LIKE ?', [mine]);
     await open.execute(`DELETE FROM provider_crew_members WHERE ${memberTest}`, memberArgs);
@@ -150,6 +151,9 @@ async function sweep() {
         scopes.push(budgetScope('number', number));
         for (const kind of NOTICE_KINDS) scopes.push(budgetScope('kind', kind, number));
     }
+    // ENG-018 security B1: a quote notice also spends the kind's day for the platform, and its e-mail the address's day and the kind's day for the platform.
+    scopes.push(budgetScope('kind-platform', 'quote_requested'), budgetScope('mail-kind', 'quote_requested'));
+    for (const { customer_email: address } of quoted) scopes.push(budgetScope('mail', 'quote_requested', String(address).toLowerCase()));
     for (const link of links) {
         scopes.push(budgetScope('ask', link.id), budgetScope('verify', link.id));
         for (const member of members) scopes.push(budgetScope('cooldown', link.id, member.id));

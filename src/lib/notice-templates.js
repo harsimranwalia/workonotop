@@ -39,9 +39,12 @@ const SUPPORT_ADDRESS = 'support@workontap.com';
 // bidirectional controls (a name that reads backwards inside a sentence is a way to make the sentence say something else).
 const LINE_BREAKERS = new RegExp('[\\u0000-\\u001F\\u007F-\\u009F\\u061C\\u200B-\\u200F\\u2028\\u2029\\u202A-\\u202E\\u2066-\\u2069\\uFEFF]', 'g');
 // The longest values a text can hold and still fit one segment. A booking number is 'BK' and thirteen digits of time and up to three of a random
-// number (18 characters); a link is an origin of up to 31 characters, '/card/' or '/job/' and the 43-character token. templateFor throws for a value
-// beyond these and never cuts one: a link with a piece missing is worse than a text that was not sent.
-const NUMBER_MAX = 20;
+// number (18 characters), and each visit of a series after the first adds '-' and the visit's own number (MAX_VISITS is 12, so '-12': 21 characters
+// in all, which is what a visit's own text and e-mail carry; ENG-018 security review, R1); a link is an origin of up to 31 characters, '/card/' or
+// '/job/' and the 43-character token. 24 holds that with room, and the length of the text below still decides whether a number fits a kind
+// (card_link, the one text near the limit, carries the first visit's number, which has no suffix). templateFor throws for a value beyond these and
+// never cuts one: a link with a piece missing is worse than a text that was not sent.
+const NUMBER_MAX = 24;
 const URL_MAX = 80;
 const PRICE_BELOW = 100_000;
 const NUMBER_PATTERN = new RegExp(`^[A-Za-z0-9_-]{1,${NUMBER_MAX}}$`);

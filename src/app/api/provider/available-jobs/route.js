@@ -4,7 +4,8 @@ import { requireCaller } from '@/lib/api-auth'
 import { notifyUser } from '@/lib/push'
 import { afterCommit } from '@/lib/notices'
 import { noticeClaimed } from '@/lib/notice-events'
-import { OPEN_ON_MARKETPLACE, offerOf } from '@/lib/marketplace'
+import { OPEN_ON_MARKETPLACE, offerOf, providerIsActive } from '@/lib/marketplace'
+import { CHECK_MESSAGES } from '@/lib/crew-number-check'
 
 export const dynamic = 'force-dynamic';
 
@@ -307,6 +308,11 @@ export async function POST(request) {
   let connection
   try {
     const providerId = auth.caller.id;
+
+    // Before the body is read and before the transaction takes the booking: a provider who is not active is refused with nothing written and nothing sent.
+    if (!(await providerIsActive(providerId))) {
+      return NextResponse.json({ success: false, message: CHECK_MESSAGES.notActive }, { status: 403, headers: { 'Cache-Control': 'no-store' } })
+    }
 
     const { booking_id } = await request.json()
     if (!booking_id) return NextResponse.json({ success: false, message: 'booking_id is required' }, { status: 400 })

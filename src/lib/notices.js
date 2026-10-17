@@ -28,8 +28,9 @@
 //        That is what makes two requests at once, a retry and a second route reaching the same place send once. A process that dies after the
 //        claim leaves a 'pending' row and the key, and the notice is not made again, because it may have gone (PENDING_STALE_MINUTES is how long
 //        a reader waits before calling such a row lost)
-//     3. a text spends from the budget (reserveText: the kind's, the number's, the provider's and the platform's day); a cap sets the key to NULL
-//        and the outcome to the cap, so the notice can be made again tomorrow
+//     3. a text spends from the budget (reserveText: the kind's day for the number and for the platform, the number's, the provider's and the
+//        platform's day), and an e-mail of a kind a stranger can cause spends from its own (reserveMail: the address's day and the platform's, for
+//        that kind only); a cap sets the key to NULL and the outcome to the cap ('mail_cap' for an e-mail), so the notice can be made again tomorrow
 //     4. the transport, whose answer is mapped to sent, not_configured, rejected or unsure; a throw is 'error'
 //     5. the row is settled. Only 'not_configured' lets go of the key (nothing was attempted, and a credential may be set); everything else that
 //        reached the transport keeps it, so a timeout or a carrier error is never answered with a second text.
@@ -49,7 +50,7 @@
 import { sendSMSResult } from './sms.js';
 import { sendEmail } from './email.js';
 import { normalisePhone, canText } from './phone.js';
-import { reserveText } from './sms-budget.js';
+import { reserveMail, reserveText } from './sms-budget.js';
 import { sha256Hex } from './link-token.js';
 import { templateFor } from './notice-templates.js';
 
@@ -57,7 +58,7 @@ export const NOTICE_KEEP_DAYS = 180;
 export const PENDING_STALE_MINUTES = 10;
 export const NOTICE_OUTCOMES = Object.freeze([
   'pending', 'sent', 'not_configured', 'rejected', 'unsure', 'bad_contact', 'cannot_text', 'no_contact', 'unchecked', 'not_active',
-  'number_cap', 'kind_cap', 'provider_cap', 'platform_cap', 'no_origin', 'error',
+  'number_cap', 'kind_cap', 'provider_cap', 'platform_cap', 'mail_cap', 'no_origin', 'error',
 ]);
 
 const RECIPIENT_KINDS = Object.freeze(['customer', 'provider', 'cleaner', 'admin']);
@@ -224,6 +225,12 @@ async function deliver(execute, request, plan, channel, address, made, send) {
 
   if (channel === 'sms') {
     const capped = await reserveText(execute, address, request.spendFor ?? null, { kind: request.kind });
+    if (capped !== null) {
+      await settle(execute, id, capped, { release: true });
+      return capped;
+    }
+  } else {
+    const capped = await reserveMail(execute, address, { kind: request.kind });
     if (capped !== null) {
       await settle(execute, id, capped, { release: true });
       return capped;

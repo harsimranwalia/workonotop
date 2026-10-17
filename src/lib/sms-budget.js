@@ -22,10 +22,14 @@
 //   which is what `affectedRows` is read as.
 // reserveText(execute, phone, providerId, { kind }) -> null when a text to that number may go out, else 'kind_cap', 'number_cap', 'provider_cap' or
 //   'platform_cap': the daily caps that every text to a number takes together, whichever code or message it carries (a sign-in code, a number-check
-//   code, and every notice of ENG-018). Four scopes, narrowest first, and a text refused by one has not spent the ones after it:
+//   code, and every notice of ENG-018). Five scopes, narrowest first, and a text refused by one has not spent the ones after it:
 //     the kind's day for one number   only for a kind in KIND_TEXTS_PER_NUMBER_DAY (quote_requested: 2). It is the one text anyone can cause for
 //                                     free to a number they type, so it is taken before the number's day, or a stranger's quote forms could spend
 //                                     all of a victim's eight; as it is, they can spend two
+//     the kind's day for the platform only for a kind in KIND_TEXTS_PER_PLATFORM_DAY (quote_requested: 50), and refused with the same 'kind_cap'. The
+//                                     per-number cap above does not bound a client who types a different number each time, and the platform's day
+//                                     below is shared with every sign-in code, so without this a script of quote forms could spend the whole day
+//                                     and no cleaner could be texted a sign-in code until tomorrow (ENG-018 security review, B1)
 //     the number's day                TEXTS_PER_NUMBER_DAY
 //     the provider's day              TEXTS_PER_PROVIDER_DAY, only when providerId is not null: a text a provider's action caused is counted against
 //                                     them, and a text no provider caused (a customer's, an admin's) is not
@@ -34,6 +38,12 @@
 //   Existing callers pass three arguments and get the number's and the provider's caps and the platform's, as before plus the ceiling.
 //   The scopes are made here so that no caller can spell them differently. A text refused by a later cap has already used the earlier ones, which
 //   errs towards sending less.
+// reserveMail(execute, address, { kind }) -> null when an e-mail of that kind may go to that address, else 'mail_cap'. An e-mail has no cost to the
+//   business but it leaves from the business's own mailbox to an address a stranger chose, so a kind that a stranger can cause (quote_requested) is
+//   held by two daily counts, narrowest first, and an e-mail refused by the first has not spent the second: the address's own
+//   (KIND_MAILS_PER_ADDRESS_DAY, 2: one address is not mailed again and again, and the scope holds the lower-cased address as a hash, never the address)
+//   and the kind's for the platform (KIND_MAILS_PER_PLATFORM_DAY, 100: the bound on a script that types a different address each time; twice the
+//   texts' 50, because a quote form needs no phone). A kind in neither table is not counted and costs no query (ENG-018 security review, B1).
 // pruneBudget(execute) -> the number of rows deleted: those whose window began more than two days ago, long past every window used here.
 import { sha256Hex } from './link-token.js';
 
@@ -43,6 +53,10 @@ export const TEXTS_PER_PROVIDER_DAY = 200;
 // A day that needs more is a day devops hears of from the warn line, and raises this constant.
 export const TEXTS_PER_PLATFORM_DAY = 500;
 export const KIND_TEXTS_PER_NUMBER_DAY = Object.freeze({ quote_requested: 2 });
+// A tenth of the platform's day at most: the one text a stranger can cause for free is never allowed more than that, however many numbers it is typed with.
+export const KIND_TEXTS_PER_PLATFORM_DAY = Object.freeze({ quote_requested: 50 });
+export const KIND_MAILS_PER_ADDRESS_DAY = Object.freeze({ quote_requested: 2 });
+export const KIND_MAILS_PER_PLATFORM_DAY = Object.freeze({ quote_requested: 100 });
 export const DAY_SECONDS = 24 * 60 * 60;
 export const BUDGET_KEEP_DAYS = 2;
 
@@ -80,6 +94,8 @@ async function warnPlatformCeiling(execute) {
 export async function reserveText(execute, phone, providerId, { kind = null } = {}) {
   const kindCap = kind === null ? undefined : KIND_TEXTS_PER_NUMBER_DAY[kind];
   if (kindCap !== undefined && !(await reserve(execute, budgetScope('kind', kind, phone), kindCap, DAY_SECONDS))) return 'kind_cap';
+  const kindPlatformCap = kind === null ? undefined : KIND_TEXTS_PER_PLATFORM_DAY[kind];
+  if (kindPlatformCap !== undefined && !(await reserve(execute, budgetScope('kind-platform', kind), kindPlatformCap, DAY_SECONDS))) return 'kind_cap';
   if (!(await reserve(execute, budgetScope('number', phone), TEXTS_PER_NUMBER_DAY, DAY_SECONDS))) return 'number_cap';
   if (providerId !== null && providerId !== undefined) {
     if (!(await reserve(execute, budgetScope('provider', providerId), TEXTS_PER_PROVIDER_DAY, DAY_SECONDS))) return 'provider_cap';
@@ -88,6 +104,14 @@ export async function reserveText(execute, phone, providerId, { kind = null } = 
     await warnPlatformCeiling(execute);
     return 'platform_cap';
   }
+  return null;
+}
+
+export async function reserveMail(execute, address, { kind = null } = {}) {
+  const addressCap = kind === null ? undefined : KIND_MAILS_PER_ADDRESS_DAY[kind];
+  if (addressCap !== undefined && !(await reserve(execute, budgetScope('mail', kind, address.toLowerCase()), addressCap, DAY_SECONDS))) return 'mail_cap';
+  const platformCap = kind === null ? undefined : KIND_MAILS_PER_PLATFORM_DAY[kind];
+  if (platformCap !== undefined && !(await reserve(execute, budgetScope('mail-kind', kind), platformCap, DAY_SECONDS))) return 'mail_cap';
   return null;
 }
 

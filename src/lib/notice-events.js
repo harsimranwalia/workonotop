@@ -23,7 +23,9 @@
 //   deps  { sendSMS, sendMail, appOrigin, env }: the first three go to sendNotice (a spec that records instead of sending); `env` is where ADMIN_EMAIL is
 //         read (default process.env).
 //
-// noticeQuoteRequested(execute, { quoteRequestId })            the quote form: the customer by e-mail, and by text if a phone was typed (2 a day a number)
+// noticeQuoteRequested(execute, { quoteRequestId })            the quote form: the customer by e-mail, and by text if a phone was typed. Anyone can cause
+//                                                              it, so it is capped (2 a day a number, 50 a day for the platform; 2 e-mails a day an
+//                                                              address, 100 for the platform) and the e-mail carries no typed name
 // noticeCardLink(execute, { bookingId, token })                an admin's on-behalf booking: the customer, the quote and /card/{token}. `token` is the raw
 //                                                              token the route made, the one value that is not in a table (the table holds its hash)
 // noticeBooked(execute, { bookingId, visits? })                a booking: the customer. A series is ONE notice, given the first visit's id
@@ -150,7 +152,9 @@ export function noticeQuoteRequested(execute, { quoteRequestId } = {}, deps = {}
     return tell(execute, deps, { kind: 'quote_requested', subject: [row.id], bookingId: null }, [{
       to: { kind: 'customer', ref: idOrNull(row.user_id), phone: textOf(row.customer_phone), email: textOf(row.customer_email) },
       channels: typed ? ['sms', 'email'] : ['email'],
-      values: { name: firstName(row.customer_name), service: row.service_name },
+      // No name: the form is open to anyone, and the e-mail goes to the address typed on it, so a name typed there (any first word, up to sixty
+      // characters) would be the business's own mailbox saying it to a stranger. The greeting is 'Hello,' (ENG-018 security review, B1).
+      values: { service: row.service_name },
       spendFor: null,
     }]);
   });
@@ -204,7 +208,9 @@ export function noticeClaimed(execute, { bookingId, providerId } = {}, deps = {}
   return guarded(async () => {
     const booking = await bookingOf(execute, bookingId);
     const provider = await providerOf(execute, providerId);
-    if (!holds(booking, provider)) return [];
+    // A provider who is not 'active' is told nothing by tell() (not_active), but the customer's notice does not depend on them, so it is stopped here:
+    // a claim by a provider an admin has not approved does not say "a professional has accepted" to anyone (ENG-018 security review, B2).
+    if (!holds(booking, provider) || provider.active !== true) return [];
     // The claim is the provider's own action, so both texts count against the provider's day (spendFor): a provider cannot be made to spend more by anyone else.
     return tell(execute, deps, { kind: 'job_claimed', subject: [booking.id, provider.ref], bookingId: booking.id }, [
       { to: customerOf(booking), channels: ['sms', 'email'], values: { audience: 'customer', ...customerValues(booking) }, spendFor: provider.ref },

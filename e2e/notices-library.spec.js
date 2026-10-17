@@ -20,7 +20,7 @@ import mysql from 'mysql2/promise';
 import { test, expect } from '@playwright/test';
 import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.js';
 import { sendSMS, sendSMSResult } from '../src/lib/sms.js';
-import { budgetScope, reserveText, TEXTS_PER_NUMBER_DAY, TEXTS_PER_PROVIDER_DAY, TEXTS_PER_PLATFORM_DAY, KIND_TEXTS_PER_NUMBER_DAY } from '../src/lib/sms-budget.js';
+import { budgetScope, reserveText, TEXTS_PER_NUMBER_DAY, TEXTS_PER_PROVIDER_DAY, TEXTS_PER_PLATFORM_DAY, KIND_TEXTS_PER_NUMBER_DAY, KIND_TEXTS_PER_PLATFORM_DAY, KIND_MAILS_PER_ADDRESS_DAY, KIND_MAILS_PER_PLATFORM_DAY } from '../src/lib/sms-budget.js';
 import { NOTICE_KINDS, SMS_BODY_MAX, NAME_MAX, cleanLine, templateFor } from '../src/lib/notice-templates.js';
 import { REPORT_TYPES } from '../src/lib/job-reports.js';
 
@@ -317,6 +317,8 @@ async function clearBudget() {
         touched.add(budgetScope('kind', 'quote_requested', numberAt(last)));
         touched.add(budgetScope('kind', 'job_booked', numberAt(last)));
     }
+    // The kind's day for the whole platform (ENG-018 security B1): every quote text a case spends counts against it.
+    touched.add(budgetScope('kind-platform', 'quote_requested'));
     for (let n = 1; n <= 9; n += 1) touched.add(budgetScope('provider', providerIdOf(n)));
     // The scopes a text with no provider must not make, so a row left by a broken run of the code cannot fail the next case.
     for (const nobody of [null, undefined, '', 'null', 'undefined']) touched.add(budgetScope('provider', nobody));
@@ -353,6 +355,12 @@ test.describe('Notices library: reserveText', () => {
         expect(TEXTS_PER_PLATFORM_DAY).toBe(500);
         expect(KIND_TEXTS_PER_NUMBER_DAY).toEqual({ quote_requested: 2 });
         expect(Object.isFrozen(KIND_TEXTS_PER_NUMBER_DAY), 'the per-kind caps cannot be changed at run time').toBe(true);
+        expect(KIND_TEXTS_PER_PLATFORM_DAY, 'a quote form may spend 50 of the 500 texts of a day').toEqual({ quote_requested: 50 });
+        expect(Object.isFrozen(KIND_TEXTS_PER_PLATFORM_DAY), 'the per-kind platform caps cannot be changed at run time').toBe(true);
+        expect(KIND_MAILS_PER_ADDRESS_DAY, 'two quote e-mails a day to one address').toEqual({ quote_requested: 2 });
+        expect(Object.isFrozen(KIND_MAILS_PER_ADDRESS_DAY), 'the per-address mail caps cannot be changed at run time').toBe(true);
+        expect(KIND_MAILS_PER_PLATFORM_DAY, 'a hundred quote e-mails a day in all, twice the texts: a request with no phone is e-mail only').toEqual({ quote_requested: 100 });
+        expect(Object.isFrozen(KIND_MAILS_PER_PLATFORM_DAY), 'the platform mail caps cannot be changed at run time').toBe(true);
     });
 
     test('the platform ceiling refuses the 501st text of a day with platform_cap, and the 500th goes', async () => {
@@ -460,7 +468,8 @@ const VARIANTS = [
 const variantKey = (kind, values) => `${kind}${values.audience ? `:${values.audience}` : ''}${values.guest ? ':guest' : ''}`;
 // A link that is exactly the longest the templates accept: an origin of 31 characters, the path and the 43-character token.
 const longUrl = (path) => `https://${'h'.repeat(80 - 8 - path.length - 43)}${path}${'T'.repeat(43)}`;
-// The longest values a route can make, by the bounds templateFor enforces.
+// The longest values a route can make, by the bounds templateFor enforces. A number of 20 makes the card_link text exactly 160 characters; the numbers longer
+// than that, up to NUMBER_MAX (24), are the later visits of a series, and notice-visit-numbers.spec.js renders every kind that carries one for each of them.
 const LONG_N = 'B'.repeat(20);
 const LONGEST = [
     ['card_link', { n: LONG_N, price: 99999.99, url: longUrl('/card/') }],
@@ -539,7 +548,7 @@ test.describe('Notices library: templates', () => {
 
     test('a value that is missing or not valid throws bad_notice_value naming the field and never the value', () => {
         const cases = [
-            ['card_link', { n: N, price: 125, url: CARD_URL }, 'n', ['', 'BK 123', 'BK\n123', '<script>', 'B'.repeat(21), 17, null, undefined, 'a/b']],
+            ['card_link', { n: N, price: 125, url: CARD_URL }, 'n', ['', 'BK 123', 'BK\n123', '<script>', 'B'.repeat(25), 17, null, undefined, 'a/b']],
             ['card_link', { n: N, price: 125, url: CARD_URL }, 'price', [Number.NaN, -1, 100_000, 1e9, Infinity, '125', null, undefined]],
             ['card_link', { n: N, price: 125, url: CARD_URL }, 'url', ['javascript:alert(1)', 'http://', 'https://x.test/a b', `https://x.test/${'a'.repeat(70)}`, 'ftp://x.test/a', 7, '', 'https://x.test/{n}', undefined]],
             ['job_link', { n: N, url: JOB_URL }, 'url', [undefined, null]],

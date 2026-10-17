@@ -2637,6 +2637,36 @@
     "booking-payment.spec.js › a series at completion › the release sweep with no visit done makes no payment call": {
       "outcome": "PASS"
     },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C1 (POST /api/provider/available-jobs, inactive): the claim is refused 403, the job keeps no provider, nothing is sent or spent; made active again, the same provider claims it": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C10 (active): noticeClaimed for a job whose provider is active tells the customer and the provider, each by text and by e-mail": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C2 (POST /api/provider/available-jobs, pending): the claim is refused 403, the job keeps no provider, nothing is sent or spent; made active again, the same provider claims it": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C3 (POST /api/provider/available-jobs, suspended): the claim is refused 403, the job keeps no provider, nothing is sent or spent; made active again, the same provider claims it": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C4 (POST /api/provider/available-jobs/[id], inactive): the claim is refused 403, the job keeps no provider, nothing is sent or spent; made active again, the same provider claims it": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C5 (POST /api/provider/available-jobs/[id], pending): the claim is refused 403, the job keeps no provider, nothing is sent or spent; made active again, the same provider claims it": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C6 (POST /api/provider/available-jobs/[id], suspended): the claim is refused 403, the job keeps no provider, nothing is sent or spent; made active again, the same provider claims it": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C7 (inactive): noticeClaimed for a job whose provider is inactive tells no one and spends nothing": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C8 (pending): noticeClaimed for a job whose provider is pending tells no one and spends nothing": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C9 (suspended): noticeClaimed for a job whose provider is suspended tells no one and spends nothing": {
+      "outcome": "PASS"
+    },
     "cron-secret.spec.js › Cron /api/cron/auto-release › Cron /api/cron/auto-release: GET calls requireCronSecret first, imported from @/lib/api-auth": {
       "outcome": "PASS"
     },
@@ -4233,6 +4263,12 @@
     "mobile-refresh-role.spec.js › Mobile refresh role › the sign-in routes that derive the type from the account re-store it on a repeat sign-in": {
       "outcome": "PASS"
     },
+    "notice-visit-numbers.spec.js › ENG-018 R1: the notices of every visit of a series render › V1: each kind that carries a booking number renders for each visit number of a 12-visit series, to at most 160 printable ASCII characters that name the visit": {
+      "outcome": "PASS"
+    },
+    "notice-visit-numbers.spec.js › ENG-018 R1: the notices of every visit of a series render › V2: a number longer than 24 characters is refused and never cut": {
+      "outcome": "PASS"
+    },
     "notices-events.spec.js › Notice events › E1 a quote request with a phone: the customer is texted and e-mailed, one row each, with the template's words": {
       "outcome": "PASS"
     },
@@ -4549,6 +4585,9 @@
       "outcome": "PASS"
     },
     "notices-send.spec.js › Notices send path › a transport that throws is an error and not a throw: the row says error and keeps the key so a retry does not send twice, and the one line logged holds neither the number nor the address": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › an e-mail has a hard cap of its own: the third quote e-mail of a day to one address, in any case of letters, is mail_cap, never reaches the transport, and its row is settled with the key let go": {
       "outcome": "PASS"
     },
     "notices-send.spec.js › Notices send path › an e-mail that cannot go is refused the same way: one address and nothing else, and a provider who is not active is told nothing by e-mail either": {
@@ -5155,6 +5194,27 @@
       "outcome": "PASS"
     },
     "provider.spec.js › Provider Portal - Auth Protection › should redirect protected provider routes to /provider/login": {
+      "outcome": "PASS"
+    },
+    "quote-form-caps.spec.js › ENG-018 B1: the quote form cannot spend the platform's texts or mail a stranger without limit › Q1 (a): the 51st quote text of a day is refused kind_cap whatever the number, and spends neither that number's, the provider's nor the platform's count": {
+      "outcome": "PASS"
+    },
+    "quote-form-caps.spec.js › ENG-018 B1: the quote form cannot spend the platform's texts or mail a stranger without limit › Q2 (b): the third quote e-mail to one address, in any case of letters, is mail_cap and never reaches the transport; its row is settled and has let go of its key": {
+      "outcome": "PASS"
+    },
+    "quote-form-caps.spec.js › ENG-018 B1: the quote form cannot spend the platform's texts or mail a stranger without limit › Q3 (c): 60 simultaneous quote requests with 60 numbers attempt at most 50 texts, the rest are kind_cap, nothing else is refused, and an active provider's claim straight after is not platform_cap": {
+      "outcome": "ATTEMPTED"
+    },
+    "quote-form-caps.spec.js › ENG-018 B1: the quote form cannot spend the platform's texts or mail a stranger without limit › Q4: with the kind's day for the platform one text from full, 8 simultaneous quote requests attempt exactly one more text and the other seven are kind_cap": {
+      "outcome": "ATTEMPTED"
+    },
+    "quote-form-caps.spec.js › ENG-018 B1: the quote form cannot spend the platform's texts or mail a stranger without limit › Q5 (d): 40 simultaneous quote requests naming one address attempt at most 2 e-mails, the rest are mail_cap, and the address's day holds 2": {
+      "outcome": "ATTEMPTED"
+    },
+    "quote-form-caps.spec.js › ENG-018 B1: the quote form cannot spend the platform's texts or mail a stranger without limit › Q6 (e): the quote e-mail greets with \"Hello,\" and holds no part of the name typed on the form": {
+      "outcome": "PASS"
+    },
+    "quote-form-caps.spec.js › ENG-018 B1: the quote form cannot spend the platform's texts or mail a stranger without limit › Q7: the quote e-mails of a day are held to 100 for the platform: the 101st, to any address, is mail_cap, never reaches the transport, and is not counted": {
       "outcome": "PASS"
     },
     "quote-request.spec.js › Quote requests › a booking and create-intent refuse a job that needs a quote: 400, no booking row, no Stripe call": {

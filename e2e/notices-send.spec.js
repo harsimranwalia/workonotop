@@ -29,6 +29,10 @@ const TOKEN = 'Q'.repeat(43);
 const numberAt = (i) => `+1403555${String(430 + (i % 20)).padStart(4, '0')}`;
 const typedAt = (i) => numberAt(i).replace(/^\+1(\d{3})(\d{3})(\d{4})$/, '($1) $2-$3');
 const mailAt = (i) => `notice-${RUN}-${i}@notices.test`;
+// The quote notices of the budget cases: one address for each, so the kind's text cap is what refuses the third text and an e-mail is never refused for it,
+// and one address that three quote forms name, for the e-mail's own cap.
+const QUOTE_ADDRESSES = [0, 1, 2].map((index) => mailAt(`17-${index}`));
+const CAPPED_ADDRESS = mailAt('capped');
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const sha = (text) => createHash('sha256').update(text).digest('hex');
 
@@ -112,6 +116,9 @@ async function sweep() {
     for (let i = 0; i < 20; i += 1) scopes.push(budgetScope('number', numberAt(i)), budgetScope('kind', 'quote_requested', numberAt(i)));
     for (let i = 0; i < 5; i += 1) scopes.push(budgetScope('provider', PROVIDER + i));
     for (const nobody of [null, undefined]) scopes.push(budgetScope('provider', nobody));
+    // ENG-018 security B1: a quote notice also spends the kind's day for the platform, and its e-mail the address's day and the kind's day for the platform.
+    scopes.push(budgetScope('kind-platform', 'quote_requested'), budgetScope('mail-kind', 'quote_requested'));
+    for (const address of [...QUOTE_ADDRESSES, CAPPED_ADDRESS]) scopes.push(budgetScope('mail', 'quote_requested', address.toLowerCase()));
     for (const scope of scopes) await open.execute('DELETE FROM sms_budget WHERE scope = ?', [scope]);
 }
 
@@ -425,7 +432,7 @@ test.describe('Notices send path', () => {
     test('the budget refuses a text and not an e-mail: the kind\'s two a day for a quote request, then the number\'s, the provider\'s and the platform\'s day, each with its own outcome and a released key', async () => {
         const quote = (index) => ({
             kind: 'quote_requested', subject: [BOOKING + 200 + index], bookingId: null, spendFor: null, channels: ['sms', 'email'], values: {},
-            to: { kind: 'customer', ref: REF + 20, phone: typedAt(17), email: mailAt(17), checked: false, active: false },
+            to: { kind: 'customer', ref: REF + 20, phone: typedAt(17), email: QUOTE_ADDRESSES[index], checked: false, active: false },
         });
         const { calls, deps } = recorder();
         const answers = [];
@@ -461,6 +468,31 @@ test.describe('Notices send path', () => {
         const lifted = recorder();
         expect(await sendNotice(execute, again, lifted.deps)).toEqual({ sms: 'sent', email: 'duplicate' });
         expect(lifted.calls.sms.length).toBe(1);
+    });
+
+    test('an e-mail has a hard cap of its own: the third quote e-mail of a day to one address, in any case of letters, is mail_cap, never reaches the transport, and its row is settled with the key let go', async () => {
+        // ENG-018 security B1: the platform e-mails any address a stranger types, so the address's day and the kind's day for the platform are taken before the
+        // transport, through the same atomic counter the texts use. Each form here names a different number, so no text is refused.
+        const quote = (index, address) => ({
+            kind: 'quote_requested', subject: [BOOKING + 210 + index], bookingId: null, spendFor: null, channels: ['sms', 'email'], values: {},
+            to: { kind: 'customer', ref: REF + 23, phone: typedAt(10 + index), email: address, checked: false, active: false },
+        });
+        const { calls, deps } = recorder();
+        const answers = [];
+        for (const [index, address] of [CAPPED_ADDRESS, CAPPED_ADDRESS, CAPPED_ADDRESS.toUpperCase()].entries()) answers.push(await sendNotice(execute, quote(index, address), deps));
+        expect(answers).toEqual([{ sms: 'sent', email: 'sent' }, { sms: 'sent', email: 'sent' }, { sms: 'sent', email: 'mail_cap' }]);
+        expect([calls.sms.length, calls.mail.length], 'three texts, two e-mails: the third never reached the transport').toEqual([3, 2]);
+        expect(shape(await rowsOf('recipient_ref', REF + 23))).toEqual([
+            ['sms', 'sent', 'key'], ['email', 'sent', 'key'], ['sms', 'sent', 'key'], ['email', 'sent', 'key'], ['sms', 'sent', 'key'], ['email', 'mail_cap', 'no key'],
+        ]);
+        expect(await usedOf(budgetScope('mail', 'quote_requested', CAPPED_ADDRESS.toLowerCase())), 'the refused third did not spend the address\'s day').toBe(2);
+        expect(await usedOf(budgetScope('mail-kind', 'quote_requested')), 'nor the platform\'s mail day for the kind').toBe(2);
+        expect(await usedOf(budgetScope('kind-platform', 'quote_requested')), 'the three texts spent the kind\'s day for the platform').toBe(3);
+        // Another address has its own two, and a kind with no mail cap is not stopped by the quote kind's.
+        const other = recorder();
+        expect(await sendNotice(execute, quote(3, QUOTE_ADDRESSES[0]), other.deps), 'another address').toEqual({ sms: 'sent', email: 'sent' });
+        const booked = request(31, { to: { kind: 'customer', ref: null, phone: typedAt(31), email: CAPPED_ADDRESS, checked: false, active: false } });
+        expect(await sendNotice(execute, booked, other.deps), 'another kind to the capped address: the cap is the quote kind\'s').toEqual({ sms: 'sent', email: 'sent' });
     });
 
     test('a text is spent against the provider whose action caused it, and a text no provider caused takes no provider scope', async () => {
@@ -627,7 +659,7 @@ test.describe('Notices send path: the origin, the key, after the commit and the 
         test.skip(!ranFirst, 'the cases above did not all run in this worker (one failed and restarted it, or this case was picked alone); read their failure');
         expect(NOTICE_OUTCOMES).toEqual([
             'pending', 'sent', 'not_configured', 'rejected', 'unsure', 'bad_contact', 'cannot_text', 'no_contact', 'unchecked', 'not_active',
-            'number_cap', 'kind_cap', 'provider_cap', 'platform_cap', 'no_origin', 'error',
+            'number_cap', 'kind_cap', 'provider_cap', 'platform_cap', 'mail_cap', 'no_origin', 'error',
         ]);
         expect(Object.isFrozen(NOTICE_OUTCOMES)).toBe(true);
         for (const outcome of NOTICE_OUTCOMES) expect(outcome.length, `${outcome} fits VARCHAR(16)`).toBeLessThanOrEqual(16);

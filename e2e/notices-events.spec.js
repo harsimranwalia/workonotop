@@ -127,6 +127,7 @@ async function sweep() {
     const mine = `${EMAIL_PREFIX}%`;
     await open.execute('DELETE FROM notice_attempts WHERE booking_id IN (SELECT id FROM bookings WHERE customer_email LIKE ?)', [mine]);
     await open.execute("DELETE FROM notice_attempts WHERE id > ? AND booking_id IS NULL AND kind = 'quote_requested'", [startMax]);
+    const quoted = await rows('SELECT customer_email FROM quote_requests WHERE customer_email LIKE ?', [mine]);
     await open.execute('DELETE FROM quote_requests WHERE customer_email LIKE ?', [mine]);
     await open.execute('DELETE FROM job_reports WHERE booking_id IN (SELECT id FROM bookings WHERE customer_email LIKE ?)', [mine]);
     await open.execute('DELETE FROM bookings WHERE customer_email LIKE ?', [mine]);
@@ -137,6 +138,9 @@ async function sweep() {
     for (const shift of [0, -86_400_000, 86_400_000]) scopes.push(budgetScope('platform-warned', new Date(Date.now() + shift).toISOString().slice(0, 10)));
     for (let i = 0; i < BLOCK_SIZE; i += 1) scopes.push(budgetScope('number', e164At(i)), budgetScope('kind', 'quote_requested', e164At(i)));
     for (const id of madeProviders) scopes.push(budgetScope('provider', id));
+    // ENG-018 security B1: a quote notice also spends the kind's day for the platform, and its e-mail the address's day and the kind's day for the platform.
+    scopes.push(budgetScope('kind-platform', 'quote_requested'), budgetScope('mail-kind', 'quote_requested'));
+    for (const { customer_email: address } of quoted) scopes.push(budgetScope('mail', 'quote_requested', String(address).toLowerCase()));
     // The fixtures' admins are told by a report too, and their numbers spend a day each.
     for (const admin of await rows("SELECT phone FROM users WHERE role = 'admin' AND phone IS NOT NULL")) {
         const phone = normalisePhone(admin.phone);
@@ -284,9 +288,12 @@ test.describe('Notice events', () => {
         const quote = await mkQuote({ phone: typed(phone) });
         const { calls, deps } = recorder();
         expect(await noticeQuoteRequested(execute, { quoteRequestId: quote.id }, deps)).toEqual([{ to: 'customer', ref: null, sms: 'sent', email: 'sent' }]);
-        const words = wordsOf('quote_requested', { name: 'Rhea', service: SERVICE_NAME });
+        // The name on the form is typed by a stranger and the e-mail goes to the address they typed, so the notice passes none: the greeting is "Hello," (ENG-018 security B1).
+        const words = wordsOf('quote_requested', { service: SERVICE_NAME });
+        expect(words.text.split('\n')[0]).toBe('Hello,');
         expect(calls.sms, 'the number was typed as a person types it').toEqual([{ to: phone, body: words.sms }]);
         expect(calls.mail).toEqual([{ to: quote.email, subject: words.subject, text: words.text }]);
+        expect(calls.mail[0].text, 'no part of the name typed on the form').not.toMatch(/Rhea|Rowe/);
         expect(brief(await quoteRowsSince(mark))).toEqual([['customer', 'sms', 'sent'], ['customer', 'email', 'sent']]);
     });
 

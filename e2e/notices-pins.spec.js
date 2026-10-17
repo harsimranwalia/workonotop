@@ -11,7 +11,8 @@
 //            exactly what stays.
 //   Library  src/lib/notice-templates.js and src/lib/notice-events.js import no sender module and name no sender; src/lib/notices.js imports the e-mail and
 //            SMS modules and not the push one.
-//   Kinds    NOTICE_KINDS, the keys of NOTICE_EVENTS and the kinds notice-events.js passes to tell( are one list, and no per-number cap names another kind.
+//   Kinds    NOTICE_KINDS, the keys of NOTICE_EVENTS and the kinds notice-events.js passes to tell( are one list, and no per-kind cap (a number's, the platform's, an
+//            address's) names another kind.
 //   Log      no console call in src/lib/email.js names the address, the subject, the body or the error; the catch logs the error's code and nothing more.
 //   Timeouts src/lib/email.js sets connectionTimeout 10000, greetingTimeout 10000 and socketTimeout 20000 on the transport it creates.
 //   Env      .env.example names the ten variables a notice reads and gives none a value, and each is read by code under src/.
@@ -29,7 +30,7 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import { NOTICE_KINDS } from '../src/lib/notice-templates.js';
 import { NOTICE_EVENTS } from '../src/lib/notice-events.js';
-import { KIND_TEXTS_PER_NUMBER_DAY } from '../src/lib/sms-budget.js';
+import { KIND_TEXTS_PER_NUMBER_DAY, KIND_TEXTS_PER_PLATFORM_DAY, KIND_MAILS_PER_ADDRESS_DAY, KIND_MAILS_PER_PLATFORM_DAY } from '../src/lib/sms-budget.js';
 import { LINK_PAGE_PREFIXES, linkPageKind, linkPagePolicy } from '../src/lib/link-pages.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -186,6 +187,12 @@ test.describe('Pins: the kinds', () => {
         const capped = Object.keys(KIND_TEXTS_PER_NUMBER_DAY);
         expect(capped.length, 'kinds with a per-number cap').toBeGreaterThan(0);
         for (const kind of capped) expect(NOTICE_KINDS, `a per-number cap for ${kind}`).toContain(kind);
+        // ENG-018 security B1: the kind's day for the platform and the e-mail's caps are keyed by kind too, and none names a kind that is not one.
+        const tables = { KIND_TEXTS_PER_PLATFORM_DAY, KIND_MAILS_PER_ADDRESS_DAY, KIND_MAILS_PER_PLATFORM_DAY };
+        for (const [table, caps] of Object.entries(tables)) {
+            expect(Object.keys(caps).length, `kinds in ${table}`).toBeGreaterThan(0);
+            for (const kind of Object.keys(caps)) expect(NOTICE_KINDS, `${table} names ${kind}`).toContain(kind);
+        }
     });
 });
 

@@ -5,7 +5,8 @@ import { requireCaller } from '@/lib/api-auth'
 import { afterCommit } from '@/lib/notices'
 import { noticeClaimed } from '@/lib/notice-events'
 import { logActivity } from '@/lib/logger'
-import { OPEN_ON_MARKETPLACE, offerOf } from '@/lib/marketplace'
+import { OPEN_ON_MARKETPLACE, offerOf, providerIsActive } from '@/lib/marketplace'
+import { CHECK_MESSAGES } from '@/lib/crew-number-check'
 
 const forbidden = () => NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 })
 
@@ -122,6 +123,11 @@ export async function POST(request, { params }) {
   let connection
   try {
     const { id } = await params
+
+    // Before the transaction takes the booking: a provider who is not active is refused with nothing written and nothing sent.
+    if (!(await providerIsActive(caller.id))) {
+      return NextResponse.json({ success: false, message: CHECK_MESSAGES.notActive }, { status: 403, headers: { 'Cache-Control': 'no-store' } })
+    }
 
     const defaultCommRaw = await getSystemSetting('default_commission', '20')
     const defaultComm = parseFloat(defaultCommRaw)
