@@ -278,7 +278,7 @@ function watching() {
 }
 const ascending = (ids) => [...ids].sort((a, b) => a - b);
 
-const SUMMARY_KEYS = ['removed_members', 'provider_deletion', 'check_in_positions', 'event_positions', 'codes', 'number_check_codes', 'stale_number_checks', 'budget_rows'];
+const SUMMARY_KEYS = ['removed_members', 'provider_deletion', 'check_in_positions', 'event_positions', 'codes', 'number_check_codes', 'stale_number_checks', 'budget_rows', 'notice_rows'];
 
 // What the database can do about a provider's deletion, read plainly from information_schema (the library reads the same two facts).
 async function schemaSupport() {
