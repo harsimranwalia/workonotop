@@ -2,8 +2,8 @@
 import { NextResponse } from 'next/server'
 import { execute, getConnection } from '@/lib/db'
 import { requireCaller } from '@/lib/api-auth'
-import { notifyUser } from '@/lib/push'
-import { sendEmail } from '@/lib/email'
+import { afterCommit } from '@/lib/notices'
+import { noticeClaimed } from '@/lib/notice-events'
 import { logActivity } from '@/lib/logger'
 import { OPEN_ON_MARKETPLACE, offerOf } from '@/lib/marketplace'
 
@@ -190,31 +190,9 @@ export async function POST(request, { params }) {
         details: { service_name: job.service_name }
       })
 
-      // ---- NOTIFICATIONS ----
-      try {
-        const titleClient = 'Pro Accepted Your Job!';
-        const bodyClient = `${providerName || 'A professional'} has accepted your ${job.service_name} job.`;
-        
-        if (job.user_id) {
-          await notifyUser(job.user_id, 'customer', titleClient, bodyClient, { booking_id: id }).catch(console.error);
-        }
-        if (job.customer_email) {
-          await sendEmail({ to: job.customer_email, subject: titleClient, text: bodyClient }).catch(console.error);
-        }
-
-        const titlePro = 'Job Accepted';
-        const bodyPro = `You have successfully accepted the ${job.service_name} job.`;
-        await notifyUser(caller.id, 'provider', titlePro, bodyPro, { booking_id: id }).catch(console.error);
-        
-        // Let's get pro email to send it there too
-        const [proData] = await connection.execute('SELECT email FROM service_providers WHERE id = ?', [caller.id]);
-        if (proData && proData[0] && proData[0].email) {
-          await sendEmail({ to: proData[0].email, subject: titlePro, text: bodyPro }).catch(console.error);
-        }
-      } catch (notifErr) {
-        console.error('Failed to send accept job notifications:', notifErr);
-      }
-      // -----------------------
+      // The customer and the provider are told by text and by e-mail once this answer has gone (ENG-018). The block that stood here read a user_id and a
+      // customer_email its query never selected and gave notifyUser its arguments out of order, so only its e-mail to the provider ever went.
+      afterCommit(() => noticeClaimed(execute, { bookingId: Number(job.id), providerId: Number(caller.id) }))
 
       const otRate = parseFloat(job.overtime_rate || 0)
       const netOT = otRate * (1 - commPct / 100)

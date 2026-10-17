@@ -7,6 +7,8 @@ import { requireCaller } from '@/lib/api-auth'
 import { execute, withConnection } from '@/lib/db'
 import { raceMessage } from '@/lib/booking-crew'
 import { LINK_MESSAGES, createJobLink, managedView, reissueLink, switchOffLink } from '@/lib/job-link'
+import { afterCommit } from '@/lib/notices'
+import { noticeJobLink } from '@/lib/notice-events'
 
 function reply(body, status = 200) {
   return NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
@@ -62,7 +64,8 @@ export async function GET(request, { params }) {
 
 // Admin only. Body { action: 'create' | 'off' | 'reissue', generation? }, and the answers are the provider route's: 200 { success: true, data: {
 // job_link } }; 404 for a booking that does not exist; 409 for a finished job (create, reissue), a job with nobody on its crew (create) and a
-// generation that is not current (reissue), or a save that lost a race; 400 for a body that is not one of those.
+// generation that is not current (reissue), or a save that lost a race; 400 for a body that is not one of those. Once the answer has gone, create and
+// reissue text the link to each cleaner on the crew whose number is checked, as the provider's route does (ENG-018); off texts no one.
 export async function POST(request, { params }) {
   const auth = await requireCaller(request, ['admin'])
   // The refusal says no-store as every answer here does. The header goes on before the check so that the check reads `if (!auth.ok) return auth.response`.
@@ -91,6 +94,7 @@ export async function POST(request, { params }) {
       const [status, message] = REFUSALS[done.reason]
       return refusal(status, message)
     }
+    if (body.action !== 'off') afterCommit(() => noticeJobLink(execute, { bookingId }))
     return reply({ success: true, data: { job_link: done.job_link } })
   } catch (error) {
     const message = raceMessage(error)

@@ -1,9 +1,9 @@
 // A booking an admin makes on a customer's behalf (ENG-013), for someone who rang or wrote in and will not use the app. It records the same
 // booking as POST /api/bookings does, with three differences. The price is always the one the service's pricing rule gives for the answers,
 // and a job that is normally a quote is priced from the rule all the same, with the picks that made it a quote written to the booking's
-// history and to the activity log, so no admin can book at a price of their own. No payment is held: a link is made instead, one the admin
-// sends to the customer, on which the customer saves a card that is charged once, when the job is done. And the customer is sent nothing
-// from here, so the admin decides how and when the link reaches them. Repeating visits are not booked this way.
+// history and to the activity log, so no admin can book at a price of their own. No payment is held: a link is made instead, on which the
+// customer saves a card that is charged once, when the job is done. The customer is sent that link, by text and by e-mail, once the booking is
+// saved (ENG-018), and the answer holds it as well, so the admin can pass it on when a message could not go. Repeating visits are not booked this way.
 
 import { NextResponse } from 'next/server'
 import { requireCaller } from '@/lib/api-auth'
@@ -15,6 +15,8 @@ import { loadPricing, priceJobPastQuote, refusalOf } from '@/lib/pricing-rules'
 import { paymentAmountCents } from '@/lib/booking-payment'
 import { normaliseJobDates, clusterForCity } from '@/lib/booking-input'
 import { newCardToken, CARD_LINK_DAYS } from '@/lib/booking-card'
+import { afterCommit } from '@/lib/notices'
+import { noticeCardLink } from '@/lib/notice-events'
 
 // Said by this route and by POST /api/admin/pricing alike: a price for repeating visits would be one this route refuses.
 const REPEATING_REFUSED = "Repeating visits can't be booked on a customer's behalf yet."
@@ -275,9 +277,11 @@ export async function POST(request) {
       throw err
     }
 
-    // The booking is made from here on: nothing below may fail it, and the customer is told nothing, so the admin decides when the link is sent.
+    // The booking is made from here on: nothing below may fail it. The customer is sent the card link once this answer has gone, and no confirmation
+    // with it: the one message is the booking's confirmation, with the quote and the link (ENG-018). The answer still holds the link, for the admin.
     const actorName = await actorNameOf(auth.caller)
     try {
+      afterCommit(() => noticeCardLink(execute, { bookingId, token: card.token }))
       logActivity({
         actor_id: auth.caller.id ?? null,
         actor_type: 'admin',

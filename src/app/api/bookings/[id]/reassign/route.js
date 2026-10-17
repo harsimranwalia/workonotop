@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
-import { withConnection } from '@/lib/db'
+import { withConnection, execute } from '@/lib/db'
 import { requireCaller } from '@/lib/api-auth'
 import { clearBookingCrew } from '@/lib/booking-crew'
+import { afterCommit } from '@/lib/notices'
+import { noticeAssigned } from '@/lib/notice-events'
 
 export async function POST(request, { params }) {
   const auth = await requireCaller(request, ['admin']);
@@ -54,15 +56,9 @@ export async function POST(request, { params }) {
 
         await connection.commit()
 
-        // 🔔 Notify new provider (non-blocking)
-        try {
-          const [[bookingData]] = await connection.execute('SELECT booking_number FROM bookings WHERE id = ?', [id]);
-          if (bookingData) {
-            import('@/lib/push').then(({ notifyUser }) => {
-              notifyUser(new_provider_id, 'New Job Assigned', `You have been reassigned to #${bookingData.booking_number}`, { bookingId: id, type: 'new_job' }, execute, 'provider').catch(() => {});
-            });
-          }
-        } catch (_) {}
+        // The new provider is told by text and by e-mail once this answer has gone, and the old one is not (ENG-018). The push that stood here named an
+        // `execute` this file never imported, so it never went.
+        afterCommit(() => noticeAssigned(execute, { bookingId: Number(id), providerId: Number(new_provider_id) }))
 
         return NextResponse.json({ success: true, message: 'Provider reassigned successfully' })
       } catch (err) {

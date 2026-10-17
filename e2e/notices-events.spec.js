@@ -708,7 +708,8 @@ test.describe('Notice events', () => {
         const held = await mkBooking({ providerId: provider.id, userId: member.id });
         const done = recorder();
         expect(await noticeJobFinished(execute, { bookingId: guest.id }, done.deps)).toEqual([{ to: 'customer', ref: null, sms: 'sent', email: 'sent' }]);
-        expect(await noticeJobFinished(execute, { bookingId: held.id }, done.deps)).toEqual([{ to: 'customer', ref: member.id, sms: 'sent', email: 'sent' }]);
+        // An account holder is told by text only: their e-mail is the finish route's own (the summary and the photos), which e2e/job-completed-email.spec.js pins.
+        expect(await noticeJobFinished(execute, { bookingId: held.id }, done.deps)).toEqual([{ to: 'customer', ref: member.id, sms: 'sent', email: null }]);
         const guestWords = wordsOf('job_finished', { n: guest.number, name: 'Rhea', service: SERVICE_NAME, guest: true, hours: AUTO_RELEASE_HOURS });
         const holderWords = wordsOf('job_finished', { n: held.number, name: 'Rhea', service: SERVICE_NAME, guest: false, hours: AUTO_RELEASE_HOURS });
         expect(smsTo(done.calls, guest.phone)).toEqual([{ to: guest.phone, body: guestWords.sms }]);
@@ -717,6 +718,7 @@ test.describe('Notice events', () => {
         expect(holderWords.sms, 'an account holder is asked to approve').toContain('approve');
         expect(holderWords.sms).not.toContain(`${AUTO_RELEASE_HOURS} hours`);
         expect(mailTo(done.calls, guest.email)[0].text).toContain(`${AUTO_RELEASE_HOURS} hours`);
+        expect(mailTo(done.calls, held.email), 'an account holder is sent no notice e-mail').toEqual([]);
         expect(await noticeJobFinished(execute, { bookingId: guest.id }, done.deps)).toEqual([{ to: 'customer', ref: null, sms: 'duplicate', email: 'duplicate' }]);
     });
 

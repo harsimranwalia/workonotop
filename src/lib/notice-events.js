@@ -38,15 +38,16 @@
 // noticeReport(execute, { reportId })                          an on-site report: the owning provider and each admin, never the sender, never the note
 // noticeJobStarted(execute, { bookingId, startEpoch, workers, hours })   the customer, by text, for this start of the job (startEpoch, the second it
 //                                                              began, makes a restart another notice); workers and hours are what the route parsed
-// noticeJobFinished(execute, { bookingId })                    the customer. A booking with no account is a guest, who cannot approve, and is told the
-//                                                              card on file is charged after AUTO_RELEASE_HOURS
+// noticeJobFinished(execute, { bookingId })                    the customer, by text. A booking with no account is a guest, who cannot approve, and is
+//                                                              told the card on file is charged after AUTO_RELEASE_HOURS, by text and by e-mail. An
+//                                                              account holder's e-mail is the route's own job-completed e-mail (src/lib/job-completed-email.js)
 // NOTICE_EVENTS -> kind -> function, frozen. e2e/notices-events.spec.js pins its keys equal to NOTICE_KINDS.
 import { sendNotice } from './notices.js';
 import { cleanLine } from './notice-templates.js';
-import { assignedCrew } from './booking-crew.js';
+import { assignedCrew, linkedJobsOfMember } from './booking-crew.js';
 import { isNumberChecked } from './crew-number-check.js';
 import { JOB_LINK_OPEN_STATUSES } from './job-link-base.js';
-import { REPORT_TYPES } from './job-reports.js';
+import { REPORT_TYPES, reportHeader } from './job-reports.js';
 import { LINK_TOKEN_PATTERN } from './link-token.js';
 import { AUTO_RELEASE_HOURS } from './auto-release.js';
 
@@ -54,7 +55,6 @@ import { AUTO_RELEASE_HOURS } from './auto-release.js';
 const PROVIDER_JOBS_PATH = '/provider/jobs';
 const ADMIN_JOBS_PATH = '/admin/jobs';
 // The most open jobs one number check texts about: a provider's crew is small, and a bound is a bound.
-const MEMBER_JOBS_MAX = 50;
 const VISITS_MAX = 400;
 
 const codeOf = (error) => error?.code || error?.name || 'unknown';
@@ -245,20 +245,9 @@ export function noticeJobLink(execute, { bookingId, memberIds = null } = {}, dep
 export function noticeJobLinksOfMember(execute, { memberId } = {}, deps = {}) {
   return guarded(async () => {
     if (!isId(memberId)) throw fail('bad_notice_request');
-    const marks = JOB_LINK_OPEN_STATUSES.map(() => '?').join(', ');
-    const jobs = await execute(
-      `SELECT DISTINCT b.id
-       FROM booking_crew bc
-       JOIN provider_crew_members m ON m.id = bc.crew_member_id AND m.removed_at IS NULL
-       JOIN bookings b ON b.id = bc.booking_id AND b.provider_id = m.provider_id
-       JOIN job_links l ON l.booking_id = b.id AND l.off_at IS NULL
-       WHERE bc.crew_member_id = ? AND b.status IN (${marks})
-       ORDER BY b.id
-       LIMIT ${MEMBER_JOBS_MAX}`,
-      [memberId, ...JOB_LINK_OPEN_STATUSES]
-    );
+    // The jobs come from the crew library, the one file that reads who is on a job (a pin in e2e/provider-crew.spec.js).
     const told = [];
-    for (const job of jobs) told.push(...await noticeJobLink(execute, { bookingId: job.id, memberIds: [memberId] }, deps));
+    for (const bookingId of await linkedJobsOfMember(execute, memberId)) told.push(...await noticeJobLink(execute, { bookingId, memberIds: [memberId] }, deps));
     return told;
   });
 }
@@ -266,9 +255,8 @@ export function noticeJobLinksOfMember(execute, { memberId } = {}, deps = {}) {
 export function noticeReport(execute, { reportId } = {}, deps = {}) {
   return guarded(async () => {
     if (!isId(reportId)) throw fail('bad_notice_request');
-    const reports = await execute('SELECT id, booking_id, report_type, reporter_kind, reporter_ref FROM job_reports WHERE id = ?', [reportId]);
-    const report = reports[0];
-    if (!report) return [];
+    const report = await reportHeader(execute, reportId);
+    if (report === null) return [];
     // The only words about the report are the fixed label of its type. The note and the photo address are never read.
     const label = REPORT_TYPES.find((one) => one.code === report.report_type)?.label;
     if (label === undefined) throw fail('bad_notice_value');
@@ -311,10 +299,11 @@ export function noticeJobFinished(execute, { bookingId } = {}, deps = {}) {
     const booking = await bookingOf(execute, bookingId);
     if (booking === null) return [];
     // A booking with no account is a guest: it cannot approve (the approve route is the signed-in owner's), and the sweep charges its card after its own
-    // window, so that is what it is told. No price is named: the final price is not settled until the sweep or the customer closes the job.
+    // window, so that is what it is told. No price is named: the final price is not settled until the sweep or the customer closes the job. An account
+    // holder is told by text only: the e-mail they get is the finish route's own, with the summary and the photos, which a pin keeps (e2e/job-completed-email.spec.js).
     return tell(execute, deps, { kind: 'job_finished', subject: [booking.id], bookingId: booking.id }, [{
       to: customerOf(booking),
-      channels: ['sms', 'email'],
+      channels: isId(booking.user_id) ? ['sms'] : ['sms', 'email'],
       values: { n: booking.booking_number, name: firstName(booking.customer_first_name), service: booking.service_name ?? undefined, guest: !isId(booking.user_id), hours: AUTO_RELEASE_HOURS },
       spendFor: idOrNull(booking.provider_id),
     }]);

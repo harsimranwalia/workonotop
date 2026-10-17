@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { execute, query, getConnection } from '@/lib/db'
 import { requireCaller } from '@/lib/api-auth'
 import { notifyUser } from '@/lib/push'
-import { sendEmail } from '@/lib/email'
+import { afterCommit } from '@/lib/notices'
+import { noticeClaimed } from '@/lib/notice-events'
 import { OPEN_ON_MARKETPLACE, offerOf } from '@/lib/marketplace'
 
 export const dynamic = 'force-dynamic';
@@ -383,6 +384,10 @@ export async function POST(request) {
           ).catch(e => console.warn('[Push] notify customer error:', e.message));
         }
       } catch (_) { }
+
+      // The customer and the provider are told by text and by e-mail once this answer has gone (ENG-018): this route serves the claim of an open job and the
+      // accept of one assigned to the provider alike, and the same provider on the same job is told once. The push above stays as it was.
+      afterCommit(() => noticeClaimed(execute, { bookingId: Number(job.id), providerId: Number(providerId) }))
 
       const basePrice = parseFloat(job.service_price || 0)
       const otRate = parseFloat(job.overtime_rate || 0)
