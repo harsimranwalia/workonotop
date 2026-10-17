@@ -13,7 +13,7 @@
 -- The table is new and additive: no existing row or table changes. The ENG-018 code reads it on every notice, so this file goes in before the code or
 -- with it. (booking_card_links.setup_intent_id, which the design's last step planned to ADD, has existed since 0006-booking-card-links, so nothing
 -- is altered here.)
--- Applied to the dev database with: docker exec -i workontap-db mysql -uroot -proot123 workontap_db < database/migrations/0011-notice-attempts.up.sql
+-- Applied to the dev database with: docker exec -i workontap-db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" workontap_db' < database/migrations/0011-notice-attempts.up.sql
 -- (the fixture reset does not build the schema); database/schema.js carries the same table for a fresh install. Undone by 0011-notice-attempts.down.sql.
 
 CREATE TABLE notice_attempts (

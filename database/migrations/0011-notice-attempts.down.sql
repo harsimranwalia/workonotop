@@ -8,6 +8,6 @@
 -- call it) before running this file: every booking, quote request, claim, crew save and report would otherwise try to claim a row in a table that is
 -- gone (the notice path never throws, so the request still succeeds, but it logs a Notice error for each notice and sends nothing).
 --
--- Applied to the dev database with: docker exec -i workontap-db mysql -uroot -proot123 workontap_db < database/migrations/0011-notice-attempts.down.sql
+-- Applied to the dev database with: docker exec -i workontap-db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" workontap_db' < database/migrations/0011-notice-attempts.down.sql
 
 DROP TABLE notice_attempts;
