@@ -17,14 +17,17 @@
 const KIND_OF_PREFIX = { '/job/': 'job', '/card/': 'card' };
 export const LINK_PAGE_PREFIXES = Object.keys(KIND_OF_PREFIX);
 
-export function linkPageKind(pathname) {
-  let path = typeof pathname === 'string' ? pathname : '';
+// The path percent-decoded once; a path with a bad escape (a lone '%') is read as it came.
+function decoded(path) {
   try {
-    path = decodeURIComponent(path);
+    return decodeURIComponent(path);
   } catch {
-    // Not a valid escape: read the path as it came.
+    return path;
   }
-  path = path.toLowerCase();
+}
+
+export function linkPageKind(pathname) {
+  const path = decoded(typeof pathname === 'string' ? pathname : '').toLowerCase();
   for (const prefix of LINK_PAGE_PREFIXES) {
     if (path.startsWith(prefix) && path.length > prefix.length) return KIND_OF_PREFIX[prefix];
   }
