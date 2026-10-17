@@ -215,17 +215,21 @@ export const ITEMS = [
             {
                 id: 'W5.cleaner-with-code',
                 says: 'the assigned cleaner who entered the code sent to their phone can start the job',
-                cases: [spec('job-timer.spec.js', 'AC2: (hard gate)', 'AC7: a whole flow'), spec('job-timer-screens.spec.js', 'Screens: Start the job takes the phone')],
+                cases: [
+                    spec('job-timer.spec.js', 'AC2: (hard gate)', 'AC7: a whole flow'),
+                    spec('job-timer-screens.spec.js', 'Screens: Start the job takes the phone'),
+                    spec('acceptance-links.spec.js', 'Links: W5 the cleaner with the code, the provider and an admin each start'),
+                ],
             },
             {
                 id: 'W5.provider',
                 says: 'the job\'s provider can start the job',
-                cases: [spec('job-timer.spec.js', 'AC2: (hard gate)')],
+                cases: [spec('job-timer.spec.js', 'AC2: (hard gate)'), spec('acceptance-links.spec.js', 'Links: W5 the cleaner with the code, the provider and an admin each start')],
             },
             {
                 id: 'W5.admin',
                 says: 'a WorkOnTap admin can start the job',
-                cases: [spec('job-timer.spec.js', 'AC2: (hard gate)')],
+                cases: [spec('job-timer.spec.js', 'AC2: (hard gate)'), spec('acceptance-links.spec.js', 'Links: W5 the cleaner with the code, the provider and an admin each start')],
             },
             {
                 id: 'W5.nobody-else',
@@ -233,6 +237,7 @@ export const ITEMS = [
                 cases: [
                     spec('job-timer-access.spec.js', 'Access: no way in is the one 401'),
                     spec('job-link-access.spec.js', 'AC4:', 'AC5:', 'AC6:'),
+                    spec('acceptance-links.spec.js', 'Links: W5 a start by'),
                 ],
             },
             {
@@ -242,6 +247,7 @@ export const ITEMS = [
                     spec('job-checkin.spec.js', 'AC10: a job dated tomorrow', 'AC10: a job dated today after its window opened'),
                     spec('job-checkin-refusals.spec.js', 'Refusal 3'),
                     spec('job-link-screens.spec.js', 'Screens: before the window the tick list is shut'),
+                    spec('acceptance-links.spec.js', 'Links: W5 a start is refused, and nothing is written, when only this is wrong: the window shut'),
                 ],
             },
             {
@@ -251,6 +257,7 @@ export const ITEMS = [
                     spec('job-timer.spec.js', 'AC2: (hard gate)', 'AC7: a whole flow'),
                     spec('job-timer-screens.spec.js', 'Screens: while the job has not started the Start button is off'),
                     spec('job-timer-page.spec.js', 'Screens: the job can not be started until a before photo is taken'),
+                    spec('acceptance-links.spec.js', 'Links: W5 a start is refused, and nothing is written, when only this is wrong: no before photo'),
                 ],
             },
             {
@@ -260,13 +267,19 @@ export const ITEMS = [
                     spec('job-timer.spec.js', 'AC2: (hard gate)', 'AC7: a whole flow'),
                     spec('job-timer-screens.spec.js', 'Screens: Start the job takes the phone', 'Screens: when the phone will not give its position Start says why'),
                     spec('job-checkin.spec.js', 'AC11: no location'),
+                    spec('acceptance-links.spec.js', 'Links: W5 a start with no position is refused'),
                 ],
+            },
+            {
+                id: 'W5.one-at-a-time',
+                says: 'each thing a start needs is refused on its own with the rest right, and the same job starts once that one thing is put right: no before photo, no one checked in, a pending job, a shut window, no position',
+                cases: [spec('acceptance-links.spec.js', 'Links: W5 a start is refused, and nothing is written, when only this is wrong:', 'Links: W5 a start with no position is refused')],
             },
             {
                 id: 'W5.one-door',
                 says: 'the job link is the only way to start a job',
                 kind: 'departure',
-                cases: [spec('job-timer.spec.js', 'AC2: (hard gate)')],
+                cases: [spec('job-timer.spec.js', 'AC2: (hard gate)'), spec('acceptance-links.spec.js', 'Links: W5.one-door')],
                 departure: {
                     what: "The provider's own page can also start a confirmed job that has a before photo, with no check-in and no location recorded, through a second route (time-tracking). It does not go through the job link, the check-in window or the position.",
                     from: 'A job can only be started from its link, within the check-in window, with the location recorded.',
@@ -445,6 +458,7 @@ export const ITEMS = [
                     group('defects.spec.js', 'D1 receipt page'),
                     wholeFile('ownership.spec.js'),
                     group('role-checks.spec.js', 'Role check ownership'),
+                    spec('acceptance-links.spec.js', 'Links: POST /api/job/[token]/check-in refuses no credential or a customer', 'Links: POST /api/job/[token]/reports refuses no credential or a customer'),
                 ],
             },
             {
@@ -453,6 +467,7 @@ export const ITEMS = [
                 cases: [
                     spec('provider-crew.spec.js', 'AC3 (hard gate)', 'AC4 (hard gate)'),
                     spec('marketplace.spec.js', 'a provider gets 403 assigning a booking to themselves'),
+                    spec('acceptance-links.spec.js', 'Links: POST /api/job/[token]/check-in refuses provider 2 or the previous provider', 'Links: POST /api/job/[token]/reports refuses provider 2 or the previous provider'),
                 ],
             },
             {
@@ -461,6 +476,12 @@ export const ITEMS = [
                 cases: [
                     spec('job-timer-access.spec.js', 'Access: every dead link is the one 404', 'Access: no way in is the one 401'),
                     spec('job-link-access.spec.js', 'AC5:', 'AC6:'),
+                    spec(
+                        'acceptance-links.spec.js',
+                        'Links: POST /api/job/[token]/check-in refuses a cleaner who is not on the crew now',
+                        'Links: POST /api/job/[token]/reports refuses a cleaner who is not on the crew now',
+                        "Links: the cleaner with the code, the job's provider and an admin are let in"
+                    ),
                 ],
             },
         ],

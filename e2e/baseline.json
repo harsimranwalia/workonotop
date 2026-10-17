@@ -1,5 +1,128 @@
 {
   "cases": {
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: a case that is not a hard gate and FAILs is NOT MET and the verdict still exits 0": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: a case with no result is NOT MET, and NOT RUN under --partial, which is not a verdict": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: a departure reads DEPARTS while its pin passes, blocks in a hard item until it is accepted, and is NOT MET when its pin FAILs": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: a map that unmarks a hard gate, repeats an id, names no case or a sticky pattern, or departs without saying how is refused": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: a results file that is not the verdict reporter's is refused and the reporter's own shape is read": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: a skipped case that is not a named gap is NOT MET, and a named gap is MET and shown with its reason": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: an attempt where a live proof was declared is NOT MET, and in an attempt clause it is ATTEMPT-ONLY until the case passes": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: every pattern in the map matches at least one case of the baseline, and every named gap is a case it records as skipped": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: item 11 (hard gate): a clause whose cases are renamed or deleted is NOT MET, and blocks": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: item 11 (hard gate): any one clause whose first case FAILs makes the item NOT MET, names the clause, and blocks": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: item 12 (hard gate): a clause whose cases are renamed or deleted is NOT MET, and blocks": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: item 12 (hard gate): any one clause whose first case FAILs makes the item NOT MET, names the clause, and blocks": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: item 2 (hard gate): a clause whose cases are renamed or deleted is NOT MET, and blocks": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: item 2 (hard gate): any one clause whose first case FAILs makes the item NOT MET, names the clause, and blocks": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: item 5 (hard gate): a clause whose cases are renamed or deleted is NOT MET, and blocks": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: item 5 (hard gate): any one clause whose first case FAILs makes the item NOT MET, names the clause, and blocks": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: item 9 (hard gate): a clause whose cases are renamed or deleted is NOT MET, and blocks": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: item 9 (hard gate): any one clause whose first case FAILs makes the item NOT MET, names the clause, and blocks": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: on the real map and the recorded baseline the exit is 1 exactly when a departure has no acceptance": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: the baseline read as the results leaves no item NOT MET, and each clause reads as far as its kind allows": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: the command exits 1 on a hard-gate FAIL and 0 on a clean run, and prints the label and the table in --markdown": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: the command exits 2 for a results file that is missing, garbled or not the reporter's, and an empty one is no pass": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: the command exits 3 for a map that does not load or is not the contract's twelve items with its five hard gates": {
+      "outcome": "PASS"
+    },
+    "acceptance-gate.spec.js › Acceptance gate: the contract map and the command that reads a run against it › Gate: the map holds twelve items and nine defects, and the hard gates are exactly 2, 5, 9, 11 and 12": {
+      "outcome": "PASS"
+    },
+    "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: POST /api/job/[token]/check-in refuses a cleaner who is not on the crew now with the link's one 401 and writes nothing": {
+      "outcome": "PASS"
+    },
+    "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: POST /api/job/[token]/check-in refuses no credential or a customer with the link's one 401 and writes nothing": {
+      "outcome": "PASS"
+    },
+    "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: POST /api/job/[token]/check-in refuses provider 2 or the previous provider with the link's one 401 and writes nothing": {
+      "outcome": "PASS"
+    },
+    "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: POST /api/job/[token]/reports refuses a cleaner who is not on the crew now with the link's one 401 and writes nothing": {
+      "outcome": "PASS"
+    },
+    "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: POST /api/job/[token]/reports refuses no credential or a customer with the link's one 401 and writes nothing": {
+      "outcome": "PASS"
+    },
+    "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: POST /api/job/[token]/reports refuses provider 2 or the previous provider with the link's one 401 and writes nothing": {
+      "outcome": "PASS"
+    },
+    "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: W5 a start by a cleaner who is not on the crew now is refused with the link's one 401 and nothing is written": {
+      "outcome": "PASS"
+    },
+    "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: W5 a start by no credential or a customer is refused with the link's one 401 and nothing is written": {
+      "outcome": "PASS"
+    },
+    "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: W5 a start by provider 2 or the previous provider is refused with the link's one 401 and nothing is written": {
+      "outcome": "PASS"
+    },
+    "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: W5 a start is refused, and nothing is written, when only this is wrong: no before photo (an after photo is there)": {
+      "outcome": "PASS"
+    },
+    "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: W5 a start is refused, and nothing is written, when only this is wrong: no one checked in": {
+      "outcome": "PASS"
+    },
+    "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: W5 a start is refused, and nothing is written, when only this is wrong: the job not confirmed": {
+      "outcome": "PASS"
+    },
+    "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: W5 a start is refused, and nothing is written, when only this is wrong: the window shut (a job dated tomorrow: the tick-in is refused, so no one is here)": {
+      "outcome": "PASS"
+    },
+    "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: W5 a start with no position is refused whatever the position is not (none, 0 and 0, words, a latitude of 91), and nothing is written": {
+      "outcome": "PASS"
+    },
+    "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: W5 the cleaner with the code, the provider and an admin each start a job with all five met, and the start records who and where": {
+      "outcome": "PASS"
+    },
+    "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: W5.one-door the provider's own start at time-tracking starts a confirmed job that has a before photo, with no check-in and no position": {
+      "outcome": "PASS"
+    },
+    "acceptance-links.spec.js › Job link acceptance: who is turned away, and what a start needs › Links: the cleaner with the code, the job's provider and an admin are let in at check-in and at reports": {
+      "outcome": "PASS"
+    },
     "admin-job-queue.spec.js › Admin job queue › Push to marketplace puts a waiting booking on the marketplace: the server's message, the time under a disabled button, and the queue holds it on the marketplace": {
       "outcome": "PASS"
     },
