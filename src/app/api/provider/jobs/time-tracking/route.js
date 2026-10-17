@@ -5,11 +5,12 @@ import { requireCaller } from '@/lib/api-auth'
 import { sendEmail } from '@/lib/email'
 import { notifyUser } from '@/lib/push'
 import { logActivity } from '@/lib/logger'
-import { sendSMS } from '@/lib/sms'
 import { providerPayout } from '@/lib/booking-price'
 import { jobCompletedEmailHtml } from '@/lib/job-completed-email'
 import { executeOn } from '@/lib/job-link-base'
 import { beforePhotoCount } from '@/lib/job-photos'
+import { afterCommit } from '@/lib/notices'
+import { noticeJobStarted, noticeJobFinished } from '@/lib/notice-events'
 
 export async function POST(request) {
   const auth = await requireCaller(request, ['provider']);
@@ -26,7 +27,9 @@ export async function POST(request) {
     try {
       // Ownership, before any write: the booking must be the caller's own (b.provider_id = caller.id). The query filters
       // by owner, so a booking that is another provider's and one that does not exist both answer the route's existing
-      // 404 below. The standard duration is the booking's quoted minutes.
+      // 404 below. The standard duration is the booking's quoted minutes. The customer_email and customer_phone of this row are the ACCOUNT's (the later column
+      // of a duplicate name wins), so a guest booking, which has no account, reads NULL for both: the e-mail at the finish below is an account holder's, and a
+      // guest is reached by the notices (ENG-018), which read the booking's own columns (src/lib/notice-events.js).
       const [[booking]] = await connection.execute(
         `SELECT b.*, COALESCE(b.standard_duration_minutes, s.duration_minutes, 60) as standard_duration, s.name as service_name,
                   u.email as customer_email, u.first_name as customer_first_name, u.phone as customer_phone,
@@ -47,6 +50,8 @@ export async function POST(request) {
       const now = new Date()
       const standardDuration = booking.standard_duration || 60
       const overtimeRate = parseFloat(booking.additional_price || 0)
+      // Set by a start that went through, and read after the COMMIT below: the customer is told of a start only once it has been saved (ENG-018).
+      let started = null
 
       switch (action) {
         case 'start':
@@ -81,27 +86,10 @@ export async function POST(request) {
             `INSERT INTO booking_status_history (booking_id, status, notes) VALUES (?, 'in_progress', 'Provider started the job')`,
             [booking_id]
           )
-          
-          // Send SMS to customer
-          const customerPhone = booking.customer_phone;
-          if (customerPhone) {
-            const price = parseFloat(booking.service_price || 0);
-            const wCount = parseInt(worker_count || 1, 10);
-            const eHours = parseFloat(estimated_hours || 1);
-            
-            const sName = booking.service_name || 'Service';
-              const msg = `*WorkOnTap*
-Service: ${sName}
 
-Your professional has started the job!
-- Professionals: ${wCount}
-- Est. Time: ${eHours} hrs
-
-Price: $${price.toFixed(2)}`;
-            
-            // Fire and forget
-            sendSMS(customerPhone, msg).catch(console.error);
-          }
+          // The customer is texted that the job has started, after the COMMIT below: the text that stood here went out before the transaction ended (and
+          // for an account holder only), so a start that was then refused had still been announced. The second the job began is part of the notice's key.
+          started = { startEpoch: Math.floor(now.getTime() / 1000), workers: parseInt(worker_count || 1, 10), hours: parseFloat(estimated_hours || 1) }
           break
 
         case 'pause':
@@ -223,6 +211,10 @@ Price: $${price.toFixed(2)}`;
 
           await connection.query('COMMIT')
 
+          // The customer is texted that the job is finished once this answer has gone (ENG-018), and a guest, who has no account to approve from and whose
+          // card is charged by the sweep, is told that by e-mail as well. The e-mail below is the account holder's, with the summary and the photos.
+          afterCommit(() => noticeJobFinished(execute, { bookingId: booking.id }))
+
           // Send email to customer AFTER commit
           try {
             const [provider] = await execute(
@@ -272,10 +264,6 @@ Price: $${price.toFixed(2)}`;
             }).catch(emailErr => {
               console.error('Email background send failed:', emailErr)
             })
-
-            if (booking.customer_phone) {
-              sendSMS(booking.customer_phone, 'Your invoice is ready. Please approve and pay.').catch(console.error);
-            }
           } catch (err) {
             console.error('Failed to prepare job completion email:', err)
           }
@@ -302,6 +290,9 @@ Price: $${price.toFixed(2)}`;
       }
 
       await connection.query('COMMIT')
+
+      // A start that was refused above returned before this point, so `started` is set only by one that is now saved, and only that one is announced (ENG-018).
+      if (started !== null) afterCommit(() => noticeJobStarted(execute, { bookingId: booking.id, ...started }))
 
       // Log Activity (the guard's caller carries no name, the old cookie token did: the name is read from the caller's own
       // row on the connection this request already holds, and a failed read is logged and only leaves the fallback, it never

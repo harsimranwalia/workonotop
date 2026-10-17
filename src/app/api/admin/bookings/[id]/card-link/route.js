@@ -55,8 +55,10 @@ export async function GET(request, { params }) {
 
 // Admin only. Reissues the booking's link: a new token, an expiry a full lifetime from now, no tries used and no use recorded, and this admin as
 // the one who issued it. The answer is { success: true, card_link: { path: '/card/{token}', expires_at } }, the only time the token is shown.
-// The old token is gone from the row, so the old link stops working at once. A card already on file is left alone: it stays until a later
-// confirm replaces it, so a mistaken reissue cannot take a booking's card away. A booking that is completed, cancelled or disputed is a 409:
+// The old token is gone from the row, so the old link stops working at once, and so does the id of its open card entry (the SetupIntent
+// that link's page was handed): the new link starts an entry of its own and never hands out a client secret the old link's holder has seen.
+// A card already on file is left alone: it stays until a later confirm replaces it, so a mistaken reissue cannot take a booking's card
+// away. A booking that is completed, cancelled or disputed is a 409:
 // its link is dead whatever token it holds, so a new one would be dead when the admin got it.
 export async function POST(request, { params }) {
   const auth = await requireCaller(request, ['admin']);
@@ -73,10 +75,10 @@ export async function POST(request, { params }) {
 
     const { token, hash } = newCardToken()
     // The expiry is the database's clock plus the lifetime: the same clock the link's state is read against, so no JavaScript clock is compared
-    // with it. Nothing about the card is written here.
+    // with it. Nothing about the card is written here; only the id of an open card entry is dropped.
     await execute(
       `UPDATE booking_card_links
-         SET token_hash = ?, expires_at = DATE_ADD(NOW(), INTERVAL ? DAY), attempts = 0, used_at = NULL, issued_by = ?
+         SET token_hash = ?, expires_at = DATE_ADD(NOW(), INTERVAL ? DAY), attempts = 0, used_at = NULL, setup_intent_id = NULL, issued_by = ?
        WHERE booking_id = ?`,
       [hash, CARD_LINK_DAYS, auth.caller.id, bookingId]
     )

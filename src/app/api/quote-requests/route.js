@@ -6,6 +6,8 @@ import { NextResponse } from 'next/server'
 import { requireCaller, callerFrom } from '@/lib/api-auth'
 import { execute, query } from '@/lib/db'
 import { loadPricing, priceJob, picksOf, refusalOf } from '@/lib/pricing-rules'
+import { afterCommit } from '@/lib/notices'
+import { noticeQuoteRequested } from '@/lib/notice-events'
 
 // How many requests are saved in the last hour, per email and in all. Soft caps that guard the admin's queue, not a boundary: two requests at
 // once can both pass, and a sender who varies the email is held by the overall cap, which can also shut real customers out for an hour.
@@ -134,6 +136,9 @@ export async function POST(request) {
     )
     // The new id is all that is logged: no body and no personal details.
     console.log(`[API Quote Requests] saved request ${saved.insertId}`)
+    // The customer is told the request arrived once this answer has gone: by e-mail, and by text when a phone was sent (ENG-018). The notice reads the saved
+    // row and its outcome is its own record, so nothing it does can change this answer.
+    afterCommit(() => noticeQuoteRequested(execute, { quoteRequestId: saved.insertId }))
     return NextResponse.json({ success: true, id: saved.insertId }, { status: 201 })
   } catch (error) {
     console.error('Error saving the quote request:', error?.code, error?.message)

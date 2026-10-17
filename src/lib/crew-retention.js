@@ -17,7 +17,10 @@
 //   (d) codes, number_check_codes, stale_number_checks   a sign-in code and the session it bought are deleted EXPIRED_KEEP_DAYS after the later
 //                            of the two expired; a number-check code that was never used likewise; and a number check for a number that is no
 //                            longer the member's, once it is that old (it can prove nothing now, and holds a number);
-//   (e) budget_rows          the counters of src/lib/sms-budget.js whose window began more than two days ago.
+//   (e) budget_rows          the counters of src/lib/sms-budget.js whose window began more than two days ago;
+//   (f) notice_rows          the rows of notice_attempts (src/lib/notices.js) older than NOTICE_KEEP_DAYS. A row names ids and codes, never a number,
+//                            an address or a word of a message, and a cleaner's row is one of them, so it ages out with the rest of what is held about
+//                            people who are not users of the app.
 // ERASE means ANONYMISE, so that history survives and no foreign key cascades it away: the name becomes ERASED_NAME, the number becomes 'x{id}'
 // (not a number a text can go to, and unique, so the key on the provider and the number holds), removed_at is set if it was not, the member's
 // number checks and sign-in codes are deleted, and the member is taken out of the job-link events that were about them (they read "a former
@@ -27,6 +30,7 @@
 // and loses only a proof they would have to give again.
 import { ERASED_NAME } from './job-link-base.js';
 import { pruneBudget } from './sms-budget.js';
+import { pruneNotices } from './notices.js';
 
 export const REMOVED_MEMBER_DAYS = 365;
 export const LOCATION_DAYS = 365;
@@ -106,5 +110,6 @@ export async function runCrewRetention(execute) {
   ).affectedRows;
 
   summary.budget_rows = await pruneBudget(execute);
+  summary.notice_rows = await pruneNotices(execute);
   return summary;
 }

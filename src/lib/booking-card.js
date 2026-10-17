@@ -128,14 +128,57 @@ async function ensureStripeCustomer(stripe, execute, link) {
   return winner;
 }
 
-// startCardSetup(stripe, execute, link) starts one card entry for a link found by findCardLink in the state 'ok'. It counts the
-// attempt first, in one statement that also asks whether the link is still alive, and only then calls Stripe: the SetupIntent
-// saves a card for later and holds nothing. stripe may be null (no key on the server): nothing is counted or changed then.
+// reusableCardEntry(setup, link) -> true when a SetupIntent read from Stripe is still the open card entry this link was given: waiting for
+// a card with no failed confirm on it, on the link's customer, made for this link, for off-session use, and with a client secret to hand
+// back. These are the facts verifyCardSetup will ask of it once it has a card, so a page is never handed an entry that could not be saved.
+function reusableCardEntry(setup, link) {
+  if (!setup || typeof setup !== 'object' || setup.status !== 'requires_payment_method' || setup.last_setup_error) return false;
+  if (!link.stripe_customer_id || idOf(setup.customer) !== link.stripe_customer_id) return false;
+  if (!setup.metadata || setup.metadata.card_link_id !== String(link.id) || setup.usage !== 'off_session') return false;
+  return typeof setup.client_secret === 'string' && setup.client_secret !== '';
+}
+
+// openCardEntry(stripe, link) -> the SetupIntent the link kept (setup_intent_id) when it is still an open card entry, else null: nothing kept, a
+// link its reader did not find 'ok' (the count the caller makes next decides whether it lives), Stripe could not be reached or does not know
+// it, or it is not reusable (another status, a failed confirm, another link's). The caller starts a new entry then. A read that fails for any
+// reason other than Stripe not knowing the id is one fixed line.
+async function openCardEntry(stripe, link) {
+  if (!link.setup_intent_id || link.state !== 'ok') return null;
+  try {
+    const setup = await stripe.setupIntents.retrieve(link.setup_intent_id);
+    return reusableCardEntry(setup, link) ? setup : null;
+  } catch (err) {
+    if (!refusedByStripe(err)) console.error('A card entry could not be read:', err && (err.code || err.type || err.name));
+    return null;
+  }
+}
+
+// keepCardEntry(execute, link, setup) puts the id of the SetupIntent just made on the link, so a reload of the page finds it again. The link is
+// not used yet, or the write does nothing. The page does not need it kept to go on, so a write that fails is one fixed line and not an error.
+async function keepCardEntry(execute, link, setup) {
+  if (typeof setup.id !== 'string' || setup.id === '') return;
+  try {
+    await execute('UPDATE booking_card_links SET setup_intent_id = ? WHERE id = ? AND used_at IS NULL', [setup.id, link.id]);
+  } catch (err) {
+    console.error('A card entry could not be kept:', err && (err.code || err.name));
+  }
+}
+
+// startCardSetup(stripe, execute, link) starts one card entry for a link found by findCardLink in the state 'ok'. A link that already has an
+// open one is handed it again and spends nothing, so a reload, a link preview or a second tab cost one try between them (ENG-013 F7); the
+// state was read by the caller a moment before, and the confirm asks again. Otherwise it counts the attempt first, in one statement that also
+// asks whether the link is still alive, and only then calls Stripe: the SetupIntent saves a card for later and holds nothing, and its id is
+// kept on the link for the next call. A failed confirm leaves its mark on the SetupIntent, which is then not reused: the next call is a new
+// entry and a new try, so the ten tries bound the entries a page was given after a failure, not what a client does with one secret it holds.
+// stripe may be null (no key on the server): nothing is counted or changed then.
 //   -> { ok: true, client_secret } | { ok: false, reason: 'unavailable' | 'dead' }
 // 'unavailable': no Stripe client, or Stripe could not be reached or answered badly; 'dead': the link stopped being usable between
 // the read and the write (expired, used, out of attempts).
 export async function startCardSetup(stripe, execute, link) {
   if (!stripe) return { ok: false, reason: 'unavailable' };
+
+  const open = await openCardEntry(stripe, link);
+  if (open) return { ok: true, client_secret: open.client_secret };
 
   const counted = await execute(
     'UPDATE booking_card_links SET attempts = attempts + 1 WHERE id = ? AND attempts < ? AND used_at IS NULL AND expires_at > NOW()',
@@ -152,6 +195,7 @@ export async function startCardSetup(stripe, execute, link) {
       metadata: { card_link_id: String(link.id), booking_id: String(link.booking_id) },
     });
     if (!setup || typeof setup.client_secret !== 'string') return { ok: false, reason: 'unavailable' };
+    await keepCardEntry(execute, link, setup);
     return { ok: true, client_secret: setup.client_secret };
   } catch (err) {
     console.error('A card entry could not be started:', err && (err.code || err.type || err.name));

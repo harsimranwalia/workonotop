@@ -2,12 +2,13 @@
 //
 // A provider's crew list and the crew on each of their jobs (ENG-014 design). The three guarded routes under src/app/api/provider/ call it, and
 // so do the three admin routes that reset a job. It is the only file under src/ that names booking_crew (a pin in e2e/provider-crew.spec.js
-// fails a PR that breaks that), so every reader of a job's crew goes through assignedCrew().
+// fails a PR that breaks that), so every reader of a job's crew goes through assignedCrew(), and the one other reader, the notice a passed number
+// check sends (src/lib/notice-events.js), goes through linkedJobsOfMember().
 //
-// The reads (listCrew, assignedCrew) take `execute` from src/lib/db.js. The writes take a `connection`, inside the transaction the caller
-// has open (inTransaction below opens it), and none of them catches: a failure rolls the whole save back and reaches the route, which
+// The reads (listCrew, assignedCrew, linkedJobsOfMember) take `execute` from src/lib/db.js. The writes take a `connection`, inside the transaction the
+// caller has open (inTransaction below opens it), and none of them catches: a failure rolls the whole save back and reaches the route, which
 // answers a 409 for a lost race and a 500 for anything else. Every statement is prepared, with a `?` for every value a person typed, and the
-// only text ever put into one is a run of `?` marks counted from a list of ids and the number CREW_MAX, which bounds the two reads.
+// only text ever put into one is a run of `?` marks counted from a list of ids and the numbers CREW_MAX and MEMBER_JOBS_MAX, which bound the reads.
 //
 // Who is on a job is read through the booking's CURRENT provider: assignedCrew() joins provider_crew_members.provider_id to
 // bookings.provider_id. Six statements in five files write bookings.provider_id and booking_crew keeps no record of which round a row belongs
@@ -21,6 +22,9 @@ import { normalisePhone } from './phone.js';
 
 export const CREW_MAX = 30;
 export const NAME_MAX = 120;
+
+// The most jobs linkedJobsOfMember answers: a cleaner is on a handful of open jobs, and a number check texts one link for each.
+export const MEMBER_JOBS_MAX = 50;
 
 // The statuses in which a job's crew may change. An allow-list: a status added to bookings later is refused here until someone decides.
 export const CREW_CHANGE_STATUSES = ['pending', 'matching', 'confirmed', 'in_progress'];
@@ -149,6 +153,25 @@ export async function assignedCrew(execute, bookingId, { withAssignedAt = false 
       const member = { id: row.id, name: row.name, phone: row.phone, removed: Boolean(row.removed) };
       return withAssignedAt ? { ...member, assigned_epoch: Number(row.assigned_epoch) } : member;
     });
+}
+
+// The ids of the jobs a cleaner is on that can still change hands and have a job link switched on, by id: [number], at most MEMBER_JOBS_MAX. These are the
+// jobs a passed number check may now text the cleaner about (src/lib/notice-events.js). Read through the booking's current provider, as assignedCrew is,
+// so a row made under another provider is not here, and a member who has been removed is on none. It reads ids and nothing of the cleaner or the customer.
+export async function linkedJobsOfMember(execute, memberId) {
+  const marks = CREW_CHANGE_STATUSES.map(() => '?').join(', ');
+  const rows = await execute(
+    `SELECT DISTINCT b.id
+     FROM booking_crew bc
+     JOIN provider_crew_members m ON m.id = bc.crew_member_id AND m.removed_at IS NULL
+     JOIN bookings b ON b.id = bc.booking_id AND b.provider_id = m.provider_id
+     JOIN job_links l ON l.booking_id = b.id AND l.off_at IS NULL
+     WHERE bc.crew_member_id = ? AND b.status IN (${marks})
+     ORDER BY b.id
+     LIMIT ${MEMBER_JOBS_MAX}`,
+    [memberId, ...CREW_CHANGE_STATUSES]
+  );
+  return rows.map((row) => row.id);
 }
 
 // ---- writes (inside the caller's transaction) ------------------------------------------------------------------------------------------

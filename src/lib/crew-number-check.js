@@ -13,10 +13,12 @@
 //
 // numberCheckText(code) -> the one text sent. ASCII, under 160 characters, and carrying no name: a typed name never reaches a message body.
 // askNumberCheck({ execute, sendText, providerId, memberId }) -> { ok: true, sent } | { ok: false, status, message }
-//   The member must be the provider's own and not removed (404 'Crew member not found'), the number must be one canText allows (409), the member
-//   must not have been asked in the last minute (409), and the number and the provider must be under their daily caps (409). Then the member's
-//   live codes are retired, a new one is made and stored, and `sendText(number, text)` is called (it answers true or false and never throws).
-//   `sent` says whether the text went out; the code exists either way, and the budgets are spent either way.
+//   The member must be the provider's own and not removed (404 'Crew member not found'), the provider's status must be 'active' (403 'Your account is
+//   not active yet.': a provider who has signed up and not been approved can sign in, requireCaller reads no table, and an ask spends the number's, the
+//   provider's and the platform's day of texts; ENG-015 security review, F1, fix (2)), the number must be one canText allows (409), the member must not
+//   have been asked in the last minute (409), and the number and the provider must be under their daily caps (409). Then the member's live codes are
+//   retired, a new one is made and stored, and `sendText(number, text)` is called (it answers true or false and never throws). `sent` says whether
+//   the text went out; the code exists either way, and the budgets are spent either way.
 // confirmNumberCheck({ execute, providerId, memberId, code }) -> { ok: true } | { ok: false, status, message }
 //   404 for a member that is not the caller's, 400 'That code is not right.' for a wrong or malformed code, 409 for a code that has expired, been
 //   used or run out of tries.
@@ -37,6 +39,7 @@ export const CHECK_MESSAGES = {
   cannotText: "We can't text this number. It is not a Canadian number.",
   wait: 'Wait a minute before asking again.',
   tooMany: 'Too many codes have been sent. Try again tomorrow.',
+  notActive: 'Your account is not active yet.',
   wrong: 'That code is not right.',
   expired: 'That code has expired or been used up. Ask for a new one.',
 };
@@ -62,6 +65,9 @@ async function ownMember(execute, providerId, memberId) {
 export async function askNumberCheck({ execute, sendText, providerId, memberId }) {
   const member = await ownMember(execute, providerId, memberId);
   if (!member) return refuse(404, CREW_MESSAGES.memberNotFound);
+  // Before anything is spent: a provider who has signed up is 'inactive' until an admin approves them, and can sign in all the same.
+  const owner = (await execute('SELECT status FROM service_providers WHERE id = ?', [providerId]))[0];
+  if (owner?.status !== 'active') return refuse(403, CHECK_MESSAGES.notActive);
   if (!canText(member.phone)) return refuse(409, CHECK_MESSAGES.cannotText);
   if (!(await reserve(execute, budgetScope('check_ask', member.id), 1, CHECK_COOLDOWN_SECONDS))) return refuse(409, CHECK_MESSAGES.wait);
   if ((await reserveText(execute, member.phone, providerId)) !== null) return refuse(409, CHECK_MESSAGES.tooMany);

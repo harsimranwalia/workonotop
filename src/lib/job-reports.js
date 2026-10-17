@@ -48,6 +48,8 @@
 // reportsFor(execute, bookingId, { audit }) -> the job's reports in the shape above, newest first, at most REPORTS_MAX_PER_BOOKING, names resolved at read.
 //   `audit` (the provider's and the admin's view only) adds `away` and `distance_m`. No key of it is a price, an amount, a charge or a decision: the
 //   cleaner's page and the provider's panel see that a report was `seen`, never what the office decided or charged.
+// reportHeader(execute, reportId) -> { id, booking_id, report_type, reporter_kind, reporter_ref } or null: which job, which of the five types and who sent
+//   it, and nothing else, which is all the notice about a report may know (src/lib/notice-events.js). Never the note, the photo address or the position.
 // reportCan(status, canSend, count) -> whether a report may be sent now, by the rules saveReport judges again inside its lock (not_here, status and
 //   too_many), so the button is right before a refusal. `canSend` is false for a cleaner who is not checked in; `count` is the reports the job holds.
 import { assignedCrew, inTransaction } from './booking-crew.js';
@@ -203,4 +205,9 @@ export async function reportsFor(execute, bookingId, { audit = false } = {}) {
     [bookingId]
   );
   return shown(execute, rows, { audit });
+}
+
+export async function reportHeader(execute, reportId) {
+  const found = await execute('SELECT id, booking_id, report_type, reporter_kind, reporter_ref FROM job_reports WHERE id = ?', [reportId]);
+  return found[0] ?? null;
 }

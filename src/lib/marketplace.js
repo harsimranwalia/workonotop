@@ -7,6 +7,14 @@ export const OPEN_ON_MARKETPLACE = `(b.provider_id IS NULL AND b.marketplace_pus
 
 const WAITING_STATUSES = ['pending', 'matching']
 
+// True while an admin has approved the provider and not suspended them. requireCaller reads no table, so a provider who has signed up ('inactive',
+// 'pending') or has been suspended can sign in and reach the claim routes all the same, and a claim texts and e-mails the customer (ENG-018
+// security review, B2). The claim routes read it before their transaction takes the booking, so a refusal writes and sends nothing.
+export async function providerIsActive(providerId) {
+  const rows = await execute('SELECT status FROM service_providers WHERE id = ?', [providerId])
+  return rows[0]?.status === 'active'
+}
+
 // The claim decision on a row read FOR UPDATE: 'open' on the marketplace, 'mine' assigned to the caller and not yet accepted, 'taken' held by another provider, 'not_offered' otherwise.
 export function offerOf(job, providerId) {
   if (job.provider_id !== null) {

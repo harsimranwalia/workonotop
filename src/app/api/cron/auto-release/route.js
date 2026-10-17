@@ -8,6 +8,7 @@ import { collectBookingPayment, businessToday } from '@/lib/booking-payment'
 import { cardOnFile } from '@/lib/booking-card'
 import { notifyUser } from '@/lib/push'
 import { sendEmail } from '@/lib/email'
+import { AUTO_RELEASE_HOURS } from '@/lib/auto-release'
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-05-27.dahlia' }) : null
 
@@ -15,7 +16,7 @@ export async function GET(request) {
   const secret = requireCronSecret(request)
   if (!secret.ok) return secret.response
 
-  // Find all bookings awaiting_approval for more than 24 hours with no customer response. A booking whose payment could
+  // Find all bookings awaiting_approval for more than AUTO_RELEASE_HOURS hours (src/lib/auto-release.js) with no customer response. A booking whose payment could
   // not be taken is left to the admins and is not picked up again.
   // A later visit of a series holds no payment of its own; it is charged on its series' card when it is done, and not before
   // its date: done is a provider's click or an admin's write, which can come weeks early. today is the day it is now in the
@@ -33,7 +34,7 @@ export async function GET(request) {
     FROM bookings b
     LEFT JOIN service_providers sp ON b.provider_id = sp.id
     WHERE b.status = 'awaiting_approval'
-      AND b.updated_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)
+      AND b.updated_at < DATE_SUB(NOW(), INTERVAL ${AUTO_RELEASE_HOURS} HOUR)
       AND (
         b.payment_intent_id IS NOT NULL OR (b.series_visit > 1 AND b.job_date <= ?)
         OR (b.series_id IS NULL AND b.job_date <= ? AND EXISTS (SELECT 1 FROM booking_card_links l WHERE l.booking_id = b.id))

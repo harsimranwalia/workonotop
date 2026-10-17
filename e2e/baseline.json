@@ -2637,6 +2637,36 @@
     "booking-payment.spec.js › a series at completion › the release sweep with no visit done makes no payment call": {
       "outcome": "PASS"
     },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C1 (POST /api/provider/available-jobs, inactive): the claim is refused 403, the job keeps no provider, nothing is sent or spent; made active again, the same provider claims it": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C10 (active): noticeClaimed for a job whose provider is active tells the customer and the provider, each by text and by e-mail": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C2 (POST /api/provider/available-jobs, pending): the claim is refused 403, the job keeps no provider, nothing is sent or spent; made active again, the same provider claims it": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C3 (POST /api/provider/available-jobs, suspended): the claim is refused 403, the job keeps no provider, nothing is sent or spent; made active again, the same provider claims it": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C4 (POST /api/provider/available-jobs/[id], inactive): the claim is refused 403, the job keeps no provider, nothing is sent or spent; made active again, the same provider claims it": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C5 (POST /api/provider/available-jobs/[id], pending): the claim is refused 403, the job keeps no provider, nothing is sent or spent; made active again, the same provider claims it": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C6 (POST /api/provider/available-jobs/[id], suspended): the claim is refused 403, the job keeps no provider, nothing is sent or spent; made active again, the same provider claims it": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C7 (inactive): noticeClaimed for a job whose provider is inactive tells no one and spends nothing": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C8 (pending): noticeClaimed for a job whose provider is pending tells no one and spends nothing": {
+      "outcome": "PASS"
+    },
+    "claim-status.spec.js › ENG-018 B2: a provider who is not active cannot claim a job, and a claim they cannot make tells no one › C9 (suspended): noticeClaimed for a job whose provider is suspended tells no one and spends nothing": {
+      "outcome": "PASS"
+    },
     "cron-secret.spec.js › Cron /api/cron/auto-release › Cron /api/cron/auto-release: GET calls requireCronSecret first, imported from @/lib/api-auth": {
       "outcome": "PASS"
     },
@@ -3831,12 +3861,6 @@
     "job-record-reports-screens.spec.js › Reports in the job record › Screens: the provider's panel lists the reports with who, when, the note and the photo, says which the office has seen, and shows neither the position nor the decision": {
       "outcome": "PASS"
     },
-    "job-reports-pins.spec.js › Pins: nothing is sent › Pins: the sender names are real ones, each named by files of src/ outside the files checked": {
-      "outcome": "PASS"
-    },
-    "job-reports-pins.spec.js › Pins: nothing is sent › Pins: the three routes, the library, the desk and the money library name no e-mail, SMS or push sender and import none of their modules": {
-      "outcome": "PASS"
-    },
     "job-reports-pins.spec.js › Pins: the 0010 migration › Pins: the pair exists and database/schema.js carries the migration's columns and keys": {
       "outcome": "PASS"
     },
@@ -3850,6 +3874,12 @@
       "outcome": "PASS"
     },
     "job-reports-pins.spec.js › Pins: the named values › Pins: the limits and the chargeable statuses are at their values": {
+      "outcome": "PASS"
+    },
+    "job-reports-pins.spec.js › Pins: the report files send nothing themselves › Pins: the sender names are real ones, each named by files of src/ outside the files checked": {
+      "outcome": "PASS"
+    },
+    "job-reports-pins.spec.js › Pins: the report files send nothing themselves › Pins: the three routes, the library, the desk and the money library name no e-mail, SMS or push sender and import none of their modules": {
       "outcome": "PASS"
     },
     "job-reports-pins.spec.js › Pins: the routes › Pins: every console call in the new files is a fixed string, or a fixed string and error?.code || error?.name": {
@@ -4231,6 +4261,459 @@
       "outcome": "PASS"
     },
     "mobile-refresh-role.spec.js › Mobile refresh role › the sign-in routes that derive the type from the account re-store it on a repeat sign-in": {
+      "outcome": "PASS"
+    },
+    "notice-visit-numbers.spec.js › ENG-018 R1: the notices of every visit of a series render › V1: each kind that carries a booking number renders for each visit number of a 12-visit series, to at most 160 printable ASCII characters that name the visit": {
+      "outcome": "PASS"
+    },
+    "notice-visit-numbers.spec.js › ENG-018 R1: the notices of every visit of a series render › V2: a number longer than 24 characters is refused and never cut": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E1 a quote request with a phone: the customer is texted and e-mailed, one row each, with the template's words": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E10 a reissued link texts the checked member again with the new token, and a member put on the job again is texted again": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E11 a crew save that adds one member texts that member only": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E12 a number that has just passed its check is texted for each open job with a link on, and for no job whose status closed the link, whose link is off or that is not theirs": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E13 a link that is off, a job that is not open, an owner who is not active or a job nobody holds texts no one and writes no row": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E14 a provider who sent the report is not told it, and an admin who sent it is not told it; everyone else is": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E14 a report tells the owning provider and each admin (one without a phone is only e-mailed, an address is told once however it is listed), never the one who sent it; a replay tells no one": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E16 the start and the finish reach a customer with no account; a restart is another notice; the finish says when a guest's card is charged, which an account holder's does not": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E17 the platform ceiling stops the text and the e-mail beside it goes": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E18 a transport that throws is an error outcome and one fixed line, never an exception; a database that throws is an empty answer and one fixed line with no SQL in it": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E2 a quote request without a phone (none, or blanks) is an e-mail only: no text, no refusal row for the text": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E3 a third quote request to one number in a day: the text is refused as kind_cap and the e-mail beside it goes": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E4 the card link: the text and the e-mail hold /card/{token} with the raw token they were given; the record holds no token; a token of the wrong shape sends nothing": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E5 a four-visit series is one pair of rows, and the same booking again sends nothing more": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E6 an assignment tells an active provider by text and e-mail with the link to Job Requests, and any other status is not_active with no call": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E7 a reassign tells the new provider only: the old provider no longer holds the job, so nothing is sent to them": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E8 a claim tells the customer and the provider on both channels, and the customer is reached through the booking's own contact: a booking with no account, and an account whose own contact differs": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › E9 a job link texts the cleaners on the job: a checked number is sent, an unchecked one is unchecked and a number outside Canada is cannot_text; the same call again sends nothing more": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › a request that names nothing real tells no one and never throws: no values, bad ids, a row that is not there": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › no line this file logged holds a number, an address, a name, a link or a token": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › the auto-release sweep takes its window from the one constant the finish notice says, and does not spell it as a number": {
+      "outcome": "PASS"
+    },
+    "notices-events.spec.js › Notice events › the events are the kinds: one function for each of NOTICE_KINDS and no other, frozen": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: reserveText › a provider id of null or undefined takes no provider scope, and a provider id takes one": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: reserveText › every text that goes spends one of the platform's count, a number at its cap does not, and a provider at its cap does not": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: reserveText › quote_requested has a cap of two a day per number: the third is kind_cap, another number has its own two, another kind has none": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: reserveText › the constants are the ones the design names": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: reserveText › the first platform_cap of a day logs \"SMS platform ceiling reached\" once, however many texts are refused after it": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: reserveText › the kind cap is taken before the number's: a stranger's quote forms spend two of a victim's eight texts, not eight": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: reserveText › the platform ceiling refuses the 501st text of a day with platform_cap, and the 500th goes": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: reserveText › the three-argument call the existing code makes still gets the number's and the provider's caps: eight go, the ninth is number_cap, and the provider counted eight": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: reserveText › when the once-a-day counter itself cannot be read the refusal still warns, and says why in a fixed line": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: sendSMSResult › AC7: a Canadian number typed as (403) 555-0423 reaches Twilio as To=+14035550423 with the body unchanged": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: sendSMSResult › AC7: a Canadian number typed as +14035550423 reaches Twilio as To=+14035550423 with the body unchanged": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: sendSMSResult › AC7: a Canadian number typed as 14035550423 reaches Twilio as To=+14035550423 with the body unchanged": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: sendSMSResult › AC7: a Canadian number typed as 4035550423 reaches Twilio as To=+14035550423 with the body unchanged": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: sendSMSResult › AC7: a number outside Canada makes no call: +442079460958 and a ten-digit number with a United States area code are destination_not_allowed": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: sendSMSResult › a 2xx answer is sent, whatever the body: 200, 201 and 202 with an empty body": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: sendSMSResult › a 400 with a Twilio code is rejected and the log line names the status and the code and nothing Twilio said about the number": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: sendSMSResult › a call that times out or fails is unsure, not rejected: the message may have gone, and the log line names the error code or name only": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: sendSMSResult › a message that is not a string is sent as text and the body is not invented: undefined becomes the empty body": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: sendSMSResult › a number that cannot be texted is refused as such even when the credentials are missing: the number is checked before the credentials": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: sendSMSResult › a value that is not a number makes no call and is bad_number: text, empty, an extension, null and undefined": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: sendSMSResult › an error answer whose body is not JSON, has no code, or has a code that is not a number is rejected with the code \"unknown\"": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: sendSMSResult › everything the cases above logged is a fixed line, and none holds a number, a body or a credential": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: sendSMSResult › sendSMS is the ok of sendSMSResult for every reason, so the code flows that inject a sendText keep the boolean they were written against": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: sendSMSResult › without credentials the answer is not_configured and nothing is called; one missing variable is enough": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: templates › a guest and an account-holder are told different things when a job is finished: the guest cannot approve, and is told when the card is charged and who to ask": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: templates › a link may hold the letters NaN, null or undefined by chance (about one token in 6,000 holds NaN) and is still texted whole": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: templates › a price is written with two places and hours with at most two, so a float's tail never reaches a text": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: templates › a text carries no typed word: a hostile name, service, date, slot, address, phone and note appear in no SMS, and no address, phone, note or photo in any e-mail": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: templates › a value that is missing or not valid throws bad_notice_value naming the field and never the value": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: templates › an e-mail is plain text with a fixed subject of one line that names the booking, and its greeting takes a typed name only through cleanLine": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: templates › cleanLine makes one line: breaks, controls and reordering marks become spaces, runs collapse, and the cut is by character and not in the middle of a pair": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: templates › every text is printable ASCII in one segment with nothing left over, with ordinary values and with the longest the templates accept": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: templates › the claim names its audience: the customer is told a professional accepted, the provider is told they did, and neither is greeted by the other's name": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: templates › the eleven texts are the ones the design names, word for word; the two with a link are shortened so a quote or a link fits one segment": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: templates › the report text carries one of the five fixed labels and never the note or the photo address; every label of REPORT_TYPES is accepted": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: templates › the subjects are one fixed phrase and the booking number": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: templates › the two kinds with no e-mail have none, and every other kind has a subject and a text": {
+      "outcome": "PASS"
+    },
+    "notices-library.spec.js › Notices library: templates › there is a template for every kind and for nothing else: the nine kinds, in order, and a kind that is not one of them throws bad_notice_kind": {
+      "outcome": "PASS"
+    },
+    "notices-pages.spec.js › ENG-018 step 8: the link pages run no site-wide script and answer with a policy › /card/{token} in a browser: no policy violation, no page error, no request to another host": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-pages.spec.js › ENG-018 step 8: the link pages run no site-wide script and answer with a policy › /card/{token}: the policy, and a nonce that is on every script of the page": {
+      "outcome": "PASS"
+    },
+    "notices-pages.spec.js › ENG-018 step 8: the link pages run no site-wide script and answer with a policy › /card/{token}: the site-wide scripts are not in the page (the home page holds them)": {
+      "outcome": "PASS"
+    },
+    "notices-pages.spec.js › ENG-018 step 8: the link pages run no site-wide script and answer with a policy › /job/{token} in a browser: no policy violation, no page error, no request to another host": {
+      "outcome": "PASS"
+    },
+    "notices-pages.spec.js › ENG-018 step 8: the link pages run no site-wide script and answer with a policy › /job/{token}: the policy, and a nonce that is on every script of the page": {
+      "outcome": "PASS"
+    },
+    "notices-pages.spec.js › ENG-018 step 8: the link pages run no site-wide script and answer with a policy › /job/{token}: the site-wide scripts are not in the page (the home page holds them)": {
+      "outcome": "PASS"
+    },
+    "notices-pins.spec.js › Pins: the card entry › Pins: CardForm starts a new card entry after a confirm that failed at Stripe and stays on its form after a validation_error; the setup route does not claim the count guards against stolen cards": {
+      "outcome": "PASS"
+    },
+    "notices-pins.spec.js › Pins: the e-mail transport › Pins: email.js sets the three timeouts on the transport it creates, each far below the one nodemailer would use": {
+      "outcome": "PASS"
+    },
+    "notices-pins.spec.js › Pins: the e-mail transport › Pins: no console call in email.js names the address, the subject, the body or the error, and the catch logs the error code and nothing more": {
+      "outcome": "PASS"
+    },
+    "notices-pins.spec.js › Pins: the environment › Pins: .env.example names the ten variables a notice reads and gives none a value": {
+      "outcome": "PASS"
+    },
+    "notices-pins.spec.js › Pins: the environment › Pins: each of the ten variables is read by code under src/, so the list names real ones": {
+      "outcome": "PASS"
+    },
+    "notices-pins.spec.js › Pins: the hooks of the twelve route files › Pins: the files of src/app that import notice-events.js are the twelve, each imports afterCommit and calls its events only inside it, fourteen hooks in all": {
+      "outcome": "PASS"
+    },
+    "notices-pins.spec.js › Pins: the kinds › Pins: NOTICE_KINDS, the keys of NOTICE_EVENTS and the kinds notice-events.js tells are one list, and no per-number cap names another kind": {
+      "outcome": "PASS"
+    },
+    "notices-pins.spec.js › Pins: the link pages › Pins: layout.js reads no seo_settings script on a link page and renders none of its four <Script> tags there": {
+      "outcome": "PASS"
+    },
+    "notices-pins.spec.js › Pins: the link pages › Pins: linkPageKind answers job and card for the two prefixes with something after them, decoded once and lower-cased, and null for everything else": {
+      "outcome": "PASS"
+    },
+    "notices-pins.spec.js › Pins: the link pages › Pins: linkPagePolicy gives the job page and the card page their one-line policy, the strict one unless it is told it is not production": {
+      "outcome": "PASS"
+    },
+    "notices-pins.spec.js › Pins: the link pages › Pins: middleware.js puts the policy on the request, where Next finds the nonce, and on the response, with a nonce from crypto.getRandomValues": {
+      "outcome": "PASS"
+    },
+    "notices-pins.spec.js › Pins: the retention sweep › Pins: runCrewRetention calls pruneNotices and puts its count in the summary as notice_rows": {
+      "outcome": "PASS"
+    },
+    "notices-pins.spec.js › Pins: what sends, and where › Pins: only src/lib/notices.js reaches the e-mail and SMS modules for a notice; the templates and the events import none and name no sender": {
+      "outcome": "PASS"
+    },
+    "notices-pins.spec.js › Pins: what sends, and where › Pins: the twelve hooked routes name no sender beyond STILL_NAMED, and the two that are real sends are still there": {
+      "outcome": "PASS"
+    },
+    "notices-routes.spec.js › ENG-018 step 6: the hooks, asked of the running app › R10: a provider's job link texts each cleaner on the job (a checked number is attempted, an unchecked one and one outside Canada are refused in the record), a reissue texts them again and switching off texts no one": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-routes.spec.js › ENG-018 step 6: the hooks, asked of the running app › R11: an admin's job link texts the cleaner on the job the same way": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-routes.spec.js › ENG-018 step 6: the hooks, asked of the running app › R12: a crew save that adds a cleaner texts that cleaner only, and only while the job has a link on; the same save again tells no one": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-routes.spec.js › ENG-018 step 6: the hooks, asked of the running app › R13: a number that passes its check texts that cleaner for each open job with a link on and for no other; a wrong code tells no one": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-routes.spec.js › ENG-018 step 6: the hooks, asked of the running app › R14: an on-site report tells the owning provider and each admin on both channels, never the one who sent it and never the note; a report sent again tells no one more": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-routes.spec.js › ENG-018 step 6: the hooks, asked of the running app › R15 (E16, E19): the start tells a guest customer by text, once, and a start that is refused tells no one; the finish tells the guest by text and by e-mail": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-routes.spec.js › ENG-018 step 6: the hooks, asked of the running app › R16 (E16): a customer with an account is told of the start and of the finish by text only; the e-mail at the finish is the route's own": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-routes.spec.js › ENG-018 step 6: the hooks, asked of the running app › R17 (E18): a notice that cannot be made (a link whose token the server did not make) writes nothing and leaves the answer of the route as it was": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-routes.spec.js › ENG-018 step 6: the hooks, asked of the running app › R1: a quote request with a phone tells the customer by text and by e-mail after the 201, and the answer is the 201 it was": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-routes.spec.js › ENG-018 step 6: the hooks, asked of the running app › R2: a quote request with no phone tells the customer by e-mail only, and no row says a text was refused": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-routes.spec.js › ENG-018 step 6: the hooks, asked of the running app › R3: an admin's booking for a customer tells the customer the card link and not a confirmation, and the answer still holds the link, once": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-routes.spec.js › ENG-018 step 6: the hooks, asked of the running app › R4: a customer's checkout tells the customer the booking is confirmed, by text and by e-mail": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-routes.spec.js › ENG-018 step 6: the hooks, asked of the running app › R5: an admin who puts a provider on a job tells that provider by text and by e-mail; the same provider again (as a number or as the text a select sends), a refused assignment and taking the provider off tell no one": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-routes.spec.js › ENG-018 step 6: the hooks, asked of the running app › R6: a reassign tells the new provider by text and by e-mail, and the old provider nothing": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-routes.spec.js › ENG-018 step 6: the hooks, asked of the running app › R7: a provider who claims an open job by its number tells the customer and the provider on both channels; a second attempt and another provider's tell no one": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-routes.spec.js › ENG-018 step 6: the hooks, asked of the running app › R8: a provider who claims an open job by its address tells the same two people the same way, and a second attempt tells no one": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-routes.spec.js › ENG-018 step 6: the hooks, asked of the running app › R9 (E20): the accept of a job an admin assigned to the provider tells the customer and the provider once, and a second accept tells no one": {
+      "outcome": "ATTEMPTED"
+    },
+    "notices-send.spec.js › Notices send path › a cured cause then sends and holds the key: a cleaner whose number was not checked is refused with no key, and the same notice after the check goes": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › a link is made from the origin and the path, whole, in the text and the e-mail, and the row does not hold it; a url the caller passes is ignored": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › a notice to a customer goes out on both channels once: the text to the number in E.164 with the template's words, the e-mail as plain text, and a settled row for each that holds the key": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › a number the transport itself refuses is bad_contact (bad_number) or cannot_text (destination_not_allowed), and keeps the key": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › a request that makes no sense answers nothing, writes no row and logs one fixed line": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › a text is spent against the provider whose action caused it, and a text no provider caused takes no provider scope": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › a text that cannot go is refused with its own outcome and a row with no key, and makes no call and spends nothing: no_contact, bad_contact, cannot_text, unchecked and not_active": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › a transport that answers something it should not is an error too, and so is a template that refuses its values or has no e-mail": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › a transport that throws is an error and not a throw: the row says error and keeps the key so a retry does not send twice, and the one line logged holds neither the number nor the address": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › an e-mail has a hard cap of its own: the third quote e-mail of a day to one address, in any case of letters, is mail_cap, never reaches the transport, and its row is settled with the key let go": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › an e-mail that cannot go is refused the same way: one address and nothing else, and a provider who is not active is told nothing by e-mail either": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › no row and no log line holds a number, an address, a name, a body or a link, whatever the notice did: sent, refused, capped, thrown or not rendered": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › not_configured lets go of the key and the notice is tried again; the text and the e-mail alike": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › rejected, unsure and sent keep the key, so a carrier error or a timeout is never answered with a second text; a mail failure that is not the missing configuration is unsure": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › the budget refuses a text and not an e-mail: the kind's two a day for a quote request, then the number's, the provider's and the platform's day, each with its own outcome and a released key": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › the channels do not depend on each other: a text refused for its number leaves the e-mail to go, and a missing address leaves the text to go": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › the same notice again sends nothing: a duplicate on both channels, no call and no new row": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › two identical notices at once make one call on each channel: the loser is a duplicate and spends nothing from the budget": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path › with no usable origin a notice that cannot do without its link is refused as no_origin on both channels, and one that carries the link as a convenience goes without it": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path: the origin, the key, after the commit and the retention › a database that fails is an error and not a throw: a failed claim sends nothing, and a failed settle leaves the row pending with its key so the notice is not sent twice": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path: the origin, the key, after the commit and the retention › afterCommit runs the work, outside a request it runs detached, and a work that fails or is not a function is one fixed line and never a throw": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path: the origin, the key, after the commit and the retention › appOrigin is the configured origin without its trailing slash, localhost outside production, and nothing in production unless it is https; a value with credentials, a path, a query or another scheme is no origin": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path: the origin, the key, after the commit and the retention › noticeKey is the SHA-256 of the kind, the subject, the recipient and the channel, so each of them makes a different key, and a part that could blur two keys is refused": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path: the origin, the key, after the commit and the retention › pruneNotices deletes the rows older than 180 days and keeps the rest": {
+      "outcome": "PASS"
+    },
+    "notices-send.spec.js › Notices send path: the origin, the key, after the commit and the retention › the vocabulary is the design's, fits its column, and every outcome in it was found in a row by the cases above": {
+      "outcome": "PASS"
+    },
+    "number-check-status.spec.js › ENG-018 B1 (ENG-015 F1 fix 2): the ask for a number check needs an active provider › S1 (inactive): the ask is refused 403, no text is handed over, no code is made and no counter is spent": {
+      "outcome": "PASS"
+    },
+    "number-check-status.spec.js › ENG-018 B1 (ENG-015 F1 fix 2): the ask for a number check needs an active provider › S2 (pending): the ask is refused 403, no text is handed over, no code is made and no counter is spent": {
+      "outcome": "PASS"
+    },
+    "number-check-status.spec.js › ENG-018 B1 (ENG-015 F1 fix 2): the ask for a number check needs an active provider › S3 (rejected): the ask is refused 403, no text is handed over, no code is made and no counter is spent": {
+      "outcome": "PASS"
+    },
+    "number-check-status.spec.js › ENG-018 B1 (ENG-015 F1 fix 2): the ask for a number check needs an active provider › S4 (suspended): the ask is refused 403, no text is handed over, no code is made and no counter is spent": {
+      "outcome": "PASS"
+    },
+    "number-check-status.spec.js › ENG-018 B1 (ENG-015 F1 fix 2): the ask for a number check needs an active provider › S5 (active): the ask is served, the transport is handed the one text, one code is made, and each of the four counters moves by one": {
+      "outcome": "PASS"
+    },
+    "number-check-status.spec.js › ENG-018 B1 (ENG-015 F1 fix 2): the ask for a number check needs an active provider › S6: a signed-in provider whose status has become inactive is refused 403 by the route and nothing is made or spent; made active again, the same provider is served at once": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a SetupIntent with a failed confirm on it is not handed out again: the next entry is a new SetupIntent, spends a try, and is the one the link keeps": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a card entry on a link that already has an open SetupIntent is handed the same client secret and spends no try, however many times the page loads": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a kept SetupIntent on a link that has no Stripe customer is not handed out: without a customer on the link there is no saying whose an entry is": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a kept SetupIntent that Stripe does not know or cannot be asked about is not handed out: the page is given a new entry, and a failed read is one fixed line": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a kept SetupIntent that belongs to another link is not handed out: the page is given a new entry, which spends a try and is the one the link keeps": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a kept SetupIntent that has a client secret that is not text is not handed out: the page is given a new entry, which spends a try and is the one the link keeps": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a kept SetupIntent that has an empty client secret is not handed out: the page is given a new entry, which spends a try and is the one the link keeps": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a kept SetupIntent that has no client secret is not handed out: the page is given a new entry, which spends a try and is the one the link keeps": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a kept SetupIntent that has no metadata is not handed out: the page is given a new entry, which spends a try and is the one the link keeps": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a kept SetupIntent that has succeeded is not handed out: the page is given a new entry, which spends a try and is the one the link keeps": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a kept SetupIntent that is for on-session use is not handed out: the page is given a new entry, which spends a try and is the one the link keeps": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a kept SetupIntent that is on another customer is not handed out: the page is given a new entry, which spends a try and is the one the link keeps": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a kept SetupIntent that is on no customer is not handed out: the page is given a new entry, which spends a try and is the one the link keeps": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a kept SetupIntent that is processing is not handed out: the page is given a new entry, which spends a try and is the one the link keeps": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a kept SetupIntent that needs an action is not handed out: the page is given a new entry, which spends a try and is the one the link keeps": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a kept SetupIntent that was canceled is not handed out: the page is given a new entry, which spends a try and is the one the link keeps": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a link its reader did not find usable is not handed its open entry: the count decides, the link is dead, and Stripe is not asked": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a reissue drops the open entry of the old link, so the new link is never handed a client secret the old one was": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) an entry made while a card was being saved does not take the saved card's SetupIntent id from the link": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) an entry whose id cannot be kept still starts, and so does one whose answer has no id; neither is kept": {
+      "outcome": "PASS"
+    },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) ten failed confirms use the ten tries, one new SetupIntent each, and the link is then spent": {
       "outcome": "PASS"
     },
     "on-behalf-booking.spec.js › On-behalf booking and the card link › a SetupIntent made for use on session is refused as invalid and nothing is saved": {
@@ -4711,6 +5194,27 @@
       "outcome": "PASS"
     },
     "provider.spec.js › Provider Portal - Auth Protection › should redirect protected provider routes to /provider/login": {
+      "outcome": "PASS"
+    },
+    "quote-form-caps.spec.js › ENG-018 B1: the quote form cannot spend the platform's texts or mail a stranger without limit › Q1 (a): the 51st quote text of a day is refused kind_cap whatever the number, and spends neither that number's, the provider's nor the platform's count": {
+      "outcome": "PASS"
+    },
+    "quote-form-caps.spec.js › ENG-018 B1: the quote form cannot spend the platform's texts or mail a stranger without limit › Q2 (b): the third quote e-mail to one address, in any case of letters, is mail_cap and never reaches the transport; its row is settled and has let go of its key": {
+      "outcome": "PASS"
+    },
+    "quote-form-caps.spec.js › ENG-018 B1: the quote form cannot spend the platform's texts or mail a stranger without limit › Q3 (c): 60 simultaneous quote requests with 60 numbers attempt at most 50 texts, the rest are kind_cap, nothing else is refused, and an active provider's claim straight after is not platform_cap": {
+      "outcome": "ATTEMPTED"
+    },
+    "quote-form-caps.spec.js › ENG-018 B1: the quote form cannot spend the platform's texts or mail a stranger without limit › Q4: with the kind's day for the platform one text from full, 8 simultaneous quote requests attempt exactly one more text and the other seven are kind_cap": {
+      "outcome": "ATTEMPTED"
+    },
+    "quote-form-caps.spec.js › ENG-018 B1: the quote form cannot spend the platform's texts or mail a stranger without limit › Q5 (d): 40 simultaneous quote requests naming one address attempt at most 2 e-mails, the rest are mail_cap, and the address's day holds 2": {
+      "outcome": "ATTEMPTED"
+    },
+    "quote-form-caps.spec.js › ENG-018 B1: the quote form cannot spend the platform's texts or mail a stranger without limit › Q6 (e): the quote e-mail greets with \"Hello,\" and holds no part of the name typed on the form": {
+      "outcome": "PASS"
+    },
+    "quote-form-caps.spec.js › ENG-018 B1: the quote form cannot spend the platform's texts or mail a stranger without limit › Q7: the quote e-mails of a day are held to 100 for the platform: the 101st, to any address, is mail_cap, never reaches the transport, and is not counted": {
       "outcome": "PASS"
     },
     "quote-request.spec.js › Quote requests › a booking and create-intent refuse a job that needs a quote: 400, no booking row, no Stripe call": {

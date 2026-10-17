@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server'
 import { requireCaller, callerFrom } from '@/lib/api-auth'
 import { withConnection, execute, getConnection } from '@/lib/db'
 import { notifyUser } from '@/lib/push'
-import { sendEmail } from '@/lib/email'
+import { afterCommit } from '@/lib/notices'
+import { noticeBooked, noticeAssigned } from '@/lib/notice-events'
 import { getClusterFromCity } from '@/lib/location'
 import { logActivity } from '@/lib/logger'
 import { queueStateOf } from '@/lib/marketplace'
@@ -485,6 +486,10 @@ export async function POST(request) {
         });
       }).catch(_ => { });
 
+      // The customer is told the booking is confirmed once this answer has gone, by text and by e-mail, naming the visits of a series (ENG-018). The notice
+      // reads the saved booking and its outcome is its own record, so nothing it does can change this answer; the push above stays as it was.
+      afterCommit(() => noticeBooked(execute, { bookingId, visits: bookedVisits.length }))
+
       // Providers are told of a job when an admin pushes it to the marketplace (POST /api/admin/bookings/[id]/push).
 
       return NextResponse.json({
@@ -701,6 +706,12 @@ export async function PUT(request) {
         }
       } catch (notifyErr) {
         console.error('[Push Error]', notifyErr);
+      }
+
+      // The provider put on the job is told by text and by e-mail once this answer has gone (ENG-018), when it is not the provider the job had. The ids are
+      // compared as numbers: the web select sends the id as text, and the same provider again is not a new assignment.
+      if (provider_id && Number(provider_id) !== Number(current.current_provider)) {
+        afterCommit(() => noticeAssigned(execute, { bookingId: Number(id), providerId: Number(provider_id) }));
       }
 
       return NextResponse.json({ success: true, message: 'Booking updated successfully' });

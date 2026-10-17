@@ -1,6 +1,15 @@
 // src/lib/sms.js
 //
-// The one way the app sends a text (Twilio). sendSMS(to, message) answers true when Twilio accepted the message and false otherwise; it never throws.
+// The one way the app sends a text (Twilio). sendSMSResult(to, message) answers { ok, reason } and sendSMS(to, message) answers just `ok`: true when
+// Twilio accepted the message and false otherwise. Neither throws. They are one implementation: sendSMS is sendSMSResult's `ok`, so the two cannot
+// drift apart, and the code flows that inject a sendText (job-link-code.js, crew-number-check.js) keep the boolean they were written against.
+//   reason  'sent'                     Twilio accepted the message (HTTP 2xx)
+//           'bad_number'               the number is not one normalisePhone can read
+//           'destination_not_allowed'  the number is not a Canadian one (canText)
+//           'not_configured'           one of the three Twilio variables is missing; no call was made
+//           'rejected'                 Twilio answered with a non-2xx status: the message did not go
+//           'unsure'                   the call timed out or threw: the message may or may not have gone, and a caller that must not text twice
+//                                      (src/lib/notices.js) treats it as sent
 //
 // A text goes only to a Canadian number (ENG-015, ADR-012): `to` is read by normalisePhone in src/lib/phone.js and then must pass canText, so there
 // is no default country (the old helper put +91 on every bare ten-digit number and so texted Canadian numbers to India) and a number that is not
@@ -15,15 +24,15 @@ import { normalisePhone, canText } from './phone.js';
 // A call that does not answer in this long is given up on, so a slow Twilio cannot hold a request open.
 const TIMEOUT_MS = 10000;
 
-export async function sendSMS(to, message) {
+export async function sendSMSResult(to, message) {
     const phone = normalisePhone(String(to ?? ''));
     if (!phone.ok) {
         console.log('SMS not sent: bad_number');
-        return false;
+        return { ok: false, reason: 'bad_number' };
     }
     if (!canText(phone.phone)) {
         console.log('SMS not sent: destination_not_allowed');
-        return false;
+        return { ok: false, reason: 'destination_not_allowed' };
     }
 
     const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
@@ -32,7 +41,7 @@ export async function sendSMS(to, message) {
 
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
         console.log('Twilio credentials not configured in .env. Skipping SMS.');
-        return false;
+        return { ok: false, reason: 'not_configured' };
     }
 
     try {
@@ -61,13 +70,17 @@ export async function sendSMS(to, message) {
                 // A body that is not JSON has no code to log.
             }
             console.error(`Twilio error ${response.status} ${twilioCode}`);
-            return false;
+            return { ok: false, reason: 'rejected' };
         }
 
         console.log('SMS sent');
-        return true;
+        return { ok: true, reason: 'sent' };
     } catch (e) {
         console.error(`Error sending SMS via Twilio: ${e?.code || e?.name || 'unknown'}`);
-        return false;
+        return { ok: false, reason: 'unsure' };
     }
+}
+
+export async function sendSMS(to, message) {
+    return (await sendSMSResult(to, message)).ok;
 }
