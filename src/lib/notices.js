@@ -105,6 +105,16 @@ export function appOrigin(env = process.env) {
   return allowed && bare ? url.origin : null;
 }
 
+// True when Next took `run` to keep alive after the response. Outside a request (a script, a spec) after() throws and nothing was scheduled: false.
+function scheduledAfterResponse(run) {
+  try {
+    nextAfter(run);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function afterCommit(work) {
   const run = async () => {
     try {
@@ -113,14 +123,8 @@ export function afterCommit(work) {
       console.error(`Notice error: ${codeOf(error)}`);
     }
   };
-  if (nextAfter !== null) {
-    try {
-      nextAfter(run);
-      return;
-    } catch {
-      // Not inside a request, so nothing was scheduled: run it here instead. The work's own failures are logged by `run`.
-    }
-  }
+  // Where nothing was scheduled the work runs here instead. Its own failures are logged by `run`.
+  if (nextAfter !== null && scheduledAfterResponse(run)) return;
   void run();
 }
 
