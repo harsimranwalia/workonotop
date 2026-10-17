@@ -158,6 +158,12 @@ export const ITEMS = [
                     ),
                 ],
             },
+            {
+                id: 'W2.charge-meets-record',
+                says: "the amount charged is the price the booking recorded, for a booking made at the checkout and for one made on a customer's behalf, and the provider's finish moves neither the bill nor the payout",
+                kind: 'in-process',
+                cases: [spec('acceptance-seams.spec.js', 'Seams: W2 charge:')],
+            },
         ],
     },
     {
@@ -380,7 +386,11 @@ export const ITEMS = [
             {
                 id: 'W9.every-job-in-queue',
                 says: 'every booked job appears in the admin queue',
-                cases: [spec('marketplace.spec.js', 'an unassigned booking is in the admin job queue as waiting', 'unassigning a booking returns it to the queue'), spec('recurring-visits.spec.js', 'each visit of a series is its own job in the admin queue')],
+                cases: [
+                    spec('marketplace.spec.js', 'an unassigned booking is in the admin job queue as waiting', 'unassigning a booking returns it to the queue'),
+                    spec('recurring-visits.spec.js', 'each visit of a series is its own job in the admin queue'),
+                    spec('acceptance-seams.spec.js', 'Seams: W9 queue:'),
+                ],
             },
             {
                 id: 'W9.assign-directly',
@@ -398,6 +408,7 @@ export const ITEMS = [
                 cases: [
                     spec('marketplace.spec.js', 'a claimed booking refuses a second claim from either provider on both claim routes'),
                     spec('ownership.spec.js', "Ownership POST /api/provider/available-jobs/[id]: provider1 accepting provider 2's booking is 403", 'Ownership POST /api/provider/available-jobs: provider1 claims an open booking'),
+                    spec('acceptance-seams.spec.js', 'Seams: W9 claim:'),
                 ],
             },
             {

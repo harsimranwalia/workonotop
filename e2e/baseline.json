@@ -141,6 +141,24 @@
     "acceptance-roles.spec.js › Role guard acceptance: a cleaner signed in at a job link › Roles: the route table has no role-guarded route of a method that no case here sends": {
       "outcome": "PASS"
     },
+    "acceptance-seams.spec.js › Seams acceptance: the job queue, the claim by id and the charge › Seams: W2 charge: a booking an admin made for a customer is charged the rule's price on the card the customer put on file": {
+      "outcome": "PASS"
+    },
+    "acceptance-seams.spec.js › Seams acceptance: the job queue, the claim by id and the charge › Seams: W2 charge: a checkout posted with a price of one cent is charged the rule's price, the stored price in cents": {
+      "outcome": "PASS"
+    },
+    "acceptance-seams.spec.js › Seams acceptance: the job queue, the claim by id and the charge › Seams: W2 charge: a finish with hours and a crew size of the provider's choosing changes neither the bill nor the payout": {
+      "outcome": "PASS"
+    },
+    "acceptance-seams.spec.js › Seams acceptance: the job queue, the claim by id and the charge › Seams: W9 claim: a claim by id of a job assigned to another provider is refused with 403 and the job is left as it was": {
+      "outcome": "PASS"
+    },
+    "acceptance-seams.spec.js › Seams acceptance: the job queue, the claim by id and the charge › Seams: W9 queue: a booking an admin made for a customer is in the admin job queue as waiting, then as assigned once the admin assigns it": {
+      "outcome": "PASS"
+    },
+    "acceptance-seams.spec.js › Seams acceptance: the job queue, the claim by id and the charge › Seams: W9 queue: a booking made from a quote request is in the admin job queue as waiting, then as assigned once the admin assigns it": {
+      "outcome": "PASS"
+    },
     "admin-job-queue.spec.js › Admin job queue › Push to marketplace puts a waiting booking on the marketplace: the server's message, the time under a disabled button, and the queue holds it on the marketplace": {
       "outcome": "PASS"
     },
