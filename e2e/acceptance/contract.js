@@ -427,6 +427,13 @@ export const ITEMS = [
         says: 'Every one of the nine defects above is re-tested and closed.',
         clauses: defectClauses,
     },
+    // Case 13 of the design: the three route files outside src/app/api, which no route table lists, read at the head this map was written against.
+    //   src/app/uploads/[...file]/route.js    anyone who has the URL, by design: it serves a file under public/uploads, asks for no credential and
+    //                                         sends a public, immutable cache header.
+    //   src/app/_uploads/[...path]/route.js   no one: the leading underscore makes the folder private to the router, so the file is never routed
+    //                                         (GET /_uploads/x answers the app's HTML 404 page where GET /uploads/x answers 'File not found').
+    //   src/app/llms.txt/route.js             anyone, by design: a public index of the active services, the active locations and the published posts.
+    // None serves anything but a file or a public index, so none has a case of its own.
     {
         n: 12,
         hard: true,
