@@ -118,7 +118,10 @@ export const ITEMS = [
             {
                 id: 'W1.quote-in-queue',
                 says: 'the quote request reaches the admin queue',
-                cases: [spec('quote-request.spec.js', 'the admin reads the requests, newest first', 'the admin page lists the requests in "Quote requests"')],
+                cases: [
+                    spec('quote-request.spec.js', 'the admin reads the requests, newest first', 'the admin page lists the requests in "Quote requests"'),
+                    spec('acceptance-seams.spec.js', 'Seams: W1 quote:'),
+                ],
             },
         ],
     },
@@ -357,13 +360,13 @@ export const ITEMS = [
             {
                 id: 'W8.admin-queue',
                 says: 'the reports reach the admin queue',
-                cases: [spec('job-reports.spec.js', 'the queue lists the report with its job')],
+                cases: [spec('job-reports.spec.js', 'the queue lists the report with its job'), spec('acceptance-seams.spec.js', 'Seams: W8 queue:')],
             },
             {
                 id: 'W8.alerts',
                 says: 'admin and the provider are alerted by text and by email',
                 kind: 'attempt',
-                cases: [spec('notices-routes.spec.js', 'R14:'), spec('notices-events.spec.js', 'E14 ')],
+                cases: [spec('notices-routes.spec.js', 'R14:'), spec('notices-events.spec.js', 'E14 '), spec('acceptance-seams.spec.js', 'Seams: W8 alerts:')],
             },
             {
                 id: 'W8.no-charge-before-approval',
@@ -374,7 +377,7 @@ export const ITEMS = [
                 id: 'W8.charged-after-approval',
                 says: 'an approved sum is charged once, on the saved card',
                 kind: 'in-process',
-                cases: [spec('report-desk.spec.js', 'an approved sum is charged on the card on file in an intent of its own')],
+                cases: [spec('report-desk.spec.js', 'an approved sum is charged on the card on file in an intent of its own'), spec('acceptance-seams.spec.js', 'Seams: W8 charge:')],
             },
         ],
     },
@@ -425,7 +428,7 @@ export const ITEMS = [
         clauses: [
             { id: 'W10.quote-requested', says: 'a quote requested', kind: 'attempt', cases: [spec('notices-routes.spec.js', 'R1:', 'R2:'), spec('notices-events.spec.js', 'E1 ', 'E2 ', 'E3 ')] },
             { id: 'W10.quote-and-card-link', says: 'a quote and card link sent', kind: 'attempt', cases: [spec('notices-routes.spec.js', 'R3:'), spec('notices-events.spec.js', 'E4 ')] },
-            { id: 'W10.job-booked', says: 'a job booked', kind: 'attempt', cases: [spec('notices-routes.spec.js', 'R4:'), spec('notices-events.spec.js', 'E5 ')] },
+            { id: 'W10.job-booked', says: 'a job booked', kind: 'attempt', cases: [spec('notices-routes.spec.js', 'R4:'), spec('notices-events.spec.js', 'E5 '), spec('acceptance-seams.spec.js', 'Seams: W10 booked:')] },
             { id: 'W10.job-assigned', says: 'a job assigned or reassigned', kind: 'attempt', cases: [spec('notices-routes.spec.js', 'R5:', 'R6:', 'R9 '), spec('notices-events.spec.js', 'E6 ', 'E7 ')] },
             { id: 'W10.job-claimed', says: 'a job claimed', kind: 'attempt', cases: [spec('notices-routes.spec.js', 'R7:', 'R8:'), spec('notices-events.spec.js', 'E8 ')] },
             { id: 'W10.job-link-sent', says: 'a job link sent', kind: 'attempt', cases: [spec('notices-routes.spec.js', 'R10:', 'R11:', 'R12:', 'R13:'), spec('notices-events.spec.js', 'E9 ', 'E10 ', 'E11 ', 'E12 ')] },

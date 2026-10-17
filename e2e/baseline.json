@@ -141,6 +141,9 @@
     "acceptance-roles.spec.js › Role guard acceptance: a cleaner signed in at a job link › Roles: the route table has no role-guarded route of a method that no case here sends": {
       "outcome": "PASS"
     },
+    "acceptance-seams.spec.js › Seams acceptance: a quote request reaches the admin page › Seams: W1 quote: a quote request a customer sends is on the admin job page with the contact, the address, the pick that sent it to a quote and the message, and can be booked": {
+      "outcome": "PASS"
+    },
     "acceptance-seams.spec.js › Seams acceptance: the job queue, the claim by id and the charge › Seams: W2 charge: a booking an admin made for a customer is charged the rule's price on the card the customer put on file": {
       "outcome": "PASS"
     },
@@ -157,6 +160,30 @@
       "outcome": "PASS"
     },
     "acceptance-seams.spec.js › Seams acceptance: the job queue, the claim by id and the charge › Seams: W9 queue: a booking made from a quote request is in the admin job queue as waiting, then as assigned once the admin assigns it": {
+      "outcome": "PASS"
+    },
+    "acceptance-seams.spec.js › Seams acceptance: the notice of a booked series › Seams: W10 booked: a weekly series booked by a signed-in customer is texted and e-mailed to the customer once, on the first visit, and not once for each of the twelve": {
+      "outcome": "ATTEMPTED"
+    },
+    "acceptance-seams.spec.js › Seams acceptance: what a cleaner reports from the job link reaches the office › Seams: W8 alerts: a \"add_items\" report from a cleaner texts and e-mails the provider and each admin, and not the cleaner who sent it": {
+      "outcome": "ATTEMPTED"
+    },
+    "acceptance-seams.spec.js › Seams acceptance: what a cleaner reports from the job link reaches the office › Seams: W8 alerts: a \"cannot_complete\" report from a cleaner texts and e-mails the provider and each admin, and not the cleaner who sent it": {
+      "outcome": "ATTEMPTED"
+    },
+    "acceptance-seams.spec.js › Seams acceptance: what a cleaner reports from the job link reaches the office › Seams: W8 alerts: a \"details_wrong\" report from a cleaner texts and e-mails the provider and each admin, and not the cleaner who sent it": {
+      "outcome": "ATTEMPTED"
+    },
+    "acceptance-seams.spec.js › Seams acceptance: what a cleaner reports from the job link reaches the office › Seams: W8 alerts: a \"no_answer\" report from a cleaner texts and e-mails the provider and each admin, and not the cleaner who sent it": {
+      "outcome": "ATTEMPTED"
+    },
+    "acceptance-seams.spec.js › Seams acceptance: what a cleaner reports from the job link reaches the office › Seams: W8 alerts: a \"unhygienic\" report from a cleaner texts and e-mails the provider and each admin, and not the cleaner who sent it": {
+      "outcome": "ATTEMPTED"
+    },
+    "acceptance-seams.spec.js › Seams acceptance: what a cleaner reports from the job link reaches the office › Seams: W8 charge: an add-more-items report the admin approves is priced by the server and charged once on a payment of its own, and a declined one and one left open charge nothing": {
+      "outcome": "PASS"
+    },
+    "acceptance-seams.spec.js › Seams acceptance: what a cleaner reports from the job link reaches the office › Seams: W8 queue: all five kinds of on-site report a cleaner sends from the job link are in the admin report queue, each with its photo, note, sender and job": {
       "outcome": "PASS"
     },
     "admin-job-queue.spec.js › Admin job queue › Push to marketplace puts a waiting booking on the marketplace: the server's message, the time under a disabled button, and the queue holds it on the marketplace": {
