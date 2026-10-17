@@ -1,8 +1,9 @@
 // e2e/notices-library.spec.js
 //
-// ENG-018 (ADR-018): the vectors for the two libraries every notice is sent through, before any notice is. src/lib/sms.js: sendSMSResult says why a
+// ENG-018 (ADR-018): the vectors for the libraries every notice is sent through, before any notice is. src/lib/sms.js: sendSMSResult says why a
 // text did or did not go ('sent', 'bad_number', 'destination_not_allowed', 'not_configured', 'rejected', 'unsure') and sendSMS is its `ok`.
 // src/lib/sms-budget.js: reserveText gains the platform's daily ceiling, the per-kind cap on a number and a provider id that may be null.
+// src/lib/notice-templates.js: what a notice may say (pure; no stack and no database needed).
 //
 // Twilio is a stub that records each call (globalThis.fetch is replaced and put back), so no case reaches Twilio, and there are no Twilio credentials
 // in the dev environment either. What is proved here is what the code ATTEMPTS: the number, the body and the form the transport would receive, and the
@@ -20,6 +21,8 @@ import { test, expect } from '@playwright/test';
 import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.js';
 import { sendSMS, sendSMSResult } from '../src/lib/sms.js';
 import { budgetScope, reserveText, TEXTS_PER_NUMBER_DAY, TEXTS_PER_PROVIDER_DAY, TEXTS_PER_PLATFORM_DAY, KIND_TEXTS_PER_NUMBER_DAY } from '../src/lib/sms-budget.js';
+import { NOTICE_KINDS, SMS_BODY_MAX, NAME_MAX, cleanLine, templateFor } from '../src/lib/notice-templates.js';
+import { REPORT_TYPES } from '../src/lib/job-reports.js';
 
 // Cases run in the order of the file, one worker, and each plants its own rows, so one failure does not hide the next.
 test.use({ trace: 'off' });
@@ -315,6 +318,8 @@ async function clearBudget() {
         touched.add(budgetScope('kind', 'job_booked', numberAt(last)));
     }
     for (let n = 1; n <= 9; n += 1) touched.add(budgetScope('provider', providerIdOf(n)));
+    // The scopes a text with no provider must not make, so a row left by a broken run of the code cannot fail the next case.
+    for (const nobody of [null, undefined, '', 'null', 'undefined']) touched.add(budgetScope('provider', nobody));
     touched.add(PLATFORM);
     for (const scope of warnedScopes()) touched.add(scope);
     for (const scope of touched) await open.execute('DELETE FROM sms_budget WHERE scope = ?', [scope]);
@@ -428,5 +433,244 @@ test.describe('Notices library: reserveText', () => {
         touched.add(budgetScope('provider', providerIdOf(4)));
         // The existing callers (job-link-code.js, crew-number-check.js) pass a provider id and read only null versus not null.
         expect(await reserveText(execute, numberAt(13), providerIdOf(4)), 'a text to another number from the same provider goes').toBeNull();
+    });
+});
+
+// ================================================================================================================================
+// notice-templates
+// ================================================================================================================================
+
+const N = 'BK17000000000001234';
+const CARD_URL = `https://www.workontap.com/card/${'A'.repeat(43)}`;
+const JOB_URL = `https://www.workontap.com/job/${'B'.repeat(43)}`;
+// The eleven texts: nine kinds, of which job_claimed and job_finished have two.
+const VARIANTS = [
+    ['quote_requested', {}],
+    ['card_link', { n: N, price: 125, url: CARD_URL }],
+    ['job_booked', { n: N }],
+    ['job_assigned', { n: N }],
+    ['job_claimed', { n: N, audience: 'customer' }],
+    ['job_claimed', { n: N, audience: 'provider' }],
+    ['job_link', { n: N, url: JOB_URL }],
+    ['report_added', { n: N, label: 'Customer did not answer' }],
+    ['job_started', { n: N, workers: 2, hours: 1.5, price: 125 }],
+    ['job_finished', { n: N }],
+    ['job_finished', { n: N, guest: true, hours: 24 }],
+];
+const variantKey = (kind, values) => `${kind}${values.audience ? `:${values.audience}` : ''}${values.guest ? ':guest' : ''}`;
+// A link that is exactly the longest the templates accept: an origin of 31 characters, the path and the 43-character token.
+const longUrl = (path) => `https://${'h'.repeat(80 - 8 - path.length - 43)}${path}${'T'.repeat(43)}`;
+// The longest values a route can make, by the bounds templateFor enforces.
+const LONG_N = 'B'.repeat(20);
+const LONGEST = [
+    ['card_link', { n: LONG_N, price: 99999.99, url: longUrl('/card/') }],
+    ['job_link', { n: LONG_N, url: longUrl('/job/') }],
+    ['job_started', { n: LONG_N, workers: 999, hours: 998.99, price: 99999.99 }],
+    ['job_finished', { n: LONG_N, guest: true, hours: 999 }],
+    ['report_added', { n: LONG_N, label: 'Unable to complete the job' }],
+    ['job_booked', { n: LONG_N }],
+    ['job_claimed', { n: LONG_N, audience: 'customer' }],
+    ['job_claimed', { n: LONG_N, audience: 'provider' }],
+    ['job_assigned', { n: LONG_N }],
+    ['job_finished', { n: LONG_N }],
+    ['quote_requested', {}],
+];
+
+/** The error templateFor throws for these values: { code, message }, or null when it does not throw. */
+function thrown(kind, values) {
+    try {
+        templateFor(kind, values);
+    } catch (error) {
+        return { code: /** @type {any} */ (error).code, message: String(/** @type {any} */ (error).message) };
+    }
+    return null;
+}
+
+test.describe('Notices library: templates', () => {
+    test('there is a template for every kind and for nothing else: the nine kinds, in order, and a kind that is not one of them throws bad_notice_kind', () => {
+        expect(NOTICE_KINDS).toEqual(['quote_requested', 'card_link', 'job_booked', 'job_assigned', 'job_claimed', 'job_link', 'report_added', 'job_started', 'job_finished']);
+        expect(Object.isFrozen(NOTICE_KINDS)).toBe(true);
+        expect(new Set(VARIANTS.map(([kind]) => kind)), 'the variants cover every kind').toEqual(new Set(NOTICE_KINDS));
+        for (const [kind, values] of VARIANTS) expect(thrown(kind, values), `${kind} makes its text`).toBeNull();
+        for (const kind of ['nope', '', 'QUOTE_REQUESTED', '__proto__', 'constructor', 'toString', 'hasOwnProperty', undefined, null, 7, ['card_link']]) {
+            expect(thrown(/** @type {any} */ (kind), { n: N }), `${String(kind)} is not a kind`).toEqual({ code: 'bad_notice_kind', message: 'notice kind is not valid' });
+        }
+    });
+
+    test('the eleven texts are the ones the design names, word for word; the two with a link are shortened so a quote or a link fits one segment', () => {
+        const said = Object.fromEntries(VARIANTS.map(([kind, values]) => [variantKey(kind, values), templateFor(kind, values).sms]));
+        expect(said).toEqual({
+            quote_requested: 'WorkOnTap: we got your quote request. We will email you your quote soon.',
+            card_link: `WorkOnTap: quote for booking #${N} is $125.00. Add your card: ${CARD_URL}`,
+            job_booked: `WorkOnTap: booking #${N} is confirmed. We will tell you when a professional is assigned.`,
+            job_assigned: `WorkOnTap: you have a new job, booking #${N}. Open the app for the details.`,
+            'job_claimed:customer': `WorkOnTap: a professional has accepted your booking #${N}.`,
+            'job_claimed:provider': `WorkOnTap: you accepted booking #${N}. Open the app for the details.`,
+            job_link: `WorkOnTap: job link #${N}: ${JOB_URL} A code is texted when you open it.`,
+            report_added: `WorkOnTap: on-site report on booking #${N}: Customer did not answer. Open Job Requests.`,
+            job_started: `WorkOnTap: your professional has started booking #${N}. Professionals: 2. Estimated time: 1.5 hrs. Price: $125.00.`,
+            job_finished: `WorkOnTap: your invoice for booking #${N} is ready. Please approve and pay.`,
+            'job_finished:guest': `WorkOnTap: booking #${N} is finished. Your card on file is charged in 24 hours. Questions: support@workontap.com`,
+        });
+    });
+
+    test('every text is printable ASCII in one segment with nothing left over, with ordinary values and with the longest the templates accept', () => {
+        for (const [kind, values] of [...VARIANTS, ...LONGEST]) {
+            const { sms } = templateFor(kind, values);
+            const what = `${variantKey(kind, values)} ${sms.length} characters`;
+            expect(sms, `${what}: printable ASCII`).toMatch(/^[\x20-\x7E]+$/);
+            expect(sms.length, `${what}: at most ${SMS_BODY_MAX}`).toBeLessThanOrEqual(SMS_BODY_MAX);
+            expect(sms, `${what}: nothing left over`).not.toMatch(/undefined|NaN|null|[{}]|\[object/);
+            expect(sms.startsWith('WorkOnTap: '), `${what}: says who it is from`).toBe(true);
+        }
+        expect(SMS_BODY_MAX).toBe(160);
+        // The bound is tight: the longest quote text is the whole segment, so no character of room is wasted on a bound that cannot be reached.
+        expect(templateFor('card_link', LONGEST[0][1]).sms.length, 'the longest quote text').toBe(160);
+    });
+
+    test('a text carries no typed word: a hostile name, service, date, slot, address, phone and note appear in no SMS, and no address, phone, note or photo in any e-mail', () => {
+        const hostile = { name: 'ZZNAMEZZ', service: 'ZZSERVICEZZ', date: 'ZZDATEZZ', slot: 'ZZSLOTZZ', address: 'ZZADDRESSZZ', phone: 'ZZPHONEZZ', note: 'ZZNOTEZZ', photo: '/uploads/ZZPHOTOZZ.jpg', email: 'ZZMAILZZ@x.test' };
+        for (const [kind, values] of VARIANTS) {
+            const made = templateFor(kind, { ...values, ...hostile });
+            expect(made.sms, `${variantKey(kind, values)}: the text`).not.toMatch(/ZZ/);
+            for (const part of [made.subject, made.text]) expect(part ?? '', `${variantKey(kind, values)}: an address, phone, note or photo is in no e-mail`).not.toMatch(/ZZ(ADDRESS|PHONE|NOTE|PHOTO|MAIL)ZZ/);
+        }
+    });
+
+    test('a value that is missing or not valid throws bad_notice_value naming the field and never the value', () => {
+        const cases = [
+            ['card_link', { n: N, price: 125, url: CARD_URL }, 'n', ['', 'BK 123', 'BK\n123', '<script>', 'B'.repeat(21), 17, null, undefined, 'a/b']],
+            ['card_link', { n: N, price: 125, url: CARD_URL }, 'price', [Number.NaN, -1, 100_000, 1e9, Infinity, '125', null, undefined]],
+            ['card_link', { n: N, price: 125, url: CARD_URL }, 'url', ['javascript:alert(1)', 'http://', 'https://x.test/a b', `https://x.test/${'a'.repeat(70)}`, 'ftp://x.test/a', 7, '', 'https://x.test/{n}', undefined]],
+            ['job_link', { n: N, url: JOB_URL }, 'url', [undefined, null]],
+            ['job_started', { n: N, workers: 2, hours: 1.5, price: 125 }, 'workers', [0.5, -1, 1000, '2', null, Number.NaN]],
+            ['job_started', { n: N, workers: 2, hours: 1.5, price: 125 }, 'hours', [-1, 1000, Number.NaN, '1.5', null, Infinity]],
+            ['job_finished', { n: N, guest: true, hours: 24 }, 'hours', [1.5, -1, 1000, '24', null, undefined]],
+            ['report_added', { n: N, label: 'Customer did not answer' }, 'label', ['', 'Pay me 5 dollars', 'a{b}', 'line\nbreak', 'x'.repeat(60), 7, undefined]],
+            ['job_claimed', { n: N, audience: 'customer' }, 'audience', ['admin', '', undefined, null, 7]],
+            ['job_booked', { n: N }, 'visits', [-1, 401, 1.5, '4', null]],
+        ];
+        for (const [kind, ok, field, values] of cases) {
+            for (const value of values) {
+                const seen = thrown(kind, { ...ok, [field]: value });
+                expect(seen?.code, `${kind}.${field}=${JSON.stringify(value)}`).toBe('bad_notice_value');
+                expect(seen?.message, `${kind}.${field}: the message names the field`).toBe(`notice ${field} is not valid`);
+            }
+        }
+        // A value that would leave a word behind is refused: a booking number that is the text "undefined", "NaN" or "null".
+        for (const n of ['undefined', 'NaN', 'null']) expect(thrown('job_booked', { n })?.code, `n=${n}`).toBe('bad_notice_value');
+    });
+
+    test('a link may hold the letters NaN, null or undefined by chance (about one token in 6,000 holds NaN) and is still texted whole', () => {
+        for (const token of ['NaN'.padEnd(43, 'x'), `${'x'.repeat(20)}null${'y'.repeat(19)}`, 'undefined'.padEnd(43, 'z')]) {
+            const url = `https://www.workontap.com/job/${token}`;
+            expect(templateFor('job_link', { n: N, url }).sms, 'the whole link').toContain(url);
+            expect(templateFor('card_link', { n: N, price: 10, url }).sms, 'the whole link in a quote').toContain(url);
+        }
+    });
+
+    test('cleanLine makes one line: breaks, controls and reordering marks become spaces, runs collapse, and the cut is by character and not in the middle of a pair', () => {
+        expect(cleanLine('Sam\r\nBcc: x@y.test')).toBe('Sam Bcc: x@y.test');
+        expect(cleanLine('a\tb\u0000c\u007Fd\u0085e f g')).toBe('a b c d e f g');
+        expect(cleanLine('‮evil‬ ​name⁦⁩﻿!')).toBe('evil name !');
+        expect(cleanLine('   a    b   ')).toBe('a b');
+        expect(cleanLine('x'.repeat(100))).toBe('x'.repeat(NAME_MAX));
+        expect(cleanLine('x'.repeat(100), 5)).toBe('xxxxx');
+        expect(NAME_MAX).toBe(60);
+        const pairs = '\u{1F600}'.repeat(80);
+        expect(Array.from(cleanLine(pairs)).length, 'sixty characters, each a pair, none split').toBe(60);
+        expect(cleanLine(pairs)).toBe('\u{1F600}'.repeat(60));
+        for (const nothing of [undefined, null, 7, {}, ['a'], true]) expect(cleanLine(/** @type {any} */ (nothing)), `${String(nothing)} is no line`).toBe('');
+    });
+
+    test('an e-mail is plain text with a fixed subject of one line that names the booking, and its greeting takes a typed name only through cleanLine', () => {
+        const withMail = VARIANTS.filter(([kind]) => kind !== 'job_link' && kind !== 'job_started');
+        for (const [kind, values] of withMail) {
+            const made = templateFor(kind, { ...values, name: 'Sam\r\nBcc: attacker@x.test‮' });
+            const what = variantKey(kind, values);
+            expect(typeof made.subject, `${what}: a subject`).toBe('string');
+            expect(made.subject, `${what}: one line`).not.toMatch(/[\r\n]/);
+            expect(made.subject, `${what}: fixed words`).toMatch(/^[\x20-\x7E]+$/);
+            expect(made.text, `${what}: ends with a line break`).toMatch(/\n$/);
+            expect(made.text, `${what}: nothing left over`).not.toMatch(/undefined|NaN|\[object|[{}]/);
+            expect(made.text, `${what}: no markup`).not.toMatch(/<[a-z/!]/i);
+            expect(made.text, `${what}: no control character but the line breaks`).not.toMatch(/[\u0000-\u0009\u000B-\u001F\u007F‮]/);
+            expect(made.text.split('\n').some((row) => row.startsWith('Bcc:')), `${what}: no typed line of its own`).toBe(false);
+        }
+        expect(templateFor('quote_requested', { name: 'Sam\r\nBcc: x' }).text.split('\n')[0]).toBe('Hi Sam Bcc: x,');
+        expect(templateFor('quote_requested', { name: '  \n ' }).text.split('\n')[0], 'no name, no "Hi ,"').toBe('Hello,');
+        expect(templateFor('quote_requested', {}).text.split('\n')[0]).toBe('Hello,');
+        expect(templateFor('quote_requested', {}).text, 'a quote form takes any address, so the e-mail says how to ignore it').toContain('you can ignore this message');
+    });
+
+    test('the subjects are one fixed phrase and the booking number', () => {
+        const withMail = VARIANTS.filter(([kind]) => kind !== 'job_link' && kind !== 'job_started');
+        expect(Object.fromEntries(withMail.map(([kind, values]) => [variantKey(kind, values), templateFor(kind, values).subject]))).toEqual({
+            quote_requested: 'We got your quote request',
+            card_link: `Your quote for booking #${N}`,
+            job_booked: `Booking #${N} is confirmed`,
+            job_assigned: `New job: booking #${N}`,
+            'job_claimed:customer': `A professional accepted booking #${N}`,
+            'job_claimed:provider': `You accepted booking #${N}`,
+            report_added: `On-site report on booking #${N}`,
+            job_finished: `Your invoice for booking #${N} is ready`,
+            'job_finished:guest': `Booking #${N} is finished`,
+        });
+    });
+
+    test('the two kinds with no e-mail have none, and every other kind has a subject and a text', () => {
+        for (const [kind, values] of VARIANTS) {
+            const made = templateFor(kind, values);
+            if (kind === 'job_link' || kind === 'job_started') expect([made.subject, made.text], `${kind} has no e-mail`).toEqual([null, null]);
+            else expect([typeof made.subject, typeof made.text, made.text.length > 20], `${variantKey(kind, values)} has an e-mail`).toEqual(['string', 'string', true]);
+        }
+    });
+
+    test('a guest and an account-holder are told different things when a job is finished: the guest cannot approve, and is told when the card is charged and who to ask', () => {
+        const account = templateFor('job_finished', { n: N, price: 125, name: 'Sam', service: 'Home cleaning' });
+        const guest = templateFor('job_finished', { n: N, guest: true, hours: 24, name: 'Sam', service: 'Home cleaning' });
+        expect(account.sms).toContain('approve and pay');
+        expect(account.text).toContain('Please approve and pay.');
+        expect(account.text).toContain('Price: $125.00');
+        expect(guest.sms).not.toMatch(/approve/i);
+        expect(guest.text).not.toMatch(/approve/i);
+        expect(guest.sms).toContain('charged in 24 hours');
+        expect(guest.text).toContain('charged in 24 hours');
+        expect(guest.sms).toContain('support@workontap.com');
+        expect(thrown('job_finished', { n: N, guest: true })?.code, 'a guest text without the window is refused and does not say "undefined hours"').toBe('bad_notice_value');
+        expect(templateFor('job_finished', { n: N, guest: 'true', price: 1 }).sms, 'only the boolean true is a guest').toContain('approve and pay');
+    });
+
+    test('a price is written with two places and hours with at most two, so a float\'s tail never reaches a text', () => {
+        const quote = (price) => templateFor('card_link', { n: N, price, url: CARD_URL }).sms;
+        expect(quote(125)).toContain('is $125.00.');
+        expect(quote(99.5)).toContain('is $99.50.');
+        expect(quote(0.1 + 0.2)).toContain('is $0.30.');
+        expect(quote(0)).toContain('is $0.00.');
+        const started = (hours) => templateFor('job_started', { n: N, workers: 1, hours, price: 10 }).sms;
+        expect(started(1)).toContain('Estimated time: 1 hrs.');
+        expect(started(1.5)).toContain('Estimated time: 1.5 hrs.');
+        expect(started(0.1 + 0.2)).toContain('Estimated time: 0.3 hrs.');
+        expect(started(2.256)).toContain('Estimated time: 2.26 hrs.');
+    });
+
+    test('the report text carries one of the five fixed labels and never the note or the photo address; every label of REPORT_TYPES is accepted', () => {
+        expect(REPORT_TYPES.length).toBe(5);
+        for (const { label } of REPORT_TYPES) {
+            const made = templateFor('report_added', { n: N, label, note: 'ZZNOTEZZ', photo: '/uploads/ZZPHOTOZZ.jpg' });
+            expect(made.sms, `${label}: the text`).toBe(`WorkOnTap: on-site report on booking #${N}: ${label}. Open Job Requests.`);
+            expect(made.text, `${label}: the e-mail`).toContain(label);
+            expect(`${made.sms}${made.subject}${made.text}`, `${label}: no note and no photo`).not.toMatch(/ZZ/);
+        }
+    });
+
+    test('the claim names its audience: the customer is told a professional accepted, the provider is told they did, and neither is greeted by the other\'s name', () => {
+        const customer = templateFor('job_claimed', { n: N, audience: 'customer', name: 'Sam' });
+        const provider = templateFor('job_claimed', { n: N, audience: 'provider', name: 'Sam' });
+        expect(customer.sms).toBe(`WorkOnTap: a professional has accepted your booking #${N}.`);
+        expect(provider.sms).toBe(`WorkOnTap: you accepted booking #${N}. Open the app for the details.`);
+        expect(customer.text.split('\n')[0]).toBe('Hi Sam,');
+        expect(provider.text.split('\n')[0], 'a provider is not greeted with a customer\'s name').toBe(`You accepted booking #${N}.`);
+        expect(provider.text).not.toContain('Sam');
     });
 });
