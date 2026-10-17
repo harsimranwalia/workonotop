@@ -6,6 +6,11 @@ const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
   secure: false,
+  // nodemailer waits 2 minutes to connect, 30 seconds for the greeting and 10 minutes of silence by default, and a
+  // notice's send waits with it; these are the longest a dead mail server may hold one send.
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 20000,
   auth: {
     user: process.env.SMTP_USER || process.env.EMAIL_USER,
     pass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
@@ -26,7 +31,9 @@ export async function sendEmail({ to, subject, html, text }) {
     }
 
     const from = process.env.EMAIL_FROM || process.env.SMTP_USER || 'WorkOnTap <noreply@workontap.com>';
-    console.log(`📬 [sendEmail] To: ${to}, From: ${from}, Subject: ${subject}`);
+    // The log carries no address, subject or error text: a recipient's address and the server's reason for refusing it
+    // are personal data, and the logs outlive the message.
+    console.log('[sendEmail] sending');
 
     const info = await transporter.sendMail({
       from,
@@ -38,7 +45,7 @@ export async function sendEmail({ to, subject, html, text }) {
     console.log('✅ Email sent:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('❌ Email send error:', error);
+    console.error('[sendEmail] send failed:', typeof error?.code === 'string' ? error.code : 'unknown');
     return { success: false, error: error.message };
   }
 }
