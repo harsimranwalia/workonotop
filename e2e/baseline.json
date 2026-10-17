@@ -4533,6 +4533,9 @@
     "notices-send.spec.js › Notices send path › a notice to a customer goes out on both channels once: the text to the number in E.164 with the template's words, the e-mail as plain text, and a settled row for each that holds the key": {
       "outcome": "PASS"
     },
+    "notices-send.spec.js › Notices send path › a number the transport itself refuses is bad_contact (bad_number) or cannot_text (destination_not_allowed), and keeps the key": {
+      "outcome": "PASS"
+    },
     "notices-send.spec.js › Notices send path › a request that makes no sense answers nothing, writes no row and logs one fixed line": {
       "outcome": "PASS"
     },
@@ -4591,6 +4594,24 @@
       "outcome": "PASS"
     },
     "notices-send.spec.js › Notices send path: the origin, the key, after the commit and the retention › the vocabulary is the design's, fits its column, and every outcome in it was found in a row by the cases above": {
+      "outcome": "PASS"
+    },
+    "number-check-status.spec.js › ENG-018 B1 (ENG-015 F1 fix 2): the ask for a number check needs an active provider › S1 (inactive): the ask is refused 403, no text is handed over, no code is made and no counter is spent": {
+      "outcome": "PASS"
+    },
+    "number-check-status.spec.js › ENG-018 B1 (ENG-015 F1 fix 2): the ask for a number check needs an active provider › S2 (pending): the ask is refused 403, no text is handed over, no code is made and no counter is spent": {
+      "outcome": "PASS"
+    },
+    "number-check-status.spec.js › ENG-018 B1 (ENG-015 F1 fix 2): the ask for a number check needs an active provider › S3 (rejected): the ask is refused 403, no text is handed over, no code is made and no counter is spent": {
+      "outcome": "PASS"
+    },
+    "number-check-status.spec.js › ENG-018 B1 (ENG-015 F1 fix 2): the ask for a number check needs an active provider › S4 (suspended): the ask is refused 403, no text is handed over, no code is made and no counter is spent": {
+      "outcome": "PASS"
+    },
+    "number-check-status.spec.js › ENG-018 B1 (ENG-015 F1 fix 2): the ask for a number check needs an active provider › S5 (active): the ask is served, the transport is handed the one text, one code is made, and each of the four counters moves by one": {
+      "outcome": "PASS"
+    },
+    "number-check-status.spec.js › ENG-018 B1 (ENG-015 F1 fix 2): the ask for a number check needs an active provider › S6: a signed-in provider whose status has become inactive is refused 403 by the route and nothing is made or spent; made active again, the same provider is served at once": {
       "outcome": "PASS"
     },
     "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) a SetupIntent with a failed confirm on it is not handed out again: the next entry is a new SetupIntent, spends a try, and is the one the link keeps": {

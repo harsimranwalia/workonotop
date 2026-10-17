@@ -630,6 +630,8 @@ test.describe('Notice events', () => {
         expect(mailTo(calls, admin.email).length, 'one e-mail to that address').toBe(1);
         expect(smsTo(calls, adminPhone).length).toBe(1);
         expect(smsTo(calls, provider.phone).length).toBe(1);
+        // Every text a report sends, the owner's and each admin's, is spent against the job's owner (the fixtures' own admins are texted too, so it is the count of calls).
+        expect(await usedOf(budgetScope('provider', provider.id)), 'each text of a report counts against the job\'s owner').toBe(calls.sms.length);
         const forProvider = wordsOf('report_added', { n: b.number, label: 'Customer did not answer' }, '/provider/jobs');
         const forAdmin = wordsOf('report_added', { n: b.number, label: 'Customer did not answer' }, '/admin/jobs');
         expect(smsTo(calls, provider.phone)[0].body).toBe(forProvider.sms);
@@ -697,9 +699,11 @@ test.describe('Notice events', () => {
         expect(await noticeJobStarted(execute, start, deps)).toEqual([{ to: 'customer', ref: null, sms: 'sent', email: null }]);
         expect(calls.sms).toEqual([{ to: guest.phone, body: wordsOf('job_started', { n: guest.number, workers: 2, hours: 4, price: 10 }).sms }]);
         expect(calls.mail, 'the start has no e-mail').toEqual([]);
+        expect(await usedOf(budgetScope('provider', provider.id)), 'the start text counts against the provider who started').toBe(1);
         expect((await noticeJobStarted(execute, start, deps))[0].sms, 'the same start again').toBe('duplicate');
         expect((await noticeJobStarted(execute, { ...start, startEpoch: 1_800_000_900 }, deps))[0].sms, 'a start after a pause is another notice').toBe('sent');
         expect(calls.sms.length).toBe(2);
+        expect(await usedOf(budgetScope('provider', provider.id)), 'the same start again counted nothing, and the restart counted one').toBe(2);
         for (const startEpoch of [undefined, 0, -5, 1.5, '1800000000']) {
             expect(await noticeJobStarted(execute, { ...start, startEpoch }, deps), `startEpoch ${String(startEpoch)}`).toEqual([]);
         }
@@ -710,6 +714,7 @@ test.describe('Notice events', () => {
         expect(await noticeJobFinished(execute, { bookingId: guest.id }, done.deps)).toEqual([{ to: 'customer', ref: null, sms: 'sent', email: 'sent' }]);
         // An account holder is told by text only: their e-mail is the finish route's own (the summary and the photos), which e2e/job-completed-email.spec.js pins.
         expect(await noticeJobFinished(execute, { bookingId: held.id }, done.deps)).toEqual([{ to: 'customer', ref: member.id, sms: 'sent', email: null }]);
+        expect(await usedOf(budgetScope('provider', provider.id)), 'each finish text counts against the provider who finished, on top of the two starts').toBe(4);
         const guestWords = wordsOf('job_finished', { n: guest.number, name: 'Rhea', service: SERVICE_NAME, guest: true, hours: AUTO_RELEASE_HOURS });
         const holderWords = wordsOf('job_finished', { n: held.number, name: 'Rhea', service: SERVICE_NAME, guest: false, hours: AUTO_RELEASE_HOURS });
         expect(smsTo(done.calls, guest.phone)).toEqual([{ to: guest.phone, body: guestWords.sms }]);

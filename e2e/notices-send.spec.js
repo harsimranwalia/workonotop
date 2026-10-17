@@ -320,6 +320,25 @@ test.describe('Notices send path', () => {
         }
     });
 
+    // What the transport itself says of a number that the library's own checks let through (src/lib/sms.js: bad_number, destination_not_allowed): the same two outcomes
+    // as the library's own refusals before the call, and, as with a carrier's error, the key is kept, so the same notice is never put to the carrier twice.
+    const REFUSED_BY_THE_TRANSPORT = [
+        ['bad_contact', { ok: false, reason: 'bad_number' }],
+        ['cannot_text', { ok: false, reason: 'destination_not_allowed' }],
+    ];
+
+    test('a number the transport itself refuses is bad_contact (bad_number) or cannot_text (destination_not_allowed), and keeps the key', async () => {
+        for (const [index, [outcome, smsAnswer]] of REFUSED_BY_THE_TRANSPORT.entries()) {
+            const r = request(8 + index);
+            const first = recorder({ sms: smsAnswer });
+            expect(await sendNotice(execute, r, first.deps), outcome).toEqual({ sms: outcome, email: 'sent' });
+            expect(shape(await byBooking(r)), outcome).toEqual([['sms', outcome, 'key'], ['email', 'sent', 'key']]);
+            const again = recorder();
+            expect(await sendNotice(execute, r, again.deps), `${outcome}: again`).toEqual({ sms: 'duplicate', email: 'duplicate' });
+            expect([again.calls.sms.length, again.calls.mail.length], `${outcome}: again makes no call`).toEqual([0, 0]);
+        }
+    });
+
     test('the channels do not depend on each other: a text refused for its number leaves the e-mail to go, and a missing address leaves the text to go', async () => {
         const far = request(11, { to: { ...request(11).to, phone: '+442079460958' } });
         const farCalls = recorder();

@@ -23,7 +23,8 @@ function refusal(status, message) {
 
 // Provider only. Body { action: 'ask' } or { action: 'confirm', code }. ask texts a six-digit code to the member's number and answers 200
 // { success: true, data: { asked: true, sent } }; sent is false when the text could not be sent (no texting service is set up, or the service
-// refused), and the code is made either way. 409 says why a code was not made: the number is not Canadian, a code was asked for in the last minute,
+// refused), and the code is made either way. 403 when the provider's account is not active (an ask spends the platform's day of texts, so it is
+// refused before anything is spent). 409 says why a code was not made: the number is not Canadian, a code was asked for in the last minute,
 // or too many were sent today. confirm answers 200 { success: true, data: { checked: true } }; 400 for a wrong code; 409 for a code that has
 // expired, been used up or was never asked for. 404 for a member that is not the caller's active one.
 export async function POST(request, { params }) {
