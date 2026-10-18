@@ -30,6 +30,7 @@ import { getCredentialHeaders } from './auth/credentials.js';
 import { RESET_RETRIES, signInAs } from './support/auth.js';
 import { users } from '../database/fixtures/accounts.js';
 import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.js';
+import { budgetScope } from '../src/lib/sms-budget.js';
 
 // Tracing is off, as in e2e/pricing-rules.spec.js: the cases that send requests carry a fixture account's session, and a trace records request
 // headers and bodies. A failure message names the case and the figures, never a header or a token.
@@ -102,7 +103,13 @@ async function db() {
 // Every request and every seeded row of this file is deleted again, after each case and before the first, so a run that died halfway leaves
 // nothing that counts against the caps of the next.
 async function clearRequests() {
-    await (await db()).query('DELETE FROM quote_requests WHERE customer_email LIKE ?', [`${EMAIL_PREFIX}%`]);
+    const open = await db();
+    // ENG-018 security B1: a quote request's notice spends the kind's day for the platform, and its e-mail the address's day and the kind's day for the platform,
+    // so what a case spent goes with its requests and cannot refuse a later spec's notice.
+    const [posted] = /** @type {any[]} */ (await open.query('SELECT customer_email FROM quote_requests WHERE customer_email LIKE ?', [`${EMAIL_PREFIX}%`]));
+    const scopes = [budgetScope('kind-platform', 'quote_requested'), budgetScope('mail-kind', 'quote_requested'), ...posted.map((row) => budgetScope('mail', 'quote_requested', String(row.customer_email).toLowerCase()))];
+    await open.query('DELETE FROM sms_budget WHERE scope IN (?)', [scopes]);
+    await open.query('DELETE FROM quote_requests WHERE customer_email LIKE ?', [`${EMAIL_PREFIX}%`]);
 }
 
 test.beforeAll(clearRequests);

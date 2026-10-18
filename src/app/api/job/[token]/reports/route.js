@@ -1,7 +1,9 @@
 // An on-site report is sent from the job link (ENG-017): one of five one-tap reports, a note and a photo. Whoever has access to the link may send one: a
-// cleaner who is signed in and checked in, the job's provider or an admin. The report waits on the office; nothing is charged, and nothing is sent to
-// anyone, by this route. The server decides what the file is from its bytes and never from the name or the type the sender gave it. The phone's position
-// is recorded when it is usable and is never a reason to refuse a report. Every answer says no-store.
+// cleaner who is signed in and checked in, the job's provider or an admin. The report waits on the office; nothing is charged. Once the answer has gone,
+// the job's provider and each admin are told by text and by e-mail that a report came in (ENG-018), by the notice and not by this route's own code, and
+// only for a report this call saved: a send repeated with the same client_token tells no one more. The notice names the job and one of the five types,
+// never the note or the photo. The server decides what the file is from its bytes and never from the name or the type the sender gave it. The phone's
+// position is recorded when it is usable and is never a reason to refuse a report. Every answer says no-store.
 
 import { NextResponse } from 'next/server'
 import { execute, withConnection } from '@/lib/db'
@@ -10,6 +12,8 @@ import { LINK_MESSAGES, findJobLink, resolveAccess } from '@/lib/job-link'
 import { CODE_MESSAGES } from '@/lib/job-link-code'
 import { PHOTO_MAX_BYTES } from '@/lib/job-photo-store'
 import { REPORT_MESSAGES, reportsFor, saveReport } from '@/lib/job-reports'
+import { afterCommit } from '@/lib/notices'
+import { noticeReport } from '@/lib/notice-events'
 import { readCappedBody } from '@/lib/read-capped-body'
 
 function reply(body, status = 200) {
@@ -86,6 +90,7 @@ export async function POST(request, { params }) {
       clientToken: sent === null || sent === '' ? null : sent,
     })
     if (saved.ok) {
+      if (!saved.again) afterCommit(() => noticeReport(execute, { reportId: saved.report.id }))
       return reply({ success: true, data: { report: saved.report, reports: await reportsFor(execute, link.booking_id), again: saved.again } })
     }
     switch (saved.reason) {

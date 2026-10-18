@@ -111,7 +111,9 @@ test.describe('Pins: the money path', () => {
     });
 });
 
-test.describe('Pins: nothing is sent', () => {
+test.describe('Pins: the report files send nothing themselves', () => {
+    // Since ENG-018 the report route does cause a notice, and it does so by handing the saved report's id to src/lib/notice-events.js (the first case below
+    // pins that import); no file named here reaches a transport on its own.
     // The senders of src/: sendEmail (src/lib/email.js), sendSMS (src/lib/sms.js), sendPushNotification and notifyUser (src/lib/push.js).
     const SENDERS = ['sendEmail', 'sendSMS', 'sendPushNotification', 'notifyUser'];
     const SENDER_MODULES = /from\s+['"][^'"]*\/(?:email|sms|push)(?:\.js)?['"]/;
@@ -123,6 +125,7 @@ test.describe('Pins: nothing is sent', () => {
             for (const sender of SENDERS) expect(new RegExp(`\\b${sender}\\b`).test(code), `${file} names ${sender}`).toBe(false);
             expect(SENDER_MODULES.test(code), `${file} imports src/lib/email.js, sms.js or push.js`).toBe(false);
         }
+        expect(/from\s+['"]@\/lib\/notice-events['"]/.test(codeOf(SELF_ROUTE)), `${SELF_ROUTE} hands the report to src/lib/notice-events.js`).toBe(true);
     });
 
     test('Pins: the sender names are real ones, each named by files of src/ outside the files checked', () => {

@@ -10,6 +10,8 @@ import { requireCaller } from '@/lib/api-auth';
 import { execute, withConnection } from '@/lib/db';
 import { CREW_MESSAGES, idFromPath, raceMessage } from '@/lib/booking-crew';
 import { LINK_MESSAGES, createJobLink, managedView, reissueLink, switchOffLink } from '@/lib/job-link';
+import { afterCommit } from '@/lib/notices';
+import { noticeJobLink } from '@/lib/notice-events';
 
 function reply(body, status = 200) {
   return NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -57,7 +59,8 @@ export async function GET(request, { params }) {
 // idempotent and allowed on a finished job. reissue is a new token and a new generation, and needs the generation the caller last saw, so two
 // people racing do not each end up holding a token the other killed. 200 { success: true, data: { job_link } }. 404 for a job that is not the
 // caller's; 409 for a finished job (create, reissue), a job with nobody on its crew (create) and a generation that is not current (reissue), or
-// a save that lost a race; 400 for a body that is not one of those.
+// a save that lost a race; 400 for a body that is not one of those. Once the answer has gone, create and reissue text the link to each cleaner on
+// the crew whose number is checked (ENG-018); off texts no one.
 export async function POST(request, { params }) {
   const auth = await requireCaller(request, ['provider']);
   // The refusal says no-store as every answer here does. The header goes on before the check so that the check reads `if (!auth.ok) return auth.response`.
@@ -87,6 +90,7 @@ export async function POST(request, { params }) {
       const [status, message] = REFUSALS[done.reason];
       return refusal(status, message);
     }
+    if (body.action !== 'off') afterCommit(() => noticeJobLink(execute, { bookingId }));
     return reply({ success: true, data: { job_link: done.job_link } });
   } catch (error) {
     const message = raceMessage(error);

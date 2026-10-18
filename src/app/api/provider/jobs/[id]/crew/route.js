@@ -7,6 +7,8 @@ import { NextResponse } from 'next/server';
 import { requireCaller } from '@/lib/api-auth';
 import { execute, withConnection } from '@/lib/db';
 import { CREW_MESSAGES, assignedCrew, crewEditable, crewIdsOf, idFromPath, inTransaction, raceMessage, setBookingCrew } from '@/lib/booking-crew';
+import { afterCommit } from '@/lib/notices';
+import { noticeJobLink } from '@/lib/notice-events';
 
 // The body of a refusal: { success, message } as the neighbouring routes answer.
 function refusal(status, message) {
@@ -68,6 +70,9 @@ export async function PUT(request, { params }) {
       const [status, message] = REFUSALS[saved.reason];
       return refusal(status, message);
     }
+    // A cleaner put on the job is texted its link once this answer has gone, when the job has one that is on (ENG-018): the members `added` by this save and no
+    // one else, so saving the same list again texts no one.
+    if (saved.added.length > 0) afterCommit(() => noticeJobLink(execute, { bookingId, memberIds: saved.added.map((member) => member.id) }));
     return NextResponse.json({ success: true, data: { crew: saved.crew, added: saved.added, removed: saved.removed } });
   } catch (error) {
     const message = raceMessage(error);

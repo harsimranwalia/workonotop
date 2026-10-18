@@ -4,7 +4,7 @@
 // card number, then names the SetupIntent to the server (POST .../confirm), which believes only Stripe's answer. The card number never reaches this server.
 // Nothing is charged here: the one charge is taken when the job is done. The token is read from the address once and kept in the page's props; it is not written
 // to storage, to the title or to the console. A return from a bank's own authentication page brings the SetupIntent id in the query; it is confirmed and the query is
-// cleared from the address.
+// cleared from the address. A reload is handed the same card entry (the server keeps it), and a confirm that fails at Stripe asks for a new one (ENG-013 F7).
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
@@ -98,7 +98,8 @@ function Summary({ booking }) {
   );
 }
 
-// The card field and the button. `onSaved(card)` is called when the server has the card; `onFailure(kind)` when the entry cannot go on.
+// The card field and the button. `onSaved(card)` is called when the server has the card; `onFailure(kind, text)` when the entry cannot go on, with
+// 'retry' and Stripe's words when the confirm failed and the page should start a new entry.
 function CardEntry({ confirmPath, onSaved, onFailure }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -119,7 +120,15 @@ function CardEntry({ confirmPath, onSaved, onFailure }) {
       confirmParams: { return_url: `${window.location.origin}${window.location.pathname}` },
     });
     if (result.error) {
-      setError(result.error.message || NOT_SAVED_TEXT);
+      if (result.error.type === 'validation_error') {
+        // Stripe.js refused the fields before anything was sent (an incomplete card number, say): the entry is as it was, so the form stays as it is.
+        setError(result.error.message || NOT_SAVED_TEXT);
+      } else {
+        // The confirm reached Stripe and failed. Whoever holds this client secret can confirm the same SetupIntent again and this server never sees it,
+        // so the page asks for a new entry instead: the server reads the failure on the old one and spends one of the link's tries on the next.
+        onFailure('retry', result.error.message || NOT_SAVED_TEXT);
+        return;
+      }
     } else if (result.setupIntent && result.setupIntent.status === 'succeeded') {
       const saved = await sendJson(confirmPath, { setup_intent_id: result.setupIntent.id });
       if (saved.status === 200 && saved.data && saved.data.success === true) {
@@ -246,9 +255,15 @@ export default function CardForm({ token }) {
     if (view !== 'loading' && view !== 'ready' && headingRef.current) headingRef.current.focus();
   }, [view]);
 
-  const finish = useCallback((next) => {
-    if (next === 'onfile') setAttempt((n) => n + 1);
-    else setView(next);
+  const finish = useCallback((next, text) => {
+    if (next === 'onfile') {
+      setAttempt((n) => n + 1);
+    } else if (next === 'retry') {
+      setNotice(text || NOT_SAVED_TEXT);
+      setAttempt((n) => n + 1);
+    } else {
+      setView(next);
+    }
   }, []);
   const saved = useCallback((savedCard) => {
     setCard(savedCard || null);

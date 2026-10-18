@@ -10,6 +10,8 @@ import { execute } from '@/lib/db';
 import { sendSMS } from '@/lib/sms';
 import { CREW_MESSAGES, idFromPath, raceMessage } from '@/lib/booking-crew';
 import { askNumberCheck, confirmNumberCheck } from '@/lib/crew-number-check';
+import { afterCommit } from '@/lib/notices';
+import { noticeJobLinksOfMember } from '@/lib/notice-events';
 
 function reply(body, status = 200) {
   return NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -21,7 +23,8 @@ function refusal(status, message) {
 
 // Provider only. Body { action: 'ask' } or { action: 'confirm', code }. ask texts a six-digit code to the member's number and answers 200
 // { success: true, data: { asked: true, sent } }; sent is false when the text could not be sent (no texting service is set up, or the service
-// refused), and the code is made either way. 409 says why a code was not made: the number is not Canadian, a code was asked for in the last minute,
+// refused), and the code is made either way. 403 when the provider's account is not active (an ask spends the platform's day of texts, so it is
+// refused before anything is spent). 409 says why a code was not made: the number is not Canadian, a code was asked for in the last minute,
 // or too many were sent today. confirm answers 200 { success: true, data: { checked: true } }; 400 for a wrong code; 409 for a code that has
 // expired, been used up or was never asked for. 404 for a member that is not the caller's active one.
 export async function POST(request, { params }) {
@@ -48,6 +51,9 @@ export async function POST(request, { params }) {
     }
     const confirmed = await confirmNumberCheck({ execute, providerId: auth.caller.id, memberId, code: body.code });
     if (!confirmed.ok) return refusal(confirmed.status, confirmed.message);
+    // The cleaner whose number has just been proved is texted the link of each open job they are on that has one on (ENG-018), once this answer has gone: a
+    // number that was unchecked when the link was made was refused then, and this is the first moment it can be reached.
+    afterCommit(() => noticeJobLinksOfMember(execute, { memberId }));
     return reply({ success: true, data: { checked: true } });
   } catch (error) {
     const message = raceMessage(error);

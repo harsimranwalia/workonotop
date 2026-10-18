@@ -10,7 +10,8 @@
 //        key (the dev stack has none, so nothing is changed by it), the 409 of a link that has its card; and, in this process with a scripted Stripe
 //        client over the same dev database, startCardSetup and saveCardSetup of src/lib/booking-card.js: one off-session card SetupIntent and no
 //        payment call, the cap of ten tries, a card saved from Stripe's answer and from nothing the caller says, five SetupIntents that are refused,
-//        one save for each issue of a link, and a replacement card after a reissue;
+//        one save for each issue of a link, and a replacement card after a reissue; and (ENG-013 F7, added by ENG-018) an open card entry that a
+//        reload is handed again for no try, a failed confirm that is not handed out again, and the reissue that drops an open entry;
 //   AC6  the admin routes refuse a customer (403), a provider (403) and a caller with no credential (401), and write nothing.
 // The cases of AC5 that need a booking in a given state seed the booking and its link with SQL, so that they do not depend on the admin's route; the
 // cases of AC1 to AC4 and AC6 ask the running app. The database is the dev database the way e2e/quote-request.spec.js reaches it (assertDevTarget
@@ -473,13 +474,14 @@ async function seedBooking(status = 'pending') {
 }
 
 // A card link for a booking, written with SQL. The token is made as the app makes one and only its hash is stored. `customer` is the Stripe customer
-// the link already has; `expired` puts the expiry a minute in the past; `card` makes it a link that has taken its card.
-async function seedLink(bookingId, { customer = null, attempts = 0, expired = false, card = null } = {}) {
+// the link already has; `expired` puts the expiry a minute in the past; `card` makes it a link that has taken its card; `setup` is the id of the open
+// card entry a page was already handed (a link that has taken its card keeps the id of the SetupIntent that saved it instead).
+async function seedLink(bookingId, { customer = null, attempts = 0, expired = false, card = null, setup = null } = {}) {
     const { token, hash } = newCardToken();
     const [made] = /** @type {any} */ (await (await db()).query(
         `INSERT INTO booking_card_links (booking_id, token_hash, expires_at, attempts, stripe_customer_id, setup_intent_id, payment_method_id, card_brand, card_last4, used_at)
          VALUES (?, ?, ${expired ? 'DATE_SUB(NOW(), INTERVAL 1 MINUTE)' : 'DATE_ADD(NOW(), INTERVAL 14 DAY)'}, ?, ?, ?, ?, ?, ?, ${card ? 'NOW()' : 'NULL'})`,
-        [bookingId, hash, attempts, customer, card ? 'seti_e2e_seed' : null, card ? 'pm_e2e_seed' : null, card ? card.brand : null, card ? card.last4 : null],
+        [bookingId, hash, attempts, customer, card ? 'seti_e2e_seed' : setup, card ? 'pm_e2e_seed' : null, card ? card.brand : null, card ? card.last4 : null],
     ));
     return { id: /** @type {number} */ (made.insertId), token };
 }
@@ -523,12 +525,22 @@ function scriptedStripe(script = {}) {
 }
 
 const paymentCalls = (stripe) => stripe.calls.filter(([method]) => method.startsWith('paymentIntents.'));
+const callsTo = (stripe, method) => stripe.calls.filter(([name]) => name === method);
 
 // The SetupIntent Stripe gives for a card that was saved from this link's page: the payment method arrives expanded, as the retrieve asks for.
 function succeededIntent(linkId, over = {}) {
     return {
         id: 'seti_e2e_1', status: 'succeeded', customer: 'cus_e2e_1', usage: 'off_session', metadata: { card_link_id: String(linkId) },
         payment_method: { id: 'pm_e2e_1', type: 'card', customer: 'cus_e2e_1', card: { brand: 'visa', last4: '4242' } },
+        ...over,
+    };
+}
+
+// The SetupIntent Stripe gives for a card entry that is still open: waiting for a card, no failed confirm on it, on the link's customer, with its secret.
+function openIntent(linkId, over = {}) {
+    return {
+        id: 'seti_e2e_1', status: 'requires_payment_method', customer: 'cus_e2e_1', usage: 'off_session', metadata: { card_link_id: String(linkId) },
+        client_secret: 'seti_e2e_1_secret_abc', last_setup_error: null,
         ...over,
     };
 }
@@ -956,6 +968,206 @@ test.describe('On-behalf booking and the card link', () => {
         const { id, link } = await seeded({ customer: 'cus_e2e_1' });
         expect(await startCardSetup(null, execute, link), 'the entry is unavailable').toEqual({ ok: false, reason: 'unavailable' });
         expect(Number((await linkRow(id)).attempts), 'no try was spent').toBe(0);
+    });
+
+    test('(ENG-013 F7) a card entry on a link that already has an open SetupIntent is handed the same client secret and spends no try, however many times the page loads', async () => {
+        const { id, token, link } = await seeded({ customer: 'cus_e2e_1' });
+        const stripe = scriptedStripe({
+            'setupIntents.create': { id: 'seti_e2e_1', client_secret: 'seti_e2e_1_secret_abc' },
+            'setupIntents.retrieve': openIntent(link.id),
+        });
+        expect(await startCardSetup(stripe, execute, link), 'the first load starts an entry').toEqual({ ok: true, client_secret: 'seti_e2e_1_secret_abc' });
+        expect((await linkRow(id)).setup_intent_id, 'the link keeps the SetupIntent its page was handed').toBe('seti_e2e_1');
+        expect(callsTo(stripe, 'setupIntents.retrieve'), 'a first entry has nothing to read').toEqual([]);
+
+        for (let reload = 1; reload <= 3; reload += 1) {
+            const again = await findCardLink(execute, token);
+            expect(await startCardSetup(stripe, execute, again), `reload ${reload} is handed the same entry`).toEqual({ ok: true, client_secret: 'seti_e2e_1_secret_abc' });
+        }
+        expect(callsTo(stripe, 'setupIntents.create').length, 'one SetupIntent was made for four loads').toBe(1);
+        expect(callsTo(stripe, 'setupIntents.retrieve'), 'each reload read the kept SetupIntent by its id and nothing else').toEqual([
+            ['setupIntents.retrieve', 'seti_e2e_1'], ['setupIntents.retrieve', 'seti_e2e_1'], ['setupIntents.retrieve', 'seti_e2e_1'],
+        ]);
+        expect(Number((await linkRow(id)).attempts), 'four loads spent one try').toBe(1);
+        expect(paymentCalls(stripe), 'a card entry holds and charges nothing').toEqual([]);
+    });
+
+    test('(ENG-013 F7) a SetupIntent with a failed confirm on it is not handed out again: the next entry is a new SetupIntent, spends a try, and is the one the link keeps', async () => {
+        const { id, link } = await seeded({ customer: 'cus_e2e_1', attempts: 1, setup: 'seti_e2e_old' });
+        const stripe = scriptedStripe({
+            'setupIntents.retrieve': openIntent(link.id, { id: 'seti_e2e_old', client_secret: 'seti_e2e_old_secret_abc', last_setup_error: { type: 'card_error', code: 'card_declined' } }),
+            'setupIntents.create': { id: 'seti_e2e_new', client_secret: 'seti_e2e_new_secret_abc' },
+        });
+        expect(await startCardSetup(stripe, execute, link), 'the page is given a different entry').toEqual({ ok: true, client_secret: 'seti_e2e_new_secret_abc' });
+        expect(callsTo(stripe, 'setupIntents.create').length, 'one new SetupIntent').toBe(1);
+        const row = await linkRow(id);
+        expect(Number(row.attempts), 'the failed confirm cost a try').toBe(2);
+        expect(row.setup_intent_id, 'the link keeps the new SetupIntent').toBe('seti_e2e_new');
+    });
+
+    // A SetupIntent the link kept that is not an open entry of this link is never handed out. Each way it can fail to be one is a case of its own.
+    const NOT_OPEN = [
+        ['belongs to another link', { metadata: { card_link_id: '999999999' } }],
+        ['has no metadata', { metadata: undefined }],
+        ['is on another customer', { customer: 'cus_e2e_other' }],
+        ['is on no customer', { customer: null }],
+        ['is for on-session use', { usage: 'on_session' }],
+        ['has succeeded', { status: 'succeeded' }],
+        ['was canceled', { status: 'canceled' }],
+        ['needs an action', { status: 'requires_action' }],
+        ['is processing', { status: 'processing' }],
+        ['has no client secret', { client_secret: undefined }],
+        ['has a client secret that is not text', { client_secret: 12345 }],
+        ['has an empty client secret', { client_secret: '' }],
+    ];
+    for (const [name, change] of NOT_OPEN) {
+        test(`(ENG-013 F7) a kept SetupIntent that ${name} is not handed out: the page is given a new entry, which spends a try and is the one the link keeps`, async () => {
+            const { id, link } = await seeded({ customer: 'cus_e2e_1', attempts: 1, setup: 'seti_e2e_kept' });
+            const stripe = scriptedStripe({
+                'setupIntents.retrieve': openIntent(link.id, { id: 'seti_e2e_kept', ...change }),
+                'setupIntents.create': { id: 'seti_e2e_made', client_secret: 'seti_e2e_made_secret_abc' },
+            });
+            expect(await startCardSetup(stripe, execute, link), 'the page is given a new entry').toEqual({ ok: true, client_secret: 'seti_e2e_made_secret_abc' });
+            const row = await linkRow(id);
+            expect([Number(row.attempts), row.setup_intent_id], 'it spent a try and the link keeps the new SetupIntent').toEqual([2, 'seti_e2e_made']);
+        });
+    }
+
+    test('(ENG-013 F7) a kept SetupIntent on a link that has no Stripe customer is not handed out: without a customer on the link there is no saying whose an entry is', async () => {
+        const { id, link } = await seeded({ attempts: 1, setup: 'seti_e2e_kept' });
+        const stripe = scriptedStripe({
+            'setupIntents.retrieve': openIntent(link.id, { id: 'seti_e2e_kept' }),
+            'customers.create': { id: 'cus_e2e_1' },
+            'setupIntents.create': { id: 'seti_e2e_made', client_secret: 'seti_e2e_made_secret_abc' },
+        });
+        expect(await startCardSetup(stripe, execute, link), 'the page is given a new entry').toEqual({ ok: true, client_secret: 'seti_e2e_made_secret_abc' });
+        const row = await linkRow(id);
+        expect([Number(row.attempts), row.setup_intent_id], 'it spent a try and the link keeps the new SetupIntent').toEqual([2, 'seti_e2e_made']);
+    });
+
+    test('(ENG-013 F7) a kept SetupIntent that Stripe does not know or cannot be asked about is not handed out: the page is given a new entry, and a failed read is one fixed line', async () => {
+        const unknown = Object.assign(new Error('No such setupintent: seti_e2e_kept'), { type: 'StripeInvalidRequestError', code: 'resource_missing', statusCode: 404 });
+        const unreachable = Object.assign(new Error('An error occurred with our connection to Stripe for seti_e2e_kept'), { type: 'StripeConnectionError' });
+        const logged = [];
+        const original = console.error;
+        console.error = (...args) => { logged.push(args.map(String).join(' ')); };
+        try {
+            for (const [name, failure] of [['Stripe does not know it', unknown], ['Stripe cannot be reached', unreachable]]) {
+                const { id, link } = await seeded({ customer: 'cus_e2e_1', attempts: 1, setup: 'seti_e2e_kept' });
+                const stripe = scriptedStripe({
+                    'setupIntents.retrieve': failure,
+                    'setupIntents.create': { id: 'seti_e2e_made', client_secret: 'seti_e2e_made_secret_abc' },
+                });
+                expect(await startCardSetup(stripe, execute, link), `${name}: the page is given a new entry`).toEqual({ ok: true, client_secret: 'seti_e2e_made_secret_abc' });
+                const row = await linkRow(id);
+                expect([Number(row.attempts), row.setup_intent_id], `${name}: it spent a try and the link keeps the new SetupIntent`).toEqual([2, 'seti_e2e_made']);
+            }
+        } finally {
+            console.error = original;
+        }
+        expect(logged, 'Stripe not knowing the id is no line; a read that failed is one line with the error type and none of its text').toEqual(['A card entry could not be read: StripeConnectionError']);
+    });
+
+    test('(ENG-013 F7) a link its reader did not find usable is not handed its open entry: the count decides, the link is dead, and Stripe is not asked', async () => {
+        const unusable = [
+            ['expired', { expired: true }],
+            ['used', { card: { brand: 'visa', last4: '4242' } }],
+            ['exhausted', { attempts: CARD_LINK_ATTEMPTS }],
+        ];
+        for (const [state, options] of unusable) {
+            const { id, link } = await seeded({ customer: 'cus_e2e_1', setup: 'seti_e2e_kept', ...options });
+            expect(link.state, `${state}: the link reads as it is`).toBe(state);
+            expect(link.setup_intent_id, `${state}: the link has an entry to hand out`).toBeTruthy();
+            const before = await linkRow(id);
+            const stripe = scriptedStripe({
+                'setupIntents.retrieve': openIntent(link.id, { id: link.setup_intent_id }),
+                'setupIntents.create': { id: 'seti_e2e_made', client_secret: 'seti_e2e_made_secret_abc' },
+            });
+            expect(await startCardSetup(stripe, execute, link), `${state}: no entry`).toEqual({ ok: false, reason: 'dead' });
+            expect(stripe.calls, `${state}: nothing was asked of Stripe`).toEqual([]);
+            expect(await linkRow(id), `${state}: the link is as it was`).toEqual(before);
+        }
+    });
+
+    test('(ENG-013 F7) ten failed confirms use the ten tries, one new SetupIntent each, and the link is then spent', async () => {
+        const { id, token, link } = await seeded({ customer: 'cus_e2e_1' });
+        let made = 0;
+        const stripe = scriptedStripe({
+            'setupIntents.create': () => { made += 1; return { id: `seti_e2e_${made}`, client_secret: `seti_e2e_${made}_secret_abc` }; },
+            'setupIntents.retrieve': (setupId) => openIntent(link.id, { id: setupId, last_setup_error: { type: 'card_error', code: 'card_declined' } }),
+        });
+        for (let entry = 1; entry <= CARD_LINK_ATTEMPTS; entry += 1) {
+            const current = await findCardLink(execute, token);
+            expect(current.state, `entry ${entry}: the link is still usable`).toBe('ok');
+            expect((await startCardSetup(stripe, execute, current)).ok, `entry ${entry} starts`).toBe(true);
+        }
+        const spent = await findCardLink(execute, token);
+        expect(spent.state, 'ten failures spend the link').toBe('exhausted');
+        expect(await startCardSetup(stripe, execute, spent), 'an eleventh entry is refused').toEqual({ ok: false, reason: 'dead' });
+        expect(callsTo(stripe, 'setupIntents.create').length, 'ten SetupIntents were made and no eleventh').toBe(CARD_LINK_ATTEMPTS);
+        expect(Number((await linkRow(id)).attempts), 'the link counts ten tries').toBe(CARD_LINK_ATTEMPTS);
+    });
+
+    test('(ENG-013 F7) an entry whose id cannot be kept still starts, and so does one whose answer has no id; neither is kept', async () => {
+        const logged = [];
+        const original = console.error;
+        console.error = (...args) => { logged.push(args.map(String).join(' ')); };
+        try {
+            const first = await seeded({ customer: 'cus_e2e_1' });
+            const refusing = (sql, params) => (/SET setup_intent_id/.test(sql)
+                ? Promise.reject(Object.assign(new Error('write refused for seti_e2e_1'), { code: 'ER_E2E_REFUSED' }))
+                : execute(sql, params));
+            const stripe = scriptedStripe({ 'setupIntents.create': { id: 'seti_e2e_1', client_secret: 'seti_e2e_1_secret_abc' } });
+            expect(await startCardSetup(stripe, refusing, first.link), 'the entry starts although its id was not kept').toEqual({ ok: true, client_secret: 'seti_e2e_1_secret_abc' });
+            const row = await linkRow(first.id);
+            expect([Number(row.attempts), row.setup_intent_id], 'the try was spent and nothing was kept').toEqual([1, null]);
+
+            const second = await seeded({ customer: 'cus_e2e_1' });
+            const bare = scriptedStripe({ 'setupIntents.create': { client_secret: 'seti_e2e_2_secret_abc' } });
+            expect(await startCardSetup(bare, execute, second.link), 'an answer with no id still starts the entry').toEqual({ ok: true, client_secret: 'seti_e2e_2_secret_abc' });
+            expect((await linkRow(second.id)).setup_intent_id, 'an answer with no id keeps nothing').toBeNull();
+        } finally {
+            console.error = original;
+        }
+        expect(logged, 'a write that failed is one line with the error code and none of the error text').toEqual(['A card entry could not be kept: ER_E2E_REFUSED']);
+    });
+
+    test('(ENG-013 F7) an entry made while a card was being saved does not take the saved card\'s SetupIntent id from the link', async () => {
+        const { id, link } = await seeded({ customer: 'cus_e2e_1' });
+        const stripe = scriptedStripe({
+            'setupIntents.create': async () => {
+                await execute("UPDATE booking_card_links SET setup_intent_id = 'seti_e2e_saved', used_at = NOW() WHERE id = ?", [id]);
+                return { id: 'seti_e2e_late', client_secret: 'seti_e2e_late_secret_abc' };
+            },
+        });
+        expect((await startCardSetup(stripe, execute, link)).ok, 'the entry starts').toBe(true);
+        const row = await linkRow(id);
+        expect(row.setup_intent_id, 'the saved card keeps its SetupIntent').toBe('seti_e2e_saved');
+        expect(row.used_at, 'and the link stays used').not.toBeNull();
+    });
+
+    test('(ENG-013 F7) a reissue drops the open entry of the old link, so the new link is never handed a client secret the old one was', async ({ request, baseURL }) => {
+        const as = await headersFor(baseURL);
+        const { bookingId, id, link } = await seeded({ customer: 'cus_e2e_1' });
+        let made = 0;
+        const stripe = scriptedStripe({
+            'setupIntents.create': () => { made += 1; return { id: `seti_e2e_${made}`, client_secret: `seti_e2e_${made}_secret_abc` }; },
+            'setupIntents.retrieve': (setupId) => openIntent(link.id, { id: setupId }),
+        });
+        expect((await startCardSetup(stripe, execute, link)).client_secret, 'the old link is handed an entry').toBe('seti_e2e_1_secret_abc');
+        expect((await linkRow(id)).setup_intent_id, 'and keeps it').toBe('seti_e2e_1');
+
+        const issued = await call(request, 'POST', `/api/admin/bookings/${bookingId}/card-link`, as.admin, undefined);
+        expect(issued.status(), 'the admin reissues the link').toBe(200);
+        const fresh = tokenOf((await issued.json()).card_link.path);
+        const row = await linkRow(id);
+        expect([row.setup_intent_id, Number(row.attempts)], 'the old entry is dropped and the tries are cleared').toEqual([null, 0]);
+
+        const reissued = await findCardLink(execute, fresh);
+        expect(await startCardSetup(stripe, execute, reissued), 'the new link is given an entry of its own').toEqual({ ok: true, client_secret: 'seti_e2e_2_secret_abc' });
+        expect(callsTo(stripe, 'setupIntents.retrieve'), 'the old entry was never read for the new link').toEqual([]);
+        expect(callsTo(stripe, 'setupIntents.create').length, 'two SetupIntents, one for each issue').toBe(2);
+        expect(Number((await linkRow(id)).attempts), 'the new issue spent one try').toBe(1);
     });
 
     test('a succeeded SetupIntent saves the brand and last four that Stripe gives and marks the link used', async () => {

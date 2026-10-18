@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server'
 import { execute, query, getConnection } from '@/lib/db'
 import { requireCaller } from '@/lib/api-auth'
 import { notifyUser } from '@/lib/push'
-import { sendEmail } from '@/lib/email'
-import { OPEN_ON_MARKETPLACE, offerOf } from '@/lib/marketplace'
+import { afterCommit } from '@/lib/notices'
+import { noticeClaimed } from '@/lib/notice-events'
+import { OPEN_ON_MARKETPLACE, offerOf, providerIsActive } from '@/lib/marketplace'
+import { CHECK_MESSAGES } from '@/lib/crew-number-check'
 
 export const dynamic = 'force-dynamic';
 
@@ -307,6 +309,11 @@ export async function POST(request) {
   try {
     const providerId = auth.caller.id;
 
+    // Before the body is read and before the transaction takes the booking: a provider who is not active is refused with nothing written and nothing sent.
+    if (!(await providerIsActive(providerId))) {
+      return NextResponse.json({ success: false, message: CHECK_MESSAGES.notActive }, { status: 403, headers: { 'Cache-Control': 'no-store' } })
+    }
+
     const { booking_id } = await request.json()
     if (!booking_id) return NextResponse.json({ success: false, message: 'booking_id is required' }, { status: 400 })
 
@@ -383,6 +390,10 @@ export async function POST(request) {
           ).catch(e => console.warn('[Push] notify customer error:', e.message));
         }
       } catch (_) { }
+
+      // The customer and the provider are told by text and by e-mail once this answer has gone (ENG-018): this route serves the claim of an open job and the
+      // accept of one assigned to the provider alike, and the same provider on the same job is told once. The push above stays as it was.
+      afterCommit(() => noticeClaimed(execute, { bookingId: Number(job.id), providerId: Number(providerId) }))
 
       const basePrice = parseFloat(job.service_price || 0)
       const otRate = parseFloat(job.overtime_rate || 0)

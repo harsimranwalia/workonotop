@@ -905,6 +905,27 @@ const tables = [
     KEY idx_sms_budget_window (window_started_at)
   )`,
 
+  // notice_attempts: one row for every text or e-mail the app tries to send about an event (ENG-018, database/migrations/0011-notice-attempts.up.sql).
+  // The row is claimed under a unique event_key before anything is sent, so two requests that race for one notice send once, and it is the record that
+  // an attempt was made when no credential exists. It holds ids and outcome codes and never a number, an address, a name, a body or a link. The
+  // migration sets the engine and collation; this file leaves them to the server default.
+  `CREATE TABLE IF NOT EXISTS notice_attempts (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    event_key CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL,
+    kind VARCHAR(24) NOT NULL,
+    channel ENUM('sms','email') NOT NULL,
+    recipient_kind ENUM('customer','provider','cleaner','admin') NOT NULL,
+    recipient_ref INT NULL,
+    booking_id INT NULL,
+    outcome VARCHAR(16) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    settled_at TIMESTAMP NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_notice_attempts_key (event_key),
+    KEY idx_notice_attempts_booking (booking_id, created_at),
+    KEY idx_notice_attempts_created (created_at)
+  )`,
+
   // crew_number_checks: a code the provider asks for to prove a number is the cleaner's and, once used_at is set, the proof. A number is checked
   // while a used row exists for the member and the member's current phone.
   `CREATE TABLE IF NOT EXISTS crew_number_checks (
