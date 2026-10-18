@@ -5258,6 +5258,72 @@
     },
     "static-pages.spec.js › Static Pages › should show 404 for non-existent page": {
       "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › a failed history write rolls the move back and is thrown": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › a full reversal fails the payout, flagged reversed or only reported as the whole amount reversed": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › a partial reversal keeps the status and writes one line for each amount": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › a payout with no booking is moved and writes no history line": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › a transfer.reversed that reverses nothing changes nothing, in every status a payout can be moved from": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › an event ahead of its payout row is answered 503 without waiting on the writer, and lands when it is sent again": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › an event for a transfer that no payout was made for is answered 200 and writes nothing": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › an event for an unknown transfer that was made for a payout is answered 503 and writes nothing": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › an event moves the payout that carries its transfer id and no other payout, not even one of the same booking": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › events in any order only move a payout forward": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › no transfer event changes the provider balances, the retired transfer.paid included": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › reversalOf tells a full reversal, a partial one and none from the transfer alone": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › the library, given an event type it does not know, moves no payout": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › the route answers 500 when the database refuses the history write, leaves the payout pending, and records the event when it is sent again": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › the route refuses an unsigned request and a changed body, ignores transfer.updated and answers its ping": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › the same event twice, or ten at once, changes the payout once": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › the same partial reversal ten at once writes one line": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events › transfer.created marks the payout of that transfer paid at the time Stripe sent it, with one history line": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events, source pins › every transfer that is written to a payout carries the provider id": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events, source pins › the library finds the payouts of a transfer with no lock and locks them one at a time by key": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events, source pins › the library names no balance and moves a payout only by its key": {
+      "outcome": "PASS"
+    },
+    "transfer-events.spec.js › Transfer events, source pins › the route checks the signature first, keeps no handler of its own for the transfer events and cannot match a payout by its booking": {
+      "outcome": "PASS"
     }
   }
 }

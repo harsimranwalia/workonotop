@@ -1288,12 +1288,12 @@ export const matrix = [
     },
     {
         route: '/api/stripe/webhook', method: 'GET', today: 'none', kind: 'public', public: 'health ping, returns no data', owner: '-',
-        note: 'Returns {message,timestamp} only (L385-390); harmless. Probe measured on the dev app at 04:51 on 2026-10-02 with no credential and no body: 200.',
+        note: 'Returns {message,timestamp} only (the GET handler); harmless. Probe measured on the dev app at 04:51 on 2026-10-02 with no credential and no body: 200.',
         probe: { path: '/api/stripe/webhook', body: undefined, anon: [200] },
     },
     {
         route: '/api/stripe/webhook', method: 'POST', today: 'full', kind: 'self', self: 'Stripe signature, verified before any branch (unchanged)', owner: '-',
-        note: 'Signature verified once (L41) before the event switch (L51), so every branch is covered; fails … Probe measured on the dev app at 04:51 on 2026-10-02 with no credential and an empty JSON body: 400 \'Missing stripe-signature header\'. 500 is accepted for a server with no webhook secret.',
+        note: 'Signature verified once (constructEvent in POST) before the event switch, so every branch is covered, the four transfer events ENG-027 sends to src/lib/transfer-events.js included; fails … Probe measured on the dev app at 04:51 on 2026-10-02 with no credential and an empty JSON body: 400 \'Missing stripe-signature header\'. 500 is accepted for a server with no webhook secret.',
         probe: { path: '/api/stripe/webhook', body: {}, anon: [400, 500] },
     },
     {
