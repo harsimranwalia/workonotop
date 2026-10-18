@@ -14,7 +14,8 @@
 // The cases (the numbers are this file's own):
 //   C1-C3  POST /api/provider/available-jobs for a signed-in provider whose status is inactive, pending, suspended: 403 with the words and no-store, the
 //          booking keeps provider_id NULL and its status, no notice row is written, and neither the customer's number nor the provider's day is spent;
-//          the same provider made active again claims it at once (200) and the booking is theirs
+//          the same provider made active again claims it at once (200) and the booking is theirs; the case ends when that claim's notices are settled
+//          (claimNoticesSettled below), because a claim sends them after its response and the next case must not meet them half done
 //   C4-C6  the same, for POST /api/provider/available-jobs/[id]
 //   C7-C9  the library: noticeClaimed for a booking whose provider is inactive, pending, suspended tells no one: [] and no transport call, no row, and no counter
 //   C10    the library, for an active provider: the customer and the provider are each told by text and by e-mail (so that C7-C9's [] is about a thing that
@@ -154,6 +155,25 @@ const setStatus = (providerId, status) => execute('UPDATE service_providers SET 
 const bookingOf = async (id) => (await rows('SELECT provider_id, status FROM bookings WHERE id = ?', [id]))[0];
 const noticeRowsOf = (bookingId) => rows('SELECT kind, channel, outcome FROM notice_attempts WHERE booking_id = ? ORDER BY id', [bookingId]);
 
+// A claim answers first and sends its notices after the response (afterCommit). It writes four rows, the customer's text and e-mail and the provider's
+// text and e-mail (C10 below pins the four), each 'pending' from its INSERT until its send is settled, and the text budget is spent between those two
+// statements (src/lib/notices.js, deliver). A case that ends with a claim waits here until the four rows are settled: otherwise the last statements of
+// the claim's work land inside the next case's sweep and its first read of the counters, and that case reads a count it did not spend (BUG-025). Nothing
+// is spent after the last row settles, so the wait lasts as long as the work does and no longer.
+const CLAIM_NOTICE_ROWS = 4;
+const CLAIM_NOTICES_SETTLE_MS = 20_000;
+
+async function claimNoticesSettled(job) {
+    const until = Date.now() + CLAIM_NOTICES_SETTLE_MS;
+    const done = (found) => found.length >= CLAIM_NOTICE_ROWS && found.every((row) => row.outcome !== 'pending');
+    let found = await noticeRowsOf(job.id);
+    while (!done(found) && Date.now() < until) {
+        await sleep(100);
+        found = await noticeRowsOf(job.id);
+    }
+    expect(done(found), `the claim's four notices are settled within ${CLAIM_NOTICES_SETTLE_MS / 1000} s (rows: ${JSON.stringify(found)})`).toBe(true);
+}
+
 async function usedOf(scope) {
     const found = await rows('SELECT used FROM sms_budget WHERE scope = ?', [scope]);
     return found.length === 0 ? null : Number(found[0].used);
@@ -217,6 +237,7 @@ test.describe('ENG-018 B2: a provider who is not active cannot claim a job, and 
                 const served = await route.claim(request, headers, job);
                 expect([served.status(), (await served.json()).success], 'the same provider, active, claims it at once').toEqual([200, true]);
                 expect(await bookingOf(job.id), 'and the job is theirs').toMatchObject({ provider_id: PROVIDER.id });
+                await claimNoticesSettled(job);
             });
         }
     }
