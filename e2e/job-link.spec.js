@@ -496,7 +496,7 @@ test.describe('Job link: the token, the dead link, the views, the managed routes
             views.adminBearer = await take(await request.get(`/api/job/${token}`, { headers: as.adminBearer }));
             const expectedAccess = { cleaner: 'cleaner', provider: 'provider', adminCookie: 'admin', adminBearer: 'admin' };
             const allowed = {
-                top: ['access', 'crew', 'job', 'photo_can', 'photos', 'timer', 'window', 'you'],
+                top: ['access', 'crew', 'job', 'photo_can', 'photos', 'report_can', 'reports', 'timer', 'window', 'you'],
                 you: ['kind', 'name'],
                 job: ['address', 'days', 'details', 'service_name'],
                 address: ['city', 'line1', 'line2', 'postal_code'],
@@ -716,13 +716,13 @@ test.describe('Job link: the token, the dead link, the views, the managed routes
             const reissued = linkOf(await act(request, as.admin, adminLink(jobId), 'reissue', 1), 'admin reissues', { generation: 2 });
 
             const providerPanel = dataOf(await answerOf(await request.get(providerLink(jobId), { headers: as.provider })), 200, 'provider reads the panel');
-            expect(Object.keys(providerPanel).sort(), "the provider's panel carries no events and no check-in list").toEqual(['crew', 'job_link', 'photos', 'status_open', 'timer', 'window']);
+            expect(Object.keys(providerPanel).sort(), "the provider's panel carries no events and no check-in list").toEqual(['crew', 'job_link', 'photos', 'reports', 'status_open', 'timer', 'window']);
 
             const response = await request.get(adminLink(jobId), { headers: as.admin });
             const text = await response.text();
             expect(response.status(), 'the admin GET answers').toBe(200);
             const data = JSON.parse(text).data;
-            expect(Object.keys(data).sort(), 'the admin view adds the check-ins and the events').toEqual(['checkins', 'crew', 'events', 'job_link', 'photos', 'status_open', 'timer', 'window']);
+            expect(Object.keys(data).sort(), 'the admin view adds the check-ins and the events').toEqual(['checkins', 'crew', 'events', 'job_link', 'photos', 'reports', 'status_open', 'timer', 'window']);
             expect([data.job_link.on, data.job_link.generation, data.job_link.path === reissued.path, data.status_open, data.window.open], 'the link is the reissued one, on, generation 2, and the window is open').toEqual([true, 2, true, true, true]);
 
             const events = data.events;

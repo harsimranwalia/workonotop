@@ -279,6 +279,32 @@ export function priceJobPastQuote(service, items, answers, discounts) {
   return second.ok ? { ...second, quote_flags: flags } : second
 }
 
+// The price of extras alone, for items added on site after the job was booked (ENG-017): what priceJob gives for `extras` ([{ code, quantity }])
+// with its base line taken out, summed in whole cents from the lines' own two-place amounts and never as floats. Nothing else is asked or
+// priced: no frequency and so no discount, and no option, hours, units, property type or date. Answers { ok: true, cents, minutes, lines } with
+// each line { kind: 'extra', code, label, quantity, amount, minutes }, or { ok: false, reason } where reason is 'service' (the catalog does not
+// offer the service), 'extras' (not a list of this service's extras at whole quantities, or no quantity in it is above 0), 'quote' (with
+// `flags`, as priceJob gives them: an extra picked as many times as its quote_from, so no figure comes with it) or 'too_large'. A quote is a
+// refusal here and not a price: priceJobPastQuote is not used, because its importers are the two admin routes that book on a customer's behalf.
+// It applies no payment bound; whether a sum can be charged is the payment module's rule (paymentAmountCents in booking-payment.js).
+export function priceExtras(service, items, extras) {
+  const priced = priceJob(service, items, { extras }, {})
+  if (!priced.ok) {
+    if (priced.reason === 'service' || priced.reason === 'too_large') return { ok: false, reason: priced.reason }
+    if (priced.reason === 'quote') return { ok: false, reason: 'quote', flags: priced.flags }
+    return { ok: false, reason: 'extras' }
+  }
+  const lines = priced.lines.filter((line) => line.kind === 'extra')
+  if (lines.length === 0) return { ok: false, reason: 'extras' }
+  let cents = 0n
+  let minutes = 0
+  for (const line of lines) {
+    cents += BigInt(line.amount.replace('.', ''))
+    minutes += line.minutes
+  }
+  return { ok: true, cents: Number(cents), minutes, lines }
+}
+
 // The price of each visit of a booking, for `answers` as priceJob takes them. With a frequency, a visit on each date of
 // visitDates(answers.frequency, answers.date), each priced by priceJob with that date as its date, so that the weekend is worked out for the
 // visit's own day. Answers { ok: true, visits: [{ date, price, minutes, lines }] } in date order, or the first refusal priceJob gives; a

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useAdminTheme } from '../layout'
 import { FiSearch, FiFilter, FiChevronDown, FiX, FiCheck, FiTrash2, FiFileText, FiDownload, FiEye, FiMapPin, FiClock } from 'react-icons/fi'
 import QuoteRequests from '@/components/admin/QuoteRequests'
+import OnSiteReports from '@/components/admin/OnSiteReports'
 
 const PAGE_SIZE = 6
 
@@ -424,6 +425,7 @@ export default function JobRequests() {
             </div> */}
           </div>
           <QuoteRequests isDarkMode={isDarkMode} />
+          <OnSiteReports isDarkMode={isDarkMode} />
         </div>
 
         {/* Job queue: every booking waiting for a provider, on the marketplace, or assigned and not yet accepted */}

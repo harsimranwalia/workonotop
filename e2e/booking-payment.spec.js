@@ -1,6 +1,6 @@
 // @ts-check
 // The payment of a booking: the amounts a card payment can take, the payment bound to the booking at the checkout, and the
-// one charge when the job is done. Sixty-one cases, each titled for what it shows. The first thirty import the module
+// one charge when the job is done. Sixty-two cases, each titled for what it shows. The first thirty-one import the module
 // (src/lib/booking-payment.js) in this process and drive it with a scripted client that records every call and answers per
 // a script (the precedent is e2e/price-of-record.spec.js); the next five run the two completion routes (approve and
 // auto-release) in this process against a pool of a few connections; the next three go through the dev app. The dev stack
@@ -830,6 +830,18 @@ test.describe('Booking payment', () => {
         expect(await collectBookingPayment(atCreate, BOOKING, OPTS)).toEqual({ ok: false, reason: 'mismatch' });
         const atCapture = scriptedClient({ retrieve: [heldIntent()], capture: [conflict] });
         expect(await collectBookingPayment(atCapture, BOOKING, OPTS)).toEqual({ ok: false, reason: 'mismatch' });
+    });
+
+    test('Stripe\'s answer that another request is in progress under the booking\'s charge key is a try-later and not a mismatch', async () => {
+        // Two calls that overlap on one booking: the loser is told this while the winner may still take the charge, so it must not be read as a failure of the booking.
+        const inProgress = Object.assign(new Error('There is currently another in-progress request using this Stripe idempotency key'), { type: 'StripeInvalidRequestError', code: 'idempotency_key_in_use', statusCode: 409 });
+        const bare = Object.assign(new Error('conflict'), { type: 'StripeInvalidRequestError', statusCode: 409 });
+        for (const [name, error] of [['its code and status', inProgress], ['its status alone', bare]]) {
+            const atCreate = scriptedClient({ retrieve: [heldIntent({ status: 'canceled', cancellation_reason: 'automatic' })], create: [error] });
+            expect(await collectBookingPayment(atCreate, BOOKING, OPTS), `${name}, at the create`).toEqual({ ok: false, reason: 'unavailable' });
+            const atCapture = scriptedClient({ retrieve: [heldIntent()], capture: [error] });
+            expect(await collectBookingPayment(atCapture, BOOKING, OPTS), `${name}, at the capture`).toEqual({ ok: false, reason: 'unavailable' });
+        }
     });
 
     // ── The completion routes, in this process, against a pool of a few connections ─────────────────────────────────
