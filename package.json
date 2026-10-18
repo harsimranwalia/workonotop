@@ -14,7 +14,8 @@
     "db:fixtures": "node database/fixtures/load.js",
     "test": "npx playwright test",
     "test:ui": "npx playwright test --ui",
-    "test:report": "npx playwright show-report"
+    "test:report": "npx playwright show-report",
+    "acceptance": "node e2e/acceptance/gate.js"
   },
   "type": "module",
   "dependencies": {
