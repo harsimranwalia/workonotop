@@ -11,8 +11,8 @@
 //                Twilio credential, so these two cases are ATTEMPTED and say what is missing (`credentialGap`), never a PASS;
 //   W5 code      Ann asks for a code through the route, gives back the code the text carried and is let in to the link; a caller with no session is not;
 //   W6 no-show   Ann ticks in; Bea never does: the provider's view of the crew is one of two ticked in, and the timer counts one cleaner here;
-//   W5 photo     the start is refused with no before photo; the photo goes in through the real photo route (every other case that starts a job plants the
-//                photo in SQL); then the cleaner starts the job from the link and the job is in progress;
+//   W5 photo     the start is refused with no before photo; the photo goes in through the real photo route (as job-timer.spec.js AC7 does it); then the
+//                cleaner starts the job from the link and the job is in progress;
 //   W6 late      Cat, put on the job after the start, enters her own code and ticks in: the crew is three, two of them ticked in;
 //   W7 re-divides with Cat here the timer shares what is LEFT of the quote among two (the quote less the time used, over the cleaners here), and the
 //                shares worked add up to the time used. The case waits until a few seconds are used so that this differs from the quote shared among two;

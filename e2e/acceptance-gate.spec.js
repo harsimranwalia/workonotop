@@ -57,14 +57,21 @@ const clauseResult = (report, id) => report.items.flatMap((item) => item.clauses
 /** @param {number} n */
 const itemOf = (n) => /** @type {NonNullable<(typeof contract.ITEMS)[number]>} */ (contract.ITEMS.find((item) => item.n === n));
 
+/** The last line of a command's output.
+ * @param {string} text */
+const lastLine = (text) => text.trimEnd().split('\n').pop();
+
 /**
- * Runs the command on files in a temp directory; the directory is gone after `body`.
- * @param {(dir: string, run: (args: string[]) => import('node:child_process').SpawnSyncReturns<string>) => void} body
+ * Runs the command on files in a temp directory; the directory is gone after `body`. `run` starts gate.js by its real path; `runVia` starts the
+ * command by any other path to the same file (a link, a linked folder, the name without ".js").
+ * @param {(dir: string, run: (args: string[]) => import('node:child_process').SpawnSyncReturns<string>, runVia: (script: string, args: string[]) => import('node:child_process').SpawnSyncReturns<string>) => void} body
  */
 function inTempDir(body) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'acceptance-gate-'));
+    /** @type {(script: string, args: string[]) => import('node:child_process').SpawnSyncReturns<string>} */
+    const runVia = (script, args) => spawnSync(process.execPath, [script, ...args], { encoding: 'utf8', cwd: dir });
     try {
-        body(dir, (args) => spawnSync(process.execPath, [gatePath, ...args], { encoding: 'utf8', cwd: dir }));
+        body(dir, (args) => runVia(gatePath, args), runVia);
     } finally {
         fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -281,8 +288,11 @@ test.describe('Acceptance gate: the contract map and the command that reads a ru
         expect(Object.keys(parseResults(fs.readFileSync(baselinePath, 'utf8')).cases)).toEqual(keys);
     });
 
+    // What only the command does, beside the function the other cases call: it reads the clauses against the baseline's keys as well as the results'
+    // (a union of windows can lack a case the baseline lists), takes --partial, prints who accepted a departure and when, and starts however the
+    // path to it is typed.
     test('Gate: the command exits 1 on a hard-gate FAIL and 0 on a clean run, and prints the label and the table in --markdown', () => {
-        inTempDir((dir, run) => {
+        inTempDir((dir, run, runVia) => {
             const map = writeAcceptingMap(dir);
             const common = ['--map', map, '--baseline', baselinePath];
             const clean = writeFile(dir, 'clean.json', everythingPasses(keys));
@@ -292,11 +302,40 @@ test.describe('Acceptance gate: the contract map and the command that reads a ru
             const ok = run([...common, '--results', clean]);
             expect(ok.status, ok.stderr).toBe(EXIT.PASS);
             expect(ok.stdout).toContain('HARD GATES: none NOT MET and none departing unaccepted');
+            // The accepted departure says who accepted it and when, in the item's row and under its clause.
+            expect(ok.stdout).toContain(`DEPARTS (accepted ${approval.on})`);
+            expect(ok.stdout).toContain(`accepted by ${approval.by} on ${approval.on} (${approval.ref})`);
 
             const red = run([...common, '--results', broken]);
             expect(red.status, red.stderr).toBe(EXIT.HARD_GATE);
             expect(red.stdout).toContain('HARD GATES: BLOCKED by item 2');
             expect(red.stdout).toContain(`FAIL: ${pin}`);
+
+            // A results file that lacks one of the two cases of W9.assign-directly, as a union of windows can: the baseline lists the case, so the
+            // clause is NOT MET and the exit is 1; under --partial the same file is NOT RUN, exit 0, and says it is not a verdict.
+            const [lost] = matchedBy(allClauses.find((candidate) => candidate.id === 'W9.assign-directly'));
+            const withHole = everythingPasses(keys);
+            delete withHole.cases[lost];
+            const hole = writeFile(dir, 'hole.json', withHole);
+            const missed = run([...common, '--results', hole]);
+            expect(missed.status, missed.stderr).toBe(EXIT.HARD_GATE);
+            expect(missed.stdout).toContain('no result: 1 case');
+            expect(missed.stdout).toContain('HARD GATES: BLOCKED by item 9');
+            const window = run([...common, '--results', hole, '--partial']);
+            expect(window.status, window.stderr).toBe(EXIT.PASS);
+            expect(window.stdout).toContain('PARTIAL RUN');
+
+            // However the path to gate.js is typed, the same files give the direct run's exit status and last line: through a link to the file, through
+            // a linked folder and without ".js". (Started only when the path as typed was gate.js's own, each of these printed nothing and exited 0.)
+            const link = path.join(dir, 'gate-link.js');
+            fs.symlinkSync(gatePath, link);
+            const folder = path.join(dir, 'acceptance-link');
+            fs.symlinkSync(path.dirname(gatePath), folder, 'dir');
+            const forms = { 'a link to gate.js': link, 'a linked folder': path.join(folder, 'gate.js'), 'the name without .js': gatePath.replace(/\.js$/, '') };
+            for (const [how, script] of Object.entries(forms)) {
+                const via = runVia(script, [...common, '--results', broken]);
+                expect([via.status, lastLine(via.stdout), via.stderr], `started as ${how}`).toEqual([red.status, lastLine(red.stdout), '']);
+            }
 
             const table = run([...common, '--results', baselinePath, '--markdown', '--label', 'abc1234 2000-01-01']);
             expect(table.status, table.stderr).toBe(EXIT.PASS);
@@ -320,6 +359,26 @@ test.describe('Acceptance gate: the contract map and the command that reads a ru
             expect(run([...common, '--results', writeFile(dir, 'shape.json', { results: [] })]).status).toBe(EXIT.NO_RESULTS);
             expect(run([...common, '--results', writeFile(dir, 'outcome.json', { cases: { 'a › b': { outcome: 'GREEN' } } })]).status).toBe(EXIT.NO_RESULTS);
             expect(run([...common, '--results', writeFile(dir, 'empty.json', { cases: {} })]).status).toBe(EXIT.HARD_GATE);
+
+            // The gate stopping on an error of its own is no verdict either, and it says so: here a pattern in the map whose test() throws, which the
+            // map check lets through (it is a RegExp without the g or y flag). Left to Node, the error exits 1, which reads as a hard gate blocked.
+            const real = JSON.stringify(pathToFileURL(contractPath).href);
+            const throwing = writeFile(
+                dir,
+                'throws.mjs',
+                [
+                    `import * as real from ${real};`,
+                    'export const DEFECTS = real.DEFECTS;',
+                    'export const NAMED_GAPS = real.NAMED_GAPS;',
+                    'class Throws extends RegExp { test() { throw new Error("a pattern in the map throws"); } }',
+                    'export const ITEMS = real.ITEMS.map((item, at) => (at === 0 ? { ...item, clauses: item.clauses.map((clause, nth) => (nth === 0 ? { ...clause, cases: [new Throws("never")] } : clause)) } : item));',
+                    '',
+                ].join('\n'),
+            );
+            const stopped = run(['--baseline', baselinePath, '--results', writeFile(dir, 'clean.json', everythingPasses(keys)), '--map', throwing]);
+            expect(stopped.status, stopped.stderr).toBe(EXIT.NO_RESULTS);
+            expect(stopped.stderr).toContain('stopped without a verdict (a pattern in the map throws)');
+            expect(stopped.stdout).toBe('');
         });
     });
 

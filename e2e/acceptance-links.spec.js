@@ -592,11 +592,16 @@ const CONJUNCTS = [
     },
     {
         // The timer never reads the window (src/lib/job-timer.js has no reference to it): W5's "within the check-in window" holds through the tick-in,
-        // which is itself the 409 with opens_at, and the start after it is refused for want of anyone here.
+        // which is itself the 409 with opens_at, and the start after it is refused for want of anyone here. The fix opens the window and does nothing
+        // else: this job is dated yesterday's Morning, the way insertBooking dates it, and the cleaner is ticked in, which the shut window had refused.
         name: 'the window shut (a job dated tomorrow: the tick-in is refused, so no one is here)',
         make: { day: 'tomorrow', tick: 'refused' },
         refusal: [409, MESSAGES.nobodyHere, 'nobody_here'],
-        fix: null,
+        fix: async (ctx, job, member) => {
+            const day = yesterday();
+            await (await db()).execute('UPDATE bookings SET job_date = ?, job_time_slot = ? WHERE id = ?', [day, slotLabel(day, 'Morning'), job.bookingId]);
+            await readyToStartTick(ctx, job, member);
+        },
     },
 ];
 

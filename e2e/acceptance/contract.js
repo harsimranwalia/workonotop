@@ -8,7 +8,8 @@
 //
 // `kind` is the strongest proof the dev stack can give for the clause, and the gate holds the run to it:
 //   live        real HTTP or a real browser against the running app; every case must PASS
-//   in-process  the app's own module in the test process with a stand-in for Stripe, Twilio or SMTP; MET (in-process)
+//   in-process  the app's own code run directly in the test, not through the running app; where it calls an outside service (Stripe,
+//               Twilio, SMTP) a stand-in takes its place, and where it calls none (the clock, the guard) there is nothing to stand in; MET (in-process)
 //   attempt     the app reaches its real send or charge path and ends in a notice_attempts row because the credential is not set
 //               (ATTEMPTED); with the credential the same cases PASS and the clause reads MET, with no edit here
 //   departure   the code does something other than the contract's words; a case pins what it does and the clause reads DEPARTS

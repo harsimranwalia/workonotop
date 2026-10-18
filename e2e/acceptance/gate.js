@@ -14,7 +14,7 @@
 // Exit status
 //   0  no hard-gate item is NOT MET, and none DEPARTS unaccepted
 //   1  a hard-gate item is NOT MET, or DEPARTS from the contract with no acceptance written into the map
-//   2  the results file is missing or is not the reporter's shape: never a pass
+//   2  no verdict: the results file is missing or is not the reporter's shape, or the gate stopped on an error of its own: never a pass
 //   3  the map is invalid (see validateMap)
 // A non-hard item that is NOT MET is printed so and the exit stays 0: the contract needs only the hard gates for delivery,
 // and the suite's own exit status still reports every FAIL.
@@ -186,7 +186,7 @@ function renderText(report, header) {
             lines.push(`        ${clause.id}  ${statusText(clause)}`);
             for (const problem of clause.problems) lines.push(`            ${problem}`);
             if (clause.status === 'ATTEMPT-ONLY') lines.push(`            ${clause.attempted} of ${clause.matched} cases end in an attempt row: ${clause.says}`);
-            if (clause.status === 'MET (in-process)') lines.push(`            run in the test process with a stand-in, not against the live service: ${clause.says}`);
+            if (clause.status === 'MET (in-process)') lines.push(`            run directly in the test, not through the running app; where it calls an outside service, a stand-in took its place: ${clause.says}`);
             if (clause.status === 'DEPARTS') {
                 lines.push(`            ${clause.departure.what}`);
                 lines.push(`            the contract says: ${clause.departure.from}`);
@@ -209,7 +209,7 @@ function renderText(report, header) {
 
 function renderMarkdown(report, label, caseCount) {
     const lines = [`Gate table for ${label || 'an unlabelled run'}, read from ${caseCount} cases.`, ''];
-    lines.push('| Item | Hard gate | Status | Live | With a stand-in | Attempt only | Departs | Not met | The contract says |');
+    lines.push('| Item | Hard gate | Status | Live | In process | Attempt only | Departs | Not met | The contract says |');
     lines.push('|---|---|---|---|---|---|---|---|---|');
     const count = (item, test) => item.clauses.filter(test).length;
     for (const item of report.items) {
@@ -302,9 +302,32 @@ export async function main(argv) {
     return report.exit;
 }
 
-// Run as a command and not imported by a spec: process.argv[1] is this file only then.
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-    main(process.argv.slice(2)).then((code) => {
-        process.exitCode = code;
-    });
+/**
+ * True when this file was started as a command and not imported by a spec. process.argv[1] is the path as it was typed (made absolute, links
+ * kept, no extension added) and import.meta.url is the real file, so the two are compared by their real paths: a checkout reached through a
+ * link, a link to this file and `gate` without ".js" all start the gate. Compared as typed, each of them ran nothing, printed nothing and exited 0.
+ */
+function startedAsCommand() {
+    const typed = process.argv[1];
+    if (!typed) return false;
+    const real = (file) => {
+        try {
+            return fs.realpathSync.native(file);
+        } catch {
+            return null;
+        }
+    };
+    const started = real(typed) ?? real(`${typed}.js`);
+    return started !== null && started === real(fileURLToPath(import.meta.url));
+}
+
+if (startedAsCommand()) {
+    main(process.argv.slice(2))
+        .then((code) => {
+            process.exitCode = code;
+        })
+        .catch((error) => {
+            console.error(`acceptance gate: stopped without a verdict (${error?.message ?? error})`);
+            process.exitCode = EXIT.NO_RESULTS;
+        });
 }
