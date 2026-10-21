@@ -98,7 +98,8 @@ test.describe('On-behalf booking: the screens', () => {
     // and the card page asks for its link and then for a card entry, so a compile behind the first visit ends the wait that FIRST_VISIT_MS is meant to give. Each case
     // asks the dev server for the pages and routes its first visit leads to (support/warm.js), after its sign-in: an /admin page and the admin routes answer only with its cookie.
     // A cold run of each case showed the routes a page asks for once it has loaded and the case's first request did not: /api/auth/me on every page, /api/admin/disputes and
-    // /api/admin/reports on the admin ones, /api/provider/me on the card page, and the services page where the confirm screen ends. They are in the lists as well.
+    // /api/admin/reports on the admin ones, /api/provider/me on the card page, /api/pricing on a customer's confirm screen (a POST route: its GET answers 405, which only compiles it),
+    // and the services page where the confirm screen ends, with the /api/directory its listing asks for (a SELECT). They are in the lists as well.
 
     // Mutant that turns this case red: the button posts to the customer's route, stays on while the request runs, sends a form with a field missing, shows no
     // link or one the server did not issue, shows the typed e-mail wrongly, or leaves the flow in the session.
@@ -106,7 +107,7 @@ test.describe('On-behalf booking: the screens', () => {
         test.setTimeout(150_000);
         const mine = emailOf('screen');
         await signInAs(page, 'admin');
-        await warm(page.request, ['/booking/confirm', '/api/admin/me', '/api/admin/pricing', '/api/admin/bookings', '/api/auth/me', '/services', '/api/services', '/api/categories']);
+        await warm(page.request, ['/booking/confirm', '/api/admin/me', '/api/admin/pricing', '/api/admin/bookings', '/api/auth/me', '/services', '/api/services', '/api/categories', '/api/directory']);
         await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
         await seedFlow(page, savedFlow({ onBehalf: true }));
         let posts = 0;
@@ -170,9 +171,9 @@ test.describe('On-behalf booking: the screens', () => {
     test('a flag in a customer\'s session turns the mode off and shows no booking form for a customer', async ({ page }) => {
         test.setTimeout(120_000);
         await signInAs(page, 'customer1');
-        await warm(page.request, ['/booking/confirm', '/api/admin/me', '/api/auth/me']);
+        await warm(page.request, ['/booking/confirm', '/api/admin/me', '/api/auth/me', '/api/pricing']);
         await seedFlow(page, savedFlow({ onBehalf: true }));
-        const asked = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/admin/me', { timeout: FIRST_VISIT_MS });
+        const asked =page.waitForResponse((response) => new URL(response.url()).pathname === '/api/admin/me', { timeout: FIRST_VISIT_MS });
         await page.goto('/booking/confirm', { timeout: FIRST_VISIT_MS });
         expect((await asked).ok(), 'the admin check refuses a customer').toBe(false);
         await expect.poll(() => page.evaluate(() => (JSON.parse(sessionStorage.getItem('bookingFlow') || 'null') || {}).onBehalf), { timeout: 15_000 }).toBeUndefined();

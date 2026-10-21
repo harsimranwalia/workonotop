@@ -14,8 +14,9 @@ import { RESET_RETRIES } from './auth.js';
 //
 // Never list a path whose GET writes (the job timer's records the look). A dynamic segment takes any value. A route is dropped about a minute
 // after its last request, so call this just before the step and not once per file or per run. A list is found by running the case cold and
-// reading `Compiling` in test-results/app.log: no `Compiling` line may follow the last warm-up request. A case that later visits a route that
-// is not in its list behaves as it did before, so it can flake again and it cannot pass for a reason it did not earn.
+// reading `Compiling` in test-results/app.log: no `Compiling` line may follow the last warm-up request. Routes asked for together compile together and
+// log one `Compiling` line for the lot, so also check that every path asked for after the last warm-up request was served before it. A case that later
+// visits a route that is not in its list behaves as it did before, so it can flake again and it cannot pass for a reason it did not earn.
 /**
  * @param {import('@playwright/test').APIRequestContext} request
  * @param {string[]} paths
