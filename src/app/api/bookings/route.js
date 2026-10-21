@@ -68,9 +68,10 @@ export async function GET(request) {
     return await withConnection(async (connection) => {
       // The admin job queue: every booking waiting for a provider, on the marketplace, or assigned and not yet accepted, guest bookings included, oldest first, one page at a time.
       // The answer carries total (the whole queue) and the limit and offset it used, so a client pages by what was applied.
+      // The plain list has no condition on the customer's account: a booking for an address with no account is in it, as in the queue (BUG-010); do not add one back to tidy it.
       const where = queue
         ? `b.status NOT IN ('completed', 'cancelled') AND (b.provider_id IS NULL OR b.status IN ('pending', 'matching'))`
-        : `EXISTS (SELECT 1 FROM users u WHERE u.email = b.customer_email)`
+        : '1=1'
       // The standard duration is the booking's quoted minutes.
       let sql = `
         SELECT b.*, s.name as service_name, s.slug as service_slug,

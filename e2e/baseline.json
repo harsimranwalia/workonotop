@@ -4935,6 +4935,9 @@
     "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-013 F7) ten failed confirms use the ten tries, one new SetupIntent each, and the link is then spent": {
       "outcome": "PASS"
     },
+    "on-behalf-booking.spec.js › On-behalf booking and the card link › (ENG-029 BUG-010) a booking an admin makes for an address with no account is in the admin bookings list and in the queue, and one for an address with an account is in each once": {
+      "outcome": "PASS"
+    },
     "on-behalf-booking.spec.js › On-behalf booking and the card link › a SetupIntent made for use on session is refused as invalid and nothing is saved": {
       "outcome": "PASS"
     },
