@@ -33,10 +33,12 @@ export async function signInAs(page, who) {
         throw new Error(`signInAs: unknown fixture account '${who}'; use one of ${Object.keys(FIXTURE_LOGINS).join(', ')}`);
     }
 
-    // page.request shares its cookie jar with the page, so the cookie the route sets applies to page.goto.
+    // page.request shares its cookie jar with the page, so the cookie the route sets applies to page.goto. This is the first request of every page
+    // case that signs in, so it can be the one that makes the dev server compile the login route: it gets the 60 s the other sign-ins in the suite have.
     const response = await page.request.post(login.loginRoute, {
         data: { email: login.email, password: login.password },
         maxRetries: RESET_RETRIES,
+        timeout: 60_000,
     });
     const status = response.status();
     const text = await response.text();

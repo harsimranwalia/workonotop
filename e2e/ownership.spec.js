@@ -48,6 +48,7 @@
 import { test, expect } from '@playwright/test';
 import { getCredentialHeaders } from './auth/credentials.js';
 import { RESET_RETRIES } from './support/auth.js';
+import { warm } from './support/warm.js';
 import { users, providers, FIXTURE_LOGINS } from '../database/fixtures/accounts.js';
 import { bookings } from '../database/fixtures/bookings.js';
 import { ownership } from '../database/fixtures/ownership.js';
@@ -1053,6 +1054,10 @@ test.describe('Ownership: provider routes', () => {
     // at `providerId = auth.caller.id` (provider 2's list loses its probe and shows provider 1's), a literal 2 there (provider 1's list loses its probe
     // and shows provider 2's), or the `b.provider_id = ?` arm deleted (neither list holds its own assignment). The jobs and bookings legs are as they were.
     test("Ownership GET /api/provider/jobs, GET /api/provider/bookings and GET /api/provider/available-jobs: provider1's lists hold booking 1 and none of booking 2", async ({ request, baseURL, playwright }) => {
+        // `next dev` compiles each route when it is first asked for (BUG-006: the whole 60 s a case has, cold). The three lists and the two routes the probe
+        // bookings go through (/api/bookings for the POST, the PUT and the DELETE, /api/bookings/:id for the read) are asked for here, and the case has the time they take.
+        test.setTimeout(150_000);
+        await warm(request, ['/api/provider/jobs', '/api/provider/bookings', '/api/provider/available-jobs', '/api/bookings', '/api/bookings/0']);
         const as = await credentials(baseURL);
         const provider2 = await signedInAs(playwright, baseURL, 'provider2');
         const lists = [
@@ -1172,6 +1177,10 @@ test.describe('Ownership: provider routes', () => {
     // me, profile, status, availability and onboarding/documents read the provider row of caller.id. provider1 shares the id 1 with
     // customer 1, so a lookup in `users`, or a token id that is not the provider's, would answer with customer 1.
     test("Ownership GET /api/provider/me, /profile, /onboarding/documents: provider1 gets provider 1's row, not provider 2's and not customer 1's (same id)", async ({ request, baseURL }) => {
+        // `next dev` compiles each of these five routes when it is first asked for (BUG-004: 57 s of the 60 s a case has, cold): they are asked for here, one
+        // by one, and the case has the time they take. The requests below are the ones with the 30 s a request has by default.
+        test.setTimeout(150_000);
+        await warm(request, ['/api/provider/me', '/api/provider/profile', '/api/provider/onboarding/documents', '/api/provider/status', '/api/provider/availability']);
         const as = await credentials(baseURL);
         for (const path of ['/api/provider/me', '/api/provider/profile', '/api/provider/onboarding/documents']) {
             for (const [style, headers] of providerStyles(as)) {
@@ -1191,6 +1200,10 @@ test.describe('Ownership: provider routes', () => {
     // route's 404 (the same text as a booking that does not exist) and a write to booking 2 is not made. Red if `provider_id = ?` is dropped
     // from the booking lookup: the refused POSTs would reach booking 2.
     test("Ownership GET and POST /api/provider/jobs/photos and /jobs/time-tracking: provider1 reaches booking 1, booking 2 and a missing booking keep the 404 and booking 2 is unchanged", async ({ request, baseURL, playwright }) => {
+        // `next dev` compiles each route when it is first asked for (BUG-006: the whole 60 s a case has, cold). The two routes and the admin's read of a booking
+        // are asked for here, and the case has the time they take. Neither GET writes: both answer 401 until a caller is named.
+        test.setTimeout(150_000);
+        await warm(request, ['/api/provider/jobs/photos', '/api/provider/jobs/time-tracking', '/api/bookings/0']);
         const as = await credentials(baseURL);
         const provider2 = await signedInAs(playwright, baseURL, 'provider2');
         const photoUrl = `/uploads/e2e-ownership-${Date.now()}.png`;
