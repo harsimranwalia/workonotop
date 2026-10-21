@@ -581,7 +581,7 @@ test.describe('Guided booking flow', () => {
     // A route is dropped after about a minute without a request, so this runs before each case.
     test.beforeEach(async ({ request }) => {
         test.setTimeout(120_000);
-        await warm(request, ['/booking/schedule', '/api/pricing', '/api/services', '/api/provider/me']);
+        await warm(request, ['/booking/schedule', '/api/pricing', '/api/services', '/api/provider/me', '/api/auth/me']);
     });
 
     test("the steps of a service with a full rule are about the job, the option, what's included, and when and where, in that order", async ({ page }) => {

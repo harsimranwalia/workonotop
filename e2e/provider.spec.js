@@ -6,12 +6,13 @@ test.describe('Provider Portal - Auth Protection', () => {
 
     // `next dev` compiles a page or an API route when it is first asked for. A provider page renders and then asks /api/provider/me before it redirects
     // (src/app/provider/layout.js), so the 10 s wait for the new address would hold two compiles: the route and the page it goes to. They are paid here,
-    // before the case, and the case's own waits are not made longer. A route is dropped after about a minute without a request, so this runs for each case.
+    // before the case, and the case's own waits are not made longer. A cold run also compiled /api/auth/me and /api/services right after a provider page loaded, so they are
+    // listed too. A route is dropped after about a minute without a request, so this runs for each case.
     test.beforeEach(async ({ request }) => {
         test.setTimeout(150_000);
         await warm(request, [
             '/provider/dashboard', '/provider/profile', '/provider/jobs', '/provider/login', '/provider/register',
-            '/api/provider/me', '/api/provider/login',
+            '/api/provider/me', '/api/provider/login', '/api/auth/me', '/api/services',
         ]);
     });
 
