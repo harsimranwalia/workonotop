@@ -25,6 +25,7 @@ import mysql from 'mysql2/promise';
 import { test, expect } from '@playwright/test';
 import { getCredentialHeaders } from './auth/credentials.js';
 import { RESET_RETRIES, signInAs } from './support/auth.js';
+import { warm } from './support/warm.js';
 import { users } from '../database/fixtures/accounts.js';
 import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.js';
 
@@ -53,6 +54,8 @@ const NOT_SAVED = 'This card could not be saved.';
 
 const FIRST_VISIT_MS = 45_000;
 const ADMIN_VISIT_MS = 90_000;
+// A token no link has: the card routes answer it with the 404 and write nothing, so a warm-up can ask for them with it.
+const UNUSED_TOKEN = 'a'.repeat(43);
 const ADDRESS = '1 Probe Street';
 const DESCRIPTION = 'A job booked for a customer who phoned in, deleted by the case.';
 const SERVICE_1_NAME = 'Fixture Standard Clean';
@@ -91,12 +94,20 @@ test.describe('On-behalf booking: the screens', () => {
     // Every case starts as a visitor who has not signed in, then signs in as the role it needs.
     test.use({ storageState: { cookies: [], origins: [] }, timezoneId: 'America/Vancouver' });
 
+    // `next dev` compiles a page or an API route when it is first asked for (BUG-012: 15 to 27 s each, cold). The screens give their price 10 s (src/lib/use-live-price.js)
+    // and the card page asks for its link and then for a card entry, so a compile behind the first visit ends the wait that FIRST_VISIT_MS is meant to give. Each case
+    // asks the dev server for the pages and routes its first visit leads to (support/warm.js), after its sign-in: an /admin page and the admin routes answer only with its cookie.
+    // A cold run of each case showed the routes a page asks for once it has loaded and the case's first request did not: /api/auth/me on every page, /api/admin/disputes and
+    // /api/admin/reports on the admin ones, /api/provider/me on the card page, /api/pricing on a customer's confirm screen (a POST route: its GET answers 405, which only compiles it)
+    // and /api/services, which the footer asks for, and the services page where the confirm screen ends, with the /api/directory its listing asks for (a SELECT). They are in the lists as well.
+
     // Mutant that turns this case red: the button posts to the customer's route, stays on while the request runs, sends a form with a field missing, shows no
     // link or one the server did not issue, shows the typed e-mail wrongly, or leaves the flow in the session.
     test('an admin on the confirm screen creates the booking, is shown the link once, and the flow is cleared', async ({ page, baseURL }) => {
         test.setTimeout(150_000);
         const mine = emailOf('screen');
         await signInAs(page, 'admin');
+        await warm(page.request, ['/booking/confirm', '/api/admin/me', '/api/admin/pricing', '/api/admin/bookings', '/api/auth/me', '/services', '/api/services', '/api/categories', '/api/directory']);
         await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
         await seedFlow(page, savedFlow({ onBehalf: true }));
         let posts = 0;
@@ -160,6 +171,7 @@ test.describe('On-behalf booking: the screens', () => {
     test('a flag in a customer\'s session turns the mode off and shows no booking form for a customer', async ({ page }) => {
         test.setTimeout(120_000);
         await signInAs(page, 'customer1');
+        await warm(page.request, ['/booking/confirm', '/api/admin/me', '/api/auth/me', '/api/pricing', '/api/services']);
         await seedFlow(page, savedFlow({ onBehalf: true }));
         const asked = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/admin/me', { timeout: FIRST_VISIT_MS });
         await page.goto('/booking/confirm', { timeout: FIRST_VISIT_MS });
@@ -173,6 +185,7 @@ test.describe('On-behalf booking: the screens', () => {
     test('the schedule screen in the mode prices a job that is normally a quote, says so, and has no repeat pick', async ({ page }) => {
         test.setTimeout(150_000);
         await signInAs(page, 'admin');
+        await warm(page.request, ['/booking/schedule', '/api/admin/me', '/api/services', '/api/admin/pricing', '/api/auth/me']);
         await seedFlow(page, { service_id: 1, service_name: SERVICE_1_NAME, onBehalf: true });
         const posted = [];
         page.on('request', (request) => {
@@ -198,6 +211,7 @@ test.describe('On-behalf booking: the screens', () => {
     test('the admin\'s entry lists the services, and choosing one opens the booking steps in the mode at that service', async ({ page }) => {
         test.setTimeout(150_000);
         await signInAs(page, 'admin');
+        await warm(page.request, ['/admin/book', '/api/admin/me', '/api/services', '/booking/schedule', '/api/admin/pricing', '/api/auth/me', '/api/admin/disputes']);
         await page.goto('/admin/book', { timeout: ADMIN_VISIT_MS });
         await expect(page.getByRole('heading', { name: 'Book for a customer', level: 2 })).toBeVisible({ timeout: ADMIN_VISIT_MS });
         await expect(page.getByRole('link', { name: 'Book for a customer' }), 'the sidebar leads here').toBeVisible();
@@ -214,10 +228,11 @@ test.describe('On-behalf booking: the screens', () => {
     // leaves the first link working, or makes the new link without asking.
     test('the card panel shows the card and the link\'s state, "New link" makes a link that is shown once and ends the current link, and a booking with no link has no panel', async ({ page, request, baseURL }) => {
         test.setTimeout(180_000);
+        await signInAs(page, 'admin');
+        await warm(page.request, ['/admin/bookings/0', '/api/admin/me', '/api/admin/bookings', '/api/bookings/0', '/api/provider', '/api/admin/bookings/0/card-link', `/api/card/${UNUSED_TOKEN}`, '/api/auth/me', '/api/admin/disputes', '/api/admin/bookings/0/job-link']);
         const as = await headersFor(baseURL);
         const { answer } = await book(request, as.admin);
         const firstToken = tokenOf(answer.card_link.path);
-        await signInAs(page, 'admin');
         await page.goto(`/admin/bookings/${answer.booking_id}`, { timeout: ADMIN_VISIT_MS });
         const panel = page.getByRole('region', { name: 'Card on file' });
         await expect(panel).toBeVisible({ timeout: ADMIN_VISIT_MS });
@@ -270,6 +285,9 @@ test.describe('On-behalf booking: the screens', () => {
         ));
         const requestId = Number(made.insertId);
         await signInAs(page, 'admin');
+        await warm(page.request, [
+            '/admin/jobs', '/api/admin/me', '/api/bookings', '/api/quote-requests', '/booking/schedule', '/api/services', '/api/admin/pricing', '/booking/confirm', '/api/admin/bookings', '/api/auth/me', '/api/admin/disputes', '/api/admin/reports',
+        ]);
         await page.goto('/admin/jobs', { timeout: ADMIN_VISIT_MS });
         const row = page.getByTestId('quote-request-row').filter({ hasText: mine });
         await expect(row).toBeVisible({ timeout: ADMIN_VISIT_MS });
@@ -306,6 +324,7 @@ test.describe('On-behalf booking: the screens', () => {
     // Mutant that turns this case red: a link that is not valid shows a form or a reason, the page can be indexed, it sends a referrer, or it shows the site's navigation.
     test('the card page of a link that is not valid says so and nothing else, asks not to be indexed, and sends no referrer', async ({ page }) => {
         test.setTimeout(120_000);
+        await warm(page.request, [`/card/${UNUSED_TOKEN}`, `/api/card/${UNUSED_TOKEN}`, '/api/auth/me', '/api/provider/me']);
         await page.goto(`/card/${'a'.repeat(43)}`, { timeout: FIRST_VISIT_MS });
         const heading = page.getByRole('heading', { name: 'This link cannot be used', level: 2 });
         await expect(heading).toBeVisible({ timeout: FIRST_VISIT_MS });
@@ -322,6 +341,7 @@ test.describe('On-behalf booking: the screens', () => {
     test('with no payment key the card page of a valid link says card entry is not available, spends no try, and removes a bank\'s return query from the address', async ({ page }) => {
         test.setTimeout(120_000);
         const { id, token } = await seeded();
+        await warm(page.request, [`/card/${UNUSED_TOKEN}`, `/api/card/${UNUSED_TOKEN}`, `/api/card/${UNUSED_TOKEN}/setup`, '/api/auth/me', '/api/provider/me']);
         await page.goto(`/card/${token}?setup_intent=seti_e2e_probe&setup_intent_client_secret=seti_e2e_probe_secret_x&redirect_status=succeeded`, { timeout: FIRST_VISIT_MS });
         const heading = page.getByRole('heading', { name: 'Card entry is not available', level: 2 });
         await expect(heading).toBeVisible({ timeout: FIRST_VISIT_MS });
@@ -337,6 +357,7 @@ test.describe('On-behalf booking: the screens', () => {
     test('the card page of a link that has its card shows the job, the card and the price, and nothing that names the customer', async ({ page }) => {
         test.setTimeout(120_000);
         const { token } = await seeded({ card: { brand: 'visa', last4: '4242' } });
+        await warm(page.request, [`/card/${UNUSED_TOKEN}`, `/api/card/${UNUSED_TOKEN}`, '/api/auth/me', '/api/provider/me']);
         await page.goto(`/card/${token}`, { timeout: FIRST_VISIT_MS });
         const heading = page.getByRole('heading', { name: 'A card is already on file', level: 2 });
         await expect(heading).toBeVisible({ timeout: FIRST_VISIT_MS });

@@ -6,6 +6,7 @@ import { FIXTURE_LOGINS } from '../database/fixtures/accounts.js';
 import { catalog } from '../database/fixtures/catalog.js';
 import { signInAs, RESET_RETRIES } from './support/auth.js';
 import { credentialGap } from './support/credentials.js';
+import { warm } from './support/warm.js';
 
 test.describe('Fixture sign-in', () => {
 
@@ -35,7 +36,14 @@ test.describe('Fixture sign-in', () => {
     });
 
     test('admin signs in, /api/admin/me returns role admin and /admin is not redirected to the login page', async ({ page }) => {
+        // `next dev` compiles the admin login route, /api/admin/me and /admin when each is first asked for (BUG-005), and a whole case has 60 s. The compiles
+        // are paid before the timed steps, and /admin only once the sign-in has given the page's requests the cookie the middleware wants before it serves it. The dashboard
+        // then asks for the seven routes after /admin in the list, together, and the one that compiles first holds up the rest, /api/admin/me too (2.5 s on a quiet host).
+        test.setTimeout(150_000);
         await signInAs(page, 'admin');
+        await warm(page.request, [
+            '/api/admin/me', '/admin', '/api/admin/providers', '/api/auth/me', '/api/customers', '/api/admin/disputes', '/api/bookings', '/api/services', '/api/categories',
+        ]);
 
         const response = await page.request.get('/api/admin/me');
         expect(response.status()).toBe(200);

@@ -430,17 +430,22 @@ test.describe('Job timer: a crew starts, pauses and leaves a job through the lin
         near(started.clock_seconds, 7200, TOLERANCE, 'the clock right after the start');
         expect(started.can.pause, 'a running job can be paused').toBe(true);
 
+        // A later read is judged against the seconds the server itself says have gone by since the start, not against the wall clock of the run: a route
+        // that `next dev` compiles on its first request delays the read, and `server_now` moves by the same seconds. A clock out of step with the server's own
+        // time by more than TOLERANCE still fails, and a read with no `server_now` makes this NaN, which `near` refuses.
+        const clockAt = (read) => started.clock_seconds - (read.server_now - started.server_now);
+
         for (const [who, headers] of [['the cleaner', cleaner], ['the provider', ctx.as.provider], ['the admin', ctx.as.admin]]) {
             const poll = await timerOf(request, job, headers, who);
             expect([poll.state, poll.crew_here, poll.quote_minutes], `${who}: the poll`).toEqual(['running', 3, 360]);
-            near(poll.clock_seconds, 7200, TOLERANCE, `${who}: the poll's clock`);
+            near(poll.clock_seconds, clockAt(poll), TOLERANCE, `${who}: the poll's clock`);
             const page = (await publicView(request, job, headers, who)).timer;
             expect([page.state, page.crew_here, page.quote_minutes], `${who}: the page`).toEqual(['running', 3, 360]);
-            near(page.clock_seconds, 7200, TOLERANCE, `${who}: the page's clock`);
+            near(page.clock_seconds, clockAt(page), TOLERANCE, `${who}: the page's clock`);
         }
         for (const [who, view] of [['the provider\'s panel', await providerView(ctx, job.bookingId)], ['the admin\'s panel', await adminView(ctx, job.bookingId)]]) {
             expect([view.timer.state, view.timer.crew_here, view.timer.quote_minutes], who).toEqual(['running', 3, 360]);
-            near(view.timer.clock_seconds, 7200, TOLERANCE, `${who}: the clock`);
+            near(view.timer.clock_seconds, clockAt(view.timer), TOLERANCE, `${who}: the clock`);
         }
 
         // A quote that is not there reads 60 minutes: a job with one cleaner, not started, quoted NULL and then 0.

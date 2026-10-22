@@ -18,6 +18,7 @@ import { catalog } from '../database/fixtures/catalog.js';
 import { randomBytes } from 'node:crypto';
 import mysql from 'mysql2/promise';
 import { RESET_RETRIES, signInAs } from './support/auth.js';
+import { warm } from './support/warm.js';
 import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.js';
 
 /** @typedef {import('@playwright/test').Page} Page */
@@ -575,8 +576,12 @@ async function expectOneHoldRequest(page, holds) {
 }
 
 test.describe('Guided booking flow', () => {
-    test.beforeEach(() => {
+    // The page gives its live price 10 s (src/lib/use-live-price.js) and `next dev` compiles /api/pricing, the page and the routes the page also asks for when each is
+    // first asked for (BUG-011: 15 to 27 s each, cold), so the 45 s FIRST_VISIT_MS below cannot help the price. They are asked for here, before the case opens the page.
+    // A route is dropped after about a minute without a request, so this runs before each case.
+    test.beforeEach(async ({ request }) => {
         test.setTimeout(120_000);
+        await warm(request, ['/booking/schedule', '/api/pricing', '/api/services', '/api/provider/me', '/api/auth/me']);
     });
 
     test("the steps of a service with a full rule are about the job, the option, what's included, and when and where, in that order", async ({ page }) => {
