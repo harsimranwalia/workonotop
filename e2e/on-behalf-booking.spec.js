@@ -1356,4 +1356,54 @@ test.describe('On-behalf booking and the card link', () => {
             }
         }
     });
+
+    test('(ENG-029 BUG-010) a booking an admin makes for an address with no account is in the admin bookings list and in the queue, and one for an address with an account is in each once', async ({ request, baseURL }) => {
+        const as = await headersFor(baseURL);
+        const email = emailOf('listed');
+        const guest = await book(request, as.admin, { email });
+        const joined = await book(request, as.admin, { email: CUSTOMER1.email });
+        expect([guest.response.status(), joined.response.status()], 'the admin books for both customers').toEqual([201, 201]);
+        expect(guest.answer.account_matched, 'a new address matches no account').toBe(false);
+        expect(joined.answer.account_matched, "customer 1's address matches an account").toBe(true);
+        const made = [
+            { what: 'the booking for an address with no account', id: guest.answer.booking_id, number: guest.answer.booking_number },
+            { what: 'the booking for an address with an account', id: joined.answer.booking_id, number: joined.answer.booking_number },
+        ];
+        const inList = (list, id) => list.data.filter((row) => row.id === id);
+
+        // The list the Jobs page, the dashboard and the admin app read, asked as they ask it: no size, so the newest fifty. The answer is checked before a row is
+        // looked for, so that a refusal or a failure reads as that and not as a booking that is missing.
+        const listResponse = await call(request, 'GET', '/api/bookings', as.admin, undefined);
+        const listed = await listResponse.json();
+        expect([listResponse.status(), listed.success], 'the admin reads the bookings list').toEqual([200, true]);
+        for (const { what, id, number } of made) {
+            const found = inList(listed, id);
+            expect(found.length, `${what} is in the list once`).toBe(1);
+            expect(found[0].booking_number, `${what} has in the list the number the answer gave`).toBe(number);
+        }
+
+        // The job queue, at its widest page.
+        const queueResponse = await call(request, 'GET', '/api/bookings?queue=1&limit=500', as.admin, undefined);
+        const queued = await queueResponse.json();
+        expect([queueResponse.status(), queued.success], 'the admin reads the job queue').toEqual([200, true]);
+        for (const { what, id } of made) {
+            const found = inList(queued, id);
+            expect(found.length, `${what} is in the queue once`).toBe(1);
+            expect(found[0].queue_state, `${what} is waiting for a provider`).toBe('waiting');
+        }
+
+        // The list and the queue do not disagree about these two. A loop over the two ids and not "the queue is a subset of the list": the list is the newest fifty
+        // and the queue the oldest first, so a queue booking older than the fifty is not in the list, for any booking.
+        const listedIds = new Set(listed.data.map((row) => row.id));
+        for (const row of queued.data.filter((queuedRow) => made.some(({ id }) => id === queuedRow.id))) {
+            expect(listedIds.has(row.id), `booking ${row.id} is in the queue, so it is in the list`).toBe(true);
+        }
+
+        // The narrower read the Users screens make, for one address: it cannot be crowded out of the window, and it fails if the conditions added after the
+        // first one in the route are ever broken.
+        const byAddressResponse = await call(request, 'GET', `/api/bookings?email=${encodeURIComponent(email)}`, as.admin, undefined);
+        const byAddress = await byAddressResponse.json();
+        expect([byAddressResponse.status(), byAddress.success], 'the admin reads the bookings of one address').toEqual([200, true]);
+        expect(byAddress.data.map((row) => row.id), 'the address with no account has its one booking').toEqual([guest.answer.booking_id]);
+    });
 });
