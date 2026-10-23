@@ -217,6 +217,12 @@ export function photoCanOf(value) {
   return { before: isObject(value) && value.before === true, after: isObject(value) && value.after === true };
 }
 
+// Whether each kind already holds as many photos as a job may have, as the server counts them: it counts the rows the list leaves out as well (the rows whose address the page may not link), which the page cannot see.
+// Anything that cannot be read is "not full", so an answer without it leaves the page reading the photos it lists, as it did.
+export function photoFullOf(value) {
+  return { before: isObject(value) && value.before === true, after: isObject(value) && value.after === true };
+}
+
 // The clock of a timer, counted on the phone between asks: { left, over } in whole seconds. While the job runs, `left` falls by the seconds since the answer
 // arrived, measured on the monotonic clock so that a wrong phone clock moves nothing, and stops at 0 until the next answer says how far over it is; `over` then
 // rises. Paused, or not started, the answer's own figures stand. `left` is null when nobody is here. A new answer starts the count again from its figures.

@@ -2607,6 +2607,12 @@
     "booking-flow.spec.js › Booking Flow › should load booking success page": {
       "outcome": "PASS"
     },
+    "booking-guided-flow.spec.js › Guided booking flow › Back from the confirm page that sent a customer with no booking to the services page does not load the confirm page again": {
+      "outcome": "PASS"
+    },
+    "booking-guided-flow.spec.js › Guided booking flow › Back from the step 4 that the confirm page sent the customer to does not load the confirm page again": {
+      "outcome": "PASS"
+    },
     "booking-guided-flow.spec.js › Guided booking flow › a Saturday as the first date adds the weekend amount and a Friday before it does not": {
       "outcome": "PASS"
     },
@@ -3807,6 +3813,9 @@
     "job-link-screens.spec.js › Job link: the colours of the panels › Colours: every text colour in the manager panel's looks is 4.5 to 1 or better on its ground, and the border and the focus ring of a control are 3 to 1": {
       "outcome": "PASS"
     },
+    "job-link-screens.spec.js › Job link: the page › A waiting crew member with a 104-letter name does not push the page sideways at 320, 375, 768 and 1280 px": {
+      "outcome": "PASS"
+    },
     "job-link-screens.spec.js › Job link: the page › Screens: a link that is not valid says so in one sentence, asks for nothing, and asks search engines to skip the page": {
       "outcome": "PASS"
     },
@@ -4152,6 +4161,9 @@
     "job-reports-screens.spec.js › Reports: the office queue › a declined card reads the reason on the card and Try the charge again continues it": {
       "outcome": "PASS"
     },
+    "job-reports-screens.spec.js › Reports: the office queue › a refused Decline of a failed report shows the reason on the card and in the status region, and the other refusals show what they showed": {
+      "outcome": "PASS"
+    },
     "job-reports-screens.spec.js › Reports: the office queue › a report arrives with the next poll": {
       "outcome": "PASS"
     },
@@ -4348,6 +4360,9 @@
       "outcome": "PASS"
     },
     "job-timer-screens.spec.js › Job timer: the photos › Screens: a checked-in cleaner adds a before photo and sees it with their name and the time, in a link that opens a new tab, and the row says a cleaner took it": {
+      "outcome": "PASS"
+    },
+    "job-timer-screens.spec.js › Job timer: the photos › Screens: a checked-in cleaner is told the job has all the photos it can hold when a type holds 20 rows the page does not list": {
       "outcome": "PASS"
     },
     "job-timer-screens.spec.js › Job timer: the photos › Screens: a file that is not a picture is refused with no retry, and a photo the server could not keep shows its sentence and Try again sends it once more": {
@@ -5037,6 +5052,9 @@
     "on-behalf-booking.spec.js › On-behalf booking and the card link › with no payment key on the server a confirm answers 503 and saves nothing, and an id that is not a SetupIntent id is 400": {
       "outcome": "PASS"
     },
+    "on-behalf-booking.spec.js › On-behalf booking: the screens › Back from the confirm page that sent the office to the booking desk does not load the confirm page again": {
+      "outcome": "PASS"
+    },
     "on-behalf-booking.spec.js › On-behalf booking: the screens › a flag in a customer's session turns the mode off and shows no booking form for a customer": {
       "outcome": "PASS"
     },
@@ -5400,6 +5418,15 @@
     "provider-signup-page.spec.js › Provider sign-up page › valid details on the provider sign-up page create a provider account waiting for e-mail verification": {
       "outcome": "PASS"
     },
+    "provider-small-screen.spec.js › Provider layout: the small screen › A closed menu below 1024 px is not a tab stop and not read by a screen reader, and opening it moves focus into it": {
+      "outcome": "PASS"
+    },
+    "provider-small-screen.spec.js › Provider layout: the small screen › A completed job and an open job do not scroll the page sideways at 375 px": {
+      "outcome": "PASS"
+    },
+    "provider-small-screen.spec.js › Provider layout: the small screen › From 1024 px the sidebar links are reached by Tab as before": {
+      "outcome": "PASS"
+    },
     "provider.spec.js › Provider Portal - Auth Protection › provider login page should have form fields": {
       "outcome": "PASS"
     },
@@ -5473,6 +5500,9 @@
       "outcome": "PASS"
     },
     "quote-request.spec.js › Quote requests › the threshold is the item's own: a unit or an extra by its count, an option or a property type once, a weekend never, no quote_from never": {
+      "outcome": "PASS"
+    },
+    "quote-request.spec.js › Quote requests: the screens › Tab from Your name to Send request at 375, 768 and 1023 px leaves every control clear of the summary bar and the header, and from 1024 px the page is as it was": {
       "outcome": "PASS"
     },
     "quote-request.spec.js › Quote requests: the screens › a job that can be priced shows its price and no form, and the price and the form swap as the answers change": {
