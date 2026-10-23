@@ -27,10 +27,10 @@ const TYPES = [
   { type: 'after', heading: 'After', add: 'Add an after photo' },
 ];
 
-// Why a button is off, in the order the server judges: the limit, the state of the job, then the cleaner who is not here. `timer` may be null (its answer
-// could not be read), in which case only the limit and the cleaner are known.
-function reasonOf(type, count, timer) {
-  if (count >= PHOTOS_MAX_PER_TYPE) return FULL_TEXT;
+// Why a button is off, in the order the server judges: the limit, the state of the job, then the cleaner who is not here. `full` is whether the type holds all the photos a job may have. `timer` may be
+// null (its answer could not be read), in which case only the limit and the cleaner are known.
+function reasonOf(type, full, timer) {
+  if (full) return FULL_TEXT;
   if (!timer) return UNKNOWN_TEXT;
   const started = timer.state !== 'not_started';
   if (type === 'before' && started) return STARTED_TEXT;
@@ -70,7 +70,7 @@ export default function JobPhotos({ base, view, onPhotos, onChanged, onOut, onIn
     return () => { live.current = false; };
   }, []);
 
-  const { photos, photoCan, timer } = view;
+  const { photos, photoCan, photoFull, timer } = view;
 
   // Sends the shrunk picture held in memory.
   const send = async () => {
@@ -180,7 +180,7 @@ export default function JobPhotos({ base, view, onPhotos, onChanged, onOut, onIn
               tabIndex={-1} aria-hidden="true" className="sr-only" onChange={(event) => picked(type, event)} />
             <button type="button" aria-disabled={!allowed || busy || undefined} aria-describedby={allowed ? undefined : reasonId} onClick={() => add(type, allowed)}
               className={`${OUTLINE} mt-3`}>{label}</button>
-            {!allowed && <p id={reasonId} className="mt-2 text-sm text-gray-700">{reasonOf(type, mine.length, timer)}</p>}
+            {!allowed && <p id={reasonId} className="mt-2 text-sm text-gray-700">{reasonOf(type, photoFull[type] || mine.length >= PHOTOS_MAX_PER_TYPE, timer)}</p>}
 
             {problem?.type === type && (
               <div className="mt-2">

@@ -392,7 +392,8 @@ function ReportCard({ report, dark, onUpdate, onSay }) {
       onUpdate(answer.report);
       onSay(answer.done ? `${answer.report.label}: ${statusOf(answer.report).toLowerCase()}` : answer.text);
     }
-    if (!answer.done && !(answer.report && answer.report.items && answer.report.items.charge === 'failed')) setProblem(answer.text);
+    // A charge that stays failed after Try the charge again shows its new reason on the card, so no alert says it twice; a refused Decline shows nothing there, so it gets one.
+    if (!answer.done && (action === 'decline' || !(answer.report && answer.report.items && answer.report.items.charge === 'failed'))) setProblem(answer.text);
   };
 
   const closeDialog = () => {

@@ -58,7 +58,8 @@ export default function BookingConfirmPage() {
       // A booking goes on to the payment step only when its step-4 answers pass today's checks: the flow page keeps what is on screen, and that may be a step left half done.
       const hasDates = Array.isArray(saved.schedule.job_date) && saved.schedule.job_date.length > 0;
       if (!hasDates || checkWhenAndWhere(saved.whenAndWhere)) {
-        router.push(`/booking/schedule?service=${encodeURIComponent(saved.service_id)}&step=4`);
+        // A replace, not a push: this page's own redirects must not leave it in the history, or Back from where the person was sent loads it again and it sends them on again.
+        router.replace(`/booking/schedule?service=${encodeURIComponent(saved.service_id)}&step=4`);
         return;
       }
       setFlow(saved);
@@ -74,7 +75,8 @@ export default function BookingConfirmPage() {
         setLng(sessionStorage.getItem('userLng') ? parseFloat(sessionStorage.getItem('userLng')) : null);
       }
     } else {
-      router.push(onBehalf.active ? '/admin/book' : '/services');
+      // A replace, as above.
+      router.replace(onBehalf.active ? '/admin/book' : '/services');
     }
 
     if (user && !onBehalf.active) {
