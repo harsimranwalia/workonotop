@@ -979,7 +979,7 @@ test.describe('Quote requests: the screens', () => {
     // entirely under content the page itself keeps in place). From 1024 px the bar is a column beside the form and the page is as it was: there the case asks only that the page keeps no room for either, and does
     // not walk the form (on the page as it was, the header hides Phone (optional) on the way back up at 1280 px; that is outside this ticket).
     // Mutant that turns this case red: the page leaves no room for the bar or for the header when the browser scrolls a focused control into view (a control is entirely under one of them at a stop), keeps room
-    // at 1024 px and up where the bar is not fixed (a scroll padding is not `auto`), or does not make it again when the window is made narrower (the walk after the resize).
+    // at 1024 px and up where the bar is not fixed (a scroll padding is not `auto`), or does not make it again when the window is made narrower (the walk after the resize), or keeps it on the page when the visitor goes on to another page (the check after the click on the logo).
     test('Tab from Your name to Send request at 375, 768 and 1023 px leaves every control clear of the summary bar and the header, and from 1024 px the page is as it was', async ({ context }) => {
         test.setTimeout(240_000);
         /** @param {Page} page */
@@ -1035,6 +1035,13 @@ test.describe('Quote requests: the screens', () => {
                 expect(await walk(page), `${width} px: the stops at which the bar or the header hides a control`).toEqual([]);
             } else {
                 expect(await roomKept(page), `${width} px: the page keeps no room for a bar that is not fixed, nor for the header`).toEqual({ bottom: 'auto', top: 'auto' });
+            }
+
+            if (width === 375) {
+                // <html> outlives the page, so the room is given back when the visitor goes on to another page of the site (by the logo in the header), or it would follow them there.
+                await page.locator('header').getByRole('link', { name: 'Logo' }).click();
+                await expect(page).toHaveURL(/\/$/);
+                await expect.poll(() => roomKept(page), { message: 'the room for the bar and the header is given back when the visitor leaves the page' }).toEqual({ bottom: 'auto', top: 'auto' });
             }
 
             if (width === 1280) {
