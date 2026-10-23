@@ -496,7 +496,7 @@ test.describe('Job link: the token, the dead link, the views, the managed routes
             views.adminBearer = await take(await request.get(`/api/job/${token}`, { headers: as.adminBearer }));
             const expectedAccess = { cleaner: 'cleaner', provider: 'provider', adminCookie: 'admin', adminBearer: 'admin' };
             const allowed = {
-                top: ['access', 'crew', 'job', 'photo_can', 'photos', 'report_can', 'reports', 'timer', 'window', 'you'],
+                top: ['access', 'crew', 'job', 'photo_can', 'photo_full', 'photos', 'report_can', 'reports', 'timer', 'window', 'you'],
                 you: ['kind', 'name'],
                 job: ['address', 'days', 'details', 'service_name'],
                 address: ['city', 'line1', 'line2', 'postal_code'],

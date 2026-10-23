@@ -3897,6 +3897,9 @@
     "job-photo-routes.spec.js › Job photo route: the addresses the lists show › F1: a row that is left out of the lists still counts toward the 20 of its type: with 19 such rows one more photo is kept, then the page offers no more and the route refuses the next, and the after photos are counted apart": {
       "outcome": "PASS"
     },
+    "job-photo-routes.spec.js › Job photo route: the addresses the lists show › F1: a type that holds 20 rows the lists leave out reads as full in photo_full, and the other type does not": {
+      "outcome": "PASS"
+    },
     "job-photo-routes.spec.js › Job photo route: the addresses the lists show › F1: the cleaner's page, the provider's panel and the admin's panel each list the two photos whose addresses the page may link and none of the eight beside them (an SVG, a store-shaped SVG, two off-site addresses, a script address, a data address, a path that climbs, a path that nests)": {
       "outcome": "PASS"
     },

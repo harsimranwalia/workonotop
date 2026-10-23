@@ -12,7 +12,8 @@
 //               Exif cut seen in the stored file;
 //   listed      the three answers that list a job's photos (the cleaner's page, the provider's panel and the admin's panel) leave out a row whose address
 //               is neither a photo of the store nor an older raster upload, and a row that is left out still counts toward the limit of 20 (security gate
-//               round 1, F1: both screens put the address in a link, and the provider's routes store any string); the rule itself, address by address;
+//               round 1, F1: both screens put the address in a link, and the provider's routes store any string), and the job read says which
+//               type that count has filled (photo_full, ENG-031 and BUG-020); the rule itself, address by address;
 //   the cap     a body of exactly PHOTO_MAX_BYTES is kept, one byte more is 413 (the whole multipart body is counted, its framing too), a body
 //               with no length is stopped, and a Content-Length that is smaller than the body is stopped; after each the app keeps answering;
 //   the counter readCappedBody (src/lib/read-capped-body.js) in plain Node with chunked streams: exactly the cap passes, one byte more is cut, a
@@ -917,6 +918,47 @@ test.describe('Job photo route: the addresses the lists show', () => {
         const end = await readData(request, `/api/job/${job.token}`, cleaner, 'the cleaner reads a job that holds 20 of each');
         expect([end.photos.map((photo) => photo.type).sort(), end.photo_can], 'the two photos taken here are listed and neither type has room').toEqual([['after', 'before'], { before: false, after: false }]);
         await refused(job, 'the 21st after photo, 19 of the 20 being left out of the lists', 409, PHOTO_MESSAGES.tooMany, () => postParts(request, job, cleaner, [typePart('after'), photoPart(TINY_JPEG)]));
+    });
+
+    // BUG-020 (ENG-031). The job page counts the photos it lists, and the lists leave rows out, so a type could be full while the page held fewer than 20 and told a cleaner who
+    // was checked in to check in. photo_full is the server's own count of the rows against PHOTOS_MAX_PER_TYPE (the rows addPhoto counts, left-out ones included), per type: it is
+    // the job's fact, so it is the same for the provider, the admin and a cleaner who may add nothing, and the same before the job starts and after. Mutant that turns this case
+    // red: photo_full is missing from the answer, is worked out from the photos that are listed, from both types together or for the wrong type, or is worked out from photo_can
+    // (so that it follows the state of the job, or whether the one who reads may add a photo).
+    test('F1: a type that holds 20 rows the lists leave out reads as full in photo_full, and the other type does not', async ({ playwright, request, baseURL }) => {
+        test.setTimeout(180_000);
+        const ctx = await setup(playwright, request, baseURL);
+        const { member, job, cleaner } = await probeJob(ctx, { checkIn: false });
+        const hidden = (letter, count) => Array.from({ length: count }, (_, n) => `/uploads/${n + 1}-${letter}.svg`);
+        const read = (headers, who) => readData(request, `/api/job/${job.token}`, headers, who);
+        const NEITHER = { before: false, after: false };
+
+        // 19 rows left out of the lists: the type is not full, and the provider, who may add a photo, is offered one.
+        await plantRows(job.bookingId, 'before', hidden('b', PHOTOS_MAX_PER_TYPE - 1));
+        const open = await read(ctx.as.provider, 'the provider reads a job with 19 before photos left out');
+        expect([open.photos, open.photo_full, open.photo_can.before], 'with 19 rows left out nothing is listed, no type is full and one more before photo may be added').toEqual([[], NEITHER, true]);
+
+        // The 20th: the before type is full, the after type is not, and the lists still show nothing. A cleaner who is not checked in is told the same, though she may add nothing.
+        await plantRows(job.bookingId, 'before', [`/uploads/${PHOTOS_MAX_PER_TYPE}-b.svg`]);
+        const full = await read(ctx.as.provider, 'the provider reads a job with 20 before photos left out');
+        expect([full.photos, full.photo_full, full.photo_can.before], 'with 20 rows left out nothing is listed, before is full and the page offers no more').toEqual([[], { before: true, after: false }, false]);
+        const away = await read(cleaner, 'a cleaner who is not checked in reads the same job');
+        expect([away.photo_full, away.photo_can], 'not checked in: the same fact, and nothing may be added').toEqual([{ before: true, after: false }, NEITHER]);
+
+        // Checked in, and then the job starts: the 20 before rows are not the after photos' count.
+        await tickOk(request, job, cleaner, [member.id], 'the cleaner');
+        const here = await read(cleaner, 'the cleaner reads the job once checked in');
+        expect([here.photos, here.photo_full], 'checked in: the same fact').toEqual([[], { before: true, after: false }]);
+        await setStatus(job.bookingId, 'in_progress');
+        const started = await read(cleaner, 'the cleaner reads the started job');
+        expect([started.photo_full, started.photo_can], 'started: before is full and after is not, so only the after photo may be added').toEqual([{ before: true, after: false }, { before: false, after: true }]);
+
+        // 20 after rows left out as well: both types are full, whoever reads.
+        await plantRows(job.bookingId, 'after', hidden('a', PHOTOS_MAX_PER_TYPE));
+        for (const [who, headers] of [['the cleaner', cleaner], ['the provider', ctx.as.provider], ['the admin', ctx.as.admin]]) {
+            const end = await read(headers, `${who} reads a job that holds 20 of each`);
+            expect([end.photos, end.photo_full, end.photo_can], `${who}: nothing is listed, both types are full and nothing may be added`).toEqual([[], { before: true, after: true }, NEITHER]);
+        }
     });
 });
 
