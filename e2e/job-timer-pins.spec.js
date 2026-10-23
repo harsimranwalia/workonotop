@@ -454,7 +454,7 @@ test.describe('Job timer and photos: the pins', () => {
     });
 
     // Mutant that turns this case red: the list is cut back to 50 (a busy job's first events fall out of the list) or a detail is renamed or dropped.
-    test('Pins: EVENT_LIST_LIMIT is 100 and EVENT_DETAILS is the seventeen names', async () => {
+    test('Pins: EVENT_LIST_LIMIT is 100 and EVENT_DETAILS is the eighteen names', async () => {
         const { EVENT_LIST_LIMIT, EVENT_DETAILS } = await loaded('src/lib/job-link-base.js', () => import('../src/lib/job-link-base.js'));
         expect(EVENT_LIST_LIMIT, 'EVENT_LIST_LIMIT exported by src/lib/job-link-base.js').toBe(100);
         expect([...EVENT_DETAILS], 'EVENT_DETAILS exported by src/lib/job-link-base.js').toEqual([
@@ -464,6 +464,7 @@ test.describe('Job timer and photos: the pins', () => {
             'cooldown',
             'number_cap',
             'provider_cap',
+            'platform_cap',
             'sent',
             'not_sent',
             'before',

@@ -3693,6 +3693,9 @@
     "job-link-access.spec.js › Job link access: the number check and the burst › Condition 4: the per-link ask cap answers 429 at the 21st ask, counts numbers that match nobody and unreadable ones too, and is not the try cap of the verify route": {
       "outcome": "PASS"
     },
+    "job-link-access.spec.js › Job link access: the number check and the burst › ENG-032: at the platform ceiling a code is refused like any other refusal: 200 with the usual answer, no code made, no text sent, and one code_suppressed event with platform_cap": {
+      "outcome": "PASS"
+    },
     "job-link-retention.spec.js › Job link retention: everything logged › Condition 6: no fixture number, name, token, code or cookie value appears in anything the file logged, and every line is one of the fixed ones": {
       "outcome": "PASS"
     },
@@ -4275,7 +4278,7 @@
     "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: EVENT_KINDS is the fifteen names, in order": {
       "outcome": "PASS"
     },
-    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: EVENT_LIST_LIMIT is 100 and EVENT_DETAILS is the seventeen names": {
+    "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: EVENT_LIST_LIMIT is 100 and EVENT_DETAILS is the eighteen names": {
       "outcome": "PASS"
     },
     "job-timer-pins.spec.js › Job timer and photos: the pins › Pins: LOCATION_REQUIRED is [\"start\"]": {
