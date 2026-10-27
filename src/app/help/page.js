@@ -4,52 +4,56 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { useState } from 'react'
+import {
+  ArrowRight, BadgeCheck, BookOpen, CalendarCheck, CalendarX, CreditCard, MapPin, MessageCircle, MessageSquare, Minus, Plus,
+  Receipt, Search, ShieldCheck, X, Zap,
+} from 'lucide-react'
 
 const faqs = [
   {
-    icon: '📅',
+    icon: CalendarCheck,
     category: 'Booking',
     question: 'How do I book a service?',
     answer: 'Simply search for the service you need, select a date and time, and confirm your booking. You\'ll receive instant confirmation and can track your booking status in "My Bookings".'
   },
   {
-    icon: '🔍',
+    icon: Search,
     category: 'Services',
     question: 'How do I find the right service?',
     answer: 'Use our search bar at the top of the page. Type what you need (e.g., "fix leaking tap") and we\'ll show you relevant services. You can also browse by categories.'
   },
   {
-    icon: '📍',
+    icon: MapPin,
     category: 'Coverage',
     question: 'What areas do you serve?',
     answer: 'We currently serve Metro Vancouver and surrounding areas including Burnaby, Surrey, Richmond, Coquitlam, and more. We\'re expanding to new cities soon!'
   },
   {
-    icon: '✅',
+    icon: BadgeCheck,
     category: 'Trust & Safety',
     question: 'How are service providers vetted?',
     answer: 'All our pros undergo background checks, license verification, and are fully insured. You can see their ratings and read verified reviews before booking.'
   },
   {
-    icon: '❌',
+    icon: CalendarX,
     category: 'Booking',
     question: 'What if I need to cancel?',
     answer: 'Free cancellation up to 24 hours before the scheduled time. Cancel anytime from your "My Bookings" page with no penalty.'
   },
   {
-    icon: '💳',
+    icon: CreditCard,
     category: 'Payment',
     question: 'How do I pay?',
     answer: 'Pay securely through our platform after the job is completed. We accept all major credit cards and digital wallets. No payment is charged until the work is done.'
   },
   {
-    icon: '⭐',
+    icon: MessageSquare,
     category: 'Reviews',
     question: 'How do I leave a review?',
     answer: 'After your job is marked complete, you\'ll receive an email or in-app prompt to rate and review your experience. Your feedback helps maintain our quality standards.'
   },
   {
-    icon: '🛡️',
+    icon: ShieldCheck,
     category: 'Trust & Safety',
     question: 'What if I\'m not satisfied with the work?',
     answer: 'We offer a WorkOnTap Satisfaction Guarantee. If you\'re not happy, contact us within 48 hours and we\'ll make it right — at no extra cost to you.'
@@ -57,38 +61,10 @@ const faqs = [
 ]
 
 const quickLinks = [
-  {
-    href: '/help/booking',
-    icon: '📖',
-    title: 'Booking Guide',
-    desc: 'Step-by-step booking help',
-    color: 'from-blue-500 to-blue-600',
-    bg: 'bg-blue-50 hover:bg-blue-100 border-blue-100',
-  },
-  {
-    href: '/help/payment',
-    icon: '💰',
-    title: 'Payment Help',
-    desc: 'Billing, refunds & receipts',
-    color: 'from-emerald-500 to-emerald-600',
-    bg: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-100',
-  },
-  {
-    href: '/contact',
-    icon: '💬',
-    title: 'Contact Support',
-    desc: 'Talk to our team',
-    color: 'from-violet-500 to-violet-600',
-    bg: 'bg-violet-50 hover:bg-violet-100 border-violet-100',
-  },
-  {
-    href: '/how-it-works',
-    icon: '⚡',
-    title: 'How It Works',
-    desc: 'Learn the platform',
-    color: 'from-amber-500 to-amber-600',
-    bg: 'bg-amber-50 hover:bg-amber-100 border-amber-100',
-  },
+  { href: '/help/booking', icon: BookOpen, title: 'Booking Guide', desc: 'Step-by-step booking help' },
+  { href: '/help/payment', icon: Receipt, title: 'Payment Help', desc: 'Billing, refunds & receipts' },
+  { href: '/contact', icon: MessageCircle, title: 'Contact Support', desc: 'Talk to our team' },
+  { href: '/how-it-works', icon: Zap, title: 'How It Works', desc: 'Learn the platform' },
 ]
 
 const categories = ['All', 'Booking', 'Services', 'Payment', 'Coverage', 'Trust & Safety', 'Reviews']
@@ -105,147 +81,146 @@ export default function HelpPage() {
   })
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans antialiased">
+    <div className="min-h-screen bg-white font-sans antialiased text-ink overflow-x-hidden">
       <Header />
 
       {/* ── Hero ── */}
-      <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-1/4 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-1/4 w-60 h-60 bg-teal-400/10 rounded-full blur-3xl" />
-        </div>
-        <div className="relative container mx-auto px-6 py-16 max-w-4xl text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-500/20 border border-emerald-500/30 rounded-full text-emerald-400 text-sm font-semibold mb-5">
-            🛟 Help Center
-          </div>
-          <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-            How can we <span className="text-emerald-400">help you?</span>
+      <section className="bg-paper border-b border-line">
+        <div className="container mx-auto px-5 sm:px-6 max-w-5xl py-14 lg:py-20">
+          <p className="text-xs font-bold tracking-[0.16em] uppercase text-brand-600 mb-3">Help Center</p>
+          <h1 className="font-display text-4xl sm:text-5xl leading-[1.05] font-semibold tracking-[-0.025em] text-ink mb-4">
+            How can we <span className="text-brand-600">help you?</span>
           </h1>
-          <p className="text-slate-300 text-lg mb-8 max-w-xl mx-auto">
+          <p className="text-lg text-ink-soft leading-relaxed mb-8 max-w-2xl">
             Find answers to common questions or reach out to our support team
           </p>
 
           {/* Search bar */}
-          <div className="relative max-w-xl mx-auto">
-            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+          <div className="relative max-w-xl">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-muted" aria-hidden="true" />
             <input
               type="text"
               value={search}
               onChange={e => { setSearch(e.target.value); setOpenFaq(null) }}
               placeholder="Search questions, topics..."
-              className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white/15 text-sm backdrop-blur-sm transition"
+              className="w-full pl-12 pr-12 py-4 rounded-2xl bg-white border border-line text-ink placeholder:text-ink-muted focus:border-ink/40 focus:ring-4 focus:ring-brand-500/10 focus:outline-none transition"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition text-lg">×</button>
+              <button onClick={() => setSearch('')} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full flex items-center justify-center text-ink-muted hover:text-ink hover:bg-paper transition">
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
             )}
           </div>
         </div>
-      </div>
+      </section>
 
       {/* ── Quick Links ── */}
-      <div className="container mx-auto px-6 max-w-5xl -mt-6 relative z-10 mb-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {quickLinks.map((link, i) => (
-            <Link key={i} href={link.href}
-              className={`flex flex-col items-center text-center p-5 rounded-2xl border transition group shadow-sm ${link.bg}`}>
-              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${link.color} flex items-center justify-center text-2xl mb-3 shadow-sm group-hover:scale-110 transition-transform`}>
-                {link.icon}
-              </div>
-              <div className="font-bold text-slate-900 text-sm">{link.title}</div>
-              <div className="text-slate-500 text-xs mt-0.5">{link.desc}</div>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* ── FAQ Section ── */}
-      <div className="container mx-auto px-6 max-w-4xl pb-20">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 mb-2">Frequently Asked Questions</h2>
-          <p className="text-slate-500 text-sm">Click a question to expand the answer</p>
-        </div>
-
-        {/* Category Filter */}
-        <div className="flex flex-wrap gap-2 justify-center mb-8">
-          {categories.map(cat => (
-            <button key={cat} onClick={() => { setActiveCategory(cat); setOpenFaq(null) }}
-              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition border ${
-                activeCategory === cat
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm shadow-emerald-100'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-emerald-700'
-              }`}>
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        {/* FAQ list */}
-        {filtered.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
-            <div className="text-5xl mb-4">🔍</div>
-            <p className="font-semibold text-slate-700 mb-1">No results found</p>
-            <p className="text-slate-400 text-sm">Try a different search term or category</p>
-            <button onClick={() => { setSearch(''); setActiveCategory('All') }}
-              className="mt-4 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition">
-              Clear Filters
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filtered.map((faq, index) => (
-              <div key={index}
-                className={`bg-white rounded-2xl border overflow-hidden shadow-sm transition-all duration-300 ${
-                  openFaq === index ? 'border-emerald-200 shadow-emerald-50 shadow-md' : 'border-slate-200 hover:border-slate-300'
-                }`}>
-                <button
-                  onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                  className="w-full text-left px-5 py-4 flex items-center gap-4 group">
-                  <span className="text-2xl shrink-0">{faq.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full mr-2 ${
-                      openFaq === index ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                    }`}>{faq.category}</span>
-                    <span className="font-semibold text-slate-900 text-sm">{faq.question}</span>
-                  </div>
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-all ${
-                    openFaq === index ? 'bg-emerald-500 text-white rotate-45' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'
-                  }`}>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </div>
-                </button>
-
-                {openFaq === index && (
-                  <div className="px-5 pb-5 pt-0">
-                    <div className="ml-10 pl-4 border-l-2 border-emerald-200">
-                      <p className="text-slate-600 text-sm leading-relaxed">{faq.answer}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
+      <section className="pt-12 lg:pt-16 bg-white">
+        <div className="container mx-auto px-5 sm:px-6 max-w-5xl">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {quickLinks.map(({ href, icon: LinkIcon, title, desc }) => (
+              <Link key={href} href={href}
+                className="group flex flex-col p-5 rounded-[28px] border border-line bg-white hover:border-ink/30 hover:shadow-card transition">
+                <span className="h-11 w-11 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center mb-4">
+                  <LinkIcon className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <span className="font-semibold text-ink text-sm sm:text-base">{title}</span>
+                <span className="text-ink-muted text-xs sm:text-sm mt-0.5">{desc}</span>
+              </Link>
             ))}
           </div>
-        )}
-
-        {/* Still need help? */}
-        <div className="mt-12 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl p-8 text-center text-white shadow-xl shadow-emerald-100">
-          <div className="text-4xl mb-3">🤝</div>
-          <h3 className="text-xl font-extrabold mb-2">Still need help?</h3>
-          <p className="text-emerald-100 text-sm mb-5 max-w-sm mx-auto">
-            Our support team is available 7 days a week. We typically respond within a few hours.
-          </p>
-          <Link href="/contact"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white text-emerald-700 font-bold rounded-xl hover:bg-emerald-50 transition shadow-sm text-sm">
-            💬 Contact Support
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-          </Link>
         </div>
-      </div>
+      </section>
+
+      {/* ── FAQ Section ── */}
+      <section className="py-14 lg:py-20 bg-white">
+        <div className="container mx-auto px-5 sm:px-6 max-w-5xl">
+          <div className="mb-8">
+            <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight text-ink mb-2">Frequently Asked Questions</h2>
+            <p className="text-ink-muted">Click a question to expand the answer</p>
+          </div>
+
+          {/* Category Filter */}
+          <div className="flex flex-wrap gap-2 mb-8">
+            {categories.map(cat => (
+              <button key={cat} onClick={() => { setActiveCategory(cat); setOpenFaq(null) }}
+                className={`px-4 py-1.5 rounded-full text-sm font-semibold transition border ${
+                  activeCategory === cat
+                    ? 'bg-ink text-white border-ink'
+                    : 'bg-white text-ink-soft border-line hover:border-ink/40 hover:text-ink'
+                }`}>
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* FAQ list */}
+          {filtered.length === 0 ? (
+            <div className="text-center py-16 rounded-[28px] border border-line bg-paper">
+              <span className="mx-auto h-11 w-11 rounded-2xl bg-white border border-line text-brand-600 flex items-center justify-center mb-4">
+                <Search className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <p className="font-semibold text-ink mb-1">No results found</p>
+              <p className="text-ink-muted text-sm">Try a different search term or category</p>
+              <button onClick={() => { setSearch(''); setActiveCategory('All') }}
+                className="mt-5 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold rounded-2xl transition">
+                Clear Filters
+              </button>
+            </div>
+          ) : (
+            <div className="divide-y divide-line border-y border-line">
+              {filtered.map((faq, index) => {
+                const open = openFaq === index
+                const FaqIcon = faq.icon
+                return (
+                  <div key={index}>
+                    <button
+                      onClick={() => setOpenFaq(open ? null : index)}
+                      aria-expanded={open}
+                      className="w-full text-left py-5 flex items-center gap-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg">
+                      <span className="hidden sm:flex h-11 w-11 shrink-0 rounded-2xl bg-brand-50 text-brand-600 items-center justify-center">
+                        <FaqIcon className="h-5 w-5" aria-hidden="true" />
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <span className="block text-[11px] font-bold uppercase tracking-[0.16em] text-brand-600 mb-1">{faq.category}</span>
+                        <span className="font-semibold text-ink text-base sm:text-lg">{faq.question}</span>
+                      </div>
+                      <span className={`h-8 w-8 shrink-0 rounded-full border flex items-center justify-center transition ${open ? 'bg-ink border-ink text-white' : 'border-line text-ink'}`} aria-hidden="true">
+                        {open ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      </span>
+                    </button>
+
+                    {open && (
+                      <div className="pb-6 pr-12 sm:pl-[60px]">
+                        <p className="text-ink-soft leading-relaxed">{faq.answer}</p>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Still need help? */}
+          <div className="mt-14 relative overflow-hidden rounded-[36px] bg-brand-900 text-white px-6 py-10 sm:px-10 sm:py-12">
+            <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-500/20 blur-3xl" aria-hidden="true" />
+            <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              <div className="max-w-md">
+                <h3 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight mb-2">Still need help?</h3>
+                <p className="text-white/75 leading-relaxed">
+                  Our support team is available 7 days a week. We typically respond within a few hours.
+                </p>
+              </div>
+              <Link href="/contact"
+                className="group self-start md:self-auto inline-flex items-center gap-2 px-7 py-3.5 bg-white text-ink font-bold rounded-2xl hover:bg-brand-50 transition active:scale-[0.98]">
+                <MessageCircle className="w-5 h-5" aria-hidden="true" />
+                Contact Support
+                <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <Footer />
     </div>

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, User } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, User, AlertTriangle, ShieldCheck, Zap, BadgeCheck } from 'lucide-react';
 import { useAuth } from 'src/context/AuthContext';
 import Header from 'src/components/Header';
 import Footer from 'src/components/Footer';
@@ -101,33 +101,33 @@ function LoginFormContent() {
     <div className="w-full max-w-md relative z-10 py-10 lg:py-0">
       {/* Mobile-only Header */}
       <div className="lg:hidden mb-8 text-center animate-fadeIn">
-        <p className="text-gray-500 font-bold mt-1 uppercase tracking-widest text-xs">Customer Account</p>
+        <p className="text-brand-600 font-bold uppercase tracking-[0.16em] text-xs">Customer Account</p>
       </div>
 
       <div className="mb-8 text-center lg:text-left space-y-2">
-        <h2 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight leading-tight font-outfit">Welcome back.</h2>
-        <p className="text-gray-500 font-medium text-sm sm:text-base">Enter your details to access your account</p>
+        <h2 className="font-display text-3xl sm:text-4xl font-semibold text-ink tracking-[-0.025em] leading-tight">Welcome back.</h2>
+        <p className="text-ink-soft text-sm sm:text-base">Enter your details to access your account</p>
       </div>
 
       {error && (
-        <div className="mb-6 flex items-start gap-3 p-4 bg-red-50 border border-red-100 rounded-2xl animate-shake shadow-sm shadow-red-50">
-          <span className="text-red-500 mt-0.5 font-bold">⚠️</span>
-          <p className="text-sm text-red-700 font-bold">{error}</p>
+        <div className="mb-6 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl animate-shake">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-red-600" aria-hidden="true" />
+          <p className="text-sm text-red-800 font-semibold">{error}</p>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
         <div className="space-y-2">
-          <label className="block text-sm font-bold text-gray-700 ml-1">Email Address</label>
+          <label className="block text-sm font-semibold text-ink ml-1">Email Address</label>
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Mail className="h-5 w-5 text-gray-400 group-focus-within:text-green-600 transition-colors" />
+              <Mail className="h-5 w-5 text-ink-muted group-focus-within:text-brand-600 transition-colors" />
             </div>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 sm:py-4 border-2 border-gray-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-green-500/10 focus:border-green-500 text-sm sm:text-base bg-gray-50/50 hover:bg-white focus:bg-white transition-all outline-none font-medium"
+              className="w-full pl-12 pr-4 py-3.5 sm:py-4 border border-line rounded-xl focus:outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-ink/40 text-sm sm:text-base bg-white text-ink placeholder:text-ink-muted transition font-medium"
               placeholder="you@example.com"
               required
             />
@@ -136,25 +136,25 @@ function LoginFormContent() {
 
         <div className="space-y-2">
           <div className="flex items-center justify-between ml-1">
-            <label className="block text-sm font-bold text-gray-700">Password</label>
-            <Link href="/forgot-password" title="Reset your password" className="text-xs sm:text-sm text-green-700 hover:text-green-800 font-bold transition-colors">
+            <label className="block text-sm font-semibold text-ink">Password</label>
+            <Link href="/forgot-password" title="Reset your password" className="text-xs sm:text-sm text-brand-700 hover:text-brand-800 font-semibold transition-colors">
               Forgot?
             </Link>
           </div>
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-               <Lock className="h-5 w-5 text-gray-400 group-focus-within:text-green-600 transition-colors" />
+               <Lock className="h-5 w-5 text-ink-muted group-focus-within:text-brand-600 transition-colors" />
             </div>
             <input
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-12 pr-12 py-3.5 sm:py-4 border-2 border-gray-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-green-500/10 focus:border-green-500 text-sm sm:text-base bg-gray-50/50 hover:bg-white focus:bg-white transition-all outline-none font-medium"
+              className="w-full pl-12 pr-12 py-3.5 sm:py-4 border border-line rounded-xl focus:outline-none focus:ring-4 focus:ring-brand-500/10 focus:border-ink/40 text-sm sm:text-base bg-white text-ink placeholder:text-ink-muted transition font-medium"
               placeholder="••••••••"
               required
             />
             <button type="button" onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-ink-muted hover:text-ink transition-colors">
               {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
@@ -163,7 +163,7 @@ function LoginFormContent() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 py-3.5 sm:py-4 bg-green-700 hover:bg-green-800 text-white font-black rounded-2xl transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-xl shadow-green-100 active:scale-[0.98] mt-2 text-base sm:text-lg"
+          className="w-full flex items-center justify-center gap-2 py-3.5 sm:py-4 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-2xl transition disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] mt-2 text-base sm:text-lg"
         >
           {loading ? (
             <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin" />
@@ -174,10 +174,10 @@ function LoginFormContent() {
 
         <div className="relative my-8 sm:my-10">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-100"></div>
+            <div className="w-full border-t border-line"></div>
           </div>
           <div className="relative flex justify-center text-[10px] sm:text-xs uppercase">
-            <span className="bg-white px-4 text-gray-400 font-black tracking-widest leading-none">Or continue with</span>
+            <span className="bg-white px-4 text-ink-muted font-bold tracking-[0.16em] leading-none">Or continue with</span>
           </div>
         </div>
 
@@ -187,16 +187,16 @@ function LoginFormContent() {
       </form>
 
       <div className="mt-10 mb-8 text-center space-y-6 sm:space-y-8">
-        <p className="text-gray-600 font-medium text-sm sm:text-base">
+        <p className="text-ink-soft text-sm sm:text-base">
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className="text-green-600 hover:text-green-800 font-black underline decoration-2 underline-offset-4">
+          <Link href="/signup" className="text-ink font-bold underline decoration-ink/30 underline-offset-4 hover:decoration-ink">
             Sign up now
           </Link>
         </p>
 
-        <div className="pt-8 border-t border-gray-100">
-          <Link href="/provider/login" className="flex items-center justify-center gap-2 text-xs sm:text-sm text-gray-500 hover:text-green-700 font-bold transition-all hover:-translate-x-1">
-             <User className="h-4 w-4" /> Are you a Professional? <span className="text-green-600">Pro Login here</span>
+        <div className="pt-8 border-t border-line">
+          <Link href="/provider/login" className="flex items-center justify-center gap-2 text-xs sm:text-sm text-ink-soft hover:text-ink font-semibold transition">
+             <User className="h-4 w-4" /> Are you a Professional? <span className="text-brand-700">Pro Login here</span>
           </Link>
         </div>
       </div>
@@ -208,9 +208,11 @@ export default function LoginPage() {
   return (
     <>
       <Header />
-      <div className="w-full max-w-[100vw] min-h-screen bg-gradient-to-br from-green-50 via-white to-teal-50 flex overflow-x-hidden">
+      <div className="w-full max-w-[100vw] min-h-screen bg-white font-sans antialiased text-ink flex overflow-x-hidden">
         {/* Left panel - branding (Hidden on mobile) */}
-        <div className="hidden lg:flex flex-col justify-center w-2/5 bg-gradient-to-br from-green-700 to-teal-700 p-12 text-white relative overflow-hidden">
+        <div className="hidden lg:flex flex-col justify-center w-2/5 bg-brand-900 p-12 text-white relative overflow-hidden">
+          <img src="/images/services/regular-house-cleaning.jpg" alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover opacity-30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-brand-950 via-brand-900/85 to-brand-900/60" aria-hidden="true" />
 
           {/* Background decoration */}
           {/* <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
@@ -218,28 +220,28 @@ export default function LoginPage() {
 
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-12">
-              <span className="text-2xl font-black">Customer Login</span>
+              <span className="text-xs font-bold tracking-[0.16em] uppercase text-brand-200">Customer Login</span>
             </div>
             <div className="space-y-8">
-               <h2 className="text-3xl font-black leading-tight">Expert services at<br />your doorstep.</h2>
+               <h2 className="font-display text-4xl font-semibold tracking-[-0.025em] leading-[1.1]">Expert services at<br />your doorstep.</h2>
                <div className="space-y-6">
                 {[
-                  { icon: '🛡️', title: 'Trusted Professionals', desc: 'Every pro is verified and background-checked' },
-                  { icon: '⚡', title: 'Fast Booking', desc: 'Secure your appointment in under 2 minutes' },
-                  { icon: '💎', title: 'Quality Guarantee', desc: 'Your satisfaction is our top priority' },
+                  { icon: ShieldCheck, title: 'Trusted Professionals', desc: 'Every pro is verified and background-checked' },
+                  { icon: Zap, title: 'Fast Booking', desc: 'Secure your appointment in under 2 minutes' },
+                  { icon: BadgeCheck, title: 'Quality Guarantee', desc: 'Your satisfaction is our top priority' },
                 ].map((f) => (
                   <div key={f.title} className="flex gap-4 items-start group">
-                    <span className="text-2xl bg-white/10 p-3 rounded-2xl group-hover:bg-white/20 transition-colors">{f.icon}</span>
+                    <span className="h-11 w-11 shrink-0 rounded-2xl bg-white/10 text-brand-200 flex items-center justify-center"><f.icon className="h-5 w-5" aria-hidden="true" /></span>
                     <div>
-                      <p className="font-bold text-white text-lg">{f.title}</p>
-                      <p className="text-green-100/80 text-sm leading-relaxed">{f.desc}</p>
+                      <p className="font-semibold text-white text-lg">{f.title}</p>
+                      <p className="text-white/75 text-sm leading-relaxed">{f.desc}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
             <div className="mt-12">
-              <p className="text-green-100/80 text-sm leading-relaxed">Join thousands of satisfied customers who rely on Workonotop for all their home service needs.</p>
+              <p className="text-white/75 text-sm leading-relaxed">Join thousands of satisfied customers who rely on Workonotop for all their home service needs.</p>
             </div>
           </div>
         </div>
@@ -248,11 +250,11 @@ export default function LoginPage() {
         <div className="flex-1 w-full max-w-[100vw] flex flex-col items-center justify-center py-12 px-4 sm:px-8 md:px-12 lg:px-20 relative">
           {/* Background decorations for mobile only */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 lg:hidden">
-            <div className="absolute top-0 right-0 translate-x-1/3 -translate-y-1/3 w-64 h-64 bg-green-50 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 -translate-x-1/3 translate-y-1/3 w-64 h-64 bg-teal-50 rounded-full blur-3xl"></div>
+            <div className="absolute top-0 right-0 translate-x-1/3 -translate-y-1/3 w-64 h-64 bg-brand-50 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 -translate-x-1/3 translate-y-1/3 w-64 h-64 bg-paper-deep rounded-full blur-3xl"></div>
           </div>
 
-          <Suspense fallback={<div className="animate-pulse flex flex-col items-center justify-center w-full min-h-[50vh]"><div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin mb-4"></div><p className="text-gray-500 font-medium">Loading...</p></div>}>
+          <Suspense fallback={<div className="animate-pulse flex flex-col items-center justify-center w-full min-h-[50vh]"><div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin mb-4"></div><p className="text-ink-soft">Loading...</p></div>}>
             <LoginFormContent />
           </Suspense>
         </div>

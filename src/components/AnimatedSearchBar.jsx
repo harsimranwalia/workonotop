@@ -54,51 +54,23 @@ export default function AnimatedSearchBar({ services = [] }) {
   };
 
   return (
-    <div className="relative max-w-2xl lg:mx-0 mx-auto group">
-      {/* Glow Border */}
-      <div 
-        className="absolute -inset-1 rounded-2xl opacity-30 group-hover:opacity-60 transition duration-700"
-        style={{ background: "linear-gradient(90deg, #15803D, #22c55e)" }}
-      ></div>
-
-      {/* Main Box */}
-      <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2 flex items-center hover:bg-white/15 transition-all duration-300">
-        
-        {/* Input Area */}
-        <div className="flex items-center flex-1 px-4 py-3">
-          {/* Icon */}
-          <svg
-            className="w-6 h-6 mr-3"
-            style={{ color: "#15803D" }}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-
-          {/* Input */}
-          <input
-            type="text"
-            placeholder={placeholder || 'What do you need fixed?'}
-            className="w-full bg-transparent border-none outline-none text-black placeholder:text-black text-lg md:text-xl"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-        </div>
-
-        {/* Button */}
+    <div className="relative w-full max-w-2xl lg:mx-0 mx-auto">
+      <div className="flex items-center gap-2 bg-white border border-line rounded-2xl p-1.5 pl-4 shadow-card focus-within:border-ink/40 focus-within:ring-4 focus-within:ring-brand-500/10 transition">
+        <svg className="w-5 h-5 shrink-0 text-ink-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="text"
+          aria-label="Search services"
+          placeholder={placeholder || 'What do you need fixed?'}
+          className="min-w-0 w-full bg-transparent border-none outline-none text-ink placeholder:text-ink-muted text-base py-2.5"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
         <button
           onClick={handleSearchClick}
-          className="font-bold px-4 sm:px-8 py-2 sm:py-3 rounded-xl transition-all active:scale-95 text-sm sm:text-base mr-2 sm:mr-0"
-          style={{
-            backgroundColor: "#15803D",
-            color: "#ECFDF5",
-            boxShadow: "0 10px 25px rgba(21, 128, 61, 0.4)"
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#166534"}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#15803D"}
+          className="shrink-0 font-semibold px-5 sm:px-6 py-2.5 rounded-xl bg-ink text-white hover:bg-brand-900 transition active:scale-95 text-sm sm:text-base"
         >
           Search
         </button>

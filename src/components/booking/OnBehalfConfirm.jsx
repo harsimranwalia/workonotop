@@ -9,7 +9,7 @@ import { useId, useRef, useState } from 'react';
 import { dayLabel } from '@/lib/booking-answers';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const FIELD_FOCUS = 'focus:outline-none focus:border-green-700 focus:ring-2 focus:ring-green-700/30';
+const FIELD_FOCUS = 'focus:outline-none focus:border-ink/40 focus:ring-4 focus:ring-brand-500/10';
 const UNSURE = 'Something went wrong and the booking may not have been made. Check the bookings list, then try again.';
 const FIELD_ORDER = ['first_name', 'last_name', 'email', 'phone', 'city', 'postal_code'];
 
@@ -23,9 +23,9 @@ function Field({ id, label, required, hint, error, inputRef, ...input }) {
   const described = [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(' ') || undefined;
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-semibold text-gray-800 mb-1">
+      <label htmlFor={id} className="block text-sm font-semibold text-ink mb-1.5">
         {label}
-        {required ? <span className="text-red-700"> *</span> : <span className="font-normal text-gray-600"> (optional)</span>}
+        {required ? <span className="text-red-700"> *</span> : <span className="font-normal text-ink-muted"> (optional)</span>}
       </label>
       <input
         id={id}
@@ -33,10 +33,10 @@ function Field({ id, label, required, hint, error, inputRef, ...input }) {
         aria-required={required ? 'true' : undefined}
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={described}
-        className={`w-full p-3 border-2 rounded-xl text-gray-700 placeholder:text-gray-500 ${FIELD_FOCUS} ${error ? 'border-red-400' : 'border-gray-200'}`}
+        className={`w-full p-3 border rounded-xl bg-white text-ink placeholder:text-ink-muted transition ${FIELD_FOCUS} ${error ? 'border-red-400' : 'border-line'}`}
         {...input}
       />
-      {hint && <p id={hintId} className="mt-1 text-xs text-gray-600">{hint}</p>}
+      {hint && <p id={hintId} className="mt-1 text-xs text-ink-muted">{hint}</p>}
       {error && <p id={errorId} className="mt-1 text-sm text-red-700">{error}</p>}
     </div>
   );
@@ -181,21 +181,21 @@ export default function OnBehalfConfirm({ flow, answers, live, onCreated }) {
 
   return (
     <form onSubmit={submit} noValidate aria-busy={submitting}>
-      <div className="mb-4 sm:mb-6 bg-amber-50 border border-amber-200 rounded-lg sm:rounded-xl p-3 sm:p-4 text-xs sm:text-sm text-amber-900">
+      <div className="mb-4 sm:mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-3 sm:p-4 text-xs sm:text-sm text-amber-900">
         <p className="font-semibold">Booking for a customer</p>
         <p className="mt-1">
           No payment is taken here. When the booking is made, you get a link to send the customer. The customer adds a card on it, and the card is charged when the job is done.
         </p>
       </div>
 
-      <dl className="mb-4 sm:mb-6 bg-gray-50 border border-gray-200 rounded-lg sm:rounded-xl p-3 sm:p-4 text-xs sm:text-sm grid gap-2">
+      <dl className="mb-4 sm:mb-6 bg-paper border border-line rounded-2xl p-3 sm:p-4 text-xs sm:text-sm grid gap-2">
         <div className="flex justify-between gap-4">
-          <dt className="text-gray-600">Service address</dt>
-          <dd className="font-medium text-right text-gray-900">{flow.details.address}</dd>
+          <dt className="text-ink-muted">Service address</dt>
+          <dd className="font-medium text-right text-ink min-w-0 break-words">{flow.details.address}</dd>
         </div>
         <div className="flex justify-between gap-4">
-          <dt className="text-gray-600">{jobDates.length > 1 ? 'Dates' : 'Date'}</dt>
-          <dd className="font-medium text-right text-gray-900">
+          <dt className="text-ink-muted">{jobDates.length > 1 ? 'Dates' : 'Date'}</dt>
+          <dd className="font-medium text-right text-ink min-w-0 break-words">
             {jobDates.map((date) => (
               <span key={date} className="block">{dayLabel(date, 'long')}</span>
             ))}
@@ -204,7 +204,7 @@ export default function OnBehalfConfirm({ flow, answers, live, onCreated }) {
       </dl>
 
       <fieldset className="mb-4 sm:mb-6">
-        <legend className="text-base sm:text-lg font-bold text-gray-900 mb-3">Who is the customer?</legend>
+        <legend className="font-display text-lg sm:text-xl font-semibold tracking-tight text-ink mb-3">Who is the customer?</legend>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field
             id={idOf('first_name')} inputRef={refOf('first_name')} label="First name" required type="text" autoComplete="off"
@@ -234,31 +234,31 @@ export default function OnBehalfConfirm({ flow, answers, live, onCreated }) {
       </fieldset>
 
       {formError && (
-        <div role="alert" className="mb-4 sm:mb-6 rounded-lg sm:rounded-xl border border-red-200 bg-red-50 p-3 sm:p-4 text-sm text-red-800">
+        <div role="alert" className="mb-4 sm:mb-6 rounded-2xl border border-red-200 bg-red-50 p-3 sm:p-4 text-sm text-red-800">
           {formError}
         </div>
       )}
       <p role="status" className="sr-only">{submitting ? 'Creating the booking' : ''}</p>
 
-      <p className="mb-3 text-sm text-gray-700">
-        Email on the booking: <strong className="font-semibold text-gray-900 break-all">{shownEmail || 'not entered yet'}</strong>
+      <p className="mb-3 text-sm text-ink-soft">
+        Email on the booking: <strong className="font-semibold text-ink break-all">{shownEmail || 'not entered yet'}</strong>
       </p>
       {live.status !== 'priced' && (
-        <p className="mb-3 text-sm text-gray-600">The booking can be created once the price is shown.</p>
+        <p className="mb-3 text-sm text-ink-muted">The booking can be created once the price is shown.</p>
       )}
 
       <button
         type="submit"
         disabled={!canCreate}
-        className={`w-full py-3 sm:py-4 rounded-lg sm:rounded-xl font-bold text-base sm:text-lg shadow-lg flex items-center justify-center motion-safe:transition-all motion-safe:duration-300
-          focus:outline-none focus-visible:ring-4 focus-visible:ring-green-700/40
+        className={`w-full py-3 sm:py-4 min-h-[52px] rounded-2xl font-bold text-base sm:text-lg flex items-center justify-center motion-safe:transition-all motion-safe:duration-300
+          focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/30
           ${canCreate
-            ? 'bg-green-700 text-white hover:bg-green-800'
-            : 'bg-gray-300 text-gray-700 cursor-not-allowed'}`}
+            ? 'bg-brand-500 text-white hover:bg-brand-600 shadow-lg shadow-brand-600/20'
+            : 'bg-paper-deep text-ink-muted cursor-not-allowed'}`}
       >
         {submitting ? (
           <>
-            <svg aria-hidden="true" className="motion-safe:animate-spin -ml-1 mr-3 h-5 w-5 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <svg aria-hidden="true" className="motion-safe:animate-spin -ml-1 mr-3 h-5 w-5 text-ink-muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
@@ -268,7 +268,7 @@ export default function OnBehalfConfirm({ flow, answers, live, onCreated }) {
       </button>
 
       <p className="mt-4 text-center text-sm">
-        <Link href={scheduleHref} className="text-green-700 hover:text-green-800 font-medium underline focus:outline-none focus-visible:ring-2 focus-visible:ring-green-700 rounded">
+        <Link href={scheduleHref} className="text-brand-700 hover:text-brand-800 font-semibold underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded">
           Change the schedule or details
         </Link>
       </p>

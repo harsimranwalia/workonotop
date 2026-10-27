@@ -6,8 +6,9 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import Icon from '@/components/Icon';
 import { toast } from 'react-hot-toast';
+import { ArrowRight, ArrowUpRight, Check, Clock, CreditCard, Lock, MapPin, ShieldCheck } from 'lucide-react';
+import { serviceImage } from '@/lib/service-images';
 
 export default function ServiceDetailClientPage({ serviceId, initialService = null, initialRelatedServices = [] }) {
   const router = useRouter();
@@ -95,8 +96,8 @@ export default function ServiceDetailClientPage({ serviceId, initialService = nu
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#16A34A] border-t-transparent"></div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-10 h-10 border-[3px] border-brand-500/20 border-t-brand-500 rounded-full animate-spin" />
       </div>
     );
   }
@@ -105,8 +106,8 @@ export default function ServiceDetailClientPage({ serviceId, initialService = nu
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Service not found</h2>
-          <Link href="/services" className="text-[#16A34A] hover:underline">
+          <h2 className="font-display text-2xl font-semibold text-ink mb-2">Service not found</h2>
+          <Link href="/services" className="text-brand-700 font-semibold hover:underline">
             Browse all services
           </Link>
         </div>
@@ -115,303 +116,247 @@ export default function ServiceDetailClientPage({ serviceId, initialService = nu
   }
 
   const getImageUrl = (url) => url && !url.startsWith('http') && !url.startsWith('/') ? '/uploads/' + url : url;
+  const hours = service.duration_minutes > 0 ? service.duration_minutes / 60 : 0;
+
+  const rememberAddress = (value) => {
+    setSelectedAddress(value);
+    setAddressError('');
+    if (typeof window !== 'undefined') sessionStorage.setItem('userAddress', value);
+  };
+
+  const startBooking = () => {
+    if (!selectedAddress || selectedAddress.trim() === '') {
+      setAddressError('Required');
+      toast.error('Please enter your service location');
+    } else {
+      // The details are already in sessionStorage (onPlaceSelected, or the plain field)
+      router.push(`/booking/schedule?service=${service.id}`);
+    }
+  };
+
+  const fieldLook = `w-full pl-10 pr-3 py-3 border rounded-xl bg-white text-[15px] text-ink placeholder:text-ink-muted transition focus:outline-none focus:ring-4 focus:ring-brand-500/10 ${addressError ? 'border-red-400' : 'border-line focus:border-ink/40 hover:border-ink/30'}`;
 
   return (
-    <div className="min-h-screen bg-white font-sans antialiased">
+    <div className="min-h-screen bg-white font-sans antialiased text-ink">
       <Header />
 
-      <div className="bg-gray-50 border-b border-gray-200 py-3">
-        <div className="container mx-auto px-6 max-w-7xl">
-          <div className="flex items-center text-sm text-gray-600">
-            <Link href="/" className="hover:text-[#16A34A] transition">Home</Link>
-            <span className="mx-2">›</span>
-            <Link href="/services" className="hover:text-[#16A34A] transition">Services</Link>
-            <span className="mx-2">›</span>
-            <span className="text-gray-900 font-medium">{service.name}</span>
-          </div>
-        </div>
+      <div className="border-b border-line">
+        <nav aria-label="Breadcrumb" className="container mx-auto px-5 sm:px-6 max-w-7xl py-3 flex items-center gap-2 text-sm text-ink-muted">
+          <Link href="/" className="hover:text-ink transition">Home</Link>
+          <span aria-hidden="true">/</span>
+          <Link href="/services" className="hover:text-ink transition">Services</Link>
+          <span aria-hidden="true">/</span>
+          <span className="text-ink font-medium truncate">{service.name}</span>
+        </nav>
       </div>
 
-      <div className="container mx-auto px-6 max-w-7xl py-8 md:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+      {/* Hero */}
+      <section className="bg-paper border-b border-line">
+        <div className="container mx-auto px-5 sm:px-6 max-w-7xl py-8 lg:py-12 grid lg:grid-cols-[1.05fr_0.95fr] gap-8 lg:gap-12 items-center">
+          <div className="order-last lg:order-first">
+            <span className="inline-flex items-center rounded-full bg-white border border-line px-3 py-1 text-xs font-semibold text-ink-soft mb-4">
+              {service.category_name || 'Service'}
+            </span>
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-[56px] leading-[1.05] font-semibold tracking-[-0.025em] text-ink mb-4">
+              {service.name}
+            </h1>
+            {service.short_description && (
+              <p className="text-lg text-ink-soft leading-relaxed max-w-xl mb-6">{service.short_description}</p>
+            )}
+            <ul className="flex flex-wrap gap-2">
+              {[
+                { icon: CreditCard, text: 'Pay when the job is done' },
+                { icon: ShieldCheck, text: 'Protection Promise' },
+                ...(hours ? [{ icon: Clock, text: `${hours} ${hours === 1 ? 'hour' : 'hours'} included` }] : []),
+              ].map(({ icon: ChipIcon, text }) => (
+                <li key={text} className="inline-flex items-center gap-1.5 rounded-full bg-white border border-line px-3 py-1.5 text-sm font-medium text-ink-soft">
+                  <ChipIcon className="h-4 w-4 text-brand-600" aria-hidden="true" /> {text}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="relative overflow-hidden rounded-[32px] aspect-[4/3] bg-paper-deep">
+            <img src={getImageUrl(serviceImage(service))} alt={service.name} className="h-full w-full object-cover" />
+          </div>
+        </div>
+      </section>
 
-          <div className="lg:col-span-2">
-            <div className="mb-6 md:mb-8 rounded-2xl overflow-hidden shadow-lg border border-slate-100">
-              <div className="relative">
-                {service.image_url || service.category_image_url ? (
-                  <img
-                    src={getImageUrl(service.image_url || service.category_image_url)}
-                    alt={service.name}
-                    className="w-full h-auto object-cover max-h-[500px]"
-                  />
-                ) : (
-                  <div className="h-56 sm:h-64 md:h-72 flex items-center justify-center bg-gradient-to-br from-[#16A34A]/5 to-[#16A34A]/10">
-                    <span className="text-8xl sm:text-9xl md:text-[10rem] drop-shadow-xl">
-                      {service.category_icon ? <Icon name={service.category_icon}></Icon> : <Icon name="wrench"></Icon>}
-                    </span>
-                  </div>
-                )}
-                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm font-medium text-gray-700 shadow-md border border-gray-200">
-                  <span className="text-[#16A34A] font-bold">{service.category_name || 'General'}</span>
-                </div>
-              </div>
-            </div>
+      <div className="container mx-auto px-5 sm:px-6 max-w-7xl py-10 md:py-14">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-14">
 
-            <div className="mb-6">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-900 mb-2">
-                {service.name}
-              </h1>
-              <div className="flex items-center gap-4">
-                <span className="text-[#16A34A] font-semibold">⚡ Get a confirmed job in minutes</span>
+          <div className="lg:col-span-2 order-last lg:order-first">
+            {useCases.length > 0 && (
+              <div className="mb-12">
+                <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight text-ink mb-5">Customers use this service for</h2>
+                <ul className="flex flex-wrap gap-2">
+                  {useCases.map((item, index) => (
+                    <li key={index} className="inline-flex items-center gap-1.5 rounded-full bg-paper border border-line px-3.5 py-2 text-sm font-medium text-ink-soft">
+                      <Check className="h-4 w-4 text-brand-600" aria-hidden="true" /> {item}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
+            )}
 
             {service.description && (
-              <div className="bg-white rounded-2xl p-6 md:p-8 mb-8 border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow">
-                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center border-b border-gray-100 pb-3">
-                  <span className="bg-[#16A34A] text-white w-7 h-7 rounded-full flex items-center justify-center text-sm mr-2.5 shadow-sm">📋</span>
-                  Service Details & Overview
-                </h3>
-                <div 
-                  className="rich-text-content text-gray-800 text-base leading-relaxed break-words"
+              <div className="mb-12">
+                <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight text-ink mb-5">Service Details & Overview</h2>
+                <div
+                  className="rich-text-content text-ink-soft text-base leading-relaxed break-words [&_h2]:font-display [&_h2]:text-ink [&_h3]:text-ink [&_a]:text-brand-700 [&_a]:font-medium"
                   dangerouslySetInnerHTML={{ __html: service.description }}
                 />
               </div>
             )}
 
-            {useCases.length > 0 && (
-              <div className="mb-10">
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 flex items-center">
-                  <span className="bg-[#16A34A] text-white w-8 h-8 rounded-full flex items-center justify-center text-lg mr-3">✓</span>
-                  Customers use this service for
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {useCases.map((item, index) => (
-                    <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-[#16A34A]/5 transition">
-                      <svg className="w-6 h-6 text-[#16A34A] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-gray-800 font-medium">{item}</span>
-                    </div>
-                  ))}
-                </div>
-
-
-              </div>
-            )}
-
-            <div className="mb-10 bg-white rounded-2xl border border-gray-200 p-6 md:p-8 shadow-sm text-slate-900">
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 flex items-center">
-                <span className="bg-[#16A34A] text-white w-8 h-8 rounded-full flex items-center justify-center text-lg mr-3">⚡</span>
-                How WorkOnTap works
-              </h2>
-              <div className="space-y-8">
-                <div className="flex items-start space-x-4">
-                  <div className="bg-[#16A34A] text-white rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0 font-bold text-lg shadow-md">1</div>
-                  <div className="pt-1">
-                    <h3 className="font-bold text-xl text-gray-800 mb-2">Tell us what you need</h3>
-                    <p className="text-gray-600">Select a date, time, and describe your job — takes 2 minutes.</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-4">
-                  <div className="bg-[#16A34A] text-white rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0 font-bold text-lg shadow-md">2</div>
-                  <div className="pt-1">
-                    <h3 className="font-bold text-xl text-gray-800 mb-2">Get matched instantly</h3>
-                    <p className="text-gray-600">Submit your request and get matched with a certified WorkOnTap pro in minutes — average 10 min response.</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-4">
-                  <div className="bg-[#16A34A] text-white rounded-full w-10 h-10 flex items-center justify-center flex-shrink-0 font-bold text-lg shadow-md">3</div>
-                  <div className="pt-1">
-                    <h3 className="font-bold text-xl text-gray-800 mb-2">Chat & confirm</h3>
-                    <p className="text-gray-600">Discuss details with your pro before the job begins. Pay securely after you&apos;re 100% satisfied.</p>
-                  </div>
-                </div>
-              </div>
+            <div className="mb-8 rounded-[28px] bg-paper border border-line p-6 md:p-8">
+              <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight text-ink mb-7">How WorkOnTap works</h2>
+              <ol className="grid md:grid-cols-3 gap-6">
+                {[
+                  { title: 'Tell us what you need', desc: 'Select a date, time, and describe your job — takes 2 minutes.' },
+                  { title: 'Get matched instantly', desc: 'Submit your request and get matched with a certified WorkOnTap pro in minutes — average 10 min response.' },
+                  { title: 'Chat & confirm', desc: "Discuss details with your pro before the job begins. Pay securely after you're 100% satisfied." },
+                ].map((step, i) => (
+                  <li key={step.title}>
+                    <span className="font-display text-sm font-semibold text-brand-600">0{i + 1}</span>
+                    <h3 className="font-semibold text-lg text-ink mt-2 mb-1.5">{step.title}</h3>
+                    <p className="text-sm text-ink-muted leading-relaxed">{step.desc}</p>
+                  </li>
+                ))}
+              </ol>
             </div>
 
-            <div className="bg-gradient-to-br from-[#16A34A] to-[#15803D] rounded-2xl p-6 md:p-8 text-white shadow-xl">
-              <div className="flex flex-col sm:flex-row items-center gap-6">
-                <div className="text-6xl">🛡️</div>
-                <div className="flex-1 text-center sm:text-left">
-                  <h3 className="text-2xl font-bold mb-2">Homeowner Protection Promise</h3>
-                  <p className="text-white/90 mb-4">
+            <div className="relative overflow-hidden rounded-[28px] bg-brand-900 text-white p-6 md:p-8">
+              <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-500/20 blur-3xl" aria-hidden="true" />
+              <div className="relative flex flex-col sm:flex-row sm:items-center gap-6">
+                <span className="h-14 w-14 shrink-0 rounded-2xl bg-white/10 flex items-center justify-center">
+                  <ShieldCheck className="h-7 w-7 text-brand-200" aria-hidden="true" />
+                </span>
+                <div className="flex-1">
+                  <h3 className="font-display text-2xl font-semibold mb-2">Homeowner Protection Promise</h3>
+                  <p className="text-white/75 mb-5 leading-relaxed">
                     Every WorkOnTap pro is licensed, background-checked, and well-rated.
                     If your experience isn&apos;t perfect, we&apos;ll make it right — 100% guaranteed.
                   </p>
-                  <Link href="/guarantee" className="inline-flex items-center bg-white text-[#16A34A] px-6 py-3 rounded-full font-semibold hover:bg-green-50 transition shadow-lg">
-                    Learn more
-                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                  <Link href="/guarantee" className="inline-flex items-center gap-1.5 bg-white text-brand-900 px-5 py-2.5 rounded-full font-semibold hover:bg-brand-50 transition">
+                    Learn more <ArrowRight className="h-4 w-4" aria-hidden="true" />
                   </Link>
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Booking card */}
           <div className="lg:col-span-1">
-            <div className="sticky top-24">
-              <div className="bg-white rounded-2xl border-2 border-[#16A34A]/20 overflow-hidden shadow-xl hover:shadow-2xl transition-shadow text-slate-900">
-                <div className="bg-gradient-to-r from-[#16A34A] to-[#15803D] px-6 py-5">
-                  <h3 className="text-2xl font-bold text-white flex items-center">
-                    <span className="mr-2">📋</span>
-                    Book this job
-                  </h3>
-                  <p className="text-white/80 text-sm mt-1">Get a confirmed pro in minutes</p>
+            <div className="lg:sticky lg:top-24">
+              <div className="rounded-[28px] border border-line bg-white shadow-lift overflow-hidden">
+                <div className="p-6 border-b border-line">
+                  <h3 className="font-display text-2xl font-semibold text-ink">Book this job</h3>
+                  <div className="mt-4 flex items-end justify-between gap-3">
+                    <div>
+                      <span className="block text-xs font-semibold uppercase tracking-[0.12em] text-ink-muted">Starting at</span>
+                      <span className="font-display text-4xl font-semibold text-ink">${formatPrice(service.base_price)}</span>
+                    </div>
+                    {service.additional_price > 0 && (
+                      <span className="text-sm text-ink-muted text-right">+${formatPrice(service.additional_price)} / hr<br />after that</span>
+                    )}
+                  </div>
+                  {hours > 0 && (
+                    <p className="mt-3 flex items-center gap-2 text-sm text-ink-soft">
+                      <Clock className="h-4 w-4 text-brand-600" aria-hidden="true" />
+                      Includes the first {hours} {hours === 1 ? 'hour' : 'hours'} ({service.duration_minutes} mins)
+                    </p>
+                  )}
+                  <p className="mt-2 flex items-center gap-2 text-sm text-ink-soft">
+                    <Check className="h-4 w-4 text-brand-600" aria-hidden="true" />
+                    Transparent, upfront pricing
+                  </p>
                 </div>
 
                 <div className="p-6">
-                  <div className="mb-6">
-                    <p className="text-sm text-gray-600 mb-2 flex items-center">
-                      <span className="text-[#16A34A] mr-1">✓</span>
-                      Transparent, upfront pricing
-                      <Link href="/pricing" className="text-[#16A34A] underline ml-1 text-xs font-medium">
-                        Learn more
-                      </Link>
-                    </p>
-
-                    <div className="bg-[#16A34A]/5 rounded-xl p-5 border-2 border-[#16A34A]/10">
-                      <div className="text-center">
-                        <div className="text-sm uppercase tracking-wider text-gray-600 mb-1">Starting at</div>
-                        <div className="text-4xl md:text-5xl font-extrabold text-[#16A34A]">
-                          ${formatPrice(service.base_price)}
-                        </div>
-                        {service.duration_minutes > 0 && (
-                          <div className="text-sm text-gray-600 mt-2">
-                            Includes the first {service.duration_minutes / 60} {service.duration_minutes / 60 === 1 ? 'hour' : 'hours'} ({service.duration_minutes} mins)
-                          </div>
-                        )}
-                        {service.additional_price > 0 && (
-                          <>
-                            <div className="border-t border-[#16A34A]/20 my-3"></div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-700">Additional</span>
-                              <span className="font-bold text-[#16A34A]">+${formatPrice(service.additional_price)} <span className="text-sm font-normal text-gray-600">/ hr</span></span>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label htmlFor="service-address" className="text-sm font-semibold text-ink">Where do you need service?</label>
+                    {addressError && <span className="text-red-500 text-xs font-bold">{addressError}</span>}
                   </div>
+                  <div className="relative">
+                    <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted pointer-events-none z-10" aria-hidden="true" />
+                    {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
+                      <Autocomplete
+                        id="service-address"
+                        className={fieldLook}
+                        onPlaceSelected={(place) => {
+                          if (place && place.formatted_address) {
+                            setSelectedAddress(place.formatted_address);
+                            setAddressError('');
 
-                  {service.duration_minutes && (
-                    <div className="mb-6 bg-gray-50 rounded-xl p-4 border border-gray-200">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <svg className="w-5 h-5 text-green-700 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span className="font-medium text-gray-800">Duration</span>
-                        </div>
-                        <span className="text-green-700 font-semibold">
-                          {service.duration_minutes} minutes
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="mb-6">
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="block text-sm font-semibold text-gray-800 flex items-center">
-                        <svg className="w-5 h-5 text-green-700 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                        </svg>
-                        Where do you need service?
-                      </label>
-                      {addressError && <span className="text-red-500 text-xs font-bold animate-pulse">{addressError}</span>}
-                    </div>
-                    <div className="relative">
-                      {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
-                        <Autocomplete
-                          className={`w-full p-3 border-2 rounded-xl transition bg-white text-sm ${addressError ? 'border-red-400 focus:border-red-500 animate-shake' : 'border-gray-200 focus:border-green-500 hover:border-green-500 focus:outline-none'}`}
-                          onPlaceSelected={(place) => {
-                            if (place && place.formatted_address) {
-                              setSelectedAddress(place.formatted_address);
-                              setAddressError('');
-
-                              // Extract City and Postal Code from address components
-                              let city = '';
-                              let postalCode = '';
-                              if (place.address_components) {
-                                for (const component of place.address_components) {
-                                  const types = component.types;
-                                  if (types.includes('locality')) {
-                                    city = component.long_name;
-                                  } else if (!city && types.includes('administrative_area_level_3')) {
-                                    city = component.long_name;
-                                  }
-                                  if (types.includes('postal_code')) {
-                                    postalCode = component.long_name;
-                                  }
+                            // Extract City and Postal Code from address components
+                            let city = '';
+                            let postalCode = '';
+                            if (place.address_components) {
+                              for (const component of place.address_components) {
+                                const types = component.types;
+                                if (types.includes('locality')) {
+                                  city = component.long_name;
+                                } else if (!city && types.includes('administrative_area_level_3')) {
+                                  city = component.long_name;
+                                }
+                                if (types.includes('postal_code')) {
+                                  postalCode = component.long_name;
                                 }
                               }
-                              
-                              let lat = null;
-                              let lng = null;
-                              if (place.geometry && place.geometry.location) {
-                                lat = place.geometry.location.lat();
-                                lng = place.geometry.location.lng();
-                              }
-                              
-                              sessionStorage.setItem('userAddress', place.formatted_address);
-                              sessionStorage.setItem('userCity', city);
-                              sessionStorage.setItem('userPostalCode', postalCode);
-                              if (lat && lng) {
-                                sessionStorage.setItem('userLat', lat);
-                                sessionStorage.setItem('userLng', lng);
-                              }
                             }
-                          }}
-                          options={{
-                            types: ['address'],
-                            componentRestrictions: { country: 'ca' }
-                          }}
-                          placeholder="Please enter your service location"
-                          defaultValue={selectedAddress}
-                          onChange={(e) => {
-                            setSelectedAddress(e.target.value);
-                            setAddressError('');
-                          }}
-                        />
-                      ) : (
-                        <div className="p-4 border-2 border-amber-300 bg-amber-50 rounded-xl text-amber-800 text-sm font-medium">
-                          Google Maps API Key is missing. Please add <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> to your <code>.env</code> file and restart the server.
-                        </div>
-                      )}
-                      
-                      {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && (
-                        <div className="absolute right-3 top-3.5 pointer-events-none">
-                          {/* <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg> */}
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      ✓ Your address is kept private until you accept a pro
-                    </p>
-                  </div>
 
-                  <button 
-                    onClick={() => {
-                      if (!selectedAddress || selectedAddress.trim() === '') {
-                        setAddressError('Required');
-                        toast.error('Please enter your service location');
-                      } else {
-                        // The details are already in sessionStorage from onPlaceSelected
-                        router.push(`/booking/schedule?service=${service.id}`);
-                      }
-                    }}
-                    className="w-full bg-gradient-to-r from-[#16A34A] to-[#15803D] text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-[#16A34A]/20 transition-all duration-300 transform hover:scale-[1.02]"
+                            let lat = null;
+                            let lng = null;
+                            if (place.geometry && place.geometry.location) {
+                              lat = place.geometry.location.lat();
+                              lng = place.geometry.location.lng();
+                            }
+
+                            sessionStorage.setItem('userAddress', place.formatted_address);
+                            sessionStorage.setItem('userCity', city);
+                            sessionStorage.setItem('userPostalCode', postalCode);
+                            if (lat && lng) {
+                              sessionStorage.setItem('userLat', lat);
+                              sessionStorage.setItem('userLng', lng);
+                            }
+                          }
+                        }}
+                        options={{
+                          types: ['address'],
+                          componentRestrictions: { country: 'ca' }
+                        }}
+                        placeholder="Enter your address"
+                        defaultValue={selectedAddress}
+                        onChange={(e) => {
+                          setSelectedAddress(e.target.value);
+                          setAddressError('');
+                        }}
+                      />
+                    ) : (
+                      // Without a Maps key the address is typed in full; the booking flow confirms it later.
+                      <input
+                        id="service-address"
+                        type="text"
+                        autoComplete="street-address"
+                        className={fieldLook}
+                        placeholder="Enter your address"
+                        value={selectedAddress}
+                        onChange={(e) => rememberAddress(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') startBooking(); }}
+                      />
+                    )}
+                  </div>
+                  <p className="text-xs text-ink-muted mt-2">Your address is kept private until you accept a pro.</p>
+
+                  <button
+                    onClick={startBooking}
+                    className="group mt-5 w-full flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-600 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-brand-600/20 transition active:scale-[0.99]"
                   >
-                    Get Started — Free Quote
+                    Get Started — Free Quote <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                   </button>
 
-                  <p className="text-xs text-center text-gray-500 mt-3 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-[#16A34A] mr-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                    </svg>
+                  <p className="text-xs text-center text-ink-muted mt-3 flex items-center justify-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-brand-600" aria-hidden="true" />
                     You won&apos;t be charged until the job is complete
                   </p>
                 </div>
@@ -421,37 +366,21 @@ export default function ServiceDetailClientPage({ serviceId, initialService = nu
         </div>
       </div>
 
-
       {relatedServices.length > 0 && (
-        <section className="bg-gray-50/80 py-12 md:py-16 mt-8 border-t border-gray-200">
-          <div className="container mx-auto px-6 max-w-7xl">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center font-[family-name:var(--font-outfit)]">
-              You might also need
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <section className="bg-paper py-14 md:py-20 border-t border-line">
+          <div className="container mx-auto px-5 sm:px-6 max-w-7xl">
+            <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight text-ink mb-8">You might also need</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 sm:gap-x-5">
               {relatedServices.map((item) => (
-                <Link
-                  key={item.id}
-                  href={`/services/${item.slug}`}
-                  className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:shadow-[#16A34A]/5 transition-all duration-300 hover:-translate-y-1 border border-slate-100"
-                >
-                  <div className="h-32 bg-gradient-to-br from-[#16A34A]/5 to-[#16A34A]/10 flex items-center justify-center overflow-hidden">
-                    {item.image_url || item.category_image_url ? (
-                      <img src={getImageUrl(item.image_url || item.category_image_url)} alt={item.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-5xl group-hover:scale-110 transition-transform">
-                        {item.category_icon || '🔧'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-4 text-slate-900">
-                    <h3 className="font-bold text-gray-800 group-hover:text-[#16A34A] transition line-clamp-1">
-                      {item.name}
-                    </h3>
-                    <p className="text-[#16A34A] font-semibold text-sm mt-1">
-                      Starting at ${formatPrice(item.base_price)}
-                    </p>
-                  </div>
+                <Link key={item.id} href={`/services/${item.slug}`} className="group flex flex-col">
+                  <span className="block aspect-[4/3] overflow-hidden rounded-3xl bg-paper-deep">
+                    <img src={getImageUrl(serviceImage(item))} alt="" loading="lazy" className="w-full h-full object-cover transition duration-700 group-hover:scale-[1.04]" />
+                  </span>
+                  <span className="mt-3 flex items-start justify-between gap-2">
+                    <span className="font-semibold text-ink leading-snug">{item.name}</span>
+                    <ArrowUpRight className="h-4 w-4 mt-1 shrink-0 text-ink-muted group-hover:text-brand-600 transition" aria-hidden="true" />
+                  </span>
+                  <span className="text-sm text-ink-muted mt-0.5">Starting at ${formatPrice(item.base_price)}</span>
                 </Link>
               ))}
             </div>

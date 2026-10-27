@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import { Minus, Plus } from 'lucide-react'
 
 export default function FAQPage() {
   const [openIndex, setOpenIndex] = useState(null)
@@ -44,51 +45,58 @@ export default function FAQPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white font-sans antialiased text-ink overflow-x-hidden">
       <Header />
 
-      <div className="bg-gradient-to-r from-green-800 to-green-700 text-white py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Frequently Asked Questions</h1>
-          <p className="text-xl text-green-100">Find answers to common questions</p>
+      <section className="bg-paper border-b border-line">
+        <div className="container mx-auto px-5 sm:px-6 max-w-4xl py-14 lg:py-20">
+          <p className="text-xs font-bold tracking-[0.16em] uppercase text-brand-600 mb-3">FAQ</p>
+          <h1 className="font-display text-4xl sm:text-5xl leading-[1.05] font-semibold tracking-[-0.025em] text-ink mb-4">Frequently Asked Questions</h1>
+          <p className="text-lg text-ink-soft leading-relaxed">Find answers to common questions</p>
         </div>
-      </div>
+      </section>
 
-      <div className="container mx-auto px-4 py-16 max-w-3xl">
-        
-        {/* FAQ List */}
-        <div className="space-y-3">
-          {faqs.map((faq, index) => (
-            <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                className="w-full text-left px-5 py-4 flex justify-between items-center hover:bg-gray-50 transition"
-              >
-                <span className="font-medium text-gray-900">{faq.question}</span>
-                <span className="text-green-600 text-xl">
-                  {openIndex === index ? '−' : '+'}
-                </span>
-              </button>
-              
-              {openIndex === index && (
-                <div className="px-5 pb-4 text-gray-600 border-t border-gray-100 pt-3">
-                  {faq.answer}
+      <section className="py-14 lg:py-20 bg-white">
+        <div className="container mx-auto px-5 sm:px-6 max-w-4xl">
+
+          {/* FAQ List */}
+          <div className="divide-y divide-line border-y border-line">
+            {faqs.map((faq, index) => {
+              const open = openIndex === index
+              return (
+                <div key={index}>
+                  <button
+                    onClick={() => setOpenIndex(open ? null : index)}
+                    aria-expanded={open}
+                    className="w-full py-5 flex items-center justify-between gap-6 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg"
+                  >
+                    <span className="font-semibold text-ink text-base sm:text-lg">{faq.question}</span>
+                    <span className={`h-8 w-8 shrink-0 rounded-full border flex items-center justify-center transition ${open ? 'bg-ink border-ink text-white' : 'border-line text-ink'}`} aria-hidden="true">
+                      {open ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                    </span>
+                  </button>
+
+                  {open && (
+                    <div className="pb-6 pr-12 text-ink-soft leading-relaxed">
+                      {faq.answer}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
+              )
+            })}
+          </div>
 
-        {/* Still Need Help */}
-        <div className="mt-8 text-center">
-          <p className="text-gray-600">
-            Still have questions?{' '}
-            <Link href="/contact" className="text-green-600 font-medium hover:underline">
-              Contact us
-            </Link>
-          </p>
+          {/* Still Need Help */}
+          <div className="mt-10">
+            <p className="text-ink-muted">
+              Still have questions?{' '}
+              <Link href="/contact" className="font-semibold text-ink underline underline-offset-4 decoration-ink/30 hover:decoration-ink">
+                Contact us
+              </Link>
+            </p>
+          </div>
         </div>
-      </div>
+      </section>
 
       <Footer />
     </div>

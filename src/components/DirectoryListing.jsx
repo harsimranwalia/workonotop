@@ -80,7 +80,7 @@ export default function DirectoryListing({ initialItems = null }) {
                       className="group block py-1"
                       title={title}
                     >
-                      <h3 className="text-[#16A34A] text-sm font-medium group-hover:underline truncate text-left">
+                      <h3 className="text-ink-soft text-sm font-medium group-hover:text-brand-700 group-hover:underline underline-offset-2 truncate text-left">
                         {title}
                       </h3>
                     </Link>
@@ -88,7 +88,7 @@ export default function DirectoryListing({ initialItems = null }) {
                 })}
               </div>
 
-              <div className="flex flex-col md:flex-row items-center justify-between border-t border-slate-200 pt-8">
+              <div className="flex flex-col md:flex-row items-center justify-between border-t border-line pt-8">
                 <div className="text-slate-500 text-sm mb-6 md:mb-0">
                   Showing <span className="font-bold text-slate-900">{startIndex + 1}</span> to <span className="font-bold text-slate-900">{endIndex}</span> of <span className="font-bold text-slate-900">{totalItems}</span> services
                 </div>
@@ -116,7 +116,7 @@ export default function DirectoryListing({ initialItems = null }) {
                         onClick={() => setPage(p)}
                         className={`w-8 h-8 rounded-lg text-sm font-bold transition-all flex items-center justify-center ${
                           page === p
-                            ? 'bg-[#16A34A] text-white shadow-md'
+                            ? 'bg-ink text-white'
                             : 'text-slate-700 hover:bg-slate-100'
                         }`}
                       >

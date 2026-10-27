@@ -2,10 +2,12 @@
 
 // The homepage's way into the guided booking flow: pick a service, go straight to step 1 with the price on screen.
 // Services come from the catalog (the ones marked for the homepage, else all active ones), so nothing here names a service.
+// Each choice is a photo tile (a radio underneath), the way a customer scans a catalog: picture first, name under it.
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ArrowRight, Check } from 'lucide-react';
+import { serviceImage } from '@/lib/service-images';
 
 const MAX_SHOWN = 8;
 
@@ -43,21 +45,21 @@ export default function BookingStarter() {
   const href = selectedId ? `/booking/schedule?service=${encodeURIComponent(selectedId)}` : '/services';
 
   return (
-    <div id="book" className="scroll-mt-28 relative max-w-2xl lg:mx-0 mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl shadow-emerald-900/5 p-5 sm:p-6 text-left">
-      <p id="book-label" className="text-sm font-bold text-slate-900 mb-3">What do you need done?</p>
+    <div id="book" className="scroll-mt-28 relative w-full max-w-2xl lg:mx-0 mx-auto bg-white rounded-[28px] border border-line shadow-lift p-4 sm:p-6 text-left">
+      <p id="book-label" className="font-display text-lg sm:text-xl font-semibold text-ink mb-4">What do you need done?</p>
 
       {services === null ? (
-        <div className="flex flex-wrap gap-2 mb-5" aria-hidden="true">
-          {[112, 144, 96, 128].map((width) => (
-            <span key={width} className="h-11 rounded-xl bg-slate-100 animate-pulse" style={{ width }} />
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-5" aria-hidden="true">
+          {Array.from({ length: 8 }, (_, i) => (
+            <span key={i} className={`${i > 5 ? 'hidden sm:block' : ''} aspect-[4/5] rounded-2xl bg-paper-deep animate-pulse`} />
           ))}
         </div>
       ) : services.length > 0 ? (
-        <div role="radiogroup" aria-labelledby="book-label" className="flex flex-wrap gap-2 mb-5">
+        <div role="radiogroup" aria-labelledby="book-label" className="grid grid-cols-3 sm:grid-cols-4 gap-x-2.5 gap-y-3 sm:gap-x-3 sm:gap-y-4 mb-5">
           {services.map((service) => {
             const selected = service.id === selectedId;
             return (
-              <label key={service.id} className="relative flex cursor-pointer">
+              <label key={service.id} className="group relative flex flex-col cursor-pointer">
                 <input
                   type="radio"
                   name="book-service"
@@ -67,13 +69,23 @@ export default function BookingStarter() {
                   className="peer sr-only"
                 />
                 <span
-                  className={`inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-xl border text-sm font-semibold transition peer-focus-visible:ring-2 peer-focus-visible:ring-green-700 peer-focus-visible:ring-offset-2 ${
-                    selected
-                      ? 'bg-emerald-50 border-[#16A34A] text-[#15803D] ring-1 ring-[#16A34A]'
-                      : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400'
+                  aria-hidden="true"
+                  className={`relative block aspect-square overflow-hidden rounded-2xl bg-paper-deep transition peer-focus-visible:ring-2 peer-focus-visible:ring-brand-700 peer-focus-visible:ring-offset-2 ${
+                    selected ? 'ring-[2.5px] ring-brand-500 ring-offset-2' : 'ring-1 ring-line group-hover:ring-ink/25'
                   }`}
                 >
-                  {selected && <Check className="w-4 h-4" aria-hidden="true" />}
+                  <img
+                    src={serviceImage(service)}
+                    alt=""
+                    className={`h-full w-full object-cover transition duration-500 ${selected ? 'scale-105' : 'group-hover:scale-105'}`}
+                  />
+                  {selected && (
+                    <span className="absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-brand-500 text-white shadow">
+                      <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                    </span>
+                  )}
+                </span>
+                <span className={`mt-2 px-0.5 text-[12.5px] sm:text-[13px] leading-snug font-semibold line-clamp-2 ${selected ? 'text-brand-700' : 'text-ink-soft'}`}>
                   {service.name}
                 </span>
               </label>
@@ -81,17 +93,17 @@ export default function BookingStarter() {
           })}
         </div>
       ) : (
-        <p className="text-sm text-slate-600 mb-5">Choose a service to see its price.</p>
+        <p className="text-sm text-ink-muted mb-5">Choose a service to see its price.</p>
       )}
 
       <Link
         href={href}
-        className="flex items-center justify-center gap-2 w-full min-h-[56px] rounded-2xl bg-[#16A34A] hover:bg-[#15803D] text-white text-lg font-bold shadow-lg shadow-green-600/25 transition active:scale-[0.99]"
+        className="group/cta flex items-center justify-center gap-2 w-full min-h-[56px] rounded-2xl bg-brand-500 hover:bg-brand-600 text-white text-lg font-bold shadow-lg shadow-brand-600/25 transition active:scale-[0.99]"
       >
-        See my price <ArrowRight className="w-5 h-5" aria-hidden="true" />
+        See my price <ArrowRight className="w-5 h-5 transition-transform group-hover/cta:translate-x-0.5" aria-hidden="true" />
       </Link>
 
-      <p className="mt-3 text-center text-sm text-slate-500">
+      <p className="mt-3 text-center text-[13px] text-ink-muted">
         Price shown before you book. Your card is held, not charged, until the job is done.
       </p>
     </div>

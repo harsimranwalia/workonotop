@@ -5,7 +5,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import Icon from '@/components/Icon';
+import { ArrowRight, Check, CreditCard, MapPin, ShieldCheck, Tag } from 'lucide-react';
+import { serviceImage } from '@/lib/service-images';
 import AutocompleteComponent from 'react-google-autocomplete';
 
 const Autocomplete = AutocompleteComponent.default || AutocompleteComponent;
@@ -66,12 +67,12 @@ export default function ServiceLocationClientPage({
 
   if (!service) {
     return (
-      <div className="min-h-screen bg-white font-sans">
+      <div className="min-h-screen bg-white font-sans text-ink">
         <Header />
-        <div className="container mx-auto px-6 py-20 text-center max-w-xl">
-          <h2 className="text-3xl font-extrabold text-gray-900 mb-4">Service Not Found</h2>
-          <p className="text-gray-600 mb-8">We couldn&apos;t find the service you&apos;re looking for in {locationName}.</p>
-          <Link href="/services" className="inline-flex items-center px-6 py-3 bg-[#16A34A] text-white font-semibold rounded-xl hover:bg-[#15803D] transition">
+        <div className="container mx-auto px-6 py-24 text-center max-w-xl">
+          <h2 className="font-display text-3xl font-semibold text-ink mb-4">Service Not Found</h2>
+          <p className="text-ink-muted mb-8">We couldn&apos;t find the service you&apos;re looking for in {locationName}.</p>
+          <Link href="/services" className="inline-flex items-center px-6 py-3 bg-ink text-white font-semibold rounded-2xl hover:bg-brand-900 transition">
             Browse All Services
           </Link>
         </div>
@@ -81,165 +82,125 @@ export default function ServiceLocationClientPage({
   }
 
   const getImageUrl = (url) => url && !url.startsWith('http') && !url.startsWith('/') ? '/uploads/' + url : url;
+  const nearby = allLocations.filter((loc) => loc.location_slug !== locationSlug);
 
   return (
-    <div className="min-h-screen bg-white font-sans antialiased">
+    <div className="min-h-screen bg-white font-sans antialiased text-ink">
       <Header />
 
-      {/* Breadcrumb */}
-      <div className="bg-gray-50 border-b border-gray-200 py-3">
-        <div className="container mx-auto px-6 max-w-7xl">
-          <div className="flex items-center text-sm text-gray-600 flex-wrap gap-1">
-            <Link href="/" className="hover:text-[#16A34A] transition">Home</Link>
-            <span>›</span>
-            <Link href="/services" className="hover:text-[#16A34A] transition">Services</Link>
-            <span>›</span>
-            <Link href={`/services/${service.slug}`} className="hover:text-[#16A34A] transition">{service.name}</Link>
-            <span>›</span>
-            <span className="text-gray-900 font-medium">{locationName}, BC</span>
-          </div>
-        </div>
+      <div className="border-b border-line">
+        <nav aria-label="Breadcrumb" className="container mx-auto px-5 sm:px-6 max-w-7xl py-3 flex items-center gap-2 text-sm text-ink-muted flex-wrap">
+          <Link href="/" className="hover:text-ink transition">Home</Link>
+          <span aria-hidden="true">/</span>
+          <Link href="/services" className="hover:text-ink transition">Services</Link>
+          <span aria-hidden="true">/</span>
+          <Link href={`/services/${service.slug}`} className="hover:text-ink transition">{service.name}</Link>
+          <span aria-hidden="true">/</span>
+          <span className="text-ink font-medium">{locationName}, BC</span>
+        </nav>
       </div>
 
-      <div className="container mx-auto px-6 max-w-5xl py-8 md:py-12">
-        <div className="w-full">
-
-          {/* Main Content Column */}
-          <div>
-
-            {/* Image Banner */}
-            <div className="mb-6 md:mb-8 rounded-2xl overflow-hidden shadow-sm border border-slate-100 relative bg-slate-50">
-              {service.image_url || service.category_image_url ? (
-                <img
-                  src={getImageUrl(service.image_url || service.category_image_url)}
-                  alt={`${service.name} in ${locationName}`}
-                  className="w-full h-auto max-h-[500px] object-cover"
-                />
-              ) : (
-                <div className="aspect-[16/9] w-full flex items-center justify-center bg-gradient-to-br from-[#16A34A]/10 to-[#16A34A]/20">
-                  <span className="text-8xl sm:text-9xl">
-                    {service.category_icon ? <Icon name={service.category_icon} /> : <Icon name="wrench" />}
-                  </span>
-                </div>
-              )}
-              {/* <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-4 py-2 rounded-full text-xs sm:text-sm font-bold text-[#16A34A] shadow-md border border-emerald-100">
-                📍 Serving {locationName}, BC
-              </div> */}
-            </div>
-
-            {/* Title & Short Description */}
-            <div className="mb-8 mt-6">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-900 mb-4 leading-tight">
-                {serviceLocation?.custom_heading || headingText}
-              </h1>
-              {(serviceLocation?.custom_intro || introText || dynamicShortDescription) && (
-                <p className="text-lg md:text-xl text-gray-700 leading-relaxed font-medium">
-                  {serviceLocation?.custom_intro || introText || dynamicShortDescription}
-                </p>
-              )}
-            </div>
-
-            {/* Why Choose Us Grid */}
-            {/* <div className="mb-10 bg-slate-50 rounded-2xl p-6 border border-slate-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span>🛡️</span> Why Hire {service.name} Experts in {locationName} via WorkOnTap?
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-start gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-                  <span className="text-2xl">✅</span>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-sm">Verified Local Professionals</h3>
-                    <p className="text-xs text-gray-600">Background-checked and rated experts serving {locationName}.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-                  <span className="text-2xl">💰</span>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-sm">Upfront Pricing</h3>
-                    <p className="text-xs text-gray-600">No hidden fees. Starting from ${parseFloat(service.base_price).toFixed(2)}.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-                  <span className="text-2xl">⚡</span>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-sm">Fast Dispatch</h3>
-                    <p className="text-xs text-gray-600">Get a confirmed pro scheduled to your address quickly.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-                  <span className="text-2xl">⭐</span>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-sm">Satisfaction Guarantee</h3>
-                    <p className="text-xs text-gray-600">Protected by WorkOnTap quality guarantee.</p>
-                  </div>
-                </div>
-              </div>
-            </div> */}
-
-            {/* Description & Use Cases */}
-            {/* {service.description && (
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-3">About this Service in {locationName}</h2>
-                <div 
-                  className="prose max-w-none text-gray-700 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: service.description }}
-                />
-              </div>
-            )} */}
-
-
-            {dynamicDescription && (
-              <div className="bg-white rounded-2xl p-6 md:p-8 mb-8 border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow">
-                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center border-b border-gray-100 pb-3">
-                  <span className="bg-[#16A34A] text-white w-7 h-7 rounded-full flex items-center justify-center text-sm mr-2.5 shadow-sm">📋</span>
-                  Service Details & Overview
-                </h3>
-                <div
-                  className="rich-text-content text-gray-800 text-base leading-relaxed break-words"
-                  dangerouslySetInnerHTML={{ __html: dynamicDescription }}
-                />
-              </div>
+      {/* Hero */}
+      <section className="bg-paper border-b border-line">
+        <div className="container mx-auto px-5 sm:px-6 max-w-7xl py-8 lg:py-12 grid lg:grid-cols-[1.05fr_0.95fr] gap-8 lg:gap-12 items-center">
+          <div className="order-last lg:order-first">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white border border-line px-3 py-1 text-xs font-semibold text-ink-soft mb-4">
+              <MapPin className="h-3.5 w-3.5 text-brand-600" aria-hidden="true" /> {locationName}, BC
+            </span>
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-[52px] leading-[1.06] font-semibold tracking-[-0.025em] text-ink mb-4">
+              {serviceLocation?.custom_heading || headingText}
+            </h1>
+            {(serviceLocation?.custom_intro || introText || dynamicShortDescription) && (
+              <p className="text-lg text-ink-soft leading-relaxed max-w-xl mb-7">
+                {serviceLocation?.custom_intro || introText || dynamicShortDescription}
+              </p>
             )}
-
-            {useCases.length > 0 && (
-              <div className="mb-10">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">What We Help With</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {useCases.map((useCase, idx) => (
-                    <div key={idx} className="flex items-center gap-3 p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-100 text-gray-800 font-medium text-sm">
-                      <span className="text-[#16A34A] font-bold">✓</span> {useCase}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Nearby Metro Vancouver Locations for Interlinking */}
-            {/* {allLocations.length > 0 && (
-              <div className="mt-12 pt-8 border-t border-gray-200">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
-                  {service.name} Services in Nearby Metro Vancouver Cities
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {allLocations.map((loc, idx) => {
-                    if (loc.location_slug === locationSlug) return null;
-                    return (
-                      <Link
-                        key={idx}
-                        href={service.slug.includes(loc.location_slug) ? `/services/${service.slug}` : `/services/${service.slug}-${loc.location_slug}`}
-                        className="px-3.5 py-1.5 bg-gray-100 hover:bg-[#16A34A] hover:text-white text-gray-700 rounded-lg text-xs font-medium transition"
-                      >
-                        {service.name} in {loc.location_name}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            )} */}
-
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              <button
+                onClick={handleBookNow}
+                className="group inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white px-7 py-3.5 rounded-2xl font-bold shadow-lg shadow-brand-600/20 transition active:scale-[0.98]"
+              >
+                See my price <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+              </button>
+              <span className="text-sm text-ink-muted">From <span className="font-semibold text-ink">${parseFloat(service.base_price || 0).toFixed(0)}</span> · card charged after the job</span>
+            </div>
+            {addressError && <p className="mt-3 text-sm font-semibold text-red-600">{addressError}</p>}
           </div>
-
+          <div className="relative overflow-hidden rounded-[32px] aspect-[4/3] bg-paper-deep">
+            <img src={getImageUrl(serviceImage(service))} alt={`${service.name} in ${locationName}`} className="h-full w-full object-cover" />
+          </div>
         </div>
+      </section>
+
+      {/* Promises */}
+      <section className="border-b border-line">
+        <div className="container mx-auto px-5 sm:px-6 max-w-7xl py-8 grid sm:grid-cols-3 gap-6">
+          {[
+            { icon: Tag, title: 'Your price before you book', desc: 'On screen at every step.' },
+            { icon: CreditCard, title: 'Pay when the job is done', desc: 'Your card is held, not charged.' },
+            { icon: ShieldCheck, title: 'Protection Promise', desc: 'Tell us within 48 hours and we make it right.' },
+          ].map(({ icon: ItemIcon, title, desc }) => (
+            <div key={title} className="flex gap-3.5">
+              <span className="h-10 w-10 shrink-0 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center"><ItemIcon className="h-5 w-5" aria-hidden="true" /></span>
+              <div>
+                <p className="font-semibold text-ink">{title}</p>
+                <p className="text-sm text-ink-muted">{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="container mx-auto px-5 sm:px-6 max-w-4xl py-12 md:py-16">
+        {useCases.length > 0 && (
+          <div className="mb-12">
+            <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight text-ink mb-5">What We Help With</h2>
+            <ul className="flex flex-wrap gap-2">
+              {useCases.map((useCase, idx) => (
+                <li key={idx} className="inline-flex items-center gap-1.5 rounded-full bg-paper border border-line px-3.5 py-2 text-sm font-medium text-ink-soft">
+                  <Check className="h-4 w-4 text-brand-600" aria-hidden="true" /> {useCase}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {dynamicDescription && (
+          <div className="mb-12">
+            <h2 className="font-display text-2xl md:text-3xl font-semibold tracking-tight text-ink mb-5">Service Details & Overview</h2>
+            <div
+              className="rich-text-content text-ink-soft text-base leading-relaxed break-words [&_h2]:font-display [&_h2]:text-ink [&_h3]:text-ink [&_a]:text-brand-700 [&_a]:font-medium"
+              dangerouslySetInnerHTML={{ __html: dynamicDescription }}
+            />
+          </div>
+        )}
+
+        <div className="rounded-[28px] bg-brand-900 text-white p-7 md:p-9 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div>
+            <h2 className="font-display text-2xl md:text-3xl font-semibold">{service.name} in {locationName}</h2>
+            <p className="text-white/70 mt-1">See the price before you book. Pay once the job is done.</p>
+          </div>
+          <button onClick={handleBookNow} className="shrink-0 inline-flex items-center justify-center gap-2 bg-white text-brand-900 px-6 py-3.5 rounded-2xl font-bold hover:bg-brand-50 transition">
+            See my price <ArrowRight className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+
+        {nearby.length > 0 && (
+          <div className="mt-14 pt-10 border-t border-line">
+            <h2 className="font-display text-xl md:text-2xl font-semibold tracking-tight text-ink mb-5">{service.name} in nearby cities</h2>
+            <div className="flex flex-wrap gap-2">
+              {nearby.map((loc) => (
+                <Link
+                  key={loc.location_slug}
+                  href={service.slug.includes(loc.location_slug) ? `/services/${service.slug}` : `/services/${service.slug}-${loc.location_slug}`}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-line bg-white text-sm font-medium text-ink-soft hover:border-ink/40 hover:text-ink transition"
+                >
+                  <MapPin className="h-3.5 w-3.5 text-brand-600" aria-hidden="true" /> {loc.location_name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <Footer />
