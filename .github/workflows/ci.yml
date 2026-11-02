@@ -1,0 +1,35 @@
+name: CI
+
+# The machine gates, run where a merge can see them: every pull request and
+# every push to main. Only checks that were green on main when this was added
+# (2026-11-02) are here, so a red run means this change broke something.
+# Checks left out because they were already red are tracked as findings in
+# the engineering department and get added here once they pass.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci --ignore-scripts && node scripts/patch-ts-interface.cjs
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build
