@@ -42,7 +42,7 @@ import { RESET_RETRIES } from './support/auth.js';
 import { providers, FIXTURE_LOGINS } from '../database/fixtures/accounts.js';
 import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.js';
 import { LINK_TOKEN_PATTERN, newLinkToken, sha256Hex } from '../src/lib/link-token.js';
-import { budgetScope } from '../src/lib/sms-budget.js';
+import { budgetScope, DAY_SECONDS, TEXTS_PER_PLATFORM_DAY } from '../src/lib/sms-budget.js';
 
 // Every request carries a fixture account's session header and a trace records request headers: tracing is off, as in e2e/provider-crew.spec.js.
 test.use({ trace: 'off' });
@@ -1005,6 +1005,74 @@ test.describe('Job link access: the number check and the burst', () => {
             const events = await eventsOf(job);
             expect(events.filter((event) => event.kind === 'code_asked' && event.crew_member_id === ana.id).length, 'one ask went through to a text').toBe(1);
             expect(events.filter((event) => event.kind === 'code_suppressed' && event.detail === 'cooldown').length, 'the other nineteen were held by the minute').toBe(19);
+        });
+    });
+
+    // ENG-032 (BUG-028): the platform's daily ceiling on texts is the last check requestCode makes before it makes a code, and its refusal is 'platform_cap'.
+    // It must answer and record like the number's and the provider's: the usual 200, one code_suppressed event that says why, no code row, no text.
+    // The day's counter is shared by every text the dev stack sends and the sweep does not touch it, so the case saves the platform row and the
+    // 'platform-warned' rows a refusal may write (the UTC day before, the day and the day after, so a run across midnight is covered), sets the
+    // ceiling with a window that runs out by itself in five minutes (a run killed before the put-back cannot leave the dev database at the ceiling
+    // for a day), and puts the saved rows back before it asserts anything, and again after the ask that proves the ceiling is gone. A refusal
+    // spends the link's ask, the member's minute and the number's and the provider's day and gives none of them back; the sweep after the case
+    // deletes those, so the case does not assert that nothing was spent.
+    test('ENG-032: at the platform ceiling a code is refused like any other refusal: 200 with the usual answer, no code made, no text sent, and one code_suppressed event with platform_cap', async ({ playwright, baseURL }) => {
+        test.setTimeout(120_000);
+        await inWorld(playwright, baseURL, async (w) => {
+            const job = await newJob(w, { crew: [['Ana', '125']] });
+            const [ana] = job.members;
+            // The usual answer, from a number on no crew; the ask also compiles the route before the ceiling is set.
+            const usual = await w.api.post(`/api/job/${job.token}/code`, { phone: stored('137') });
+            expectRes(usual, 'a number on no crew gets the usual answer').toEqual([200, REQUESTED]);
+
+            const platform = budgetScope('platform', 'day');
+            const utcDay = (offset) => new Date(Date.now() + offset * DAY_SECONDS * 1000).toISOString().slice(0, 10);
+            const scopes = [platform, ...[-1, 0, 1].map((offset) => budgetScope('platform-warned', utcDay(offset)))];
+            const marks = scopes.map(() => '?').join(', ');
+            // Strings and not Date objects, so no time zone is crossed on the way back in.
+            const saved = await rows(`SELECT scope, DATE_FORMAT(window_started_at, '%Y-%m-%d %H:%i:%s') AS started, used FROM sms_budget WHERE scope IN (${marks})`, scopes);
+            const putBack = async () => {
+                const open = await db();
+                await open.execute(`DELETE FROM sms_budget WHERE scope IN (${marks})`, scopes);
+                for (const row of saved) await open.execute('INSERT INTO sms_budget (scope, window_started_at, used) VALUES (?, ?, ?)', [row.scope, row.started, row.used]);
+            };
+
+            let atCeiling;
+            let events;
+            let codes;
+            try {
+                const open = await db();
+                await open.execute('DELETE FROM sms_budget WHERE scope = ?', [platform]);
+                await open.execute('INSERT INTO sms_budget (scope, window_started_at, used) VALUES (?, NOW() - INTERVAL ? SECOND, ?)', [platform, DAY_SECONDS - 300, TEXTS_PER_PLATFORM_DAY]);
+                await fresh(job, ana);
+                atCeiling = await w.api.post(`/api/job/${job.token}/code`, { phone: ana.phone });
+                events = await eventsOf(job);
+                codes = await codeCount(job, ana);
+            } finally {
+                await putBack();
+            }
+
+            expectRes(atCeiling, "a checked cleaner's number at the platform's ceiling").toEqual([200, REQUESTED]);
+            expect(atCeiling.text, 'the answer is the usual one, byte for byte').toBe(usual.text);
+            expect(codes, 'no code was made').toBe(0);
+            const mine = events.filter((event) => event.crew_member_id === ana.id);
+            expect(mine.map((event) => [event.kind, event.detail]), 'one code_suppressed event with platform_cap for the cleaner, and no code_asked, so no text was tried').toEqual([['code_suppressed', 'platform_cap']]);
+
+            // The put-back is proved: with the ceiling gone the same ask makes a code and tries a text. The text spends one from the day's counter, so that is put back too.
+            let again;
+            let codesAgain;
+            let eventsAgain;
+            try {
+                await forget(scopeOf.cooldown(job, ana));
+                again = await w.api.post(`/api/job/${job.token}/code`, { phone: ana.phone });
+                codesAgain = await codeCount(job, ana);
+                eventsAgain = await eventsOf(job);
+            } finally {
+                await putBack();
+            }
+            expectRes(again, 'the same ask once the day\'s counter is put back').toEqual([200, REQUESTED]);
+            expect(codesAgain, 'the ceiling is gone: this ask makes the one code').toBe(1);
+            expect(eventsAgain.filter((event) => event.kind === 'code_asked' && event.crew_member_id === ana.id).length, 'and tries the text').toBe(1);
         });
     });
 });

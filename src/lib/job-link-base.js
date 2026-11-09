@@ -58,6 +58,7 @@ export const EVENT_DETAILS = Object.freeze([
   'cooldown',
   'number_cap',
   'provider_cap',
+  'platform_cap',
   'sent',
   'not_sent',
   'before',
