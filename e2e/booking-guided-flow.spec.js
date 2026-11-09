@@ -575,6 +575,20 @@ async function expectOneHoldRequest(page, holds) {
     expect(holds, 'the card hold was asked for once').toHaveLength(1);
 }
 
+/**
+ * Counts, from now on, the main-frame navigations to `pathname`: a new document and a move within the page (Back to an entry of the history) alike.
+ * Answers a function that reads the count so far.
+ * @param {Page} page
+ * @param {string} pathname
+ */
+function countNavigationsTo(page, pathname) {
+    let count = 0;
+    page.on('framenavigated', (frame) => {
+        if (frame === page.mainFrame() && new URL(frame.url()).pathname === pathname) count += 1;
+    });
+    return () => count;
+}
+
 test.describe('Guided booking flow', () => {
     // The page gives its live price 10 s (src/lib/use-live-price.js) and `next dev` compiles /api/pricing, the page and the routes the page also asks for when each is
     // first asked for (BUG-011: 15 to 27 s each, cold), so the 45 s FIRST_VISIT_MS below cannot help the price. They are asked for here, before the case opens the page.
@@ -1197,6 +1211,53 @@ test.describe('Guided booking flow', () => {
         await expect(addressField(page)).toHaveValue('');
         await expect(page.getByRole('button', { name: /Proceed to Payment/ })).toHaveCount(0);
         expect(holds, 'no card hold was asked for').toHaveLength(0);
+    });
+
+    // BUG-007 (ENG-031). The confirm step sent a customer whose step-4 answers were incomplete to step 4 with a push, so step 4 sat on top of the confirm page in the history: Back loaded the confirm page
+    // again, which sent the customer to step 4 again, and Back never led out. `toHaveURL` alone does not tell the two apart (Back lands on step 4 either way); the count of navigations to the confirm page
+    // does. Mutant that turns this case red: the confirm step goes to step 4 with a push (one navigation to the confirm page in one Back), or with a replace that leaves no way out (a second Back stays on step 4).
+    test('Back from the step 4 that the confirm page sent the customer to does not load the confirm page again', async ({ page }) => {
+        await openConfirm(page);
+        await page.goBack();
+        await expect(page).toHaveURL(onStep(4), { timeout: FIRST_VISIT_MS });
+        await expect(stepHeading(page, WHEN_WHERE)).toBeVisible();
+        await addressField(page).fill('');
+        await expect.poll(() => storedAddress(page), { message: 'the page kept the empty address' }).toBe('');
+
+        // Forward to the confirm step: step 4 would not let this booking through, so the confirm step sends the customer back to it.
+        await page.goForward();
+        await expect(page).toHaveURL(onStep(4), { timeout: FIRST_VISIT_MS });
+        await expect(stepHeading(page, WHEN_WHERE)).toBeVisible();
+
+        // One Back from there: the confirm page is not loaded again and the page is on step 4, the entry the customer left.
+        const confirmLoads = countNavigationsTo(page, '/booking/confirm');
+        await page.goBack();
+        await page.waitForTimeout(500);
+        expect(confirmLoads(), 'Back did not load the confirm page again').toBe(0);
+        await expect(page).toHaveURL(onStep(4));
+        await expect(stepHeading(page, WHEN_WHERE)).toBeVisible();
+
+        // The entry the confirm page was sent from is gone, so the next Back leaves step 4 for the step before it.
+        await page.goBack();
+        await expect(page).toHaveURL(onStep(3));
+        await expect(stepHeading(page, INCLUDED)).toBeVisible();
+        expect(confirmLoads(), 'nor did the second Back').toBe(0);
+    });
+
+    // BUG-007 (ENG-031). The same push sent a signed-in customer who opened the confirm page with no booking stored to the services page, and Back from there loaded the confirm page again.
+    // Mutant that turns this case red: the confirm step sends a customer with no booking to the services page with a push.
+    test('Back from the confirm page that sent a customer with no booking to the services page does not load the confirm page again', async ({ page }) => {
+        await signInAs(page, 'customer1');
+        await page.goto('/services', { timeout: FIRST_VISIT_MS });
+        await page.goto('/booking/confirm', { timeout: FIRST_VISIT_MS });
+        // Nothing is stored, so the confirm step sends the customer to the services page.
+        await expect(page).toHaveURL((url) => url.pathname === '/services', { timeout: FIRST_VISIT_MS });
+
+        const confirmLoads = countNavigationsTo(page, '/booking/confirm');
+        await page.goBack();
+        await page.waitForTimeout(500);
+        expect(confirmLoads(), 'Back did not load the confirm page again').toBe(0);
+        await expect(page).toHaveURL((url) => url.pathname === '/services');
     });
 
     test("a booking restarted at another place opens step 4 with that place's address", async ({ page }) => {

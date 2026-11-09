@@ -14,7 +14,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { PHONE_HINT } from '@/lib/phone';
 import {
   CARD, CARD_HEADING, NOTICE, OFFLINE_TEXT, OPTIONAL_POSITION_WAIT_MS, OUTLINE, POSITION_TEXT, PRIMARY, RING,
-  callApi, clockOf, crewOf, currentPosition, dataOf, distanceOf, isObject, messageOf, namesOf, photoCanOf, photosOf, postJson, reportsOf, textOf, timerOf, windowOf,
+  callApi, clockOf, crewOf, currentPosition, dataOf, distanceOf, isObject, messageOf, namesOf, photoCanOf, photoFullOf, photosOf, postJson, reportsOf, textOf, timerOf, windowOf,
 } from './jobLinkKit';
 import JobPhotos from './JobPhotos';
 import JobReports from './JobReports';
@@ -80,6 +80,7 @@ function viewOf(data) {
     timer: timerOf(data.timer),
     photos: photosOf(data.photos),
     photoCan: photoCanOf(data.photo_can),
+    photoFull: photoFullOf(data.photo_full),
     // null when the list cannot be read: the card says so and offers to read again
     reports: reportsOf(data.reports),
     reportCan: data.report_can === true,

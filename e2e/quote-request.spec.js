@@ -973,4 +973,86 @@ test.describe('Quote requests: the screens', () => {
         await expect(page.locator(`[id="${described}"]`)).toHaveText(sentText(mine.email));
         expect(posts).toBe(2);
     });
+
+    // BUG-009 (ENG-031). Below 1024 px the booking screen keeps its summary bar fixed to the bottom of the window. A Tab to a control that is inside the window but under the bar scrolls nothing (the browser counts
+    // it as in view), so Send request sat entirely under the bar, and a Shift+Tab to a control above the window scrolls it under the site header, which sticks to the top (WCAG 2.2, 2.4.11: no focused control lies
+    // entirely under content the page itself keeps in place). From 1024 px the bar is a column beside the form and the page is as it was: there the case asks only that the page keeps no room for either, and does
+    // not walk the form (on the page as it was, the header hides Phone (optional) on the way back up at 1280 px; that is outside this ticket).
+    // Mutant that turns this case red: the page leaves no room for the bar or for the header when the browser scrolls a focused control into view (a control is entirely under one of them at a stop), keeps room
+    // at 1024 px and up where the bar is not fixed (a scroll padding is not `auto`), or does not make it again when the window is made narrower (the walk after the resize), or keeps it on the page when the visitor goes on to another page (the check after the click on the logo).
+    test('Tab from Your name to Send request at 375, 768 and 1023 px leaves every control clear of the summary bar and the header, and from 1024 px the page is as it was', async ({ context }) => {
+        test.setTimeout(240_000);
+        /** @param {Page} page */
+        const coveredBy = (page) => page.evaluate(() => {
+            const focus = document.activeElement;
+            const box = focus.getBoundingClientRect();
+            return [...document.querySelectorAll('body *')].filter((element) => {
+                if (element === focus || element.contains(focus)) return false;
+                const style = getComputedStyle(element);
+                if (style.position !== 'fixed' && style.position !== 'sticky') return false;
+                if (style.display === 'none' || style.visibility === 'hidden') return false;
+                const rect = element.getBoundingClientRect();
+                return rect.width > 0 && rect.height > 0 && rect.left <= box.left && rect.right >= box.right && rect.top <= box.top && rect.bottom >= box.bottom;
+            }).map((element) => `${element.tagName.toLowerCase()}.${String(element.className).trim().replace(/\s+/g, '.').slice(0, 48)}`);
+        });
+        /** @param {Page} page */
+        const roomKept = (page) => page.evaluate(() => {
+            const style = getComputedStyle(document.documentElement);
+            return { bottom: style.scrollPaddingBottom, top: style.scrollPaddingTop };
+        });
+        // Focuses Your name, presses Tab to Send request and Shift+Tab back, and answers the stops at which a fixed or sticky element holds the whole of the focused control.
+        /** @param {Page} page */
+        const walk = async (page) => {
+            const form = quoteForm(page);
+            const controls = [...FIELD_LABELS.map(([, label]) => [label, form.getByLabel(label)]), ['Send request', sendButton(page)]];
+            const hidden = [];
+            const look = async (label, control) => {
+                await expect(control, `${label} has the focus`).toBeFocused();
+                const covering = await coveredBy(page);
+                if (covering.length > 0) hidden.push(`${label} is entirely under ${covering.join(' and ')}`);
+            };
+            await controls[0][1].focus();
+            await look(...controls[0]);
+            for (const [label, control] of controls.slice(1)) {
+                await page.keyboard.press('Tab');
+                await look(label, control);
+            }
+            for (const [label, control] of controls.slice(0, -1).reverse()) {
+                await page.keyboard.press('Shift+Tab');
+                await look(label, control);
+            }
+            return hidden;
+        };
+
+        // Each window in a tab of its own, so that each starts with an empty session; the last two are the widths at which the bar is not fixed and the page is as it was.
+        for (const [width, height] of [[375, 812], [768, 1024], [1023, 768], [1024, 768], [1280, 800]]) {
+            const page = await context.newPage();
+            await page.setViewportSize({ width, height });
+            await openFlow(page);
+            await propertyType(page, 'commercial').check();
+            await expect(quoteForm(page)).toBeVisible();
+            if (width < 1024) {
+                expect(await walk(page), `${width} px: the stops at which the bar or the header hides a control`).toEqual([]);
+            } else {
+                expect(await roomKept(page), `${width} px: the page keeps no room for a bar that is not fixed, nor for the header`).toEqual({ bottom: 'auto', top: 'auto' });
+            }
+
+            if (width === 375) {
+                // <html> outlives the page, so the room is given back when the visitor goes on to another page of the site (by the logo in the header), or it would follow them there.
+                await page.locator('header').getByRole('link', { name: 'Logo' }).click();
+                await expect(page).toHaveURL(/\/$/);
+                await expect.poll(() => roomKept(page), { message: 'the room for the bar and the header is given back when the visitor leaves the page' }).toEqual({ bottom: 'auto', top: 'auto' });
+            }
+
+            if (width === 1280) {
+                // The same page with the window made narrower is made room for again, and made wide again it has none.
+                await page.setViewportSize({ width: 375, height: 812 });
+                await expect.poll(async () => (await roomKept(page)).bottom, { message: 'the page makes room for the bar when the window is made narrower' }).not.toBe('auto');
+                expect(await walk(page), '375 px after the window was made narrower: the stops at which the bar or the header hides a control').toEqual([]);
+                await page.setViewportSize({ width: 1280, height: 800 });
+                await expect.poll(() => roomKept(page), { message: 'the room is given back when the window is made wide again' }).toEqual({ bottom: 'auto', top: 'auto' });
+            }
+            await page.close();
+        }
+    });
 });

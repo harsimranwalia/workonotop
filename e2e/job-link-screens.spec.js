@@ -471,6 +471,42 @@ test.describe('Job link: the page', () => {
         await openJob(page, job);
         await expect(page.getByText(/^Signed in as .+ \(admin\)$/), 'an admin is let in').toBeVisible({ timeout: FIRST_VISIT_MS });
     });
+
+    // BUG-015 (ENG-031). A crew member who has not checked in is listed with a tick box, and a name with a word of 104 letters has no break to wrap at: the rows, their borders and the name ran off the right
+    // edge of the card at every width. The cure (`min-w-0` on the fieldset around the list and on the name's span) was in the page when the bug was filed, and nothing held it there; this case does.
+    // The numbers 166 and 167 are the ones of the check-in case above: the sweep after each case removes the crew and resets the budgets of its numbers.
+    // Mutant that turns this case red: the fieldset or the span of the name loses `min-w-0` (the page is wider than the window at 320, 375, 768 and 1280 px).
+    test('A waiting crew member with a 104-letter name does not push the page sideways at 320, 375, 768 and 1280 px', async ({ page, request, baseURL, playwright, context }) => {
+        test.setTimeout(240_000);
+        const ctx = await setup(playwright, request, baseURL);
+        const longName = `Sam ${'Abcdefghij'.repeat(10)}klmn`;
+        expect(longName.length, 'the name is Sam, a space and 104 letters').toBe(108);
+        const ann = await addMember(ctx, 'Ann', '166');
+        const sam = await addMember(ctx, longName, '167');
+        const job = await makeJob(ctx, { members: [ann, sam] });
+        await signCleanerIn(page, ctx, job, ann);
+        await context.grantPermissions(['geolocation'], { origin: String(baseURL) });
+        await context.setGeolocation(AT_THE_ADDRESS);
+        await openJob(page, job);
+        const crew = page.getByRole('region', { name: 'Crew', exact: true });
+        await crew.getByRole('checkbox', { name: 'Ann' }).check({ timeout: FIRST_VISIT_MS });
+        await page.getByRole('button', { name: 'Check in 1' }).click();
+        await expect(statusSaying(page, 'Checked in: Ann.'), 'Ann checks in through the page').toBeVisible({ timeout: FIRST_VISIT_MS });
+        await expect(crew.getByRole('checkbox', { name: longName }), 'and Sam is still waiting, with a box').toBeVisible();
+
+        for (const width of [320, 375, 768, 1280]) {
+            await page.setViewportSize({ width, height: 800 });
+            const widths = await page.evaluate(() => ({
+                page: document.documentElement.scrollWidth,
+                window: window.innerWidth,
+                over: [...document.querySelectorAll('body *')]
+                    .filter((el) => el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).overflowX === 'visible')
+                    .map((el) => `${el.tagName.toLowerCase()}[${String(el.className).slice(0, 60)}] "${(el.textContent || '').trim().slice(0, 20)}" ${el.clientWidth}<${el.scrollWidth}`)
+                    .slice(-6),
+            }));
+            expect(widths.page, `${width} px: the page is no wider than the window${widths.over.length ? ` (content runs past: ${widths.over.join(' | ')})` : ''}`).toBeLessThanOrEqual(widths.window);
+        }
+    });
 });
 
 // ---- the panels and the number check ----

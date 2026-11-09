@@ -25,13 +25,17 @@
 //   to callerFrom, not one with both roles: it stops at the first verified caller whose role is allowed, so a stranger's provider cookie would
 //   hide an admin's Bearer.) `ref` is the users.id of the admin, the provider's id or the crew member's id; `epoch` is the cleaner's assignment
 //   second, which checkIn judges again inside its lock. `crew` is assignedCrew(…, { withAssignedAt: true }), read once by the caller.
-// jobPage(execute, link, access, crew) -> { access, you: { kind, name }, job, crew, window, timer, photos, photo_can, reports, report_can } | null
+// jobPage(execute, link, access, crew) -> { access, you: { kind, name }, job, crew, window, timer, photos, photo_can, photo_full, reports, report_can } | null
 //   null when the job closed since findJobLink. `job` is { service_name, days, address: { line1, line2, city, postal_code }, details: {
 //   description, instructions, timing_note, parking, elevator, pets, worker_count } }, text that is not there as '' and the three yes/no as
 //   booleans. `crew` is tickedView of the members on the job now: id, name, checked_in, checked_in_at, checked_out_at, never a number. `window` is
 //   windowView. `timer` is the TimerView (src/lib/job-timer.js) after refreshTimer, `photos` is photosFor, and `photo_can` is { before, after }:
 //   whether each kind of photo may be added now, by the same rules as addPhoto, so a button is right before a refusal (ENG-016). The limit is
 //   judged on photoCounts, the rows the job holds, and not on `photos`, which leaves out the rows whose address the page may not link.
+//   `photo_full` is { before, after } as well: whether the job already holds PHOTOS_MAX_PER_TYPE rows of each kind, on the same photoCounts, so a
+//   kind whose rows the list leaves out is full while `photos` shows fewer. It is the job's fact and not the viewer's: the same for every access
+//   and in every state of the job, where photo_can is also false for the wrong state and for a cleaner who is not checked in. It is what a page
+//   reads to say that a kind is full (ENG-031, BUG-020); a client that does not know it loses nothing, it is an added key.
 //   `reports` is reportsFor (src/lib/job-reports.js): the job's on-site reports, newest first, each { id, type, label, note, photo, by, at, seen },
 //   with no price, no charge and no decision (a report is only ever `seen` or not), and `report_can` is whether one may be sent now, by the same
 //   rules as saveReport (ENG-017). Both are for a visitor with access, like every other field of the job.
@@ -113,7 +117,8 @@ export async function resolveAccess(request, execute, link, crew) {
 
 // Whether each kind of photo may be added now, by the rules addPhoto judges again inside its lock: a before photo while the job is confirmed, an
 // after photo while it is in progress, fewer than PHOTOS_MAX_PER_TYPE of the kind, and a cleaner only while checked in. `counts` is photoCounts, the
-// rows of each type: addPhoto counts rows as well, and the list on the page has left some out.
+// rows of each type: addPhoto counts rows as well, and the list on the page has left some out. photo_can is false for more than a full kind
+// (the job's state, a cleaner who is not checked in), so jobPage answers photo_full beside it: that count alone, per type (ENG-031, BUG-020).
 function photoCan(status, canAdd, counts) {
   return {
     before: canAdd && status === 'confirmed' && counts.before < PHOTOS_MAX_PER_TYPE,
@@ -165,6 +170,7 @@ export async function jobPage(execute, link, access, crew) {
     timer,
     photos,
     photo_can: photoCan(row.status, canAdd, counts),
+    photo_full: { before: counts.before >= PHOTOS_MAX_PER_TYPE, after: counts.after >= PHOTOS_MAX_PER_TYPE },
     reports,
     report_can: reportCan(row.status, canAdd, reports.length),
   };

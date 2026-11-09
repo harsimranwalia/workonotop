@@ -20,8 +20,8 @@ function notValid() {
 
 // Public: the token in the path is the locator. 200 { success: true, data: { access: 'none' } } for a visitor with no way in, and nothing else in
 // the body. For a caller with access, data is { access: 'cleaner' | 'provider' | 'admin', you: { kind, name }, job, crew, window, timer, photos,
-// photo_can }, built field by field in src/lib/job-link.js, which describes each part: job holds no customer, price or booking number; crew is
-// names and ticks only. Access is judged again on every request. A link in any other state is the 404 above.
+// photo_can, photo_full }, built field by field in src/lib/job-link.js, which describes each part: job holds no customer, price or booking number;
+// crew is names and ticks only. Access is judged again on every request. A link in any other state is the 404 above.
 export async function GET(request, { params }) {
   const { token } = await params
 

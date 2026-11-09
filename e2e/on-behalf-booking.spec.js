@@ -90,6 +90,20 @@ async function seedFlow(page, flow) {
 /** @param {import('@playwright/test').Page} page */
 const totalOf = (page) => page.getByRole('region', { name: 'Your price', exact: true }).getByTestId('price-total');
 
+/**
+ * Counts, from now on, the main-frame navigations to `pathname`: a new document and a move within the page (Back to an entry of the history) alike.
+ * Answers a function that reads the count so far.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} pathname
+ */
+function countNavigationsTo(page, pathname) {
+    let count = 0;
+    page.on('framenavigated', (frame) => {
+        if (frame === page.mainFrame() && new URL(frame.url()).pathname === pathname) count += 1;
+    });
+    return () => count;
+}
+
 test.describe('On-behalf booking: the screens', () => {
     // Every case starts as a visitor who has not signed in, then signs in as the role it needs.
     test.use({ storageState: { cookies: [], origins: [] }, timezoneId: 'America/Vancouver' });
@@ -179,6 +193,28 @@ test.describe('On-behalf booking: the screens', () => {
         await expect.poll(() => page.evaluate(() => (JSON.parse(sessionStorage.getItem('bookingFlow') || 'null') || {}).onBehalf), { timeout: 15_000 }).toBeUndefined();
         await expect(page.getByRole('button', { name: /^Creat(e|ing) booking/ }), 'no admin form for a customer').toHaveCount(0);
         await expect(page.getByLabel('First name'), 'no contact form for a customer').toHaveCount(0);
+    });
+
+    // BUG-007 (ENG-031). The confirm screen sent the office to the booking desk with a push when the mode had no booking to confirm, so Back from the desk loaded the confirm screen again, which sent the
+    // office to the desk again. Mutant that turns this case red: the confirm screen goes to the booking desk with a push (one navigation to the confirm screen in one Back).
+    test('Back from the confirm page that sent the office to the booking desk does not load the confirm page again', async ({ page }) => {
+        test.setTimeout(150_000);
+        await signInAs(page, 'admin');
+        await warm(page.request, ['/admin/book', '/booking/confirm', '/api/admin/me', '/api/services', '/api/auth/me', '/api/admin/disputes']);
+        await page.goto('/admin/book', { timeout: ADMIN_VISIT_MS });
+        await expect(page.getByRole('heading', { name: 'Book for a customer', level: 2 })).toBeVisible({ timeout: ADMIN_VISIT_MS });
+
+        // The mode is open at a service and nothing is answered, so the confirm screen has no booking to confirm: it sends the office to the booking desk.
+        await seedFlow(page, { service_id: 1, service_name: SERVICE_1_NAME, onBehalf: true });
+        await page.goto('/booking/confirm', { timeout: FIRST_VISIT_MS });
+        await expect(page).toHaveURL((url) => url.pathname === '/admin/book', { timeout: FIRST_VISIT_MS });
+        await expect(page.getByRole('heading', { name: 'Book for a customer', level: 2 })).toBeVisible({ timeout: ADMIN_VISIT_MS });
+
+        const confirmLoads = countNavigationsTo(page, '/booking/confirm');
+        await page.goBack();
+        await page.waitForTimeout(500);
+        expect(confirmLoads(), 'Back did not load the confirm page again').toBe(0);
+        await expect(page).toHaveURL((url) => url.pathname === '/admin/book');
     });
 
     // Mutant that turns this case red: the schedule screen prices from the customer's route (a quote and its form show), the note is missing, the banner is missing, or the repeat pick shows.

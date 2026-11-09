@@ -27,7 +27,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -78,6 +78,9 @@ export default function ProviderLayout({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [stripeModal, setStripeModal] = useState(false);
+  const drawerRef = useRef(null);
+  const menuButtonRef = useRef(null);
+  const closeButtonRef = useRef(null);
 
   const publicPaths = [
     '/provider/login', '/provider/signup', '/provider/verify-email',
@@ -199,10 +202,22 @@ export default function ProviderLayout({ children }) {
     }
   };
 
+  // A closed drawer is `inert`, which takes the focus off whatever it held inside it, so a close puts the focus on the button that opens the drawer first: when it was inside the drawer, or had already
+  // been lost to the page (a click on the backdrop does that). An open drawer takes the focus to its close button.
+  const closeMenu = () => {
+    const focus = document.activeElement;
+    if (mobileMenuOpen && (!focus || focus === document.body || drawerRef.current?.contains(focus))) menuButtonRef.current?.focus();
+    setMobileMenuOpen(false);
+  };
+
+  useEffect(() => {
+    if (mobileMenuOpen) closeButtonRef.current?.focus({ preventScroll: true });
+  }, [mobileMenuOpen]);
+
   const handleNavClick = (e, href) => {
     if (!stripeConnected && STRIPE_REQUIRED_PATHS.some(p => href.startsWith(p))) {
       e.preventDefault();
-      setMobileMenuOpen(false);
+      closeMenu();
       setStripeModal(true);
     }
   };
@@ -256,7 +271,7 @@ export default function ProviderLayout({ children }) {
         title={sidebarCollapsed ? item.label : ''}
         onClick={(e) => {
           handleNavClick(e, item.href);
-          if (isMobile && !isLocked) setMobileMenuOpen(false);
+          if (isMobile && !isLocked) closeMenu();
         }}
         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group w-full ${isActive ? 'bg-green-50 text-green-700'
           : isLocked ? 'text-gray-400 hover:bg-amber-50 cursor-pointer'
@@ -347,16 +362,16 @@ export default function ProviderLayout({ children }) {
 
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+        <div className="lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={closeMenu} />
       )}
 
       {/* Mobile Sidebar */}
-      <aside className={`lg:hidden fixed top-0 left-0 h-full w-64 bg-white shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside id="provider-menu" ref={drawerRef} inert={!mobileMenuOpen} className={`lg:hidden fixed top-0 left-0 h-full w-64 bg-white shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between h-16 px-4 border-b border-gray-100">
           <Link href="/provider/dashboard">
             <Image src="/logo.png" alt="Logo" width={140} height={45} className="object-contain" />
           </Link>
-          <button onClick={() => setMobileMenuOpen(false)} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100">
+          <button ref={closeButtonRef} onClick={closeMenu} aria-label="Close menu" className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -368,7 +383,7 @@ export default function ProviderLayout({ children }) {
               Stripe not connected
             </p>
             <Link href="/provider/onboarding?step=3"
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={closeMenu}
               className="text-[11px] text-amber-600 underline font-medium mt-0.5 block">
               Connect now →
             </Link>
@@ -400,9 +415,9 @@ export default function ProviderLayout({ children }) {
       </aside>
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
+      <div className={`flex-1 min-w-0 flex flex-col min-h-screen transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
         <header className="lg:hidden bg-white border-b border-gray-100 h-14 flex items-center px-4 sticky top-0 z-30 shadow-sm">
-          <button onClick={() => setMobileMenuOpen(true)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100">
+          <button ref={menuButtonRef} onClick={() => setMobileMenuOpen(true)} aria-label="Open menu" aria-expanded={mobileMenuOpen} aria-controls="provider-menu" className="p-2 rounded-lg text-gray-500 hover:bg-gray-100">
             <Menu className="h-5 w-5" />
           </button>
           <Link href="/provider/dashboard" className="ml-3">
@@ -415,7 +430,7 @@ export default function ProviderLayout({ children }) {
             </Link>
           )}
         </header>
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8">
           {children}
         </main>
       </div>

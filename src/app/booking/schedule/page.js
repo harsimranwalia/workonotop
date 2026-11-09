@@ -157,6 +157,8 @@ function FlowContent({ serviceId }) {
   const [initialAnswers, setInitialAnswers] = useState({});
   const [showHints, setShowHints] = useState(false);
   const [uploading, setUploading] = useState(false);
+  // The summary bar, held in state: it is drawn after the Spinner return, so the effect that measures it has to run when the bar appears and not when this component first renders.
+  const [bar, setBar] = useState(null);
   const onBehalf = useOnBehalf();
   const headingRef = useRef(null);
   const shownStep = useRef(null);
@@ -292,6 +294,28 @@ function FlowContent({ serviceId }) {
     if (shownStep.current !== null && shownStep.current !== step && headingRef.current) headingRef.current.focus();
     shownStep.current = step;
   }, [step]);
+
+  // Below 1024 px the summary bar is fixed to the bottom of the window and the site header is stuck to the top of it. A Tab to a control that is in the window but behind one of them scrolls nothing, because
+  // the browser counts a control as in view when a sliver of it is, so the window keeps the room of both as its scroll padding and a focused control is scrolled clear. From 1024 px the bar is a column
+  // beside the form and the window keeps no room at all, as it did not before.
+  useEffect(() => {
+    if (!bar) return undefined;
+    const root = document.documentElement;
+    const publish = () => {
+      const header = document.querySelector('header');
+      const fixed = getComputedStyle(bar).position === 'fixed';
+      root.style.scrollPaddingBottom = fixed ? `${bar.offsetHeight}px` : '';
+      root.style.scrollPaddingTop = fixed && header ? `${header.offsetHeight}px` : '';
+    };
+    publish();
+    const watch = new ResizeObserver(publish);
+    watch.observe(bar);
+    return () => {
+      watch.disconnect();
+      root.style.scrollPaddingBottom = '';
+      root.style.scrollPaddingTop = '';
+    };
+  }, [bar]);
 
   const goTo = useCallback((number) => {
     router.push(`/booking/schedule?service=${encodeURIComponent(serviceId)}&step=${number}`);
@@ -483,7 +507,7 @@ function FlowContent({ serviceId }) {
               {live.status === 'quote' && <QuoteRequestForm serviceId={serviceId} answers={live.answers} />}
             </div>
 
-            <aside className="fixed inset-x-0 bottom-0 z-30 max-h-[50vh] overflow-y-auto border-t border-gray-200 bg-white shadow-lg lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:border-0 lg:bg-transparent lg:shadow-none lg:col-span-1">
+            <aside ref={setBar} className="fixed inset-x-0 bottom-0 z-30 max-h-[50vh] overflow-y-auto border-t border-gray-200 bg-white shadow-lg lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:border-0 lg:bg-transparent lg:shadow-none lg:col-span-1">
               <div className="lg:sticky lg:top-24 lg:space-y-6">
                 <PriceBox
                   live={live}

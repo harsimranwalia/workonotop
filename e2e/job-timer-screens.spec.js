@@ -26,6 +26,7 @@ import { assertDevTarget, assertNoRealPeople } from '../database/fixtures/guard.
 import { sha256Hex } from '../src/lib/link-token.js';
 import { budgetScope } from '../src/lib/sms-budget.js';
 import { storedPhotos } from '../src/lib/job-photo-store.js';
+import { PHOTOS_MAX_PER_TYPE } from '../src/lib/job-photos.js';
 
 // Every request carries a fixture account's session header and a trace records request headers: tracing is off, as in the specs next to this one.
 test.use({ trace: 'off', storageState: { cookies: [], origins: [] } });
@@ -54,6 +55,7 @@ const SAYS = {
     notHere: 'Check in first, then add a photo.',
     started: 'The job has started, so more "before" photos can not be added.',
     notStarted: 'Start the job before adding "after" photos.',
+    full: 'This job has all the photos it can hold.',
     unusable: 'That file is not a photo we can use. Take it again.',
     storeDown: 'Photos can not be saved right now. Try again in a minute.',
     location: "We need your phone's location to start the job. Allow location for this page and try again.",
@@ -487,6 +489,35 @@ test.describe('Job timer: the photos', () => {
         await expect(before, 'the page reads the link again and the button is off').toHaveAttribute('aria-disabled', 'true');
         await expect(photos.getByText(SAYS.started, { exact: true }).first(), 'with the reason as text').toBeVisible();
         expect(await countOf("SELECT COUNT(*) AS n FROM job_photos WHERE booking_id = ? AND photo_type = 'before'", [job.bookingId]), 'only the first before photo is saved').toBe(1);
+    });
+
+    // BUG-020 (ENG-031). The page counts the photos it lists, and the lists leave out the rows whose address the page may not link, so a type could be full while the page held fewer than 20
+    // and told a cleaner who is checked in to check in first. The answer now says which types are full (photo_full) and the page gives that as the reason, ahead of the others, as the
+    // server's refusal does. Mutant that turns this case red: the reason is worked out from the photos that are listed (a checked-in cleaner is told to check in), from the other type's fact
+    // or from both types together, the full type's reason depends on the check-in or the state of the job, or the other type's reason changes.
+    test('Screens: a checked-in cleaner is told the job has all the photos it can hold when a type holds 20 rows the page does not list', async ({ page, request, baseURL, playwright }) => {
+        test.setTimeout(150_000);
+        const ctx = await setup(playwright, request, baseURL);
+        const ann = await addMember(ctx, 'Ann', '184');
+        const job = await makeJob(ctx, { members: [ann] });
+        const cookie = await signCleanerIn(ctx, job, ann, page);
+        await checkIn(ctx, job, cookie, [ann], 'Ann checks in');
+        // Twenty before rows whose address the page may not link (not one the photo store gave out), so the lists show none of them and the server counts all of them.
+        for (let n = 1; n <= PHOTOS_MAX_PER_TYPE; n += 1) {
+            await (await db()).execute('INSERT INTO job_photos (booking_id, photo_url, photo_type, uploaded_by) VALUES (?, ?, ?, ?)', [job.bookingId, `/uploads/${n}-b.svg`, 'before', PROVIDER1.id]);
+        }
+        await openJob(page, job);
+        const photos = card(page, 'Photos');
+        const before = photos.getByRole('button', { name: 'Add a before photo', exact: true });
+        const after = photos.getByRole('button', { name: 'Add an after photo', exact: true });
+        await expect(before, 'the before button is off').toHaveAttribute('aria-disabled', 'true', { timeout: FIRST_VISIT_MS });
+        await expect(photos.getByRole('link'), 'the page lists no photo').toHaveCount(0);
+        await expect(before, 'its reason is that the job holds all the photos it can').toHaveAccessibleDescription(SAYS.full);
+        await expect(photos.getByText(SAYS.full, { exact: true }), 'the card says so once, under the type that is full').toHaveCount(1);
+        await expect(photos.getByText(SAYS.notHere, { exact: true }), 'the cleaner is checked in and is not told to check in').toHaveCount(0);
+        await expect(after, 'the after button is off').toHaveAttribute('aria-disabled', 'true');
+        await expect(after, 'for the reason it had: the job has not started').toHaveAccessibleDescription(SAYS.notStarted);
+        await expect(photos.getByText('0 of 20', { exact: true }), 'the count line is of the photos the page lists, as it was').toHaveCount(2);
     });
 });
 

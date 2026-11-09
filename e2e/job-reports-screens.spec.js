@@ -391,6 +391,41 @@ test.describe('Reports: the office queue', () => {
     expect(caught.map((one) => one.action)).toEqual(['approve', 'retry']);
   });
 
+  // BUG-021 (ENG-031). A refused Decline of a failed report comes back with the report unchanged, still failed, so its reason went only to the status region the screen reader reads and the card read as it did
+  // before the click. Mutant that turns this case red: the refusal of a Decline is not among the card's alerts or is not said in the status region, a refused Retry that leaves the report failed raises an
+  // alert on top of the reason the card reads, or the refusal of an open report's action shows no alert.
+  test('a refused Decline of a failed report shows the reason on the card and in the status region, and the other refusals show what they showed', async ({ page }) => {
+    const NOT_SET_UP = 'Payments are not set up on this server.';
+    const DECLINED = 'The card was declined. Nothing was charged.';
+    const INVALID = 'Invalid request.';
+    const failed = itemsReport({ status: 'approved', decision: { by: 'Harry', at: '2026-10-16T16:00:00.000Z', note: '' }, added_items: { ...paidItems(), charge: 'failed', reason: 'declined' } });
+    const state = { reports: [failed, deskReport()] };
+    const caught = [];
+    await scriptDesk(page, state, (route, held, body, report) => {
+      caught.push([report.id, body.action]);
+      if (body.action === 'decline') return route.fulfill({ status: 503, json: { success: false, message: NOT_SET_UP, report } });
+      if (body.action === 'retry') return route.fulfill({ status: 402, json: { success: false, message: DECLINED, report } });
+      return route.fulfill({ status: 400, json: { success: false, message: INVALID } });
+    });
+    await openDesk(page, state);
+    const card = cardOf(page, 502);
+    const said = (text) => page.getByRole('status').filter({ hasText: text });
+    await expect(card, 'the card reads why the charge failed').toContainText(DECLINED);
+
+    await card.getByRole('button', { name: 'Decline' }).click();
+    await expect(said(NOT_SET_UP), 'the refusal is said in the status region').toHaveCount(1);
+    await expect(card.getByRole('alert').filter({ hasText: NOT_SET_UP }), "and it is among the card's alerts").toHaveCount(1);
+    await expect(card.getByRole('button', { name: 'Decline' }), 'the report is as it was, still to be decided').toBeVisible();
+
+    await card.getByRole('button', { name: 'Try the charge again' }).click();
+    await expect(said(DECLINED), 'a refused Try the charge again is said in the status region').toHaveCount(1);
+    await expect(card.getByRole('alert'), "and raises no alert of its own: the card reads its own reason, and the Decline's alert went with the click").toHaveCount(0);
+
+    await cardOf(page, 501).getByRole('button', { name: 'Mark as handled' }).click();
+    await expect(cardOf(page, 501).getByRole('alert').filter({ hasText: INVALID }), "the refusal of an open report's action shows as an alert").toHaveCount(1);
+    expect(caught, 'each button sent its own action, once').toEqual([[502, 'decline'], [502, 'retry'], [501, 'handle']]);
+  });
+
   test('a changed price shows the new total and the next charge sends it', async ({ page }) => {
     const state = { reports: [itemsReport()] };
     const caught = [];
