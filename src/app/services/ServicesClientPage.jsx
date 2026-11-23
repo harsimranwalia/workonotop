@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import DirectoryListing from '@/components/DirectoryListing';
+import { ArrowUpRight, ChevronLeft, ChevronRight, CreditCard, Search, ShieldCheck, Tag } from 'lucide-react';
+import { categoryImage, serviceImage } from '@/lib/service-images';
 
 const PAGE_SIZE = 8;
 
@@ -23,49 +25,26 @@ function Pagination({ total, page, setPage }) {
 
   if (totalPages <= 1) return null;
 
+  const step = 'w-11 h-11 rounded-full flex items-center justify-center transition border';
   return (
-    <div className="flex items-center justify-center mt-12 gap-3">
-      <button
-        onClick={() => setPage(p => Math.max(1, p - 1))}
-        disabled={page === 1}
-        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${page === 1
-          ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-          : 'bg-white border border-slate-200 text-slate-700 hover:border-[#16A34A] hover:text-[#16A34A] shadow-sm'
-          }`}
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
+    <nav aria-label="Pages" className="flex items-center justify-center mt-12 gap-2">
+      <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} aria-label="Previous page"
+        className={`${step} ${page === 1 ? 'border-line text-ink-muted/40 cursor-not-allowed' : 'border-line bg-white text-ink hover:border-ink/40'}`}>
+        <ChevronLeft className="w-5 h-5" />
       </button>
-
       {pages.map((p, i) => (
         p === '...'
-          ? <span key={`e-${i}`} className="w-10 h-10 flex items-center justify-center text-slate-400">...</span>
-          : <button
-            key={p}
-            onClick={() => setPage(p)}
-            className={`w-12 h-12 rounded-2xl font-bold transition-all ${page === p
-              ? 'bg-[#16A34A] text-white shadow-lg shadow-[#16A34A]/20'
-              : 'bg-white border border-slate-200 text-slate-600 hover:border-[#16A34A] hover:text-[#16A34A]'
-              }`}
-          >
+          ? <span key={`e-${i}`} className="w-8 text-center text-ink-muted">…</span>
+          : <button key={p} onClick={() => setPage(p)} aria-current={page === p ? 'page' : undefined}
+            className={`${step} font-semibold ${page === p ? 'bg-ink border-ink text-white' : 'bg-white border-line text-ink-soft hover:border-ink/40'}`}>
             {p}
           </button>
       ))}
-
-      <button
-        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-        disabled={page === totalPages}
-        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${page === totalPages
-          ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-          : 'bg-white border border-slate-200 text-slate-700 hover:border-[#16A34A] hover:text-[#16A34A] shadow-sm'
-          }`}
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
+      <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} aria-label="Next page"
+        className={`${step} ${page === totalPages ? 'border-line text-ink-muted/40 cursor-not-allowed' : 'border-line bg-white text-ink hover:border-ink/40'}`}>
+        <ChevronRight className="w-5 h-5" />
       </button>
-    </div>
+    </nav>
   );
 }
 
@@ -153,6 +132,16 @@ export default function ServicesClientPage({
   useEffect(() => {
     setPage(1);
   }, [activeCategory, searchTerm, selectedLocation]);
+
+  // The homepage links here with ?category=cleaning | movers | handyman; a category's own slug works too.
+  useEffect(() => {
+    const wanted = new URLSearchParams(window.location.search).get('category');
+    if (!wanted || categories.length === 0) return;
+    const key = wanted.toLowerCase().replace(/^movers$/, 'moving');
+    const match = categories.find((c) => (c.slug || '').toLowerCase() === key)
+      || categories.find((c) => (c.slug || '').toLowerCase().startsWith(key) || (c.name || '').toLowerCase().startsWith(key));
+    if (match) setActiveCategory(match.id.toString());
+  }, [categories]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -285,195 +274,137 @@ export default function ServicesClientPage({
       id: cat.id.toString(),
       name: cat.name,
       icon: cat.icon || '🛠️',
-      image_url: cat.image_url
+      image_url: categoryImage(cat)
     }))
   ];
 
   if (loading && services.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="relative w-20 h-20">
-          <div className="absolute inset-0 border-4 border-[#16A34A]/20 rounded-full"></div>
-          <div className="absolute inset-0 border-4 border-[#16A34A] border-t-transparent rounded-full animate-spin"></div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-10 h-10 border-[3px] border-brand-500/20 border-t-brand-500 rounded-full animate-spin" />
       </div>
     );
   }
 
   const getImageUrl = (url) => url && !url.startsWith('http') && !url.startsWith('/') ? '/uploads/' + url : url;
+  const activeName = activeCategory === 'all' ? null : categories.find(c => c.id === parseInt(activeCategory))?.name;
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans antialiased text-slate-900">
+    <div className="min-h-screen bg-white font-sans antialiased text-ink">
       <Header />
 
-      {/* Premium Hero Section */}
-      <section className="relative pt-10 pb-20 md:pt-10 md:pb-10 overflow-hidden">
-        {/* Background Decorative Elements */}
-        <div className="absolute inset-0 z-0">
-          <div className="absolute top-1/4 left-0 w-96 h-96 bg-[#16A34A]/5 rounded-full blur-[100px] animate-pulse"></div>
-          <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-[#16A34A]/5 rounded-full blur-[120px]"></div>
-        </div>
-
-        <div className="container mx-auto px-6 max-w-7xl relative z-10">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold font-[family-name:var(--font-outfit)] leading-[1.1] mb-8 tracking-tight text-slate-900">
-              Your Home, <br />
-              <span className="text-transparent bg-clip-text bg-[#16A34A]">Managed with Care.</span>
+      {/* Hero */}
+      <section className="relative bg-paper border-b border-line overflow-hidden">
+        <div className="container mx-auto px-5 sm:px-6 max-w-7xl pt-12 pb-10 lg:pt-16 lg:pb-14 grid lg:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
+          <div>
+            <p className="text-xs font-bold tracking-[0.16em] uppercase text-brand-600 mb-3">Metro Vancouver</p>
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-[56px] leading-[1.05] font-semibold tracking-[-0.025em] text-ink mb-4">
+              Every service, <span className="text-brand-600">priced before you book.</span>
             </h1>
-
-            <p className="text-lg md:text-xl text-slate-500 mb-12 max-w-2xl mx-auto leading-relaxed">
-              Find and book top-rated professionals for maintenance, repairs, and improvements. Transparent pricing and quality guaranteed.
+            <p className="text-lg text-ink-soft leading-relaxed max-w-xl mb-8">
+              Cleaning, moving help and handyman work. Pick a service, answer a few questions, and see the price on screen. Your card is not charged until the job is done.
             </p>
-
-            {/* Premium Search Bar */}
-            <div id="search-container" className="max-w-2xl mx-auto relative group">
-              <div className="absolute -inset-2 bg-[#16A34A]/20 rounded-[2.5rem] blur-xl opacity-0 group-hover:opacity-100 transition duration-700"></div>
-              <div className="relative bg-white border border-slate-200 rounded-[2rem] p-2 flex items-center shadow-2xl shadow-slate-200/50 group-focus-within:border-[#16A34A] transition-all duration-300">
-                <div className="flex items-center flex-1 px-5">
-                  <svg className="w-6 h-6 text-[#16A34A] mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  <input
-                    type="text"
-                    placeholder={placeholder || 'What do you need?'}
-                    className="w-full bg-transparent border-none outline-none text-slate-800 placeholder:text-slate-400 text-lg md:text-xl font-medium"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onClick={(e) => {
-                      setTimeout(() => {
-                        window.scrollTo({ top: 300, behavior: 'smooth' });
-                      }, 100);
-                    }}
-                    onFocus={(e) => {
-                      setTimeout(() => {
-                        window.scrollTo({ top: 300, behavior: 'smooth' });
-                      }, 100);
-                    }}
-                  />
-                </div>
-                <div className="hidden sm:block h-10 w-px bg-slate-100 mx-2"></div>
-                <button
-                  onClick={handleSearchClick}
-                  className="hidden sm:block bg-slate-900 text-white font-bold px-8 py-4 rounded-2xl hover:bg-[#16A34A] transition-all active:scale-95"
-                >
+            <div id="search-container" className="max-w-xl">
+              <div className="flex items-center gap-2 bg-white border border-line rounded-2xl p-1.5 pl-4 shadow-card focus-within:border-ink/40 focus-within:ring-4 focus-within:ring-brand-500/10 transition">
+                <Search className="w-5 h-5 shrink-0 text-ink-muted" aria-hidden="true" />
+                <input
+                  type="text"
+                  aria-label="Search services"
+                  placeholder={placeholder || 'What do you need?'}
+                  className="min-w-0 w-full bg-transparent border-none outline-none text-ink placeholder:text-ink-muted text-base py-2.5"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <button onClick={handleSearchClick} className="shrink-0 bg-ink text-white font-semibold px-5 sm:px-6 py-2.5 rounded-xl hover:bg-brand-900 transition active:scale-95">
                   Find Pros
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Category Navigation */}
-      <section id="services-listing" className="bg-white border-b border-slate-100 py-6">
-        <div className="container mx-auto px-6 max-w-7xl">
-          <div className="flex flex-wrap gap-2 md:gap-3 justify-center items-center overflow-x-auto no-scrollbar pb-1">
-            {filterCategories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setActiveCategory(category.id)}
-                className={`flex-shrink-0 px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-300 flex items-center gap-2
-                  ${activeCategory === category.id
-                    ? 'bg-[#16A34A] text-white shadow-lg shadow-[#16A34A]/30 scale-105'
-                    : 'bg-slate-50 border border-slate-100 text-slate-600 hover:bg-white hover:border-[#16A34A] hover:text-[#16A34A]'
-                  }
-                `}
-              >
-                {category.image_url ? (
-                  <img src={getImageUrl(category.image_url)} alt={category.name} className="w-6 h-6 rounded-full object-cover" />
-                ) : (
-                  <span>
-                    {category.icon && category.icon.length > 2 ? (
-                      <ion-icon name={category.icon}></ion-icon>
-                    ) : (
-                      category.icon
-                    )}
-                  </span>
-                )}
-                <span>{category.name}</span>
-              </button>
+          <div className="hidden lg:grid grid-cols-3 gap-3" aria-hidden="true">
+            {['regular-house-cleaning', 'tv-and-wall-mounting', 'moving-help'].map((name, i) => (
+              <div key={name} className={`overflow-hidden rounded-[24px] aspect-[3/4] ${i === 1 ? 'translate-y-8' : ''}`}>
+                <img src={`/images/services/${name}.jpg`} alt="" className="h-full w-full object-cover" />
+              </div>
             ))}
           </div>
         </div>
       </section>
 
+      {/* Category Navigation */}
+      <section id="services-listing" className="sticky top-[72px] z-30 bg-white/90 backdrop-blur-md border-b border-line">
+        <div className="container mx-auto px-5 sm:px-6 max-w-7xl">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar py-3.5">
+            {filterCategories.map((category) => {
+              const active = activeCategory === category.id;
+              return (
+                <button
+                  key={category.id}
+                  onClick={() => setActiveCategory(category.id)}
+                  aria-pressed={active}
+                  className={`shrink-0 inline-flex items-center gap-2 pl-1.5 pr-4 py-1.5 rounded-full text-sm font-semibold border transition ${active
+                    ? 'bg-ink border-ink text-white'
+                    : 'bg-white border-line text-ink-soft hover:border-ink/40'
+                  }`}
+                >
+                  {category.image_url ? (
+                    <img src={getImageUrl(category.image_url)} alt="" className="w-7 h-7 rounded-full object-cover" />
+                  ) : (
+                    <span className={`w-7 h-7 rounded-full flex items-center justify-center ${active ? 'bg-white/15' : 'bg-paper'}`}>✦</span>
+                  )}
+                  <span>{category.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* Services Listing */}
-      <section className="py-20">
-        <div className="container mx-auto px-6 max-w-7xl">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
+      <section className="py-12 lg:py-16">
+        <div className="container mx-auto px-5 sm:px-6 max-w-7xl">
+          <div className="flex items-end justify-between gap-6 mb-8">
             <div>
-              <h2 className="text-3xl font-bold text-slate-900 font-[family-name:var(--font-outfit)]">
-                {activeCategory === 'all'
-                  ? searchTerm ? `Results for "${searchTerm}"` : 'All Services'
-                  : categories.find(c => c.id === parseInt(activeCategory))?.name
-                }
+              <h2 className="font-display text-3xl font-semibold tracking-tight text-ink">
+                {activeName || (searchTerm ? `Results for "${searchTerm}"` : 'All Services')}
               </h2>
-              <p className="text-slate-500 mt-2">
-                Showing {filteredServices.length} vetted services
+              <p className="text-ink-muted mt-1">
+                {filteredServices.length} {filteredServices.length === 1 ? 'service' : 'services'}
               </p>
             </div>
           </div>
 
           {filteredServices.length > 0 ? (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-10">
                 {pagedServices.map((service, idx) => {
                   const category = categories.find(c => c.id === service.category_id);
-                  const targetUrl = `/services/${service.slug}`;
-
                   return (
-                    <Link
-                      key={`${service.id}-${idx}`}
-                      href={targetUrl}
-                      className="group flex flex-col bg-white overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-[#16A34A]/5 transition-all duration-500 h-full"
-                    >
-                      <div className="relative aspect-video overflow-hidden bg-slate-100">
-                        {service.image_url || category?.image_url ? (
-                          <img
-                            src={getImageUrl(service.image_url || category?.image_url)}
-                            alt={service.name}
-                            className="w-full h-full object-cover transition-transform duration-700"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#16A34A]/10 to-[#16A34A]/20">
-                            <span className="text-6xl group-hover:scale-125 transition-transform duration-500">
-                              {category?.icon && category.icon.includes('-') ? (
-                                <div className="text-[#16A34A] flex">
-                                  <ion-icon name={category.icon}></ion-icon>
-                                </div>
-                              ) : (
-                                category?.icon || '🔧'
-                              )}
-                            </span>
-                          </div>
-                        )}
+                    <Link key={`${service.id}-${idx}`} href={`/services/${service.slug}`} className="group flex flex-col">
+                      <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-paper-deep">
+                        <img
+                          src={getImageUrl(serviceImage({ ...service, category_name: category?.name }))}
+                          alt=""
+                          loading="lazy"
+                          className="w-full h-full object-cover transition duration-700 group-hover:scale-[1.04]"
+                        />
                         {category?.name && (
-                          <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold text-slate-700 border border-white/20">
+                          <span className="absolute top-3 left-3 bg-white/95 backdrop-blur px-3 py-1 rounded-full text-xs font-semibold text-ink-soft">
                             {category.name}
-                          </div>
+                          </span>
                         )}
                       </div>
-
-                      <div className="p-8 flex-1 flex flex-col">
-                        <h3 className="text-xl font-bold text-[#16A34A] group-hover:text-[#16A34A] transition-colors line-clamp-2 min-h-[3.5rem] mb-3">
-                          {service.name}
-                        </h3>
-
-                        <p className="text-slate-500 text-sm mb-8 line-clamp-2">
-                          {service.short_description || "High-quality professional service guaranteed."}
-                        </p>
-
-                        <div className="mt-auto pt-6 border-t border-slate-50 flex items-center justify-between">
-                          <div>
-                            <span className="text-slate-400 text-xs uppercase tracking-widest block mb-1">Starting from</span>
-                            <span className="text-2xl font-black text-[#16A34A]">${parseFloat(service.base_price || 0).toFixed(0)}</span>
-                          </div>
-                          <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center group-hover:bg-[#16A34A]">
-                            <svg className="w-6 h-6 text-slate-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                            </svg>
-                          </div>
+                      <div className="pt-4 flex-1 flex flex-col">
+                        <div className="flex items-start justify-between gap-3">
+                          <h3 className="text-lg font-semibold text-ink leading-snug">{service.name}</h3>
+                          <ArrowUpRight className="w-5 h-5 mt-0.5 shrink-0 text-ink-muted transition group-hover:text-brand-600 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
                         </div>
+                        <p className="text-ink-muted text-sm mt-1.5 line-clamp-2 leading-relaxed">
+                          {service.short_description || 'Book online and see the price before you confirm.'}
+                        </p>
+                        <p className="mt-3 text-sm text-ink-soft">
+                          From <span className="font-semibold text-ink">${parseFloat(service.base_price || 0).toFixed(0)}</span>
+                        </p>
                       </div>
                     </Link>
                   );
@@ -483,13 +414,13 @@ export default function ServicesClientPage({
               <Pagination total={filteredServices.length} page={page} setPage={setPage} />
             </>
           ) : (
-            <div className="text-center py-32 bg-white rounded-[3rem] border border-slate-100 shadow-sm">
-              <div className="text-6xl mb-6 animate-bounce">🔍</div>
-              <h3 className="text-3xl font-bold text-slate-900 mb-4">No services found</h3>
-              <p className="text-slate-500 text-lg mb-10 max-w-md mx-auto">We couldn&apos;t find any results matching your search. Try a different term or clear filters.</p>
+            <div className="text-center py-24 px-6 bg-paper rounded-[32px] border border-line">
+              <Search className="w-10 h-10 mx-auto text-ink-muted mb-5" aria-hidden="true" />
+              <h3 className="font-display text-2xl font-semibold text-ink mb-3">No services found</h3>
+              <p className="text-ink-muted mb-8 max-w-md mx-auto">We couldn&apos;t find any results matching your search. Try a different term or clear filters.</p>
               <button
                 onClick={() => { setActiveCategory('all'); setSearchTerm(''); }}
-                className="bg-[#16A34A] text-white font-bold px-10 py-5 rounded-2xl hover:bg-[#16A34A]/90 transition-all shadow-xl shadow-[#16A34A]/20 active:scale-95"
+                className="bg-ink text-white font-semibold px-7 py-3.5 rounded-2xl hover:bg-brand-900 transition active:scale-95"
               >
                 Clear all filters
               </button>
@@ -498,34 +429,33 @@ export default function ServicesClientPage({
         </div>
       </section>
 
-      {/* Directory Link Section */}
-      <section className="py-16 bg-slate-50 border-t border-slate-100">
-        <div className="container mx-auto px-6 max-w-7xl text-center">
-          <h2 className="text-3xl font-bold text-slate-900 mb-4">Looking for something specific?</h2>
-          <p className="text-slate-500 mb-12 max-w-2xl mx-auto">Browse our complete directory of all local trades and services across Canada.</p>
-
-          <DirectoryListing initialItems={initialDirectoryItems} />
+      {/* What every booking comes with */}
+      <section className="py-14 bg-paper border-y border-line">
+        <div className="container mx-auto px-5 sm:px-6 max-w-7xl grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[
+            { icon: Tag, title: 'Your price before you book', desc: 'Worked out from your answers and shown on screen at every step.' },
+            { icon: CreditCard, title: 'Pay when the job is done', desc: 'Your card is held at booking and charged only after the work is finished.' },
+            { icon: ShieldCheck, title: 'Protection Promise', desc: 'Not happy with the work? Tell us within 48 hours and we will make it right.' },
+          ].map(({ icon: ItemIcon, title, desc }) => (
+            <div key={title} className="flex gap-4">
+              <span className="h-11 w-11 shrink-0 rounded-2xl bg-white border border-line text-brand-600 flex items-center justify-center">
+                <ItemIcon className="w-5 h-5" aria-hidden="true" />
+              </span>
+              <div>
+                <h4 className="font-semibold text-ink mb-1">{title}</h4>
+                <p className="text-sm text-ink-muted leading-relaxed">{desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Premium Trust Section */}
-      <section className="py-24 bg-white">
-        <div className="container mx-auto px-6 max-w-7xl">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-5xl mx-auto">
-            {[
-              { title: 'Verified Pros', desc: 'Every professional is background checked and verified.', icon: '🛡️' },
-              { title: 'Quality Guaranteed', desc: 'Not happy with the results? We will make it right.', icon: '🏆' },
-              { title: 'Transparent Pay', desc: 'Secure payments with no hidden commissions.', icon: '💳' },
-            ].map((item, i) => (
-              <div key={i} className="text-center group">
-                <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center text-3xl mb-6 mx-auto group-hover:bg-[#16A34A]/10 group-hover:scale-110 transition-all duration-500">
-                  {item.icon}
-                </div>
-                <h4 className="text-xl font-bold text-slate-900 mb-3 font-[family-name:var(--font-outfit)]">{item.title}</h4>
-                <p className="text-slate-500 leading-relaxed text-sm">{item.desc}</p>
-              </div>
-            ))}
-          </div>
+      {/* Directory Link Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-5 sm:px-6 max-w-7xl">
+          <h2 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-ink mb-2">Services by city</h2>
+          <p className="text-ink-muted mb-10 max-w-2xl">Every service, in every part of Metro Vancouver we cover.</p>
+          <DirectoryListing initialItems={initialDirectoryItems} />
         </div>
       </section>
 

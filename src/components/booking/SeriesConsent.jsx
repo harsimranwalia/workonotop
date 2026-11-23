@@ -10,7 +10,7 @@ export default function SeriesConsent({ answers, className = '' }) {
   if (!isRepeating(answers?.frequency)) return null;
 
   return (
-    <p data-testid="series-consent" className={`text-xs sm:text-sm text-gray-700 ${className}`.trim()}>
+    <p data-testid="series-consent" className={`text-xs sm:text-sm text-ink-soft ${className}`.trim()}>
       {CONSENT_TEXT}
     </p>
   );

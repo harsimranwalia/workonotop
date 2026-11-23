@@ -38,31 +38,31 @@ export default function OnBehalfDone({ created }) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded-xl sm:rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-      <div className="bg-gradient-to-r from-green-800 to-green-700 px-4 sm:px-6 py-4 sm:py-5">
-        <h2 ref={headingRef} tabIndex={-1} className="text-lg sm:text-xl md:text-2xl font-bold text-white focus:outline-none">
+    <div className="max-w-2xl mx-auto bg-white rounded-[28px] shadow-lift border border-line overflow-hidden">
+      <div className="px-5 sm:px-6 md:px-8 pt-6 pb-5 border-b border-line">
+        <h2 ref={headingRef} tabIndex={-1} className="font-display text-xl sm:text-2xl font-semibold tracking-tight text-ink break-words focus:outline-none">
           Booking {created.bookingNumber} created
         </h2>
       </div>
 
-      <div className="p-4 sm:p-6 md:p-8 space-y-5">
+      <div className="p-5 sm:p-6 md:p-8 space-y-5">
         <dl className="grid gap-2 text-sm sm:text-base">
           {price && (
             <div className="flex justify-between gap-4">
-              <dt className="text-gray-600">Price</dt>
-              <dd className="font-semibold text-gray-900">{price}</dd>
+              <dt className="text-ink-muted">Price</dt>
+              <dd className="font-semibold text-ink">{price}</dd>
             </div>
           )}
           <div className="flex justify-between gap-4">
-            <dt className="text-gray-600">Account</dt>
-            <dd className="font-semibold text-gray-900 text-right break-all">
+            <dt className="text-ink-muted">Account</dt>
+            <dd className="font-semibold text-ink text-right break-all">
               {created.accountMatched ? `On the account of ${created.email}` : 'No account: booked as a guest'}
             </dd>
           </div>
         </dl>
 
         <div>
-          <label htmlFor="on-behalf-card-link" className="block text-sm font-semibold text-gray-800 mb-1">
+          <label htmlFor="on-behalf-card-link" className="block text-sm font-semibold text-ink mb-1.5">
             Link for the customer to add their card
           </label>
           <div className="flex flex-col sm:flex-row gap-2">
@@ -73,22 +73,22 @@ export default function OnBehalfDone({ created }) {
               readOnly
               value={link}
               onFocus={(event) => event.target.select()}
-              className="flex-1 min-w-0 p-3 border-2 border-gray-200 rounded-xl text-sm text-gray-800 bg-gray-50 focus:outline-none focus:border-green-700 focus:ring-2 focus:ring-green-700/30"
+              className="flex-1 min-w-0 p-3 border border-line rounded-xl text-sm text-ink bg-paper focus:outline-none focus:border-ink/40 focus:ring-4 focus:ring-brand-500/10"
             />
             <button
               type="button"
               onClick={copyLink}
-              className="px-5 py-3 rounded-xl bg-green-700 text-white font-bold hover:bg-green-800 focus:outline-none focus-visible:ring-4 focus-visible:ring-green-700/40"
+              className="px-5 py-3 rounded-2xl bg-brand-500 text-white font-bold shadow-lg shadow-brand-600/20 transition hover:bg-brand-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/30"
             >
               {copy === 'copied' ? 'Copied' : 'Copy link'}
             </button>
           </div>
-          <p role="status" className="mt-2 text-sm text-gray-700">
+          <p role="status" className="mt-2 text-sm text-ink-soft">
             {copy === 'copied' && 'The link is copied.'}
             {copy === 'failed' && 'Copying is not available here. The link is selected: press Ctrl+C (Cmd+C on a Mac) to copy it.'}
           </p>
-          {expires && <p className="mt-1 text-sm text-gray-700">The link expires {expires}.</p>}
-          <p className="mt-1 text-sm text-gray-700">
+          {expires && <p className="mt-1 text-sm text-ink-soft">The link expires {expires}.</p>}
+          <p className="mt-1 text-sm text-ink-soft">
             This link is shown once; to get another, open the booking and choose New link.
           </p>
         </div>
@@ -96,13 +96,13 @@ export default function OnBehalfDone({ created }) {
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Link
             href={`/admin/bookings/${created.bookingId}`}
-            className="px-5 py-3 rounded-xl border-2 border-green-700 text-green-700 font-bold text-center hover:bg-green-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-green-700/40"
+            className="inline-flex items-center justify-center px-5 py-3 min-h-[52px] rounded-2xl bg-brand-500 text-white font-bold text-center shadow-lg shadow-brand-600/20 transition hover:bg-brand-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/30"
           >
             Open the booking
           </Link>
           <Link
             href="/admin/book"
-            className="px-5 py-3 rounded-xl border-2 border-gray-300 text-gray-800 font-bold text-center hover:bg-gray-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-green-700/40"
+            className="inline-flex items-center justify-center px-5 py-3 min-h-[52px] rounded-2xl border border-line bg-white text-ink font-bold text-center transition hover:border-ink/40 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/30"
           >
             Book for another customer
           </Link>

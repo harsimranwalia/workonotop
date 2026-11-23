@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Check, Info, LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CustomerAuthModal from '@/components/CustomerAuthModal';
@@ -188,16 +189,16 @@ export default function BookingConfirmPage() {
   if (loading || !flow) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="motion-safe:animate-spin rounded-full h-12 w-12 border-4 border-green-500 border-t-transparent"></div>
+        <div className="motion-safe:animate-spin rounded-full h-10 w-10 border-[3px] border-brand-500/20 border-t-brand-500"></div>
       </div>
     );
   }
 
   if (created) {
     return (
-      <div className="min-h-screen bg-gray-50/50 font-sans antialiased">
+      <div className="min-h-screen bg-paper font-sans antialiased text-ink">
         <Header />
-        <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 md:py-12">
+        <div className="container mx-auto px-5 sm:px-6 max-w-7xl py-8 md:py-12">
           <OnBehalfDone created={created} />
         </div>
         <Footer />
@@ -212,32 +213,32 @@ export default function BookingConfirmPage() {
   const repeating = isRepeating(answers.frequency);
 
   return (
-    <div className="min-h-screen bg-gray-50/50 font-sans antialiased">
+    <div className="min-h-screen bg-paper font-sans antialiased text-ink">
       <Header />
 
-      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 md:py-12">
+      <div className="container mx-auto px-5 sm:px-6 max-w-7xl py-8 md:py-12">
         <div className="max-w-6xl mx-auto">
 
           {/* Progress Bar */}
           <div className="mb-6 sm:mb-8 md:mb-12">
             <div className="flex items-center justify-between mb-2 sm:mb-3">
-              <span className="text-xs sm:text-sm md:text-base font-bold text-green-700 bg-green-100 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full">
+              <span className="text-xs font-semibold tracking-[0.12em] text-brand-700 bg-brand-50 border border-brand-100 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full">
                 REVIEW
               </span>
-              <span className="text-xs sm:text-sm text-gray-500 font-medium">Almost there!</span>
+              <span className="text-xs sm:text-sm text-ink-muted font-medium">Almost there!</span>
             </div>
             <div className="relative">
-              <div className="h-2 sm:h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-green-600 to-green-500 rounded-full" style={{ width: '75%' }}></div>
+              <div className="h-1.5 sm:h-2 bg-paper-deep rounded-full overflow-hidden">
+                <div className="h-full bg-brand-500 rounded-full" style={{ width: '75%' }}></div>
               </div>
               <div className="flex justify-between mt-1 sm:mt-2">
                 {(onBehalf.active ? ON_BEHALF_STEPS : CUSTOMER_STEPS).map((step, i) => (
                   <div key={step} className="flex items-center">
                     <div aria-hidden="true" className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold
-                      ${i < 3 ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-500'}`}>
-                      {i < 2 ? '✓' : ''}
+                      ${i < 3 ? 'bg-brand-500 text-white' : 'bg-line text-ink-muted'}`}>
+                      {i < 2 ? <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3" strokeWidth={3} /> : ''}
                     </div>
-                    <span className={`ml-1 sm:ml-2 text-[10px] sm:text-xs md:text-sm font-semibold ${i < 3 ? 'text-green-700' : 'text-gray-400'}`}>
+                    <span className={`ml-1 sm:ml-2 text-[10px] sm:text-xs md:text-sm font-semibold ${i < 3 ? 'text-brand-700' : 'text-ink-muted'}`}>
                       {step}
                     </span>
                   </div>
@@ -250,58 +251,58 @@ export default function BookingConfirmPage() {
 
             {/* Main Content */}
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                <div className="bg-gradient-to-r from-green-800 to-green-700 px-4 sm:px-6 py-4 sm:py-5">
-                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white flex items-center">
-                    <span className="mr-2 sm:mr-3 text-xl sm:text-2xl">✨</span>
+              <div className="bg-white rounded-[28px] shadow-card border border-line overflow-hidden">
+                <div className="px-5 sm:px-6 md:px-8 pt-6 pb-5 border-b border-line">
+                  <h2 className="font-display text-xl sm:text-2xl font-semibold tracking-tight text-ink flex items-center">
+                    <Sparkles aria-hidden="true" className="mr-2.5 sm:mr-3 h-5 w-5 shrink-0 text-brand-600" />
                     {onBehalf.active ? 'Create the booking' : isAuthenticated ? 'Confirm Your Booking' : 'Create an account to continue'}
                   </h2>
                 </div>
 
-                <div className="p-4 sm:p-6 md:p-8">
+                <div className="p-5 sm:p-6 md:p-8">
                   {onBehalf.active ? (
                     <OnBehalfConfirm flow={flow} answers={answers} live={live} onCreated={setCreated} />
                   ) : isAuthenticated ? (
                     <div>
                       {/* User Info */}
-                      <div className="bg-green-50 rounded-lg sm:rounded-xl p-4 sm:p-6 border-2 border-green-200 mb-4 sm:mb-6">
+                      <div className="bg-brand-50 rounded-2xl p-4 sm:p-5 border border-brand-100 mb-4 sm:mb-6">
                         <div className="flex items-center">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-700 rounded-full flex items-center justify-center text-white text-base sm:text-xl font-bold">
+                          <div className="shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-brand-700 rounded-full flex items-center justify-center text-white text-base sm:text-xl font-bold">
                             {firstName?.[0]}{lastName?.[0]}
                           </div>
-                          <div className="ml-3 sm:ml-4">
-                            <p className="font-bold text-gray-900 text-sm sm:text-base">{firstName} {lastName}</p>
-                            <p className="text-xs sm:text-sm text-gray-600">{email}</p>
-                            <p className="text-xs sm:text-sm text-gray-600">{phone}</p>
+                          <div className="ml-3 sm:ml-4 min-w-0">
+                            <p className="font-semibold text-ink text-sm sm:text-base">{firstName} {lastName}</p>
+                            <p className="text-xs sm:text-sm text-ink-soft break-all">{email}</p>
+                            <p className="text-xs sm:text-sm text-ink-soft">{phone}</p>
                           </div>
                         </div>
                       </div>
 
                       {/* Address */}
-                      <div className="mb-4 sm:mb-6 bg-blue-50 border border-blue-200 rounded-lg sm:rounded-xl p-3 sm:p-4">
+                      <div className="mb-4 sm:mb-6 bg-paper border border-line rounded-2xl p-3 sm:p-4">
                         <div className="flex items-start">
-                          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="shrink-0 w-4 h-4 sm:w-5 sm:h-5 text-brand-600 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                           </svg>
-                          <div>
-                            <h4 className="font-semibold text-gray-900 text-sm sm:text-base mb-1">Service Address</h4>
-                            <p className="text-xs sm:text-sm text-gray-700">{address}</p>
+                          <div className="min-w-0">
+                            <h4 className="font-semibold text-ink text-sm sm:text-base mb-1">Service Address</h4>
+                            <p className="text-xs sm:text-sm text-ink-soft break-words">{address}</p>
                           </div>
                         </div>
                       </div>
 
                       {/* Info Notice */}
-                      <div className="mb-4 sm:mb-6 bg-amber-50 border border-amber-200 rounded-lg sm:rounded-xl p-3 sm:p-4">
+                      <div className="mb-4 sm:mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-3 sm:p-4">
                         <div className="flex justify-between gap-2">
-                          <span className="text-gray-600 text-xs sm:text-sm">{repeating ? 'Starts:' : 'Dates:'}</span>
-                          <span className="font-medium text-right text-xs sm:text-sm flex flex-col items-end">
+                          <span className="text-ink-soft text-xs sm:text-sm">{repeating ? 'Starts:' : 'Dates:'}</span>
+                          <span className="font-medium text-ink text-right text-xs sm:text-sm flex flex-col items-end">
                             {jobDates.map((date) => (
                               <span key={date}>{dayLabel(date, 'long')}</span>
                             ))}
                           </span>
                         </div>
                         <div className="flex items-start gap-2 mt-3">
-                          <span className="text-amber-500 text-lg">ℹ️</span>
+                          <Info aria-hidden="true" className="shrink-0 h-4 w-4 sm:h-5 sm:w-5 mt-0.5 text-amber-600" />
                           <p className="text-xs sm:text-sm text-amber-800">
                             <span className="font-semibold">Next step:</span> Authorize payment on the next page.
                             Your booking is confirmed only after successful payment authorization.
@@ -313,7 +314,7 @@ export default function BookingConfirmPage() {
                       <VisitSchedule live={live} className="mb-4 sm:mb-6" />
                       <SeriesConsent
                         answers={answers}
-                        className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-lg sm:rounded-xl"
+                        className="mb-4 sm:mb-6 p-3 sm:p-4 bg-paper border border-line rounded-2xl"
                       />
 
                       {/* Terms */}
@@ -324,13 +325,13 @@ export default function BookingConfirmPage() {
                             type="checkbox"
                             checked={acceptTerms}
                             onChange={(e) => setAcceptTerms(e.target.checked)}
-                            className="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 text-green-600 border-2 border-gray-300 rounded focus:ring-green-500"
+                            className="shrink-0 w-4 h-4 sm:w-5 sm:h-5 mt-0.5 accent-brand-600 text-brand-600 border border-line rounded focus:ring-brand-500"
                           />
-                          <label htmlFor="terms" className="ml-2 sm:ml-3 text-xs sm:text-sm text-gray-600">
+                          <label htmlFor="terms" className="ml-2 sm:ml-3 text-xs sm:text-sm text-ink-soft">
                             I agree to WorkOnTap&apos;s{' '}
-                            <Link href="/terms" className="text-green-700 hover:text-green-800 font-medium underline">Terms of Service</Link>
+                            <Link href="/terms" className="text-brand-700 hover:text-brand-800 font-medium underline">Terms of Service</Link>
                             {' '}and{' '}
-                            <Link href="/privacy" className="text-green-700 hover:text-green-800 font-medium underline">Privacy Policy</Link>
+                            <Link href="/privacy" className="text-brand-700 hover:text-brand-800 font-medium underline">Privacy Policy</Link>
                           </label>
                         </div>
                       </div>
@@ -339,11 +340,11 @@ export default function BookingConfirmPage() {
                       <button
                         onClick={handleProceedToPayment}
                         disabled={!canProceed}
-                        className={`w-full py-3 sm:py-4 rounded-lg sm:rounded-xl font-bold text-base sm:text-lg shadow-lg
+                        className={`w-full py-3 sm:py-4 min-h-[52px] rounded-2xl font-bold text-base sm:text-lg
                           flex items-center justify-center transition-all duration-300
                           ${!canProceed
-                            ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-green-700 to-green-600 text-white hover:from-green-800 hover:to-green-700 motion-safe:hover:scale-[1.02]'}`}
+                            ? 'bg-paper-deep text-ink-muted cursor-not-allowed'
+                            : 'bg-brand-500 text-white hover:bg-brand-600 shadow-lg shadow-brand-600/20 active:scale-[0.99]'}`}
                       >
                         {submitting ? (
                           <>
@@ -365,17 +366,19 @@ export default function BookingConfirmPage() {
                     </div>
                   ) : (
                     <div className="text-center py-4 sm:py-6 md:py-8">
-                      <span className="text-4xl sm:text-5xl md:text-6xl mb-3 sm:mb-4 block">🔐</span>
-                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Ready to book?</h3>
-                      <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">Create an account or log in to continue</p>
+                      <span aria-hidden="true" className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 border border-brand-100">
+                        <LockKeyhole className="h-7 w-7 text-brand-600" />
+                      </span>
+                      <h3 className="font-display text-2xl font-semibold tracking-tight text-ink mb-2">Ready to book?</h3>
+                      <p className="text-sm sm:text-base text-ink-soft mb-5 sm:mb-6">Create an account or log in to continue</p>
                       <div className="space-y-3 sm:space-y-4 max-w-sm mx-auto">
                         <Link
                           href="/signup?redirect=/booking/confirm"
-                          className="w-full bg-gradient-to-r from-green-700 to-green-600 text-white py-3 sm:py-4 rounded-lg sm:rounded-xl font-bold text-base sm:text-lg shadow-lg hover:from-green-800 hover:to-green-700 transition flex items-center justify-center shrink-0"
+                          className="w-full min-h-[52px] bg-brand-500 text-white py-3 sm:py-4 rounded-2xl font-bold text-base sm:text-lg shadow-lg shadow-brand-600/20 hover:bg-brand-600 transition flex items-center justify-center shrink-0"
                         >Sign Up</Link>
                         <Link
                           href="/login?redirect=/booking/confirm"
-                          className="w-full border-2 border-green-700 text-green-700 py-3 sm:py-4 rounded-lg sm:rounded-xl font-bold text-base sm:text-lg hover:bg-green-50 transition flex items-center justify-center shrink-0"
+                          className="w-full min-h-[52px] border border-line bg-white text-ink py-3 sm:py-4 rounded-2xl font-bold text-base sm:text-lg hover:border-ink/40 transition flex items-center justify-center shrink-0"
                         >Log In</Link>
                       </div>
                     </div>
@@ -387,7 +390,7 @@ export default function BookingConfirmPage() {
             {/* Sidebar */}
             <div className="lg:col-span-1">
               <div className="sticky top-24 space-y-4 sm:space-y-6">
-                <div className="rounded-xl border-2 border-green-100 overflow-hidden shadow-lg lg:rounded-none lg:border-0 lg:shadow-none lg:overflow-visible">
+                <div className="rounded-[28px] border border-line overflow-hidden shadow-card lg:rounded-none lg:border-0 lg:shadow-none lg:overflow-visible">
                   <PriceBox
                     live={live}
                     serviceName={flow.service_name}
@@ -397,24 +400,24 @@ export default function BookingConfirmPage() {
                   />
                 </div>
 
-                <div className="bg-white rounded-xl sm:rounded-2xl border-2 border-green-100 shadow-lg p-4 sm:p-6">
+                <div className="bg-white rounded-[28px] border border-line shadow-card p-5 sm:p-6">
                   <div className="flex items-start">
-                    <svg aria-hidden="true" className="w-4 h-4 sm:w-5 sm:h-5 text-green-700 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <svg aria-hidden="true" className="shrink-0 w-4 h-4 sm:w-5 sm:h-5 text-brand-600 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                     </svg>
-                    <div>
-                      <p className="text-xs sm:text-sm text-gray-700 font-medium mb-1">Service Location</p>
-                      <p className="text-xs text-gray-600">{address}</p>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-muted mb-1">Service Location</p>
+                      <p className="text-sm text-ink break-words">{address}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-green-800 to-green-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-lg">
-                  <div className="flex items-start space-x-4">
-                    <div className="text-3xl sm:text-4xl">🛡️</div>
+                <div className="relative overflow-hidden bg-brand-900 rounded-[28px] p-5 sm:p-6 text-white">
+                  <div className="relative flex items-start space-x-4">
+                    <div className="shrink-0 h-11 w-11 rounded-2xl bg-white/10 flex items-center justify-center"><ShieldCheck aria-hidden="true" className="h-6 w-6 text-brand-200" /></div>
                     <div>
-                      <h4 className="font-bold text-base sm:text-lg mb-2">You&apos;re Protected</h4>
-                      <p className="text-green-100 text-xs sm:text-sm">We back every job with our Homeowner Protection Promise.</p>
+                      <h4 className="font-display font-semibold text-lg mb-1.5">You&apos;re Protected</h4>
+                      <p className="text-white/75 text-xs sm:text-sm leading-relaxed">We back every job with our Homeowner Protection Promise.</p>
                     </div>
                   </div>
                 </div>

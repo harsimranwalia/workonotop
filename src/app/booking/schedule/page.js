@@ -71,10 +71,10 @@ function wholeCount(text) {
 function Stepper({ item, value, onChange }) {
   const id = `count-${item.kind}-${item.code}`;
   return (
-    <div role="group" aria-label={item.label} className="flex items-center justify-between gap-4 py-4 border-b border-gray-100 last:border-b-0">
+    <div role="group" aria-label={item.label} className="flex items-center justify-between gap-4 py-4 border-b border-line last:border-b-0">
       <div>
-        <p className="font-semibold text-gray-800">{item.label}</p>
-        <p className="text-sm text-gray-600">{formatMoney(item.amount)} each</p>
+        <p className="font-semibold text-ink">{item.label}</p>
+        <p className="text-sm text-ink-muted">{formatMoney(item.amount)} each</p>
       </div>
       <div className="flex items-center gap-2">
         <button
@@ -82,7 +82,7 @@ function Stepper({ item, value, onChange }) {
           aria-label={`Remove one ${item.label}`}
           disabled={value === 0}
           onClick={() => onChange(Math.max(0, value - 1))}
-          className="w-10 h-10 rounded-full border-2 border-gray-300 text-lg font-bold text-gray-700 hover:border-green-600 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
+          className="w-10 h-10 rounded-full border border-line bg-white text-lg font-bold text-ink transition hover:border-ink/40 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         >
           −
         </button>
@@ -95,13 +95,13 @@ function Stepper({ item, value, onChange }) {
           aria-label={item.label}
           value={value}
           onChange={(e) => onChange(wholeCount(e.target.value))}
-          className="w-16 p-2 text-center border-2 border-gray-200 rounded-lg text-gray-800 focus:outline-none focus:border-green-600 focus:ring-2 focus:ring-green-200"
+          className="w-16 p-2 text-center border border-line rounded-xl text-ink focus:outline-none focus:border-ink/40 focus:ring-4 focus:ring-brand-500/10"
         />
         <button
           type="button"
           aria-label={`Add one ${item.label}`}
           onClick={() => onChange(Math.min(Number.MAX_SAFE_INTEGER, value + 1))}
-          className="w-10 h-10 rounded-full border-2 border-gray-300 text-lg font-bold text-gray-700 hover:border-green-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
+          className="w-10 h-10 rounded-full border border-line bg-white text-lg font-bold text-ink transition hover:border-ink/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         >
           +
         </button>
@@ -113,7 +113,7 @@ function Stepper({ item, value, onChange }) {
 function RadioGroup({ legend, name, items, value, onChange }) {
   return (
     <fieldset className="mt-2">
-      <legend className="font-semibold text-gray-800 mb-3">{legend}</legend>
+      <legend className="font-semibold text-ink mb-3">{legend}</legend>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {items.map((item) => {
           const amount = Number(item.amount) > 0 ? `${isHourly(item) ? '' : '+'}${formatMoney(item.amount)}${isHourly(item) ? ' an hour' : ''}` : '';
@@ -121,11 +121,11 @@ function RadioGroup({ legend, name, items, value, onChange }) {
           return (
             <label
               key={item.code}
-              className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition focus-within:ring-2 focus-within:ring-green-600 ${checked ? 'border-green-700 bg-green-50' : 'border-gray-200 hover:border-green-500'}`}
+              className={`flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition focus-within:ring-2 focus-within:ring-brand-500 ${checked ? 'ring-2 ring-brand-500 border-brand-500 bg-brand-50' : 'border-line bg-white hover:border-ink/40'}`}
             >
-              <input type="radio" name={name} value={item.code} checked={checked} onChange={() => onChange(item)} className="w-4 h-4 accent-green-700" />
-              <span className="font-medium text-gray-800">{item.label}</span>
-              {amount && <span className="ml-auto text-sm text-gray-600">{amount}</span>}
+              <input type="radio" name={name} value={item.code} checked={checked} onChange={() => onChange(item)} className="w-4 h-4 accent-brand-600" />
+              <span className="font-medium text-ink">{item.label}</span>
+              {amount && <span className="ml-auto text-sm text-ink-muted">{amount}</span>}
             </label>
           );
         })}
@@ -137,7 +137,7 @@ function RadioGroup({ legend, name, items, value, onChange }) {
 function Spinner() {
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <div className="motion-safe:animate-spin rounded-full h-16 w-16 border-4 border-green-500 border-t-transparent"></div>
+      <div className="motion-safe:animate-spin rounded-full h-10 w-10 border-[3px] border-brand-500/20 border-t-brand-500"></div>
     </div>
   );
 }
@@ -307,8 +307,8 @@ function FlowContent({ serviceId }) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Service not found</h2>
-          <Link href="/services" className="text-green-700 hover:underline">Browse services</Link>
+          <h2 className="font-display text-2xl font-semibold text-ink mb-2">Service not found</h2>
+          <Link href="/services" className="text-brand-700 font-semibold hover:underline">Browse services</Link>
         </div>
       </div>
     );
@@ -345,18 +345,18 @@ function FlowContent({ serviceId }) {
     <>
       <Header />
 
-      <div className="bg-white border-b border-gray-200 py-3">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center text-sm text-gray-600">
-            <Link href="/" className="hover:text-green-700 transition">Home</Link>
-            <span className="mx-2">›</span>
-            <Link href="/services" className="hover:text-green-700 transition">Services</Link>
-            <span className="mx-2">›</span>
-            <Link href={`/services/${service.slug}`} className="hover:text-green-700 transition">{service.name}</Link>
+      <div className="bg-white border-b border-line py-3">
+        <div className="container mx-auto px-5 sm:px-6 max-w-7xl">
+          <div className="flex items-center min-w-0 text-sm text-ink-muted">
+            <Link href="/" className="shrink-0 hover:text-ink transition">Home</Link>
+            <span className="mx-2 shrink-0">›</span>
+            <Link href="/services" className="shrink-0 hover:text-ink transition">Services</Link>
+            <span className="mx-2 shrink-0">›</span>
+            <Link href={`/services/${service.slug}`} className="min-w-0 truncate hover:text-ink transition">{service.name}</Link>
             {current && (
               <>
-                <span className="mx-2">›</span>
-                <span className="text-gray-900 font-medium">{current.name}</span>
+                <span className="mx-2 shrink-0">›</span>
+                <span className="min-w-0 truncate text-ink font-medium">{current.name}</span>
               </>
             )}
           </div>
@@ -365,23 +365,23 @@ function FlowContent({ serviceId }) {
 
       {onBehalf.active && (
         <div className="bg-amber-50 border-b border-amber-300 py-2">
-          <p className="container mx-auto px-4 text-sm font-semibold text-amber-900">Booking for a customer</p>
+          <p className="container mx-auto px-5 sm:px-6 max-w-7xl text-sm font-semibold text-amber-900">Booking for a customer</p>
         </div>
       )}
 
-      <div className="container mx-auto px-4 py-8 md:py-12 pb-48 lg:pb-12">
+      <div className="container mx-auto px-5 sm:px-6 max-w-7xl py-8 md:py-12 pb-48 lg:pb-12">
         <div className="max-w-6xl mx-auto">
           <nav aria-label="Booking steps" className="mb-8 md:mb-10">
             {shown && shown.length > 1 && (
-              <p className="mb-3 text-sm md:text-base font-bold text-green-700">
-                <span className="bg-green-100 px-4 py-1.5 rounded-full inline-block">Step {stepIndex + 1} of {shown.length}</span>
-                <span className="sm:hidden text-gray-700 font-medium" aria-hidden="true"> · {current?.name}</span>
+              <p className="mb-3 text-sm font-semibold text-brand-700">
+                <span className="bg-brand-50 border border-brand-100 px-3.5 py-1.5 rounded-full inline-block">Step {stepIndex + 1} of {shown.length}</span>
+                <span className="sm:hidden text-ink-soft font-medium" aria-hidden="true"> · {current?.name}</span>
               </p>
             )}
             {shown && shown.length > 1 && (
               <div aria-hidden="true" className="flex gap-1.5 sm:hidden">
                 {shown.map((item, index) => (
-                  <span key={item.number} className={`h-2 flex-1 rounded-full ${index <= stepIndex ? 'bg-green-600' : 'bg-gray-200'}`}></span>
+                  <span key={item.number} className={`h-1.5 flex-1 rounded-full ${index <= stepIndex ? 'bg-brand-500' : 'bg-paper-deep'}`}></span>
                 ))}
               </div>
             )}
@@ -390,35 +390,35 @@ function FlowContent({ serviceId }) {
                 <li
                   key={item.number}
                   aria-current={item.number === step ? 'step' : undefined}
-                  className={`flex items-center gap-2 text-sm ${item.number === step ? 'font-semibold text-green-700' : index < stepIndex ? 'text-green-700' : 'text-gray-600'}`}
+                  className={`flex items-center gap-2 text-sm ${item.number === step ? 'font-semibold text-ink' : index < stepIndex ? 'text-brand-700' : 'text-ink-muted'}`}
                 >
-                  <span aria-hidden="true" className={`inline-block w-2.5 h-2.5 rounded-full ${index <= stepIndex ? 'bg-green-600' : 'bg-gray-300'}`}></span>
+                  <span aria-hidden="true" className={`inline-block w-2.5 h-2.5 rounded-full ${index <= stepIndex ? 'bg-brand-500' : 'bg-line'}`}></span>
                   {item.name}
                 </li>
               )) : (
-                <li aria-hidden="true"><span className="inline-block h-4 w-32 rounded bg-gray-200 motion-safe:animate-pulse"></span></li>
+                <li aria-hidden="true"><span className="inline-block h-4 w-32 rounded bg-paper-deep motion-safe:animate-pulse"></span></li>
               )}
             </ol>
           </nav>
 
-          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-8">Book {service.name}</h1>
+          <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight text-ink mb-8 break-words">Book {service.name}</h1>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
             <div className="lg:col-span-2">
               {!current ? (
                 <div aria-hidden="true" className="space-y-4 motion-safe:animate-pulse">
-                  <div className="h-8 w-1/2 rounded bg-gray-200"></div>
-                  <div className="h-24 rounded-2xl bg-gray-200"></div>
-                  <div className="h-24 rounded-2xl bg-gray-200"></div>
+                  <div className="h-8 w-1/2 rounded-xl bg-paper-deep"></div>
+                  <div className="h-24 rounded-[28px] bg-paper-deep"></div>
+                  <div className="h-24 rounded-[28px] bg-paper-deep"></div>
                 </div>
               ) : (
                 <fieldset disabled={locked} className="min-w-0">
-                  <h2 ref={headingRef} tabIndex={-1} className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 rounded">
+                  <h2 ref={headingRef} tabIndex={-1} className="font-display text-2xl font-semibold tracking-tight text-ink mb-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded">
                     {current.name}
                   </h2>
 
                   {current.number === 1 && (
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8 space-y-6">
+                    <div className="bg-white rounded-[28px] shadow-card border border-line p-5 sm:p-6 md:p-8 space-y-6">
                       {ofKind(choices, 'unit').length > 0 && (
                         <div>
                           {ofKind(choices, 'unit').map((item) => (
@@ -439,11 +439,11 @@ function FlowContent({ serviceId }) {
                   )}
 
                   {current.number === 2 && (
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8 space-y-6">
+                    <div className="bg-white rounded-[28px] shadow-card border border-line p-5 sm:p-6 md:p-8 space-y-6">
                       <RadioGroup legend="Choose an option" name="option" items={ofKind(choices, 'option')} value={selections.option} onChange={chooseOption} />
                       {isHourly(chosenOption) && (
                         <div>
-                          <label htmlFor="booking-hours" className="block font-semibold text-gray-800 mb-2">How many hours?</label>
+                          <label htmlFor="booking-hours" className="block font-semibold text-ink mb-2">How many hours?</label>
                           <input
                             id="booking-hours"
                             type="number"
@@ -458,16 +458,16 @@ function FlowContent({ serviceId }) {
                             }}
                             aria-invalid={hoursRefused ? 'true' : undefined}
                             aria-describedby={hoursRefused ? HOURS_MESSAGE_ID : undefined}
-                            className={`w-32 p-3 border-2 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-200 ${hoursRefused ? 'border-amber-600' : 'border-gray-200 focus:border-green-600'}`}
+                            className={`w-32 p-3 border rounded-xl text-ink focus:outline-none focus:ring-4 focus:ring-brand-500/10 ${hoursRefused ? 'border-amber-600' : 'border-line focus:border-ink/40'}`}
                           />
-                          <p className="mt-3 text-sm text-gray-600">Priced by the hour: the hours you choose set the price.</p>
+                          <p className="mt-3 text-sm text-ink-muted">Priced by the hour: the hours you choose set the price.</p>
                         </div>
                       )}
                     </div>
                   )}
 
                   {current.number === 3 && (
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8">
+                    <div className="bg-white rounded-[28px] shadow-card border border-line p-5 sm:p-6 md:p-8">
                       {ofKind(choices, 'extra').map((item) => (
                         <Stepper key={item.code} item={item} value={wholeCount(selections.extras[item.code])} onChange={(count) => setCount('extras', item.code, count)} />
                       ))}
@@ -483,7 +483,7 @@ function FlowContent({ serviceId }) {
               {live.status === 'quote' && <QuoteRequestForm serviceId={serviceId} answers={live.answers} />}
             </div>
 
-            <aside className="fixed inset-x-0 bottom-0 z-30 max-h-[50vh] overflow-y-auto border-t border-gray-200 bg-white shadow-lg lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:border-0 lg:bg-transparent lg:shadow-none lg:col-span-1">
+            <aside className="fixed inset-x-0 bottom-0 z-30 max-h-[50vh] overflow-y-auto border-t border-line bg-white shadow-lift lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:border-0 lg:bg-transparent lg:shadow-none lg:col-span-1">
               <div className="lg:sticky lg:top-24 lg:space-y-6">
                 <PriceBox
                   live={live}
@@ -506,7 +506,7 @@ function FlowContent({ serviceId }) {
                     <button
                       type="button"
                       onClick={() => goTo(shown[stepIndex - 1].number)}
-                      className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-xl hover:bg-gray-100 transition font-medium text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
+                      className="flex-1 px-6 py-3 min-h-[52px] border border-line bg-white rounded-2xl hover:border-ink/40 transition font-semibold text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                     >
                       Back
                     </button>
@@ -515,7 +515,7 @@ function FlowContent({ serviceId }) {
                     type="button"
                     onClick={handleContinue}
                     disabled={!canContinue}
-                    className={`flex-1 px-6 py-3 rounded-xl font-bold text-lg shadow-lg transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-600 ${canContinue ? 'bg-gradient-to-r from-green-700 to-green-600 text-white hover:from-green-800 hover:to-green-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}
+                    className={`flex-1 px-6 py-3 min-h-[52px] rounded-2xl font-bold text-lg transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-500 ${canContinue ? 'bg-brand-500 hover:bg-brand-600 text-white shadow-lg shadow-brand-600/20 active:scale-[0.99]' : 'bg-paper-deep text-ink-muted cursor-not-allowed'}`}
                   >
                     {uploading ? 'Uploading...' : 'Continue'}
                   </button>
@@ -538,7 +538,7 @@ function ScheduleContent() {
 
 export default function BookingSchedulePage() {
   return (
-    <div className="min-h-screen bg-gray-50/50 font-sans antialiased">
+    <div className="min-h-screen bg-paper font-sans antialiased text-ink">
       <Suspense>
         <ScheduleContent />
       </Suspense>

@@ -31,16 +31,16 @@ export default function VisitSchedule({ live, className = '' }) {
       data-testid="visit-schedule"
       aria-labelledby={HEADING_ID}
       aria-busy={busy}
-      className={`rounded-lg sm:rounded-xl border border-green-200 bg-green-50 p-3 sm:p-4 ${className}`.trim()}
+      className={`rounded-xl sm:rounded-2xl border border-brand-100 bg-brand-50 p-3 sm:p-4 ${className}`.trim()}
     >
-      <h3 id={HEADING_ID} className="font-semibold text-gray-900 text-sm sm:text-base mb-2">Your visits</h3>
+      <h3 id={HEADING_ID} className="font-semibold text-ink text-sm sm:text-base mb-2">Your visits</h3>
       {busy ? (
-        <p role="status" aria-live="polite" aria-atomic="true" className="flex items-center text-xs sm:text-sm text-gray-700 font-medium">
-          <span aria-hidden="true" className="mr-2 inline-block h-4 w-4 rounded-full border-2 border-green-600 border-t-transparent motion-safe:animate-spin"></span>
+        <p role="status" aria-live="polite" aria-atomic="true" className="flex items-center text-xs sm:text-sm text-ink-soft font-medium">
+          <span aria-hidden="true" className="mr-2 inline-block h-4 w-4 rounded-full border-2 border-brand-500 border-t-transparent motion-safe:animate-spin"></span>
           {live.status === 'loading' ? 'Working out your visits…' : 'Updating visits…'}
         </p>
       ) : (
-        <ol role="list" className="divide-y divide-green-100 text-xs sm:text-sm text-gray-800">
+        <ol role="list" className="divide-y divide-brand-100 text-xs sm:text-sm text-ink">
           {listed.map(({ visit, number }) => (
             <li key={number} data-testid="visit-line" className="py-1.5 first:pt-0 last:pb-0">
               {`Visit ${number} · ${dayLabel(visit.date, 'weekday')} · ${formatMoney(visit.price)}`}

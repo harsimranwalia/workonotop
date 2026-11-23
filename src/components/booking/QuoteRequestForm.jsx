@@ -27,7 +27,7 @@ const FIELD_SPECS = [
 ];
 const REFUSABLE_FIELDS = [...FIELD_SPECS.map((spec) => spec.key), 'message'];
 
-const FIELD_CLASS = 'w-full p-3 border-2 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-200';
+const FIELD_CLASS = 'w-full p-3 border rounded-xl bg-white text-ink transition focus:outline-none focus:ring-4 focus:ring-brand-500/10';
 
 // `answers` are the answers the quote is for (the live price's `answers`), sent as they are.
 export default function QuoteRequestForm({ serviceId, answers }) {
@@ -103,33 +103,33 @@ export default function QuoteRequestForm({ serviceId, answers }) {
 
   if (phase === 'sent') {
     return (
-      <section aria-labelledby={idOf('heading')} data-testid="quote-request-sent" className="mt-8 bg-white rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8">
+      <section aria-labelledby={idOf('heading')} data-testid="quote-request-sent" className="mt-8 bg-white rounded-[28px] shadow-card border border-line p-5 sm:p-6 md:p-8">
         <h2
           id={idOf('heading')}
           ref={sentHeading}
           tabIndex={-1}
           aria-describedby={idOf('sent')}
-          className="text-2xl font-bold text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 rounded"
+          className="font-display text-2xl font-semibold tracking-tight text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
         >
           Request sent
         </h2>
-        <p id={idOf('sent')} className="mt-2 text-gray-700">Thanks, we have your request. We&apos;ll be in touch at {sentTo}.</p>
+        <p id={idOf('sent')} className="mt-2 text-ink-soft">Thanks, we have your request. We&apos;ll be in touch at {sentTo}.</p>
       </section>
     );
   }
 
   const messageError = fieldErrors.message;
   return (
-    <section aria-labelledby={idOf('heading')} data-testid="quote-request-form" className="mt-8 bg-white rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8">
-      <h2 id={idOf('heading')} className="text-2xl font-bold text-gray-900">Ask for a quote</h2>
-      <p className="mt-2 text-gray-700">Tell us about the job and we&apos;ll come back to you with a price.</p>
+    <section aria-labelledby={idOf('heading')} data-testid="quote-request-form" className="mt-8 bg-white rounded-[28px] shadow-card border border-line p-5 sm:p-6 md:p-8">
+      <h2 id={idOf('heading')} className="font-display text-2xl font-semibold tracking-tight text-ink">Ask for a quote</h2>
+      <p className="mt-2 text-ink-soft">Tell us about the job and we&apos;ll come back to you with a price.</p>
 
       <form onSubmit={submit} className="mt-6 space-y-5">
         {FIELD_SPECS.map(({ key, label, type, max, required, autoComplete }) => {
           const error = fieldErrors[key];
           return (
             <div key={key}>
-              <label htmlFor={idOf(key)} className="block text-sm font-semibold text-gray-800 mb-2">
+              <label htmlFor={idOf(key)} className="block text-sm font-semibold text-ink mb-2">
                 {label}{required && <span aria-hidden="true" className="text-red-600"> *</span>}
               </label>
               <input
@@ -144,7 +144,7 @@ export default function QuoteRequestForm({ serviceId, answers }) {
                 autoComplete={autoComplete}
                 aria-invalid={error ? 'true' : undefined}
                 aria-describedby={error ? idOf(`${key}-error`) : undefined}
-                className={`${FIELD_CLASS} ${error ? 'border-red-400' : 'border-gray-200 focus:border-green-600'}`}
+                className={`${FIELD_CLASS} ${error ? 'border-red-400' : 'border-line focus:border-ink/40'}`}
               />
               {error && <p id={idOf(`${key}-error`)} className="mt-2 text-sm font-medium text-red-700">{error}</p>}
             </div>
@@ -152,7 +152,7 @@ export default function QuoteRequestForm({ serviceId, answers }) {
         })}
 
         <div>
-          <label htmlFor={idOf('message')} className="block text-sm font-semibold text-gray-800 mb-2">
+          <label htmlFor={idOf('message')} className="block text-sm font-semibold text-ink mb-2">
             About the job<span aria-hidden="true" className="text-red-600"> *</span>
           </label>
           <textarea
@@ -166,7 +166,7 @@ export default function QuoteRequestForm({ serviceId, answers }) {
             required
             aria-invalid={messageError ? 'true' : undefined}
             aria-describedby={messageError ? idOf('message-error') : undefined}
-            className={`${FIELD_CLASS} resize-y ${messageError ? 'border-red-400' : 'border-gray-200 focus:border-green-600'}`}
+            className={`${FIELD_CLASS} resize-y ${messageError ? 'border-red-400' : 'border-line focus:border-ink/40'}`}
           />
           {messageError && <p id={idOf('message-error')} className="mt-2 text-sm font-medium text-red-700">{messageError}</p>}
         </div>
@@ -175,7 +175,7 @@ export default function QuoteRequestForm({ serviceId, answers }) {
           <button
             type="submit"
             disabled={phase === 'sending'}
-            className="px-6 py-3 rounded-xl font-bold text-lg shadow-lg transition bg-gradient-to-r from-green-700 to-green-600 text-white hover:from-green-800 hover:to-green-700 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-600"
+            className="w-full sm:w-auto px-6 py-3 min-h-[52px] rounded-2xl font-bold text-lg shadow-lg shadow-brand-600/20 transition bg-brand-500 text-white hover:bg-brand-600 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-500"
           >
             {phase === 'sending' ? 'Sending…' : 'Send request'}
           </button>
@@ -183,7 +183,7 @@ export default function QuoteRequestForm({ serviceId, answers }) {
             role="status"
             aria-live="polite"
             data-testid="quote-request-status"
-            className={`mt-3 text-sm font-medium ${phase === 'error' ? 'text-red-700' : 'text-gray-700'}`}
+            className={`mt-3 text-sm font-medium ${phase === 'error' ? 'text-red-700' : 'text-ink-soft'}`}
           >
             {statusText}
           </p>

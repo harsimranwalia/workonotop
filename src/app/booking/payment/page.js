@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Lock, Timer } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import SeriesConsent from '@/components/booking/SeriesConsent';
@@ -96,7 +97,7 @@ function PaymentForm({ pendingBookingData, clientSecret, onSuccess, onBack }) {
       <PaymentElement />
 
       {error && (
-        <div role="alert" className="p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs sm:text-sm">
+        <div role="alert" className="p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs sm:text-sm">
           <p>{error}</p>
           {paymentReference && (
             <>
@@ -104,7 +105,7 @@ function PaymentForm({ pendingBookingData, clientSecret, onSuccess, onBack }) {
               <button
                 type="button"
                 onClick={onBack}
-                className="mt-3 inline-block bg-gray-200 text-gray-800 px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-gray-300 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
+                className="mt-3 inline-block bg-white border border-line text-ink px-6 py-2.5 rounded-2xl font-semibold text-sm hover:border-ink/40 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
               >← Go Back</button>
             </>
           )}
@@ -114,7 +115,7 @@ function PaymentForm({ pendingBookingData, clientSecret, onSuccess, onBack }) {
       <button
         type="submit"
         disabled={!stripe || processing || paymentReference !== null}
-        className="w-full bg-gradient-to-r from-green-700 to-green-600 text-white py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg shadow-lg hover:from-green-800 hover:to-green-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+        className="w-full min-h-[52px] bg-brand-500 text-white py-3 sm:py-4 px-4 rounded-2xl font-bold text-base sm:text-lg shadow-lg shadow-brand-600/20 hover:bg-brand-600 transition active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2"
       >
         {processing ? (
           <>
@@ -129,8 +130,8 @@ function PaymentForm({ pendingBookingData, clientSecret, onSuccess, onBack }) {
         )}
       </button>
 
-      <p className="text-[10px] sm:text-xs text-center text-gray-500 px-2">
-        🔒 Your booking is confirmed only after successful payment authorization.
+      <p className="text-xs text-center text-ink-muted px-2">
+        <Lock aria-hidden="true" className="inline-block -mt-0.5 mr-1 h-3.5 w-3.5 text-brand-600" />Your booking is confirmed only after successful payment authorization.
       </p>
     </form>
   );
@@ -221,8 +222,8 @@ export default function PaymentPage() {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="flex flex-col items-center gap-3">
-          <div className="motion-safe:animate-spin rounded-full h-12 sm:h-16 w-12 sm:w-16 border-4 border-green-500 border-t-transparent"></div>
-          <p className="text-sm sm:text-base text-gray-600">Loading payment details...</p>
+          <div className="motion-safe:animate-spin rounded-full h-10 w-10 border-[3px] border-brand-500/20 border-t-brand-500"></div>
+          <p className="text-sm sm:text-base text-ink-muted">Loading payment details...</p>
         </div>
       </div>
     );
@@ -232,8 +233,8 @@ export default function PaymentPage() {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Booking not found</h2>
-          <Link href="/services" className="text-green-700 hover:underline text-sm sm:text-base">Browse services</Link>
+          <h2 className="font-display text-2xl font-semibold text-ink mb-2">Booking not found</h2>
+          <Link href="/services" className="text-brand-700 font-semibold hover:underline text-sm sm:text-base">Browse services</Link>
         </div>
       </div>
     );
@@ -248,74 +249,74 @@ export default function PaymentPage() {
   const repeating = isRepeating(pendingBookingData.answers?.frequency);
 
   return (
-    <div className="min-h-screen bg-gray-50/50 font-sans antialiased">
+    <div className="min-h-screen bg-paper font-sans antialiased text-ink">
       <Header />
 
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
+      <div className="container mx-auto px-5 sm:px-6 max-w-7xl py-8 md:py-12">
         <div className="max-w-2xl mx-auto">
 
           {/* Progress Bar - Payment */}
           <div className="mb-4 sm:mb-6 md:mb-8">
             <div className="flex items-center justify-between mb-2 sm:mb-3">
-              <span className="text-[10px] sm:text-xs font-bold text-green-700 bg-green-100 px-2 sm:px-4 py-1 sm:py-1.5 rounded-full">
+              <span className="text-xs font-semibold tracking-[0.12em] text-brand-700 bg-brand-50 border border-brand-100 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full">
                 PAYMENT
               </span>
-              <span className="text-[10px] sm:text-xs text-gray-500 font-medium">Authorize & Confirm</span>
+              <span className="text-xs sm:text-sm text-ink-muted font-medium">Authorize & Confirm</span>
             </div>
-            <div className="h-1.5 sm:h-2 md:h-2.5 bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-green-600 to-green-500 rounded-full" style={{ width: '100%' }}></div>
+            <div className="h-1.5 sm:h-2 bg-paper-deep rounded-full overflow-hidden">
+              <div className="h-full bg-brand-500 rounded-full" style={{ width: '100%' }}></div>
             </div>
           </div>
 
           {/* Main Card */}
-          <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-green-800 to-green-700 px-4 sm:px-6 py-4 sm:py-6 md:py-8 text-center">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 md:mb-4 backdrop-blur-sm">
-                <svg className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-white rounded-[28px] border border-line shadow-lift overflow-hidden">
+            <div className="px-5 sm:px-6 md:px-8 pt-7 pb-6 border-b border-line text-center">
+              <div className="w-14 h-14 bg-brand-50 border border-brand-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg className="w-7 h-7 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
               </div>
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1 sm:mb-2">Authorize & Confirm Booking</h1>
-              <p className="text-green-100 text-xs sm:text-sm px-2">
+              <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight text-ink mb-2">Authorize & Confirm Booking</h1>
+              <p className="text-ink-soft text-sm px-2">
                 Your booking is confirmed only after successful payment authorization
               </p>
             </div>
 
-            <div className="p-4 sm:p-5 md:p-6">
+            <div className="p-5 sm:p-6 md:p-8">
               {/* Booking Summary */}
-              <div className="mb-4 sm:mb-5 md:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg sm:rounded-xl border border-gray-200">
-                <h3 className="font-semibold text-gray-900 text-sm sm:text-base mb-2 sm:mb-3">Booking Summary</h3>
+              <div className="mb-5 sm:mb-6 p-4 sm:p-5 bg-paper rounded-2xl border border-line">
+                <h3 className="font-display font-semibold text-ink text-base sm:text-lg mb-3">Booking Summary</h3>
                 <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                   <div className="flex justify-between gap-2">
-                    <span className="text-gray-600">Service:</span>
-                    <span className="font-medium text-right break-words max-w-[60%]">{pendingBookingData.service_name}</span>
+                    <span className="shrink-0 text-ink-muted">Service:</span>
+                    <span className="font-medium text-ink text-right break-words max-w-[60%]">{pendingBookingData.service_name}</span>
                   </div>
                   <div className="flex justify-between gap-2">
-                    <span className="text-gray-600">{repeating ? 'Starts:' : 'Dates:'}</span>
-                    <span className="font-medium text-right flex flex-col items-end text-xs sm:text-sm">
+                    <span className="shrink-0 text-ink-muted">{repeating ? 'Starts:' : 'Dates:'}</span>
+                    <span className="font-medium text-ink text-right flex flex-col items-end text-xs sm:text-sm">
                       {jobDates.map((d, i) => (
                         <span key={`${d}-${i}`}>{dayLabel(d, 'long')}</span>
                       ))}
                     </span>
                   </div>
                   <div className="flex justify-between gap-2">
-                    <span className="text-gray-600">Address:</span>
-                    <span className="font-medium text-right max-w-[60%]">{pendingBookingData.address_line1}</span>
+                    <span className="shrink-0 text-ink-muted">Address:</span>
+                    <span className="font-medium text-ink text-right break-words max-w-[60%]">{pendingBookingData.address_line1}</span>
                   </div>
 
-                  <div className="pt-2 border-t border-gray-200">
+                  <div className="pt-2 border-t border-line">
                     {overtimeRate !== null && (
-                      <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-xs sm:text-sm font-medium text-blue-800">
-                          ⏱️ Overtime: {cad.format(overtimeRate)}/hr (Billed separately if used)
+                      <div className="mt-2 sm:mt-3 p-2.5 sm:p-3 bg-white border border-line rounded-xl">
+                        <p className="text-xs sm:text-sm font-medium text-ink-soft">
+                          <Timer aria-hidden="true" className="inline-block -mt-0.5 mr-1.5 h-4 w-4 text-brand-600" />Overtime: {cad.format(overtimeRate)}/hr (Billed separately if used)
                         </p>
                       </div>
                     )}
 
                     {heldAmount !== null && (
-                      <div className="flex justify-between pt-2 sm:pt-3 mt-2 border-t border-gray-300">
-                        <span className="font-bold text-gray-900 text-xs sm:text-sm">Amount held on your card</span>
-                        <span className="font-bold text-green-700 text-base sm:text-lg md:text-xl">{cad.format(heldAmount)}</span>
+                      <div className="flex justify-between items-baseline gap-2 pt-2 sm:pt-3 mt-2 border-t border-line">
+                        <span className="font-semibold text-ink text-xs sm:text-sm">Amount held on your card</span>
+                        <span className="font-display font-semibold text-ink text-lg sm:text-xl md:text-2xl">{cad.format(heldAmount)}</span>
                       </div>
                     )}
 
@@ -327,8 +328,8 @@ export default function PaymentPage() {
               {/* Payment Element */}
               {fetchingIntent ? (
                 <div className="flex flex-col items-center py-8 gap-3">
-                  <div className="motion-safe:animate-spin rounded-full h-10 w-10 border-4 border-green-500 border-t-transparent"></div>
-                  <p className="text-sm text-gray-500">Setting up payment...</p>
+                  <div className="motion-safe:animate-spin rounded-full h-10 w-10 border-[3px] border-brand-500/20 border-t-brand-500"></div>
+                  <p className="text-sm text-ink-muted">Setting up payment...</p>
                 </div>
               ) : intentError ? (
                 <div role="alert" className="text-center py-6">
@@ -337,7 +338,7 @@ export default function PaymentPage() {
                       <p className="text-red-600 text-sm mb-4">Your session has expired. Please sign in again to finish your booking.</p>
                       <Link
                         href="/login?redirect=/booking/payment"
-                        className="inline-block bg-green-700 text-white px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-green-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
+                        className="inline-block bg-brand-500 text-white px-6 py-2.5 rounded-2xl font-semibold text-sm shadow-lg shadow-brand-600/20 hover:bg-brand-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
                       >Log In</Link>
                     </>
                   ) : intentError.kind === 'answers' ? (
@@ -345,7 +346,7 @@ export default function PaymentPage() {
                       <p className="text-red-600 text-sm mb-4">{intentError.message}</p>
                       <Link
                         href={`/booking/schedule?service=${encodeURIComponent(pendingBookingData.service_id)}&step=1`}
-                        className="inline-block bg-green-700 text-white px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-green-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
+                        className="inline-block bg-brand-500 text-white px-6 py-2.5 rounded-2xl font-semibold text-sm shadow-lg shadow-brand-600/20 hover:bg-brand-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
                       >Change your answers</Link>
                     </>
                   ) : intentError.kind === 'unavailable' ? (
@@ -353,7 +354,7 @@ export default function PaymentPage() {
                       <p className="text-red-600 text-sm mb-4">This service isn&apos;t available for booking right now.</p>
                       <Link
                         href="/services"
-                        className="inline-block bg-green-700 text-white px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-green-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-700 focus-visible:ring-offset-2"
+                        className="inline-block bg-brand-500 text-white px-6 py-2.5 rounded-2xl font-semibold text-sm shadow-lg shadow-brand-600/20 hover:bg-brand-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
                       >Browse services</Link>
                     </>
                   ) : (
@@ -361,7 +362,7 @@ export default function PaymentPage() {
                       <p className="text-red-600 text-sm mb-4">Could not initialize payment. Please go back and try again.</p>
                       <button
                         onClick={() => router.push('/booking/confirm')}
-                        className="inline-block bg-gray-200 text-gray-800 px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-gray-300 transition"
+                        className="inline-block bg-white border border-line text-ink px-6 py-2.5 rounded-2xl font-semibold text-sm hover:border-ink/40 transition"
                       >← Go Back</button>
                     </>
                   )}

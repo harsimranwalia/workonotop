@@ -19,8 +19,8 @@ export default function BookingDetailsPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="motion-safe:animate-spin rounded-full h-16 w-16 border-4 border-green-500 border-t-transparent"></div>
+    <div className="min-h-screen flex items-center justify-center bg-paper">
+      <div className="motion-safe:animate-spin rounded-full h-10 w-10 border-[3px] border-brand-500/20 border-t-brand-500"></div>
     </div>
   );
 }
