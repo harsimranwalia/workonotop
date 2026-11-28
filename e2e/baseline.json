@@ -2670,6 +2670,18 @@
     "booking-guided-flow.spec.js › Guided booking flow › when the service's choices change between taps the page reloads them and asks the customer to check": {
       "outcome": "PASS"
     },
+    "booking-log.spec.js › Booking log › POST /api/bookings: a booking that fails logs the error's code and nothing the driver or the parser said": {
+      "outcome": "PASS"
+    },
+    "booking-log.spec.js › Booking log › POST /api/bookings: a public checkout logs the booking number and none of the customer's details, and the answer and the rows are what they were": {
+      "outcome": "PASS"
+    },
+    "booking-log.spec.js › Booking log › PUT /api/bookings: an admin's edit logs the booking id and none of the body, and the answer and the rows are what they were": {
+      "outcome": "PASS"
+    },
+    "booking-log.spec.js › Booking log › PUT /api/bookings: an edit that fails logs the error's code and nothing the driver said": {
+      "outcome": "PASS"
+    },
     "booking-payment.spec.js › Booking payment › 999,999.99 is taken and 1,000,000.00 is refused as larger than a card payment can take": {
       "outcome": "PASS"
     },

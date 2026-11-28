@@ -370,10 +370,8 @@ export async function POST(request) {
     await connection.query('START TRANSACTION')
 
     try {
-      console.log('[API Bookings] Creating booking for:', email, bookingNumber);
-      console.log('[API Bookings] Payload:', {
-        service_id, first_name, last_name, email, phone, address_line1, job_description
-      });
+      // The booking is named by its number; nothing the customer typed is logged (BUG-016).
+      console.log(`[API Bookings] Creating booking ${bookingNumber}`);
 
       const [result] = await connection.execute(
         `INSERT INTO bookings
@@ -523,7 +521,8 @@ export async function POST(request) {
       throw err
     }
   } catch (error) {
-    console.error('Error creating booking:', error)
+    // The code alone is logged: a driver's or a parser's message can carry what the customer sent (BUG-016).
+    console.error(`Error creating booking: ${error?.code || error?.name}`)
     return NextResponse.json({ success: false, message: 'Failed to create booking: ' + error.message }, { status: 500 })
   } finally {
     if (connection) connection.release()
@@ -538,7 +537,7 @@ export async function PUT(request) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     const body = await request.json();
-    console.log(`[API PUT /api/bookings] ID: ${id}, Body:`, body);
+    console.log(`[API PUT /api/bookings] ID: ${id}`);
 
     const { status, provider_id, notes, job_time_slot, commission_percent, payment_status } = body;
 
@@ -717,12 +716,12 @@ export async function PUT(request) {
 
       return NextResponse.json({ success: true, message: 'Booking updated successfully' });
     } catch (err) {
-      console.error('[API PUT Inner Error]', err);
+      console.error(`[API PUT Inner Error] ${err?.code || err?.name}`);
       await connection.query('ROLLBACK');
       throw err;
     }
   } catch (error) {
-    console.error('[API PUT Outer Error]', error);
+    console.error(`[API PUT Outer Error] ${error?.code || error?.name}`);
     return NextResponse.json({ success: false, message: 'Failed to update booking: ' + error.message }, { status: 500 });
   } finally {
     if (connection) connection.release();
